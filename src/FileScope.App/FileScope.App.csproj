@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Description>FileScope desktop file analysis.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FileScope.Core\FileScope.Core.csproj" />
+  </ItemGroup>
+</Project>

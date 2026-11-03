@@ -1,0 +1,355 @@
+using System.Collections.ObjectModel;
+using System.Windows.Data;
+using System.Windows.Markup;
+using FileScope.App.Infrastructure;
+using FileScope.App.Localization;
+using FileScope.App.Services;
+using FileScope.Core.Abstractions;
+using FileScope.Core.Models;
+
+namespace FileScope.App.ViewModels;
+
+public sealed class MainViewModel : ObservableObject, IDisposable
+{
+    private readonly IFileAnalysisService _analysis;
+    private readonly IFilePickerService _picker;
+    private readonly LocalizationService _strings;
+    private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource? _cancellation;
+    private bool _busy, _clearRequested, _disposed, _inspectCertificates = true, _onlineRevocation;
+    private bool _checkingSignature;
+    private long _epoch;
+    private int _processed, _batchTotal, _skipped;
+    private double _progress;
+    private string _searchText = "", _currentFile = "", _statusKey = "Ready", _lastError = "";
+    private FileRowViewModel? _selectedRow;
+    private LanguageOption _selectedLanguage;
+    private FilterOption<RowStatus?> _stateFilter;
+    private FilterOption<SignatureFilter> _signatureFilter;
+
+    public ObservableCollection<FileRowViewModel> Rows { get; } = [];
+    public ListCollectionView RowsView { get; }
+    public IReadOnlyList<ChecksumOption> ChecksumOptions { get; } = Array.AsReadOnly(new[]
+    {
+        new ChecksumOption(ChecksumAlgorithm.MD5, "MD5", false),
+        new ChecksumOption(ChecksumAlgorithm.SHA1, "SHA-1", false),
+        new ChecksumOption(ChecksumAlgorithm.SHA256, "SHA-256", true),
+        new ChecksumOption(ChecksumAlgorithm.SHA384, "SHA-384", false),
+        new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", false)
+    });
+    public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
+    public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
+    public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
+    public AsyncRelayCommand BrowseCommand { get; }
+    public AsyncRelayCommand DropFilesCommand { get; }
+    public AsyncRelayCommand ReanalyseCommand { get; }
+    public RelayCommand CancelCommand { get; }
+    public RelayCommand ClearCommand { get; }
+    public RelayCommand ResetFiltersCommand { get; }
+
+    public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings)
+    {
+        _analysis = analysis;
+        _picker = picker;
+        _strings = strings;
+        _selectedLanguage = Languages.First(l => l.CultureName == strings.Culture.Name);
+        StateFilters = Array.AsReadOnly(new[]
+        {
+            new FilterOption<RowStatus?>(null, "AllStates", strings),
+            new FilterOption<RowStatus?>(RowStatus.Queued, "Row_Queued", strings),
+            new FilterOption<RowStatus?>(RowStatus.Running, "Row_Running", strings),
+            new FilterOption<RowStatus?>(RowStatus.Completed, "Row_Completed", strings),
+            new FilterOption<RowStatus?>(RowStatus.Failed, "Row_Failed", strings),
+            new FilterOption<RowStatus?>(RowStatus.Cancelled, "Row_Cancelled", strings)
+        });
+        SignatureFilters = Array.AsReadOnly(new[]
+        {
+            new FilterOption<SignatureFilter>(SignatureFilter.All, "AllSignatures", strings),
+            new FilterOption<SignatureFilter>(SignatureFilter.Valid, "Filter_Valid", strings),
+            new FilterOption<SignatureFilter>(SignatureFilter.NoSignature, "Signature_NoEmbeddedSignature", strings),
+            new FilterOption<SignatureFilter>(SignatureFilter.Attention, "Filter_Attention", strings),
+            new FilterOption<SignatureFilter>(SignatureFilter.NotChecked, "Signature_NotChecked", strings)
+        });
+        _stateFilter = StateFilters[0];
+        _signatureFilter = SignatureFilters[0];
+        RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
+        RowsView.Filter = MatchesFilters;
+        BrowseCommand = new AsyncRelayCommand(async _ =>
+            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => IsIdle);
+        DropFilesCommand = new AsyncRelayCommand(p => AddFilesAsync((string[])p!), OnCommandError,
+            p => IsIdle && p is string[] { Length: > 0 });
+        ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
+            _ => IsIdle && HasRows);
+        CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
+        ClearCommand = new RelayCommand(Clear, () => HasRows && !_clearRequested);
+        ResetFiltersCommand = new RelayCommand(ResetFilters);
+        strings.CultureChanged += OnCultureChanged;
+    }
+
+    public bool IsBusy
+    {
+        get => _busy;
+        private set
+        {
+            if (!SetProperty(ref _busy, value)) return;
+            OnPropertyChanged(nameof(IsIdle));
+            OnPropertyChanged(nameof(CanChooseOnlineRevocation));
+            NotifyCommands();
+        }
+    }
+    public bool IsIdle => !IsBusy && !_disposed;
+    public bool HasRows => Rows.Count > 0;
+    public bool ShowEmptyState => Rows.Count == 0;
+    public bool ShowNoMatches => HasRows && RowsView.Count == 0;
+    public bool InspectCertificates
+    {
+        get => _inspectCertificates;
+        set { if (SetProperty(ref _inspectCertificates, value)) OnPropertyChanged(nameof(CanChooseOnlineRevocation)); }
+    }
+    public bool OnlineRevocation { get => _onlineRevocation; set => SetProperty(ref _onlineRevocation, value); }
+    public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
+    public bool IsCheckingSignature { get => _checkingSignature; private set => SetProperty(ref _checkingSignature, value); }
+    public double Progress { get => _progress; private set => SetProperty(ref _progress, value); }
+    public string CurrentFile { get => _currentFile; private set => SetProperty(ref _currentFile, value); }
+    public string LastError { get => _lastError; private set => SetProperty(ref _lastError, value); }
+    public bool HasError => LastError.Length != 0;
+    public string StatusText => _strings.Format(_statusKey, _processed, _batchTotal, _skipped);
+    public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
+    public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
+    public FileRowViewModel? SelectedRow { get => _selectedRow; set => SetProperty(ref _selectedRow, value); }
+    public string SearchText
+    {
+        get => _searchText;
+        set { if (SetProperty(ref _searchText, value)) RefreshView(); }
+    }
+    public FilterOption<RowStatus?> StateFilter
+    {
+        get => _stateFilter;
+        set { if (value is not null && SetProperty(ref _stateFilter, value)) RefreshView(); }
+    }
+    public FilterOption<SignatureFilter> SignatureFilterOption
+    {
+        get => _signatureFilter;
+        set { if (value is not null && SetProperty(ref _signatureFilter, value)) RefreshView(); }
+    }
+    public LanguageOption SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            if (value is not null && SetProperty(ref _selectedLanguage, value)) _strings.SetCulture(value.CultureName);
+        }
+    }
+
+    private async Task AddFilesAsync(IEnumerable<string> paths)
+    {
+        if (!IsIdle) return;
+        var added = new List<FileRowViewModel>();
+        _skipped = 0;
+        using (RowsView.DeferRefresh())
+        {
+            foreach (var path in paths)
+            {
+                if (string.IsNullOrWhiteSpace(path)) continue;
+                string normalized;
+                try { normalized = Path.GetFullPath(path); }
+                catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
+                { normalized = path; } // The core service reports the invalid path as a row.
+                if (!_paths.Add(normalized)) { _skipped++; continue; }
+                var row = new FileRowViewModel(normalized, _strings);
+                Rows.Add(row);
+                added.Add(row);
+            }
+        }
+        NotifyRowsChanged();
+        if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }
+        await RunBatchAsync(added);
+    }
+
+    private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch)
+    {
+        if (!IsIdle || batch.Count == 0) return;
+        var options = new AnalysisOptions(ChecksumOptions.Where(x => x.IsSelected).Select(x => x.Algorithm),
+            InspectCertificates, OnlineRevocation ? RevocationMode.Online : RevocationMode.OfflineCache);
+        _cancellation = new CancellationTokenSource();
+        var token = _cancellation.Token;
+        var epoch = ++_epoch;
+        _processed = 0;
+        _batchTotal = batch.Count;
+        _clearRequested = false;
+        LastError = "";
+        OnPropertyChanged(nameof(HasError));
+        IsBusy = true;
+        Progress = 0;
+        foreach (var row in batch) row.Reset();
+        RefreshView();
+        SetStatus("Processing");
+        try
+        {
+            foreach (var row in batch)
+            {
+                token.ThrowIfCancellationRequested();
+                CurrentFile = row.FileName;
+                IsCheckingSignature = false;
+                row.Start();
+                RefreshAfterStateChange();
+                var progress = new Progress<AnalysisProgress>(p =>
+                {
+                    // Queued Progress<T> callbacks may outlive a completed/cancelled file.
+                    if (_disposed || _epoch != epoch || row.State != RowStatus.Running) return;
+                    IsCheckingSignature = p.Stage == AnalysisStage.CheckingSignature;
+                    var fraction = p.TotalBytes == 0 ? 1.0 : Math.Clamp((double)p.BytesRead / p.TotalBytes, 0, 1);
+                    var percent = p.Stage == AnalysisStage.CheckingSignature ? 95 : fraction * (options.InspectSignature ? 90 : 100);
+                    row.SetProgress(p, percent);
+                    Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
+                });
+                try
+                {
+                    // Offload both CPU hashing and synchronous WinVerifyTrust.
+                    var result = await Task.Run(() => _analysis.AnalyzeAsync(row.FullPath, options, progress, token), token);
+                    row.Complete(result);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { row.Cancel(); throw; }
+                catch (Exception ex)
+                {
+                    // An unexpected per-file failure must not discard the rest of the batch.
+                    row.Complete(FileAnalysisResult.Failure(row.FullPath, AnalysisError.AnalysisFailure, ex.Message));
+                }
+                _processed++;
+                Progress = 100.0 * _processed / _batchTotal;
+                OnPropertyChanged(nameof(StatusText));
+                RefreshAfterStateChange();
+            }
+            SetStatus("CompletedSummary");
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            foreach (var row in batch.Where(r => r.State is RowStatus.Queued or RowStatus.Running)) row.Cancel();
+            SetStatus("CancelledSummary");
+        }
+        finally
+        {
+            ++_epoch;
+            _cancellation.Dispose();
+            _cancellation = null;
+            IsBusy = false;
+            IsCheckingSignature = false;
+            CurrentFile = "";
+            if (_clearRequested) ClearRows();
+            RefreshView();
+            NotifyCommands();
+        }
+    }
+
+    private void Cancel()
+    {
+        _cancellation?.Cancel();
+        SetStatus("Cancelling");
+        NotifyCommands();
+    }
+
+    private void Clear()
+    {
+        if (IsBusy)
+        {
+            _clearRequested = true;
+            _cancellation?.Cancel();
+            SetStatus("Clearing");
+            NotifyCommands();
+        }
+        else ClearRows();
+    }
+
+    private void ClearRows()
+    {
+        ++_epoch;
+        Rows.Clear();
+        _paths.Clear();
+        SelectedRow = null;
+        _clearRequested = false;
+        _processed = _batchTotal = _skipped = 0;
+        Progress = 0;
+        LastError = "";
+        OnPropertyChanged(nameof(HasError));
+        ResetFilters();
+        SetStatus("Cleared");
+        NotifyRowsChanged();
+    }
+
+    private bool MatchesFilters(object item)
+    {
+        if (item is not FileRowViewModel row) return false;
+        if (StateFilter.Value is RowStatus status && row.State != status) return false;
+        var matchesSignature = SignatureFilterOption.Value switch
+        {
+            SignatureFilter.Valid => row.SignatureState == SignatureStatus.Valid,
+            SignatureFilter.NoSignature => row.SignatureState == SignatureStatus.NoEmbeddedSignature,
+            SignatureFilter.NotChecked => row.SignatureState == SignatureStatus.NotChecked,
+            SignatureFilter.Attention => row.SignatureState is not (SignatureStatus.Valid
+                or SignatureStatus.NotChecked or SignatureStatus.NoEmbeddedSignature),
+            _ => true
+        };
+        return matchesSignature && row.Matches(SearchText.Trim());
+    }
+
+    private void RefreshAfterStateChange()
+    {
+        // Refresh sorted/filtered values after a result arrives. No refresh is
+        // needed in the common unfiltered/unsorted view, avoiding repeated scans.
+        if (StateFilter.Value is not null || SignatureFilterOption.Value != SignatureFilter.All
+            || SearchText.Length != 0 || RowsView.SortDescriptions.Count != 0) RefreshView();
+        else NotifyRowsChanged();
+    }
+
+    private void RefreshView() { RowsView.Refresh(); NotifyRowsChanged(); }
+    private void ResetFilters()
+    {
+        _searchText = "";
+        _stateFilter = StateFilters[0];
+        _signatureFilter = SignatureFilters[0];
+        OnPropertyChanged(nameof(SearchText));
+        OnPropertyChanged(nameof(StateFilter));
+        OnPropertyChanged(nameof(SignatureFilterOption));
+        RefreshView();
+    }
+    private void NotifyRowsChanged()
+    {
+        OnPropertyChanged(nameof(Statistics));
+        OnPropertyChanged(nameof(HasRows));
+        OnPropertyChanged(nameof(ShowEmptyState));
+        OnPropertyChanged(nameof(ShowNoMatches));
+        NotifyCommands();
+    }
+    private void SetStatus(string key) { _statusKey = key; OnPropertyChanged(nameof(StatusText)); }
+    private void NotifyCommands()
+    {
+        BrowseCommand.NotifyCanExecuteChanged();
+        DropFilesCommand.NotifyCanExecuteChanged();
+        ReanalyseCommand.NotifyCanExecuteChanged();
+        CancelCommand.NotifyCanExecuteChanged();
+        ClearCommand.NotifyCanExecuteChanged();
+    }
+    private void OnCommandError(Exception exception)
+    {
+        LastError = exception.Message;
+        OnPropertyChanged(nameof(HasError));
+        SetStatus("UnexpectedError");
+    }
+    private void OnCultureChanged(object? sender, EventArgs args)
+    {
+        foreach (var row in Rows) row.RefreshLanguage();
+        foreach (var option in StateFilters) option.RefreshLanguage();
+        foreach (var option in SignatureFilters) option.RefreshLanguage();
+        OnPropertyChanged(nameof(UiLanguage));
+        OnPropertyChanged(nameof(StatusText));
+        RefreshView();
+    }
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        ++_epoch;
+        _strings.CultureChanged -= OnCultureChanged;
+        _cancellation?.Cancel();
+    }
+}

@@ -1,0 +1,285 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="WindowTitle" xml:space="preserve">
+    <value>FileScope · File analysis</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Checksums, signatures and certificate details.</value>
+  </data>
+  <data name="Group_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Group_Checksums" xml:space="preserve">
+    <value>Checksums</value>
+  </data>
+  <data name="Group_Certificates" xml:space="preserve">
+    <value>Signatures &amp; certificates</value>
+  </data>
+  <data name="Group_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Add files…</value>
+  </data>
+  <data name="AddFilesTip" xml:space="preserve">
+    <value>Add files (Ctrl+O). Dragging files anywhere onto the window also works.</value>
+  </data>
+  <data name="Reanalyse" xml:space="preserve">
+    <value>Reanalyse all</value>
+  </data>
+  <data name="ReanalyseTip" xml:space="preserve">
+    <value>Reanalyse every loaded file with the current options, including files hidden by filters.</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="ClearTip" xml:space="preserve">
+    <value>Clear all rows and filters (Ctrl+L). A running analysis is cancelled first.</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CancelTip" xml:space="preserve">
+    <value>Cancel the current batch (Esc). Finished results remain available.</value>
+  </data>
+  <data name="InspectCertificates" xml:space="preserve">
+    <value>Inspect embedded signatures</value>
+  </data>
+  <data name="InspectCertificatesTip" xml:space="preserve">
+    <value>Verify the primary Authenticode signature and read its signer certificate. No catalog or PDF-signature analysis.</value>
+  </data>
+  <data name="OnlineRevocation" xml:space="preserve">
+    <value>Online revocation check</value>
+  </data>
+  <data name="OnlineRevocationTip" xml:space="preserve">
+    <value>Allow Windows to contact certificate authorities for chain and revocation information. Otherwise only local/cached information is used; unknown revocation status is reported explicitly.</value>
+  </data>
+  <data name="CertificateScope" xml:space="preserve">
+    <value>Primary Authenticode signature · local cache by default</value>
+  </data>
+  <data name="SearchLabel" xml:space="preserve">
+    <value>Search files, checksums or certificates</value>
+  </data>
+  <data name="SearchTip" xml:space="preserve">
+    <value>Case-insensitive text search across paths, hashes, certificate metadata and diagnostics.</value>
+  </data>
+  <data name="StateFilterLabel" xml:space="preserve">
+    <value>Analysis status</value>
+  </data>
+  <data name="SignatureFilterLabel" xml:space="preserve">
+    <value>Signature status</value>
+  </data>
+  <data name="ResetFilters" xml:space="preserve">
+    <value>Reset filters</value>
+  </data>
+  <data name="AllStates" xml:space="preserve">
+    <value>All statuses</value>
+  </data>
+  <data name="AllSignatures" xml:space="preserve">
+    <value>All signature results</value>
+  </data>
+  <data name="Filter_Valid" xml:space="preserve">
+    <value>Valid signatures</value>
+  </data>
+  <data name="Filter_Attention" xml:space="preserve">
+    <value>Needs attention</value>
+  </data>
+  <data name="ResultsLabel" xml:space="preserve">
+    <value>File analysis results</value>
+  </data>
+  <data name="DropTitle" xml:space="preserve">
+    <value>Drop files here</value>
+  </data>
+  <data name="DropHint" xml:space="preserve">
+    <value>Drop one or more files anywhere onto the window, or choose “Add files”.</value>
+  </data>
+  <data name="DropOptionsHint" xml:space="preserve">
+    <value>Choose your checks above. Results appear here as each file finishes.</value>
+  </data>
+  <data name="NoMatches" xml:space="preserve">
+    <value>No files match the current filters.</value>
+  </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>Selected file · full details / copy</value>
+  </data>
+  <data name="DetailsHint" xml:space="preserve">
+    <value>Select a table row. The details are selectable and can be copied with Ctrl+C.</value>
+  </data>
+  <data name="ProgressLabel" xml:space="preserve">
+    <value>Analysis progress</value>
+  </data>
+  <data name="Statistics" xml:space="preserve">
+    <value>{0:N0} shown / {1:N0} files</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Select files to analyse</value>
+  </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Ready · choose checks and drop files.</value>
+  </data>
+  <data name="Processing" xml:space="preserve">
+    <value>Analysing · {0:N0} of {1:N0} finished</value>
+  </data>
+  <data name="CompletedSummary" xml:space="preserve">
+    <value>Finished · {0:N0} of {1:N0} processed. See each row for its result.</value>
+  </data>
+  <data name="CancelledSummary" xml:space="preserve">
+    <value>Cancelled · {0:N0} of {1:N0} finished. Remaining rows are marked cancelled.</value>
+  </data>
+  <data name="DuplicatesSkipped" xml:space="preserve">
+    <value>Already loaded · {2:N0} duplicate paths skipped. Use “Reanalyse all” to run again.</value>
+  </data>
+  <data name="Cancelling" xml:space="preserve">
+    <value>Cancelling… a running Windows signature check must finish first.</value>
+  </data>
+  <data name="Clearing" xml:space="preserve">
+    <value>Cancelling and clearing… a running Windows signature check must finish first.</value>
+  </data>
+  <data name="Cleared" xml:space="preserve">
+    <value>Cleared · ready for new files.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>The operation could not be completed. See the details below.</value>
+  </data>
+  <data name="Reading" xml:space="preserve">
+    <value>Reading…</value>
+  </data>
+  <data name="CheckingSignature" xml:space="preserve">
+    <value>Checking signature…</value>
+  </data>
+  <data name="Row_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Row_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Row_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Row_Failed" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Row_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Signature_NotChecked" xml:space="preserve">
+    <value>Not checked</value>
+  </data>
+  <data name="Signature_ValidOnline" xml:space="preserve">
+    <value>Valid · online revocation</value>
+  </data>
+  <data name="Signature_ValidOffline" xml:space="preserve">
+    <value>Valid · cached revocation</value>
+  </data>
+  <data name="Signature_NoEmbeddedSignature" xml:space="preserve">
+    <value>No embedded signature</value>
+  </data>
+  <data name="Signature_InvalidSignature" xml:space="preserve">
+    <value>Invalid signature / digest</value>
+  </data>
+  <data name="Signature_Untrusted" xml:space="preserve">
+    <value>Not trusted</value>
+  </data>
+  <data name="Signature_Expired" xml:space="preserve">
+    <value>Certificate time invalid</value>
+  </data>
+  <data name="Signature_Revoked" xml:space="preserve">
+    <value>Certificate revoked</value>
+  </data>
+  <data name="Signature_RevocationUnknown" xml:space="preserve">
+    <value>Revocation status unknown</value>
+  </data>
+  <data name="Signature_UnsupportedFormat" xml:space="preserve">
+    <value>Signature format unsupported</value>
+  </data>
+  <data name="Signature_UnsupportedPlatform" xml:space="preserve">
+    <value>Requires Windows</value>
+  </data>
+  <data name="Signature_CheckFailed" xml:space="preserve">
+    <value>Signature check failed</value>
+  </data>
+  <data name="Error_InvalidPath" xml:space="preserve">
+    <value>Invalid file path</value>
+  </data>
+  <data name="Error_DirectoryNotSupported" xml:space="preserve">
+    <value>Please add files, not folders</value>
+  </data>
+  <data name="Error_NotFound" xml:space="preserve">
+    <value>File not found</value>
+  </data>
+  <data name="Error_AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Error_ReadFailure" xml:space="preserve">
+    <value>Cannot read the file (possibly locked)</value>
+  </data>
+  <data name="Error_AnalysisFailure" xml:space="preserve">
+    <value>File analysis failed</value>
+  </data>
+  <data name="Column_Name" xml:space="preserve">
+    <value>File name</value>
+  </data>
+  <data name="Column_Status" xml:space="preserve">
+    <value>Analysis</value>
+  </data>
+  <data name="Column_Size" xml:space="preserve">
+    <value>Size (bytes)</value>
+  </data>
+  <data name="Column_Modified" xml:space="preserve">
+    <value>Modified (UTC)</value>
+  </data>
+  <data name="Column_Path" xml:space="preserve">
+    <value>Full path</value>
+  </data>
+  <data name="Column_Signature" xml:space="preserve">
+    <value>Signature verification</value>
+  </data>
+  <data name="Column_Publisher" xml:space="preserve">
+    <value>Signer</value>
+  </data>
+  <data name="Column_Subject" xml:space="preserve">
+    <value>Certificate subject</value>
+  </data>
+  <data name="Column_Issuer" xml:space="preserve">
+    <value>Certificate issuer</value>
+  </data>
+  <data name="Column_Serial" xml:space="preserve">
+    <value>Certificate serial number</value>
+  </data>
+  <data name="Column_ValidFrom" xml:space="preserve">
+    <value>Valid from (UTC)</value>
+  </data>
+  <data name="Column_ValidUntil" xml:space="preserve">
+    <value>Valid until (UTC)</value>
+  </data>
+  <data name="Column_CertSha1" xml:space="preserve">
+    <value>Certificate fingerprint SHA-1</value>
+  </data>
+  <data name="Column_CertSha256" xml:space="preserve">
+    <value>Certificate fingerprint SHA-256</value>
+  </data>
+  <data name="Column_CertAlgorithm" xml:space="preserve">
+    <value>Certificate signature algorithm</value>
+  </data>
+  <data name="Column_NativeCode" xml:space="preserve">
+    <value>Windows trust code</value>
+  </data>
+  <data name="Column_Diagnostic" xml:space="preserve">
+    <value>Diagnostic details</value>
+  </data>
+</root>

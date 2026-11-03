@@ -1,0 +1,285 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="WindowTitle" xml:space="preserve">
+    <value>FileScope · Dateianalyse</value>
+  </data>
+  <data name="Subtitle" xml:space="preserve">
+    <value>Prüfsummen, Signaturen und Zertifikatsdetails.</value>
+  </data>
+  <data name="Group_Files" xml:space="preserve">
+    <value>Dateien</value>
+  </data>
+  <data name="Group_Checksums" xml:space="preserve">
+    <value>Prüfsummen</value>
+  </data>
+  <data name="Group_Certificates" xml:space="preserve">
+    <value>Signaturen &amp; Zertifikate</value>
+  </data>
+  <data name="Group_Language" xml:space="preserve">
+    <value>Sprache</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Dateien öffnen…</value>
+  </data>
+  <data name="AddFilesTip" xml:space="preserve">
+    <value>Dateien hinzufügen (Strg+O). Dateien können auch auf das Fenster gezogen werden.</value>
+  </data>
+  <data name="Reanalyse" xml:space="preserve">
+    <value>Alle neu prüfen</value>
+  </data>
+  <data name="ReanalyseTip" xml:space="preserve">
+    <value>Alle geladenen Dateien mit den aktuellen Optionen erneut analysieren, auch ausgefilterte Dateien.</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Leeren</value>
+  </data>
+  <data name="ClearTip" xml:space="preserve">
+    <value>Alle Zeilen und Filter leeren (Strg+L). Eine laufende Analyse wird zuvor abgebrochen.</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="CancelTip" xml:space="preserve">
+    <value>Aktuellen Durchlauf abbrechen (Esc). Fertige Ergebnisse bleiben erhalten.</value>
+  </data>
+  <data name="InspectCertificates" xml:space="preserve">
+    <value>Eingebettete Signaturen prüfen</value>
+  </data>
+  <data name="InspectCertificatesTip" xml:space="preserve">
+    <value>Primäre Authenticode-Signatur prüfen und deren Unterzeichnerzertifikat auslesen. Keine Katalog- oder PDF-Signaturanalyse.</value>
+  </data>
+  <data name="OnlineRevocation" xml:space="preserve">
+    <value>Online-Sperrprüfung</value>
+  </data>
+  <data name="OnlineRevocationTip" xml:space="preserve">
+    <value>Windows darf Zertifizierungsstellen für Zertifikatsketten und Sperrinformationen kontaktieren. Sonst werden nur lokale/zwischengespeicherte Informationen genutzt; ein unbekannter Sperrstatus wird ausgewiesen.</value>
+  </data>
+  <data name="CertificateScope" xml:space="preserve">
+    <value>Primäre Authenticode-Signatur · standardmäßig lokaler Cache</value>
+  </data>
+  <data name="SearchLabel" xml:space="preserve">
+    <value>Dateien, Prüfsummen oder Zertifikate suchen</value>
+  </data>
+  <data name="SearchTip" xml:space="preserve">
+    <value>Textsuche in Pfaden, Hashwerten, Zertifikatsangaben und Diagnosemeldungen, ohne Beachtung der Groß-/Kleinschreibung.</value>
+  </data>
+  <data name="StateFilterLabel" xml:space="preserve">
+    <value>Analysestatus</value>
+  </data>
+  <data name="SignatureFilterLabel" xml:space="preserve">
+    <value>Signaturstatus</value>
+  </data>
+  <data name="ResetFilters" xml:space="preserve">
+    <value>Filter zurücksetzen</value>
+  </data>
+  <data name="AllStates" xml:space="preserve">
+    <value>Alle Status</value>
+  </data>
+  <data name="AllSignatures" xml:space="preserve">
+    <value>Alle Signaturergebnisse</value>
+  </data>
+  <data name="Filter_Valid" xml:space="preserve">
+    <value>Gültige Signaturen</value>
+  </data>
+  <data name="Filter_Attention" xml:space="preserve">
+    <value>Prüfbedarf</value>
+  </data>
+  <data name="ResultsLabel" xml:space="preserve">
+    <value>Ergebnisse der Dateianalyse</value>
+  </data>
+  <data name="DropTitle" xml:space="preserve">
+    <value>Dateien hier ablegen</value>
+  </data>
+  <data name="DropHint" xml:space="preserve">
+    <value>Eine oder mehrere Dateien auf das Fenster ziehen oder „Dateien öffnen“ wählen.</value>
+  </data>
+  <data name="DropOptionsHint" xml:space="preserve">
+    <value>Oben die Prüfungen auswählen. Fertige Ergebnisse erscheinen sofort hier.</value>
+  </data>
+  <data name="NoMatches" xml:space="preserve">
+    <value>Keine Dateien entsprechen den aktuellen Filtern.</value>
+  </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>Ausgewählte Datei · vollständige Details / Kopieren</value>
+  </data>
+  <data name="DetailsHint" xml:space="preserve">
+    <value>Eine Tabellenzeile auswählen. Der Detailtext lässt sich markieren und mit Strg+C kopieren.</value>
+  </data>
+  <data name="ProgressLabel" xml:space="preserve">
+    <value>Analysefortschritt</value>
+  </data>
+  <data name="Statistics" xml:space="preserve">
+    <value>{0:N0} angezeigt / {1:N0} Dateien</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Dateien zur Analyse auswählen</value>
+  </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>Alle Dateien</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Bereit · Prüfungen wählen und Dateien ablegen.</value>
+  </data>
+  <data name="Processing" xml:space="preserve">
+    <value>Analyse läuft · {0:N0} von {1:N0} fertig</value>
+  </data>
+  <data name="CompletedSummary" xml:space="preserve">
+    <value>Fertig · {0:N0} von {1:N0} verarbeitet. Ergebnisse stehen in den jeweiligen Zeilen.</value>
+  </data>
+  <data name="CancelledSummary" xml:space="preserve">
+    <value>Abgebrochen · {0:N0} von {1:N0} fertig. Übrige Zeilen sind als abgebrochen markiert.</value>
+  </data>
+  <data name="DuplicatesSkipped" xml:space="preserve">
+    <value>Bereits geladen · {2:N0} doppelte Pfade übersprungen. Für einen neuen Durchlauf „Alle neu prüfen“ verwenden.</value>
+  </data>
+  <data name="Cancelling" xml:space="preserve">
+    <value>Abbruch läuft… eine laufende Windows-Signaturprüfung muss zuerst enden.</value>
+  </data>
+  <data name="Clearing" xml:space="preserve">
+    <value>Abbrechen und Leeren… eine laufende Windows-Signaturprüfung muss zuerst enden.</value>
+  </data>
+  <data name="Cleared" xml:space="preserve">
+    <value>Geleert · bereit für neue Dateien.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Der Vorgang konnte nicht abgeschlossen werden. Details stehen unten.</value>
+  </data>
+  <data name="Reading" xml:space="preserve">
+    <value>Wird gelesen…</value>
+  </data>
+  <data name="CheckingSignature" xml:space="preserve">
+    <value>Signaturprüfung…</value>
+  </data>
+  <data name="Row_Queued" xml:space="preserve">
+    <value>Wartend</value>
+  </data>
+  <data name="Row_Running" xml:space="preserve">
+    <value>In Bearbeitung</value>
+  </data>
+  <data name="Row_Completed" xml:space="preserve">
+    <value>Fertig</value>
+  </data>
+  <data name="Row_Failed" xml:space="preserve">
+    <value>Fehler</value>
+  </data>
+  <data name="Row_Cancelled" xml:space="preserve">
+    <value>Abgebrochen</value>
+  </data>
+  <data name="Signature_NotChecked" xml:space="preserve">
+    <value>Nicht geprüft</value>
+  </data>
+  <data name="Signature_ValidOnline" xml:space="preserve">
+    <value>Gültig · Online-Sperrprüfung</value>
+  </data>
+  <data name="Signature_ValidOffline" xml:space="preserve">
+    <value>Gültig · Sperrprüfung aus Cache</value>
+  </data>
+  <data name="Signature_NoEmbeddedSignature" xml:space="preserve">
+    <value>Keine eingebettete Signatur</value>
+  </data>
+  <data name="Signature_InvalidSignature" xml:space="preserve">
+    <value>Ungültige Signatur / Prüfsumme</value>
+  </data>
+  <data name="Signature_Untrusted" xml:space="preserve">
+    <value>Nicht vertrauenswürdig</value>
+  </data>
+  <data name="Signature_Expired" xml:space="preserve">
+    <value>Zertifikatszeitraum ungültig</value>
+  </data>
+  <data name="Signature_Revoked" xml:space="preserve">
+    <value>Zertifikat gesperrt</value>
+  </data>
+  <data name="Signature_RevocationUnknown" xml:space="preserve">
+    <value>Sperrstatus unbekannt</value>
+  </data>
+  <data name="Signature_UnsupportedFormat" xml:space="preserve">
+    <value>Signaturformat nicht unterstützt</value>
+  </data>
+  <data name="Signature_UnsupportedPlatform" xml:space="preserve">
+    <value>Windows erforderlich</value>
+  </data>
+  <data name="Signature_CheckFailed" xml:space="preserve">
+    <value>Signaturprüfung fehlgeschlagen</value>
+  </data>
+  <data name="Error_InvalidPath" xml:space="preserve">
+    <value>Ungültiger Dateipfad</value>
+  </data>
+  <data name="Error_DirectoryNotSupported" xml:space="preserve">
+    <value>Bitte Dateien statt Ordner hinzufügen</value>
+  </data>
+  <data name="Error_NotFound" xml:space="preserve">
+    <value>Datei nicht gefunden</value>
+  </data>
+  <data name="Error_AccessDenied" xml:space="preserve">
+    <value>Zugriff verweigert</value>
+  </data>
+  <data name="Error_ReadFailure" xml:space="preserve">
+    <value>Datei nicht lesbar (möglicherweise gesperrt)</value>
+  </data>
+  <data name="Error_AnalysisFailure" xml:space="preserve">
+    <value>Dateianalyse fehlgeschlagen</value>
+  </data>
+  <data name="Column_Name" xml:space="preserve">
+    <value>Dateiname</value>
+  </data>
+  <data name="Column_Status" xml:space="preserve">
+    <value>Analyse</value>
+  </data>
+  <data name="Column_Size" xml:space="preserve">
+    <value>Größe (Bytes)</value>
+  </data>
+  <data name="Column_Modified" xml:space="preserve">
+    <value>Geändert (UTC)</value>
+  </data>
+  <data name="Column_Path" xml:space="preserve">
+    <value>Vollständiger Pfad</value>
+  </data>
+  <data name="Column_Signature" xml:space="preserve">
+    <value>Signaturprüfung</value>
+  </data>
+  <data name="Column_Publisher" xml:space="preserve">
+    <value>Unterzeichner</value>
+  </data>
+  <data name="Column_Subject" xml:space="preserve">
+    <value>Zertifikatsinhaber</value>
+  </data>
+  <data name="Column_Issuer" xml:space="preserve">
+    <value>Zertifikatsaussteller</value>
+  </data>
+  <data name="Column_Serial" xml:space="preserve">
+    <value>Zertifikatsseriennummer</value>
+  </data>
+  <data name="Column_ValidFrom" xml:space="preserve">
+    <value>Gültig ab (UTC)</value>
+  </data>
+  <data name="Column_ValidUntil" xml:space="preserve">
+    <value>Gültig bis (UTC)</value>
+  </data>
+  <data name="Column_CertSha1" xml:space="preserve">
+    <value>Zertifikatsfingerabdruck SHA-1</value>
+  </data>
+  <data name="Column_CertSha256" xml:space="preserve">
+    <value>Zertifikatsfingerabdruck SHA-256</value>
+  </data>
+  <data name="Column_CertAlgorithm" xml:space="preserve">
+    <value>Zertifikatssignaturalgorithmus</value>
+  </data>
+  <data name="Column_NativeCode" xml:space="preserve">
+    <value>Windows-Vertrauenscode</value>
+  </data>
+  <data name="Column_Diagnostic" xml:space="preserve">
+    <value>Diagnosedetails</value>
+  </data>
+</root>
