@@ -1,6 +1,10 @@
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
 using FileScope.App;
@@ -16,13 +20,29 @@ internal static class UiChecks
     [STAThread]
     private static int Main()
     {
-        FileScope.App.App? app = null;
+        Application? app = null;
         MainWindow? window = null;
+        var originalContext = SynchronizationContext.Current;
         try
         {
-            app = new FileScope.App.App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            app.InitializeComponent();
+            // App.OnStartup creates the production window when the dispatcher is
+            // pumped. Use a plain host and load the resources the tested view needs.
+            app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("/PresentationFramework.Fluent;component/Themes/Fluent.xaml", UriKind.Relative)
+            });
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
+            });
+            app.Resources.Add("BoolToVisibility", new BooleanToVisibilityConverter());
+            // Commands are invoked before PumpUntil enters its dispatcher frame.
+            // Their await continuations must already capture the UI context here.
+            SynchronizationContext.SetSynchronizationContext(
+                new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var strings = LocalizationService.Instance;
+            CheckFileIntake(strings);
             var service = new ImmediateAnalysis();
             using var vm = new MainViewModel(service, new EmptyPicker(), strings);
             window = new MainWindow(vm);
@@ -102,7 +122,76 @@ internal static class UiChecks
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-        finally { window?.Close(); app?.Shutdown(); }
+        finally
+        {
+            window?.Close();
+            app?.Shutdown();
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
+    }
+
+    private static void CheckFileIntake(LocalizationService strings)
+    {
+        var picker = new TestPicker();
+        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings);
+        var first = Path.Combine(Path.GetTempPath(), "FileScope-intake-a.bin");
+        var second = Path.Combine(Path.GetTempPath(), "FileScope-intake-b.bin");
+        var third = Path.Combine(Path.GetTempPath(), "FileScope-intake-c.bin");
+        var fourth = Path.Combine(Path.GetTempPath(), "FileScope-intake-d.bin");
+        var observedAdds = 0;
+        NotifyCollectionChangedEventHandler readView = (sender, change) =>
+        {
+            // Model a bound control reading the view synchronously when an item
+            // arrives. These public reads must remain valid during notifications.
+            _ = vm.RowsView.Count;
+            _ = vm.RowsView.CurrentPosition;
+            if (change.Action == NotifyCollectionChangedAction.Add) observedAdds++;
+        };
+        vm.RowsView.CollectionChanged += readView;
+        try
+        {
+            void AwaitFinished(int count)
+            {
+                PumpUntil(() => vm.HasError || (!vm.IsBusy && vm.Rows.Count == count
+                    && vm.Rows.All(r => r.State == RowStatus.Completed)));
+                Check(!vm.HasError, "file intake completes without a view error: " + vm.LastError);
+            }
+
+            vm.DropFilesCommand.Execute(new[] { first });
+            AwaitFinished(1);
+            Check(vm.RowsView.Count == 1 && observedAdds == 1,
+                "single-file drop publishes a readable view");
+
+            vm.DropFilesCommand.Execute(new[] { first, second, second });
+            AwaitFinished(2);
+            Check(vm.RowsView.Count == 2 && observedAdds == 2,
+                "multi-file drop skips repeated paths without losing new files");
+
+            vm.RowsView.MoveCurrentTo(vm.Rows[0]);
+            vm.SearchText = "FileScope-intake";
+            vm.RowsView.SortDescriptions.Add(new SortDescription(
+                nameof(FileRowViewModel.FileName), ListSortDirection.Descending));
+            picker.Files = [second, third];
+            vm.BrowseCommand.Execute(null);
+            AwaitFinished(3);
+            Check(vm.RowsView.Count == 3
+                && ((FileRowViewModel)vm.RowsView.GetItemAt(0)).FullPath == third,
+                "file picker adds files to a filtered, sorted view");
+
+            vm.SearchText = "no-file-matches-this-filter";
+            vm.DropFilesCommand.Execute(new[] { fourth });
+            AwaitFinished(4);
+            Check(vm.RowsView.Count == 0 && vm.Rows.Single(r => r.FullPath == fourth).SHA256 == "CHECK-SHA256",
+                "files hidden by the current filter are still analysed");
+            vm.ResetFiltersCommand.Execute(null);
+            Check(vm.RowsView.Count == 4, "resetting filters reveals all processed files");
+
+            vm.ClearCommand.Execute(null);
+            vm.DropFilesCommand.Execute(new[] { first });
+            AwaitFinished(1);
+            Check(vm.RowsView.Count == 1, "the same file can be dropped again after clear");
+        }
+        finally { vm.RowsView.CollectionChanged -= readView; }
     }
 
     private static void Check(bool condition, string label)
@@ -135,6 +224,11 @@ internal static class UiChecks
     private sealed class EmptyPicker : IFilePickerService
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
+    }
+    private sealed class TestPicker : IFilePickerService
+    {
+        public string[] Files { get; set; } = [];
+        public string[] PickFiles(string title, string allFilesLabel) => Files;
     }
     private sealed class ImmediateAnalysis : IFileAnalysisService
     {

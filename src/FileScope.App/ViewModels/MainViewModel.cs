@@ -29,14 +29,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<FileRowViewModel> Rows { get; } = [];
     public ListCollectionView RowsView { get; }
-    public IReadOnlyList<ChecksumOption> ChecksumOptions { get; } = Array.AsReadOnly(new[]
-    {
+    public IReadOnlyList<ChecksumOption> ChecksumOptions { get; } = Array.AsReadOnly(
+    [
         new ChecksumOption(ChecksumAlgorithm.MD5, "MD5", false),
         new ChecksumOption(ChecksumAlgorithm.SHA1, "SHA-1", false),
         new ChecksumOption(ChecksumAlgorithm.SHA256, "SHA-256", true),
         new ChecksumOption(ChecksumAlgorithm.SHA384, "SHA-384", false),
         new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", false)
-    });
+    ]);
     public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
     public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
@@ -146,20 +146,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!IsIdle) return;
         var added = new List<FileRowViewModel>();
         _skipped = 0;
-        using (RowsView.DeferRefresh())
+        // Rows.Add raises synchronous change notifications. Keep the view readable
+        // for the DataGrid (Count, current item, selection) during those callbacks.
+        foreach (var path in paths)
         {
-            foreach (var path in paths)
-            {
-                if (string.IsNullOrWhiteSpace(path)) continue;
-                string normalized;
-                try { normalized = Path.GetFullPath(path); }
-                catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
-                { normalized = path; } // The core service reports the invalid path as a row.
-                if (!_paths.Add(normalized)) { _skipped++; continue; }
-                var row = new FileRowViewModel(normalized, _strings);
-                Rows.Add(row);
-                added.Add(row);
-            }
+            if (string.IsNullOrWhiteSpace(path)) continue;
+            string normalized;
+            try { normalized = Path.GetFullPath(path); }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
+            { normalized = path; } // The core service reports the invalid path as a row.
+            if (!_paths.Add(normalized)) { _skipped++; continue; }
+            var row = new FileRowViewModel(normalized, _strings);
+            Rows.Add(row);
+            added.Add(row);
         }
         NotifyRowsChanged();
         if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }

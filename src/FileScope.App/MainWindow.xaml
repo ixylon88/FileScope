@@ -121,11 +121,11 @@
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" Width="116" ElementStyle="{StaticResource GridText}" />
-            <DataGridTextColumn Header="SHA-256" Binding="{Binding SHA256}" Width="470" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Signature}" Binding="{Binding SignatureText}" Width="245" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}" Width="245" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}" Width="254" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-1" Binding="{Binding SHA1}" Width="310" ElementStyle="{StaticResource HashText}" />
+            <DataGridTextColumn Header="SHA-256" Binding="{Binding SHA256}" Width="470" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-384" Binding="{Binding SHA384}" Width="690" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-512" Binding="{Binding SHA512}" Width="910" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Modified}" Binding="{Binding ModifiedText}" SortMemberPath="Result.LastWriteTime" Width="170" ElementStyle="{StaticResource GridText}" />

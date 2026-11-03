@@ -1,6 +1,6 @@
 # Prüfstand der ausgelieferten Quellen
 
-Stand: 3. November 2026.
+Stand: 4. November 2026.
 
 ## Hier tatsächlich ausgeführt
 
@@ -37,7 +37,7 @@ Das Skript baut zuerst beide Produktionsprojekte. Anschließend kompiliert und s
 | Testdatei | Abgedeckte Fälle |
 | --- | --- |
 | `CoreChecks.cs` | Fünf bekannte Hashwerte, leere Datei, ein gemeinsamer Lesedurchlauf, nicht-seekbarer Stream, mehrere Puffer, Abbruch vor/während des Lesens, Ressourcenfreigabe bei Fehlern, unveränderliche Optionen, Unicode-Pfade, Dateigröße/-datum, Metadatenmodus, fehlende Datei, Ordner, Dateisperre unter Windows, native ABI-Größen und unsignierte PE-Datei. |
-| `UiChecks.cs` | Reales XAML initialisieren, Sprachressourcen binden, Dateiliste deduplizieren, Analyseergebnisse übertragen, Text-/Status-/Signaturfilter, vorhandene Zeilen übersetzen, mit neuen Optionen erneut analysieren, Clear/Cancel während blockierender Verarbeitung, verspätete Fortschrittsmeldungen verwerfen. |
+| `UiChecks.cs` | Reales XAML initialisieren, Sprachressourcen binden, Dateiliste deduplizieren, Analyseergebnisse übertragen, Text-/Status-/Signaturfilter, vorhandene Zeilen übersetzen, mit neuen Optionen erneut analysieren, Clear/Cancel während blockierender Verarbeitung, verspätete Fortschrittsmeldungen verwerfen. Zusätzlich: Die Ansicht muss während Änderungsereignissen lesbar bleiben; Einzel-/Mehrfach-Drop, Dateiauswahl bei aktiver Sortierung/Filterung, ausgefilterte neue Dateien und erneutes Ablegen nach Clear. |
 
 Die automatisierten UI-Tests laufen auf einem STA-Thread mit WPF-Dispatcher und echten ViewModels. Sie initialisieren die View ohne ein sichtbares Fenster. Sie ersetzen weder einen physischen Drag-and-drop-Test aus Explorer noch eine visuelle Prüfung.
 
