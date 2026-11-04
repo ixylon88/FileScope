@@ -4,7 +4,7 @@
         xmlns:loc="clr-namespace:FileScope.App.Localization"
         Title="{loc:Loc OptionsTitle}" Width="730" Height="680" MinWidth="640" MinHeight="550"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
-        Style="{StaticResource AppWindowStyle}" Language="{Binding UiLanguage}">
+        Style="{StaticResource AppWindowStyle}" Language="{Binding UiLanguage, Mode=OneWay, ConverterCulture=en-US}">
   <Grid Margin="24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />

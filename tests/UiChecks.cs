@@ -264,8 +264,22 @@ internal static class UiChecks
         CheckOrder();
         vm.ChecksumOptions.Single(option => option.Algorithm == ChecksumAlgorithm.MD5).IsSelected = false;
         var optionsWindow = new OptionsWindow(vm.Options);
+        var originalLanguage = vm.Options.SelectedLanguage;
         try
         {
+            DrainDispatcher();
+            var languageBinding = BindingOperations.GetBinding(optionsWindow, FrameworkElement.LanguageProperty);
+            Check(languageBinding?.ConverterCulture is not null, "string Language binding has an explicit conversion culture");
+            foreach (var language in vm.Options.Languages)
+            {
+                vm.Options.SelectedLanguage = language;
+                DrainDispatcher();
+                Check(string.Equals(optionsWindow.Language.IetfLanguageTag, language.CultureName, StringComparison.OrdinalIgnoreCase),
+                    $"options Language converts without using the target Language / {language.CultureName}");
+                Check(optionsWindow.Title == LocalizationService.Instance["OptionsTitle"],
+                    $"conversion culture does not force English UI text / {language.CultureName}");
+            }
+            vm.Options.SelectedLanguage = originalLanguage;
             DrainDispatcher();
             var selector = (ComboBox)optionsWindow.FindName("HashFormatSelector");
             selector.SelectedIndex = vm.Options.HashFormats.ToList().FindIndex(option => option.Value == HashFormat.Base64);
@@ -283,7 +297,7 @@ internal static class UiChecks
             Check(vm.Rows.Select(row => row.Result).Zip(results).All(pair => ReferenceEquals(pair.First, pair.Second)),
                 "presentation changes preserve the original analysis results");
         }
-        finally { optionsWindow.Close(); }
+        finally { vm.Options.SelectedLanguage = originalLanguage; optionsWindow.Close(); }
         grid.UnselectAll();
         vm.Options.FitColumnsCommand.Execute(null);
         DrainDispatcher();
