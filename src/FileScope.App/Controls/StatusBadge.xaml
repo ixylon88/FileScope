@@ -15,16 +15,16 @@
         <Setter Property="Background" Value="#E8ECF3" />
         <Style.Triggers>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Success}">
-            <Setter Property="Background" Value="#DDEFE3" />
+            <Setter Property="Background" Value="#FFADFEC8" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Information}">
             <Setter Property="Background" Value="#DEE7FF" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Warning}">
-            <Setter Property="Background" Value="#FFF0CC" />
+            <Setter Property="Background" Value="#FFF8DFA3" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Error}">
-            <Setter Property="Background" Value="#FBE0E0" />
+            <Setter Property="Background" Value="#FFFFC0C0" />
           </DataTrigger>
         </Style.Triggers>
       </Style>
