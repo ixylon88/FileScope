@@ -404,7 +404,7 @@ internal static class CoreChecks
             LegacyTimestamp(time, duplicate: true)) is null, "ambiguous duplicate signing times are rejected");
         Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
             LegacyTimestamp(time, includeTime: false)) is null, "countersignature without signing-time has no invented date");
-        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc[..^10]) is null,
+        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc.AsMemory(0, rfc.Length - 10)) is null,
             "truncated RFC 3161 container is rejected");
         var confirmed = AuthenticodeTimestampReader.Select([time.AddDays(-1), time], true, time, true);
         Check(confirmed.Time == time && confirmed.Status == TimestampStatus.Verified,

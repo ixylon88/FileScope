@@ -538,8 +538,8 @@ internal static class UiChecks
             Check(certificateColumns.All(path => columns[path].Visibility ==
                 (enabled ? Visibility.Visible : Visibility.Collapsed)), "certificate columns toggle together");
             Check(vm.CanChooseOnlineRevocation == enabled, "revocation enablement follows certificate option");
-            Check(new[] { "Name", "Size", "Modified", "Path", "Diagnostic" }
-                .All(path => columns[path].Visibility == Visibility.Visible), "file metadata and diagnostics stay visible");
+            string[] stringArray = ["Name", "Size", "Modified", "Path", "Diagnostic"];
+            Check(stringArray.All(path => columns[path].Visibility == Visibility.Visible), "file metadata and diagnostics stay visible");
         }
         foreach (var option in vm.ChecksumOptions) option.IsSelected = option.Algorithm == ChecksumAlgorithm.SHA256;
         vm.InspectCertificates = true;

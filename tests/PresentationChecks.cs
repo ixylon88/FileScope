@@ -65,7 +65,7 @@ internal static class PresentationChecks
         Check(row.Details.Contains(base64) && row.Matches(base64), "details and search use displayed digests");
         Check(row.MD5 == "" && row.SerialNumber == "00AB" && row.NativeCode == "0x00000000", "uncomputed hashes and non-hash fields remain unchanged");
         row.SetHashFormat(HashFormat.HexLower);
-        Check(row.SHA256 == sha256.ToLowerInvariant(), "hex case switches without analysis");
+        Check(row.SHA256.Equals(sha256, StringComparison.InvariantCultureIgnoreCase), "hex case switches without analysis");
         row.SetHashFormat(HashFormat.HexUpper);
         Check(row.SHA256 == sha256, "hex round-trip preserves original digest");
         row.Reset();
@@ -169,7 +169,7 @@ internal static class PresentationChecks
         {
             strings.SetCulture(language.CultureName);
             row.RefreshLanguage();
-            Check(row.SelectedSignature.Label.StartsWith(strings.Format("SignatureChoice", 3))
+            Check(row.SelectedSignature.Label.StartsWith(strings.Format("SignatureChoice", 3), StringComparison.CurrentCulture)
                 && !row.SigningTimeText.Contains('['), "signature labels and timestamp status translate / " + language.CultureName);
         }
         row.SelectedSignature = row.Signatures[3];
