@@ -282,13 +282,64 @@
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>Diagnosedetails</value>
   </data>
-  <data name="Group_Theme" xml:space="preserve">
-    <value>Design</value>
+  <data name="OptionsTitle" xml:space="preserve">
+    <value>Optionen</value>
   </data>
-  <data name="Theme_Light" xml:space="preserve">
-    <value>Hell</value>
+  <data name="Group_HashFormat" xml:space="preserve">
+    <value>Hashdarstellung</value>
   </data>
-  <data name="Theme_Dark" xml:space="preserve">
-    <value>Dunkel</value>
+  <data name="HashFormatHint" xml:space="preserve">
+    <value>Ändert die Darstellung von Datei-Hashes und Zertifikatsfingerabdrücken ohne erneute Analyse.</value>
+  </data>
+  <data name="ColumnOrderTitle" xml:space="preserve">
+    <value>Spaltenreihenfolge</value>
+  </data>
+  <data name="ColumnOrderHint" xml:space="preserve">
+    <value>Spalte auswählen und nach oben oder unten verschieben. Ausgeblendete Spalten sind ebenfalls enthalten und behalten ihre Position.</value>
+  </data>
+  <data name="MoveFirst" xml:space="preserve">
+    <value>Ganz nach oben</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>Nach oben</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>Nach unten</value>
+  </data>
+  <data name="MoveLast" xml:space="preserve">
+    <value>Ganz nach unten</value>
+  </data>
+  <data name="ResetColumnOrder" xml:space="preserve">
+    <value>Reihenfolge zurücksetzen</value>
+  </data>
+  <data name="FitColumns" xml:space="preserve">
+    <value>Breiten neu anpassen</value>
+  </data>
+  <data name="OptionsSavedHint" xml:space="preserve">
+    <value>Änderungen gelten sofort und werden für den nächsten Start gespeichert.</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Schließen</value>
+  </data>
+  <data name="SettingsLoadError" xml:space="preserve">
+    <value>Gespeicherte Optionen konnten nicht gelesen werden. Es werden Standardwerte verwendet.</value>
+  </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>Die Optionen gelten für diese Sitzung, konnten aber nicht für den nächsten Start gespeichert werden.</value>
+  </data>
+  <data name="HashFormat_HexUpper" xml:space="preserve">
+    <value>Hex · Großbuchstaben</value>
+  </data>
+  <data name="HashFormat_HexLower" xml:space="preserve">
+    <value>Hex · Kleinbuchstaben</value>
+  </data>
+  <data name="HashFormat_HexColon" xml:space="preserve">
+    <value>Hex · mit Doppelpunkten</value>
+  </data>
+  <data name="HashFormat_Base64" xml:space="preserve">
+    <value>Base64</value>
+  </data>
+  <data name="HashFormat_Base64Url" xml:space="preserve">
+    <value>Base64url · ohne Padding</value>
   </data>
 </root>

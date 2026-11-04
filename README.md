@@ -43,18 +43,23 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
-| Tabelle | Schreibgeschützt, verschiebbare/vergrößerbare Spalten, horizontal scrollbar. Die ersten zwei Spalten bleiben links stehen. Jede zweite sichtbare Zeile erhält eine passende graue Hintergrundfarbe, auch nach Sortierung und Filterung. |
+| Tabelle | Schreibgeschützt und horizontal scrollbar. Einheitlich helle Zeilen mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
+| Spaltenreihenfolge | Zahnrad → Optionen: Alle 22 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
+| Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, innerhalb fester Mindest-/Höchstbreiten je Spalte. Lange Werte sind über Tooltip, Details und Kopieren vollständig verfügbar. Manuelles Vergrößern bleibt möglich; „Breiten neu anpassen“ schaltet wieder auf Automatik. |
+| Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Unter „Ausgewählte Datei“ ist der komplette Detailtext markierbar. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
 | Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
-| Sprachen | Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
-| Design | Direkt unter der Sprachauswahl zwischen Hell und Dunkel wechseln. Das dunkle Design verwendet an Visual Studio angelehnte Anthrazitflächen; Controls, Zeilen, Auswahl und Statusfarben wechseln gemeinsam. |
+| Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
+| Design | Festes helles Design. Der Theme-Umschalter und die eigenen Vorlagen für Zeilen/Zellen wurden entfernt. |
 
 Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
 
 Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden als eigene Fehlerzeilen gemeldet und nicht rekursiv eingelesen. Ohne gewählten Hash und ohne Signaturprüfung werden nur Dateimetadaten ermittelt.
 
-Die gewählten Optionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprachwechsel verändert keine Analysewerte. Einstellungen und Ergebnisse werden derzeit nur für die laufende Sitzung gehalten.
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Sprache, Hashformat und die vollständige Spaltenreihenfolge werden in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse, Prüf-Häkchen und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+
+Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die Messung neu und erlaubt auch schmalere Spalten. Das Filtern allein setzt manuell gewählte Breiten nicht zurück.
 
 ## Projekte und Entwurfsmuster
 
@@ -69,10 +74,13 @@ Die gewählten Optionen gelten als unveränderlicher Schnappschuss für einen Du
 | `App.xaml.cs` | Composition Root: Abhängigkeiten werden per Konstruktor injiziert. Kein Service Locator und kein DI-Container erforderlich. |
 | `RelayCommand` / `AsyncRelayCommand` | Command Pattern; asynchrone Ausführung mit Fehlerbehandlung und Schutz vor Mehrfachstart. |
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
-| `IThemeService` / `ThemeService` | Schaltet Fluent-Controls und die dynamischen Farbressourcen gemeinsam um. Die zwei Paletten liegen unter `Styles/Themes`; die Auswahl ist in allen drei Sprachen lokalisiert. |
+| `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
+| `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
+| `DigestFormatter` | Formatiert die vorhandenen Digest-Bytes; `FileRowViewModel` hält die dargestellten Werte im Cache. Die Core-Ergebnisse bleiben unverändert. |
+| `IPreferencesStore` / `PreferencesStore` | Speichert kleine Benutzereinstellungen über eine temporäre Datei mit anschließendem Ersetzen der Zieldatei. |
 | `BindingProxy` | Liefert den Fenster-DataContext an DataGrid-Spalten, die selbst keinen DataContext erben. Damit bleibt die Sichtbarkeit per Binding an die Prüfoptionen gekoppelt. |
 
-MVVM trennt View, ViewModel und Domänenmodelle. Der kleine Code-behind-Teil setzt nur den DataContext und behandelt den Fensterlebenszyklus. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
+MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Fensterlebenszyklus, Öffnen des Optionsdialogs und Sichtbarhalten der ausgewählten Listenzeile. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
 Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kein zusätzlicher Ribbon-Control-Anbieter**. Der WPF-Tabellentyp heißt `DataGrid`; `DataGridView` gehört zu Windows Forms.
 
@@ -120,7 +128,7 @@ Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 .\Verify.ps1
 ```
 
-Das Skript baut die Projektmappe und führt Core- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
+Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
 
 Optional mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
 

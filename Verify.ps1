@@ -20,14 +20,29 @@ function Invoke-Checks {
     $referenceXml = [System.Security.SecurityElement]::Escape($Reference)
     $sourceXml = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot "tests/$Name.cs"))
     $wpf = if ($UseWpf) { '<UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>' } else { '' }
+    $extraItems = ''
+    if ($Name -eq 'PresentationChecks') {
+        # Compile the UI-independent presentation code without a Windows runtime.
+        $sources = @('Infrastructure/ObservableObject.cs', 'Infrastructure/Commands.cs',
+            'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs',
+            'Services/PreferencesStore.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
+            'ViewModels/OptionsViewModel.cs', 'ViewModels/FileRowViewModel.cs')
+        foreach ($relative in $sources) {
+            $item = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot "src/FileScope.App/$relative"))
+            $extraItems += "<Compile Include=`"$item`" />"
+        }
+        $resources = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot 'src/FileScope.App/Resources/Strings*.resx'))
+        $extraItems += "<EmbeddedResource Include=`"$resources`" Link=`"Resources/%(Filename)%(Extension)`" />"
+    }
     @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType><TargetFramework>$TargetFramework</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <RootNamespace>FileScope.App</RootNamespace>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>$wpf
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="$referenceXml" /><Compile Include="$sourceXml" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="$referenceXml" /><Compile Include="$sourceXml" />$extraItems</ItemGroup>
 </Project>
 "@ | Set-Content -LiteralPath $project -Encoding UTF8
     & dotnet run --project $project --configuration Release -- @TestArguments
@@ -43,6 +58,7 @@ try {
     $coreArguments = @()
     if ($SignedFile) { $coreArguments = @('--signed-file', (Resolve-Path -LiteralPath $SignedFile).Path) }
     Invoke-Checks -Name 'CoreChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments $coreArguments
+    Invoke-Checks -Name 'PresentationChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments @()
     if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {
         Invoke-Checks -Name 'UiChecks' -TargetFramework 'net10.0-windows' -Reference $appProject -UseWpf $true -TestArguments @()
     }

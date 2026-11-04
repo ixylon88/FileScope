@@ -1,12 +1,16 @@
 using System.Text;
 using FileScope.App.Infrastructure;
 using FileScope.App.Localization;
+using FileScope.App.Presentation;
 using FileScope.Core.Models;
 
 namespace FileScope.App.ViewModels;
 
-public sealed class FileRowViewModel(string path, LocalizationService strings) : ObservableObject
+public sealed class FileRowViewModel(string path, LocalizationService strings, HashFormat format = HashFormat.HexUpper) : ObservableObject
 {
+    private HashFormat _hashFormat = format;
+    private readonly Dictionary<ChecksumAlgorithm, string> _hashText = [];
+    private string _certificateSha1 = "", _certificateSha256 = "";
     public string FullPath { get; } = path;
     public string FileName { get; } = GetName(path);
     public FileAnalysisResult? Result { get; private set; }
@@ -26,8 +30,8 @@ public sealed class FileRowViewModel(string path, LocalizationService strings) :
     public string Subject => Result?.Signature.Certificate?.Subject ?? "";
     public string Issuer => Result?.Signature.Certificate?.Issuer ?? "";
     public string SerialNumber => Result?.Signature.Certificate?.SerialNumber ?? "";
-    public string CertificateSha1 => Result?.Signature.Certificate?.ThumbprintSha1 ?? "";
-    public string CertificateSha256 => Result?.Signature.Certificate?.ThumbprintSha256 ?? "";
+    public string CertificateSha1 => _certificateSha1;
+    public string CertificateSha256 => _certificateSha256;
     public string ValidFrom => FormatDate(Result?.Signature.Certificate?.NotBefore);
     public string ValidUntil => FormatDate(Result?.Signature.Certificate?.NotAfter);
     public string CertificateAlgorithm => Result?.Signature.Certificate?.SignatureAlgorithm ?? "";
@@ -75,6 +79,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings) :
     public void Reset()
     {
         Result = null;
+        RebuildHashText();
         State = RowStatus.Queued;
         Progress = 0;
         RefreshLanguage();
@@ -99,6 +104,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings) :
     public void Complete(FileAnalysisResult result)
     {
         Result = result;
+        RebuildHashText();
         State = result.Succeeded ? RowStatus.Completed : RowStatus.Failed;
         Progress = 100;
         RefreshLanguage();
@@ -112,6 +118,25 @@ public sealed class FileRowViewModel(string path, LocalizationService strings) :
 
     public void RefreshLanguage() => OnPropertyChanged(null);
 
+    public void SetHashFormat(HashFormat format)
+    {
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        if (_hashFormat == format) return;
+        _hashFormat = format;
+        RebuildHashText();
+        OnPropertyChanged(null); // Includes Details and the values used by clipboard/search.
+    }
+
+    private void RebuildHashText()
+    {
+        _hashText.Clear();
+        if (Result is not null)
+            foreach (var (algorithm, hex) in Result.Checksums)
+                _hashText[algorithm] = DigestFormatter.Format(hex, _hashFormat);
+        _certificateSha1 = DigestFormatter.Format(Result?.Signature.Certificate?.ThumbprintSha1, _hashFormat);
+        _certificateSha256 = DigestFormatter.Format(Result?.Signature.Certificate?.ThumbprintSha256, _hashFormat);
+    }
+
     public bool Matches(string query) => query.Length == 0 || new[]
     {
         FullPath, SizeText, ModifiedText, StateText, SignatureText, MD5, SHA1, SHA256, SHA384, SHA512,
@@ -120,7 +145,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings) :
     }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase));
 
     private string Hash(ChecksumAlgorithm algorithm) =>
-        Result?.Checksums.TryGetValue(algorithm, out var hash) == true ? hash : "";
+        _hashText.GetValueOrDefault(algorithm, "");
     private string FormatDate(DateTimeOffset? date) =>
         date?.UtcDateTime.ToString("g", strings.Culture) is string formatted ? $"{formatted} UTC" : "";
     private static string GetName(string filePath)

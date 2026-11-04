@@ -5,7 +5,6 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="Styles/ThemePalette.xaml" />
         <ResourceDictionary Source="Styles/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <BooleanToVisibilityConverter x:Key="BoolToVisibility" />

@@ -11,4 +11,10 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         Closed += (_, _) => viewModel.Dispose();
     }
+
+    private void OpenOptions(object sender, RoutedEventArgs args)
+    {
+        if (DataContext is MainViewModel viewModel)
+            new OptionsWindow(viewModel.Options) { Owner = this }.ShowDialog();
+    }
 }

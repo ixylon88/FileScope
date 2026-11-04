@@ -19,6 +19,7 @@ def check(condition, message):
 
 
 files = sorted(path for path in ROOT.rglob('*') if path.is_file()
+               and not path.name.endswith('_wpftmp.csproj')
                and not {'bin', 'obj', 'artifacts'}.intersection(path.relative_to(ROOT).parts))
 for path in files:
     if path.suffix in {'.xaml', '.resx', '.csproj', '.props', '.manifest'}:
@@ -59,7 +60,7 @@ for name, values in resources:
 sources = '\n'.join(p.read_text(encoding='utf-8-sig') for p in files if p.suffix in {'.cs', '.xaml'})
 for key in set(re.findall(r'\{loc:Loc\s+([A-Za-z0-9_]+)', sources)):
     check(key in base, f'Unknown XAML resource key: {key}')
-for key in set(re.findall(r'"((?:Column_|Group_|Theme_|Signature_|Row_|Error_)[A-Za-z0-9_]+)"', sources)):
+for key in set(re.findall(r'"((?:Column_|Group_|HashFormat_|Signature_|Row_|Error_)[A-Za-z0-9_]+)"', sources)):
     check(key in base, f'Unknown C# resource key: {key}')
 for key in re.findall(r'SetStatus\("([A-Za-z_]+)"\)', sources):
     check(key in base, f'Unknown status resource key: {key}')
@@ -98,33 +99,27 @@ core = '\n'.join(p.read_text(encoding='utf-8-sig') for p in (ROOT / 'src/FileSco
 check('System.Windows' not in core and 'FileScope.App' not in core, 'Core must not depend on WPF or App.')
 check('NotImplementedException' not in sources and 'TODO' not in sources, 'Unimplemented code found.')
 xaml = (ROOT / 'src/FileScope.App/MainWindow.xaml').read_text(encoding='utf-8')
-check('AlternationCount="2"' in xaml and 'AlternatingRowBackground="{DynamicResource AlternateRowBrush}"' in xaml,
-      'Alternating rows missing.')
-
-# Both palettes must supply every dynamic brush used by our views/styles.
-theme_dir = ROOT / 'src/FileScope.App/Styles/Themes'
-palettes = {}
-for name in ['Light', 'Dark']:
-    palettes[name] = {node.attrib['{http://schemas.microsoft.com/winfx/2006/xaml}Key']: node.attrib['Color']
-                      for node in ET.parse(theme_dir / (name + '.xaml')).getroot()}
-check(set(palettes['Light']) == set(palettes['Dark']), 'Light/dark palette keys differ.')
-for key in set(re.findall(r'\{DynamicResource\s+(\w+)\}', sources)):
-    check(key in palettes['Light'], f'Missing dynamic theme brush: {key}')
-
-def luminance(color):
-    channels = [int(color[i:i+2], 16) / 255 for i in (1, 3, 5)]
-    linear = [value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4 for value in channels]
-    return sum(value * weight for value, weight in zip(linear, [.2126, .7152, .0722]))
-
-for name, brushes in palettes.items():
-    check(brushes['RowBrush'] != brushes['AlternateRowBrush'], f'Identical row colors in {name}.')
-    pairs = [('TextBrush', key) for key in ['WindowBrush', 'SurfaceBrush', 'RowBrush', 'AlternateRowBrush', 'RowHoverBrush']]
-    pairs += [('MutedBrush', 'WindowBrush'), ('MutedBrush', 'SurfaceBrush'), ('SelectionTextBrush', 'SelectionBrush'),
-              ('HeaderTextBrush', 'HeaderBrush'), ('OnAccentBrush', 'AccentBrush'), ('ErrorBrush', 'SurfaceBrush')]
-    pairs += [('StatusTextBrush', key) for key in brushes if key.startswith('Status') and key != 'StatusTextBrush']
-    for foreground, background in pairs:
-        light, dark = sorted([luminance(brushes[foreground]), luminance(brushes[background])], reverse=True)
-        check((light + .05) / (dark + .05) >= 4.5, f'Low text contrast in {name}: {foreground}/{background}')
+check('AlternationCount="0"' in xaml and 'AlternatingRowBackground=' not in xaml,
+      'Row striping must remain disabled.')
+check('ThemeSelector' not in xaml and not (ROOT / 'src/FileScope.App/Services/ThemeService.cs').exists(),
+      'The removed runtime theme must not return.')
+controls = (ROOT / 'src/FileScope.App/Styles/Controls.xaml').read_text(encoding='utf-8')
+check('ControlTemplate' not in controls, 'Use native control templates for the fixed light UI.')
+namespace = '{http://schemas.microsoft.com/winfx/2006/xaml/presentation}'
+behavior = '{clr-namespace:FileScope.App.Behaviors}ColumnLayoutBehavior.Id'
+view = ET.fromstring(xaml)
+columns = [node for node in view.iter() if node.tag in {namespace + 'DataGridTextColumn', namespace + 'DataGridTemplateColumn'}]
+ids = [column.attrib.get(behavior) for column in columns]
+check(len(ids) == 22 and None not in ids and len(set(ids)) == len(ids), 'Missing or duplicate column IDs.')
+catalog = (ROOT / 'src/FileScope.App/ViewModels/ColumnOption.cs').read_text(encoding='utf-8')
+catalog_ids = re.findall(r'new\("(\w+)",', catalog)
+check(set(ids) == set(catalog_ids), 'Options must include every table column, including hidden columns.')
+for column in columns:
+    check(column.attrib.get('Width') == 'Auto', 'Column must use content-driven sizing.')
+    check(0 < float(column.attrib['MinWidth']) <= float(column.attrib['MaxWidth']) < 1000,
+          'Invalid column width bounds: ' + column.attrib[behavior])
+for format in ['HexUpper', 'HexLower', 'HexColon', 'Base64', 'Base64Url']:
+    check('HashFormat_' + format in base, 'Missing hash format label: ' + format)
 
 # Independently check the known-answer constants shipped with the C# harness.
 tests = (ROOT / 'tests/CoreChecks.cs').read_text(encoding='utf-8')

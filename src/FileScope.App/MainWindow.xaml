@@ -10,15 +10,6 @@
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
     <infra:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
-    <!-- Keep the Fluent header's sort indicators and resize/reorder behavior. -->
-    <Style x:Key="ResultsColumnHeaderStyle" TargetType="DataGridColumnHeader"
-           BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
-      <Setter Property="Background" Value="{DynamicResource HeaderBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
-      <Setter Property="Padding" Value="9,10" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
-      <Setter Property="SeparatorBrush" Value="{DynamicResource LineBrush}" />
-    </Style>
   </Window.Resources>
   <Window.InputBindings>
     <KeyBinding Key="O" Modifiers="Control" Command="{Binding BrowseCommand}" />
@@ -34,17 +25,17 @@
 
     <Grid Margin="24,20,24,18">
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-      <Border Width="44" Height="44" Background="{DynamicResource AccentBrush}" CornerRadius="12" Margin="0,0,14,0">
-        <TextBlock Text="FS" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource OnAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <Border Width="44" Height="44" Background="{StaticResource AccentBrush}" CornerRadius="12" Margin="0,0,14,0">
+        <TextBlock Text="FS" FontSize="19" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
       <StackPanel Grid.Column="1">
         <TextBlock Text="FileScope" FontSize="24" FontWeight="SemiBold" />
-        <TextBlock Text="{loc:Loc Subtitle}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
+        <TextBlock Text="{loc:Loc Subtitle}" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
       </StackPanel>
-      <TextBlock Grid.Column="2" Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="2" Text="{Binding Statistics}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
     </Grid>
 
-    <Border Grid.Row="1" Margin="24,0,24,18" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
+    <Border Grid.Row="1" Margin="24,0,24,18" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
       <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <StackPanel Orientation="Horizontal">
           <StackPanel Width="248">
@@ -58,7 +49,7 @@
               <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc CancelTip}" />
             </StackPanel>
           </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+          <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
           <StackPanel Width="224" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Checksums}" Style="{StaticResource GroupHeading}" />
             <ItemsControl ItemsSource="{Binding ChecksumOptions}" IsEnabled="{Binding IsIdle}">
@@ -68,19 +59,22 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+          <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
           <StackPanel Width="292" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Certificates}" Style="{StaticResource GroupHeading}" />
             <CheckBox Content="{loc:Loc InspectCertificates}" IsChecked="{Binding InspectCertificates}" IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectCertificatesTip}" />
             <CheckBox Content="{loc:Loc OnlineRevocation}" IsChecked="{Binding OnlineRevocation}" IsEnabled="{Binding CanChooseOnlineRevocation}" ToolTip="{loc:Loc OnlineRevocationTip}" />
-            <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
           </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+          <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
           <StackPanel Width="146">
-            <TextBlock Text="{loc:Loc Group_Language}" Style="{StaticResource GroupHeading}" />
-            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="NativeName" MinHeight="34" AutomationProperties.Name="{loc:Loc Group_Language}" />
-            <TextBlock Text="{loc:Loc Group_Theme}" Style="{StaticResource FieldLabel}" Margin="0,10,0,5" />
-            <ComboBox x:Name="ThemeSelector" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Label" MinHeight="34" AutomationProperties.Name="{loc:Loc Group_Theme}" />
+            <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
+                    ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
@@ -103,85 +97,85 @@
       <Button Grid.Column="3" Content="{loc:Loc ResetFilters}" Command="{Binding ResetFiltersCommand}" VerticalAlignment="Bottom" Padding="12,7" MinHeight="34" />
     </Grid>
 
-    <Border Grid.Row="3" Margin="24,0,24,12" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+    <Border Grid.Row="3" Margin="24,0,24,12" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <Grid>
-        <DataGrid x:Name="ResultsGrid" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
+        <DataGrid x:Name="ResultsGrid" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
+                  behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True"
                   CanUserSortColumns="True" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"
-                  HeadersVisibility="Column" RowBackground="{DynamicResource RowBrush}" AlternatingRowBackground="{DynamicResource AlternateRowBrush}" AlternationCount="2"
-                  RowStyle="{StaticResource ResultsRowStyle}" CellStyle="{StaticResource ResultsCellStyle}" ColumnHeaderStyle="{StaticResource ResultsColumnHeaderStyle}"
-                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{DynamicResource GridLineBrush}" BorderThickness="0" Background="{DynamicResource RowBrush}" Foreground="{DynamicResource TextBrush}"
+                  HeadersVisibility="Column" RowBackground="#FFFFFF" AlternationCount="0"
+                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E1E6EE" BorderThickness="0" Background="#FFFFFF" Foreground="#1C273B"
                   EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
                   ClipboardCopyMode="IncludeHeader" AutomationProperties.Name="{loc:Loc ResultsLabel}">
           <DataGrid.Columns>
-            <DataGridTextColumn Header="{loc:Loc Column_Name}" Binding="{Binding FileName}" Width="215" ElementStyle="{StaticResource NameText}" />
-            <DataGridTemplateColumn Header="{loc:Loc Column_Status}" Width="148" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
+            <DataGridTextColumn Header="{loc:Loc Column_Name}" Binding="{Binding FileName}" behaviors:ColumnLayoutBehavior.Id="Name" Width="Auto" MinWidth="150" MaxWidth="340" ElementStyle="{StaticResource NameText}" />
+            <DataGridTemplateColumn Header="{loc:Loc Column_Status}" behaviors:ColumnLayoutBehavior.Id="Status" Width="Auto" MinWidth="110" MaxWidth="250" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <Border Margin="8,5" Padding="8,3" CornerRadius="5" HorizontalAlignment="Left">
                     <Border.Style>
                       <Style TargetType="Border">
-                        <Setter Property="Background" Value="{DynamicResource StatusQueuedBrush}" />
+                        <Setter Property="Background" Value="#E8ECF3" />
                         <Style.Triggers>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Completed}"><Setter Property="Background" Value="{DynamicResource StatusCompletedBrush}" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Running}"><Setter Property="Background" Value="{DynamicResource StatusRunningBrush}" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Failed}"><Setter Property="Background" Value="{DynamicResource StatusFailedBrush}" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Cancelled}"><Setter Property="Background" Value="{DynamicResource StatusCancelledBrush}" /></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Completed}"><Setter Property="Background" Value="#DDEFE3" /></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Running}"><Setter Property="Background" Value="#DEE7FF" /></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Failed}"><Setter Property="Background" Value="#FBE0E0" /></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Cancelled}"><Setter Property="Background" Value="#FFF0CC" /></DataTrigger>
                         </Style.Triggers>
                       </Style>
                     </Border.Style>
-                    <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="{DynamicResource StatusTextBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StateText}" />
+                    <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="#25384B" TextTrimming="CharacterEllipsis" ToolTip="{Binding StateText}" />
                   </Border>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" Width="116" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" behaviors:ColumnLayoutBehavior.Id="Size" Width="Auto" MinWidth="100" MaxWidth="170" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Signature}" Binding="{Binding SignatureText}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="245" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Signature" Width="Auto" MinWidth="160" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="245" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Publisher" Width="Auto" MinWidth="150" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}"
-                                Visibility="{Binding Data.ShowMD5Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="254" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.ShowMD5Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="MD5" Width="Auto" MinWidth="150" MaxWidth="340" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-1" Binding="{Binding SHA1}"
-                                Visibility="{Binding Data.ShowSHA1Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="310" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.ShowSHA1Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="SHA1" Width="Auto" MinWidth="150" MaxWidth="420" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-256" Binding="{Binding SHA256}"
-                                Visibility="{Binding Data.ShowSHA256Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="470" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.ShowSHA256Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="SHA256" Width="Auto" MinWidth="170" MaxWidth="560" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-384" Binding="{Binding SHA384}"
-                                Visibility="{Binding Data.ShowSHA384Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="690" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.ShowSHA384Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="SHA384" Width="Auto" MinWidth="170" MaxWidth="640" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="SHA-512" Binding="{Binding SHA512}"
-                                Visibility="{Binding Data.ShowSHA512Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="910" ElementStyle="{StaticResource HashText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Modified}" Binding="{Binding ModifiedText}" SortMemberPath="Result.LastWriteTime" Width="170" ElementStyle="{StaticResource GridText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Path}" Binding="{Binding FullPath}" Width="390" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.ShowSHA512Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="SHA512" Width="Auto" MinWidth="170" MaxWidth="720" ElementStyle="{StaticResource HashText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Modified}" Binding="{Binding ModifiedText}" SortMemberPath="Result.LastWriteTime" behaviors:ColumnLayoutBehavior.Id="Modified" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Path}" Binding="{Binding FullPath}" behaviors:ColumnLayoutBehavior.Id="Path" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Subject}" Binding="{Binding Subject}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="390" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Subject" Width="Auto" MinWidth="180" MaxWidth="500" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Issuer}" Binding="{Binding Issuer}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="390" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Issuer" Width="Auto" MinWidth="180" MaxWidth="500" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Serial}" Binding="{Binding SerialNumber}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="290" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Serial" Width="Auto" MinWidth="140" MaxWidth="360" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_ValidFrom}" Binding="{Binding ValidFrom}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotBefore" Width="175" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotBefore" behaviors:ColumnLayoutBehavior.Id="ValidFrom" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_ValidUntil}" Binding="{Binding ValidUntil}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotAfter" Width="175" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotAfter" behaviors:ColumnLayoutBehavior.Id="ValidUntil" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_CertSha1}" Binding="{Binding CertificateSha1}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="310" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="CertSha1" Width="Auto" MinWidth="170" MaxWidth="420" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_CertSha256}" Binding="{Binding CertificateSha256}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="470" ElementStyle="{StaticResource HashText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="CertSha256" Width="Auto" MinWidth="170" MaxWidth="560" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_CertAlgorithm}" Binding="{Binding CertificateAlgorithm}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="210" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="CertAlgorithm" Width="Auto" MinWidth="140" MaxWidth="280" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_NativeCode}" Binding="{Binding NativeCode}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" Width="150" ElementStyle="{StaticResource HashText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}" Width="440" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="NativeCode" Width="Auto" MinWidth="120" MaxWidth="180" ElementStyle="{StaticResource HashText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}" behaviors:ColumnLayoutBehavior.Id="Diagnostic" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
           </DataGrid.Columns>
         </DataGrid>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}" Margin="30">
-          <TextBlock Text="↓" FontSize="48" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" Margin="0,0,0,12" />
+          <TextBlock Text="↓" FontSize="48" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" Margin="0,0,0,12" />
           <TextBlock Text="{loc:Loc DropTitle}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" />
-          <TextBlock Text="{loc:Loc DropHint}" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,0" TextAlignment="Center" />
-          <TextBlock Text="{loc:Loc DropOptionsHint}" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" Margin="0,7,0,0" TextAlignment="Center" />
+          <TextBlock Text="{loc:Loc DropHint}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,0" TextAlignment="Center" />
+          <TextBlock Text="{loc:Loc DropOptionsHint}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,7,0,0" TextAlignment="Center" />
         </StackPanel>
         <TextBlock Text="{loc:Loc NoMatches}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"
-                   Foreground="{DynamicResource MutedBrush}" IsHitTestVisible="False"
+                   Foreground="{StaticResource MutedBrush}" IsHitTestVisible="False"
                    Visibility="{Binding ShowNoMatches, Converter={StaticResource BoolToVisibility}}" />
       </Grid>
     </Border>
@@ -189,18 +183,18 @@
     <Expander Grid.Row="4" Header="{loc:Loc DetailsTitle}" Margin="24,0,24,12" IsExpanded="False">
       <TextBox Text="{Binding SelectedRow.Details, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" MinHeight="90" MaxHeight="160"
                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas, Microsoft YaHei UI"
-               FontSize="12" Padding="12" Background="{DynamicResource SurfaceBrush}" ToolTip="{loc:Loc DetailsHint}" AutomationProperties.Name="{loc:Loc DetailsTitle}" />
+               FontSize="12" Padding="12" Background="#FFFFFF" ToolTip="{loc:Loc DetailsHint}" AutomationProperties.Name="{loc:Loc DetailsTitle}" />
     </Expander>
 
-    <Border Grid.Row="5" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,12">
+    <Border Grid.Row="5" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,12">
       <StackPanel>
         <Grid Margin="0,0,0,8">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
           <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
-          <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
+          <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
         </Grid>
-        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsCheckingSignature}" Height="4" Foreground="{DynamicResource AccentBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
-        <TextBlock Text="{Binding LastError}" Foreground="{DynamicResource ErrorBrush}" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsCheckingSignature}" Height="4" Foreground="{StaticResource AccentBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
+        <TextBlock Text="{Binding LastError}" Foreground="#B42318" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </Border>
   </Grid>

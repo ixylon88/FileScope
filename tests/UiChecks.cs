@@ -7,6 +7,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using FileScope.App.Behaviors;
+using FileScope.App.Presentation;
 using System.Windows.Threading;
 using FileScope.App;
 using FileScope.App.Localization;
@@ -31,15 +33,13 @@ internal static class UiChecks
             app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
-                Source = new Uri("/FileScope.App;component/Styles/ThemePalette.xaml", UriKind.Relative)
+                Source = new Uri("/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml", UriKind.Relative)
             });
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
                 Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
             });
             app.Resources.Add("BoolToVisibility", new BooleanToVisibilityConverter());
-            // Let the same service as production load/switch the Fluent dictionaries.
-            var themes = new ThemeService(app);
             // Commands are invoked before PumpUntil enters its dispatcher frame.
             // Their await continuations must already capture the UI context here.
             SynchronizationContext.SetSynchronizationContext(
@@ -47,32 +47,32 @@ internal static class UiChecks
             var strings = LocalizationService.Instance;
             CheckFileIntake(strings);
             var service = new ImmediateAnalysis();
-            using var vm = new MainViewModel(service, new EmptyPicker(), strings, themes);
+            using var vm = new MainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
             window = new MainWindow(vm);
             // Initialize and lay out real XAML, without opening a visible window.
             window.Measure(new Size(1440, 900));
             window.Arrange(new Rect(0, 0, 1440, 900));
             DrainDispatcher();
             Check(vm.Rows.Count == 0 && vm.ShowEmptyState, "initial empty state");
-            foreach (var language in vm.Languages)
+            foreach (var language in vm.Options.Languages)
             {
-                vm.SelectedLanguage = language;
+                vm.Options.SelectedLanguage = language;
                 DrainDispatcher();
                 Check(window.Title == strings["WindowTitle"] && !window.Title.StartsWith('['),
                     $"XAML resource binding / {language.CultureName}");
-                Check(vm.Themes[0].Label == strings["Theme_Light"] && vm.Themes[1].Label == strings["Theme_Dark"]
-                    && !vm.Themes[0].Label.StartsWith('['), $"theme labels / {language.CultureName}");
+                Check(vm.Options.HashFormats.All(option => !option.Label.StartsWith('[')),
+                    $"hash format labels / {language.CultureName}");
             }
-            vm.SelectedLanguage = vm.Languages.Single(l => l.CultureName == "en");
+            vm.Options.SelectedLanguage = vm.Options.Languages.Single(l => l.CultureName == "en");
             var first = Path.Combine(Path.GetTempPath(), "FileScope-a.bin");
             var second = Path.Combine(Path.GetTempPath(), "FileScope-b.bin");
             vm.DropFilesCommand.Execute(new[] { first, first, second });
             PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
             Check(vm.Rows.All(r => r.State == RowStatus.Completed), "drop command processes all unique paths");
-            Check(vm.Rows.All(r => r.SHA256 == "CHECK-SHA256"), "results reach the grid model");
+            Check(vm.Rows.All(r => r.SHA256 == HashValue(ChecksumAlgorithm.SHA256)), "results reach the grid model");
             Check(vm.Rows.All(r => r.MD5.Length == 0), "unselected hashes remain empty");
-            CheckPresentation(window, vm, themes);
-            vm.SearchText = "check-sha256";
+            CheckPresentation(window, vm, service);
+            vm.SearchText = HashValue(ChecksumAlgorithm.SHA256).ToLowerInvariant();
             Check(vm.RowsView.Count == 2, "case-insensitive checksum search");
             vm.SearchText = "does-not-exist";
             Check(vm.RowsView.Count == 0 && vm.ShowNoMatches, "no-match filter state");
@@ -84,21 +84,21 @@ internal static class UiChecks
             vm.ResetFiltersCommand.Execute(null);
             vm.StateFilter = vm.StateFilters.Single(x => x.Value == RowStatus.Completed);
             Check(vm.RowsView.Count == 2, "analysis-state filter");
-            vm.SelectedLanguage = vm.Languages.Single(x => x.CultureName == "de");
+            vm.Options.SelectedLanguage = vm.Options.Languages.Single(x => x.CultureName == "de");
             Check(vm.Rows[0].StateText == "Fertig", "existing row status changes language");
             Check(vm.Rows[0].SignatureText == strings["Signature_NoEmbeddedSignature"], "existing signature changes language");
-            vm.SelectedLanguage = vm.Languages.Single(x => x.CultureName == "zh-Hans");
+            vm.Options.SelectedLanguage = vm.Options.Languages.Single(x => x.CultureName == "zh-Hans");
             Check(vm.Rows[0].StateText == "已完成", "Chinese satellite resource is loaded");
             vm.ChecksumOptions.Single(x => x.Algorithm == ChecksumAlgorithm.SHA512).IsSelected = true;
             vm.ReanalyseCommand.Execute(null);
-            PumpUntil(() => !vm.IsBusy && vm.Rows.All(r => r.SHA512 == "CHECK-SHA512"));
+            PumpUntil(() => !vm.IsBusy && vm.Rows.All(r => r.SHA512 == HashValue(ChecksumAlgorithm.SHA512)));
             Check(service.LastOptions!.Algorithms.Contains(ChecksumAlgorithm.SHA512), "reanalysis uses new options");
             vm.ClearCommand.Execute(null);
             Check(vm.Rows.Count == 0 && vm.RowsView.Count == 0 && vm.SearchText.Length == 0,
                 "clear removes results and resets filters");
 
             var blocked = new BlockingAnalysis();
-            using var busyVm = new MainViewModel(blocked, new EmptyPicker(), strings, new TestThemeService());
+            using var busyVm = new MainViewModel(blocked, new EmptyPicker(), strings, CreateOptions(strings));
             busyVm.DropFilesCommand.Execute(new[] { first });
             PumpUntil(() => blocked.Started.Task.IsCompleted);
             Check(busyVm.IsBusy && !busyVm.DropFilesCommand.CanExecute(new[] { second }),
@@ -115,7 +115,7 @@ internal static class UiChecks
                 "late progress cannot restore cleared state");
 
             var cancelled = new BlockingAnalysis();
-            using var cancelVm = new MainViewModel(cancelled, new EmptyPicker(), strings, new TestThemeService());
+            using var cancelVm = new MainViewModel(cancelled, new EmptyPicker(), strings, CreateOptions(strings));
             cancelVm.DropFilesCommand.Execute(new[] { first, second });
             PumpUntil(() => cancelled.Started.Task.IsCompleted);
             cancelVm.CancelCommand.Execute(null);
@@ -139,7 +139,7 @@ internal static class UiChecks
     private static void CheckFileIntake(LocalizationService strings)
     {
         var picker = new TestPicker();
-        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings, new TestThemeService());
+        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings, CreateOptions(strings));
         var first = Path.Combine(Path.GetTempPath(), "FileScope-intake-a.bin");
         var second = Path.Combine(Path.GetTempPath(), "FileScope-intake-b.bin");
         var third = Path.Combine(Path.GetTempPath(), "FileScope-intake-c.bin");
@@ -188,7 +188,7 @@ internal static class UiChecks
             vm.SearchText = "no-file-matches-this-filter";
             vm.DropFilesCommand.Execute(new[] { fourth });
             AwaitFinished(4);
-            Check(vm.RowsView.Count == 0 && vm.Rows.Single(r => r.FullPath == fourth).SHA256 == "CHECK-SHA256",
+            Check(vm.RowsView.Count == 0 && vm.Rows.Single(r => r.FullPath == fourth).SHA256 == HashValue(ChecksumAlgorithm.SHA256),
                 "files hidden by the current filter are still analysed");
             vm.ResetFiltersCommand.Execute(null);
             Check(vm.RowsView.Count == 4, "resetting filters reveals all processed files");
@@ -201,16 +201,15 @@ internal static class UiChecks
         finally { viewNotifications.CollectionChanged -= readView; }
     }
 
-    private static void CheckPresentation(MainWindow window, MainViewModel vm, ThemeService themes)
+    private static void CheckPresentation(MainWindow window, MainViewModel vm, ImmediateAnalysis analysis)
     {
         var grid = (DataGrid)window.FindName("ResultsGrid");
-        var selector = (ComboBox)window.FindName("ThemeSelector");
         var columns = grid.Columns.OfType<DataGridTextColumn>()
             .ToDictionary(column => ((Binding)column.Binding).Path.Path);
         var results = vm.Rows.Select(row => row.Result).ToArray();
+        var analysisCalls = analysis.Calls;
         string[] certificateColumns = ["SignatureText", "Publisher", "Subject", "Issuer", "SerialNumber",
             "ValidFrom", "ValidUntil", "CertificateSha1", "CertificateSha256", "CertificateAlgorithm", "NativeCode"];
-
         foreach (var option in vm.ChecksumOptions)
         {
             var column = columns[option.Algorithm.ToString()];
@@ -245,56 +244,57 @@ internal static class UiChecks
             grid.UpdateLayout();
             DrainDispatcher();
         }
-        void CheckRowColor(int index, string brushKey)
+        void CheckOrder() => Check(grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId)
+            .SequenceEqual(vm.Options.Columns.Select(column => column.Id)), "grid follows the complete options order");
+        DrainDispatcher();
+        CheckOrder();
+        var md5 = vm.Options.Columns.Single(column => column.Id == "MD5");
+        vm.Options.SelectedColumn = md5;
+        vm.Options.MoveFirstCommand.Execute(null);
+        CheckOrder();
+        Check(columns["MD5"].DisplayIndex == 0 && columns["MD5"].Visibility == Visibility.Collapsed,
+            "hidden columns can move across the frozen boundary");
+        vm.ChecksumOptions.Single(option => option.Algorithm == ChecksumAlgorithm.MD5).IsSelected = true;
+        DrainDispatcher();
+        Check(columns["MD5"].DisplayIndex == 0 && columns["MD5"].Visibility == Visibility.Visible,
+            "revealed columns retain the chosen position");
+        vm.Options.SetColumnOrder(vm.Options.Columns.Reverse().Select(column => column.Id));
+        CheckOrder();
+        vm.Options.ResetOrderCommand.Execute(null);
+        CheckOrder();
+        vm.ChecksumOptions.Single(option => option.Algorithm == ChecksumAlgorithm.MD5).IsSelected = false;
+        var optionsWindow = new OptionsWindow(vm.Options);
+        try
         {
-            var row = (DataGridRow?)grid.ItemContainerGenerator.ContainerFromIndex(index);
-            Check(row is not null, $"row {index} is realized for visual checks");
-            var surface = (Border)row!.Template.FindName("RowSurface", row);
-            Check(surface.Background is SolidColorBrush actual
-                && actual.Color == ((SolidColorBrush)grid.FindResource(brushKey)).Color,
-                $"rendered row {index} uses {brushKey} / {themes.CurrentTheme}");
-        }
-
-        var brushBeforeSwitch = window.Background;
-        foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light, AppTheme.Dark, AppTheme.Light })
-        {
-            selector.SelectedIndex = vm.Themes.ToList().FindIndex(option => option.Value == theme);
             DrainDispatcher();
-            Check(themes.CurrentTheme == theme && vm.SelectedTheme.Value == theme,
-                "theme selector invokes the injected service");
-#pragma warning disable WPF0001
-            Check(Application.Current.ThemeMode == (theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light),
-                "native Fluent theme matches palette");
-#pragma warning restore WPF0001
-            Check(!ReferenceEquals(window.Background, brushBeforeSwitch), "window updates its dynamic palette");
-            brushBeforeSwitch = window.Background;
-            grid.UnselectAll();
-            LayoutGrid();
-            CheckRowColor(0, "RowBrush");
-            CheckRowColor(1, "AlternateRowBrush");
-            Check(((SolidColorBrush)grid.RowBackground).Color != ((SolidColorBrush)grid.AlternatingRowBackground).Color,
-                "alternating rows have different colors");
-            grid.SelectedItem = vm.RowsView.GetItemAt(1);
+            var selector = (ComboBox)optionsWindow.FindName("HashFormatSelector");
+            selector.SelectedIndex = vm.Options.HashFormats.ToList().FindIndex(option => option.Value == HashFormat.Base64);
             DrainDispatcher();
-            CheckRowColor(1, "SelectionBrush");
+            var expected = Convert.ToBase64String(Convert.FromHexString(HashValue(ChecksumAlgorithm.SHA256)));
+            Check(vm.Rows.All(row => row.SHA256 == expected && row.Details.Contains(expected)),
+                "format dropdown updates existing grid values and details");
+            Check(analysis.Calls == analysisCalls, "switching format performs no new analysis");
+            vm.SearchText = expected;
+            Check(vm.RowsView.Count == 2, "formatted digests are searchable");
+            selector.SelectedIndex = vm.Options.HashFormats.ToList().FindIndex(option => option.Value == HashFormat.HexUpper);
+            DrainDispatcher();
+            Check(vm.RowsView.Count == 0, "active filters refresh after a representation change");
+            vm.ResetFiltersCommand.Execute(null);
             Check(vm.Rows.Select(row => row.Result).Zip(results).All(pair => ReferenceEquals(pair.First, pair.Second)),
-                "presentation changes retain analysis results");
-            Check(columns["MD5"].Visibility == Visibility.Collapsed && columns["SHA256"].Visibility == Visibility.Visible,
-                "theme switch preserves column choices");
+                "presentation changes preserve the original analysis results");
         }
-
+        finally { optionsWindow.Close(); }
         grid.UnselectAll();
-        vm.RowsView.SortDescriptions.Add(new SortDescription(nameof(FileRowViewModel.FileName), ListSortDirection.Descending));
+        vm.Options.FitColumnsCommand.Execute(null);
+        DrainDispatcher();
         LayoutGrid();
-        CheckRowColor(0, "RowBrush");
-        CheckRowColor(1, "AlternateRowBrush");
-        vm.SearchText = "FileScope-a.bin";
-        LayoutGrid();
-        Check(grid.Items.Count == 1, "filter removes nonmatching visual rows");
-        CheckRowColor(0, "RowBrush");
-        vm.RowsView.SortDescriptions.Clear();
-        vm.ResetFiltersCommand.Execute(null);
-        LayoutGrid();
+        Check(grid.AlternationCount == 0 && ((SolidColorBrush)grid.Background).Color == Colors.White,
+            "table has a uniform light background without alternating rows");
+        Check(grid.Columns.All(column => column.Width.IsAuto && column.MinWidth > 0 && column.MaxWidth < 1000),
+            "all columns use bounded automatic sizing");
+        Check(grid.Columns.Where(column => column.Visibility == Visibility.Visible)
+            .All(column => column.ActualWidth >= column.MinWidth && column.ActualWidth <= column.MaxWidth),
+            "visible columns respect minimum and maximum widths");
     }
 
     private static void Check(bool condition, string label)
@@ -328,10 +328,11 @@ internal static class UiChecks
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
     }
-    private sealed class TestThemeService : IThemeService
+    private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
+    private sealed class MemoryPreferences : IPreferencesStore
     {
-        public AppTheme CurrentTheme { get; private set; } = AppTheme.Light;
-        public void Apply(AppTheme theme) => CurrentTheme = theme;
+        public UserPreferences Load() => new();
+        public void Save(UserPreferences preferences) { }
     }
     private sealed class TestPicker : IFilePickerService
     {
@@ -341,10 +342,12 @@ internal static class UiChecks
     private sealed class ImmediateAnalysis : IFileAnalysisService
     {
         public AnalysisOptions? LastOptions { get; private set; }
+        public int Calls { get; private set; }
         public Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
             IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
         {
             LastOptions = options;
+            Calls++;
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(Result(path, options));
         }
@@ -367,8 +370,17 @@ internal static class UiChecks
             return Result(path, options);
         }
     }
+    private static string HashValue(ChecksumAlgorithm algorithm) => Convert.ToHexString(algorithm switch
+    {
+        ChecksumAlgorithm.MD5 => System.Security.Cryptography.MD5.HashData("abc"u8),
+        ChecksumAlgorithm.SHA1 => System.Security.Cryptography.SHA1.HashData("abc"u8),
+        ChecksumAlgorithm.SHA256 => System.Security.Cryptography.SHA256.HashData("abc"u8),
+        ChecksumAlgorithm.SHA384 => System.Security.Cryptography.SHA384.HashData("abc"u8),
+        ChecksumAlgorithm.SHA512 => System.Security.Cryptography.SHA512.HashData("abc"u8),
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm))
+    });
     private static FileAnalysisResult Result(string path, AnalysisOptions options) => new(
         path, 3, DateTimeOffset.UtcNow,
-        options.Algorithms.ToDictionary(a => a, a => "CHECK-" + a),
+        options.Algorithms.ToDictionary(a => a, HashValue),
         new SignatureResult(SignatureStatus.NoEmbeddedSignature, options.RevocationMode));
 }
