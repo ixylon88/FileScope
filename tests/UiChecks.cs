@@ -29,12 +29,15 @@ internal static class UiChecks
         try
         {
             // App.OnStartup creates the production window when the dispatcher is
-            // pumped. Use a plain host and load the resources the tested view needs.
-            app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            // pumped. A plain host uses the same theme/resources without startup
+            // composition. check_structure.py guards the theme against App.xaml.
+#pragma warning disable WPF0001 // Match the ThemeMode already used in App.xaml; the SDK still marks its C# API experimental.
+            app = new Application
             {
-                Source = new Uri("/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml", UriKind.Relative)
-            });
+                ShutdownMode = ShutdownMode.OnExplicitShutdown,
+                ThemeMode = ThemeMode.Dark
+            };
+#pragma warning restore WPF0001
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
                 Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
@@ -206,10 +209,15 @@ internal static class UiChecks
             DrainDispatcher();
             var grid = (DataGrid)window.FindName("ResultsGrid");
             var columns = grid.Columns.ToDictionary(ColumnLayoutBehavior.GetId);
-            CheckBox Box(string property) => VisualChildren(window).OfType<CheckBox>().Single(box =>
-                BindingOperations.GetBinding(box, CheckBox.IsCheckedProperty)?.Path.Path == property);
-            var properties = Box(nameof(MainViewModel.InspectFileProperties));
-            var pe = Box(nameof(MainViewModel.InspectPeHeader));
+            // InitializeComponent registers names before a Window is shown. Its
+            // visual tree need not exist yet, even after Measure/Arrange.
+            var properties = window.FindName("InspectFilePropertiesCheckBox") as CheckBox
+                ?? throw new InvalidOperationException("MainWindow is missing InspectFilePropertiesCheckBox.");
+            var pe = window.FindName("InspectPeHeaderCheckBox") as CheckBox
+                ?? throw new InvalidOperationException("MainWindow is missing InspectPeHeaderCheckBox.");
+            Check(BindingOperations.GetBinding(properties, CheckBox.IsCheckedProperty)?.Path.Path == nameof(MainViewModel.InspectFileProperties)
+                && BindingOperations.GetBinding(pe, CheckBox.IsCheckedProperty)?.Path.Path == nameof(MainViewModel.InspectPeHeader),
+                "named metadata controls retain their real view-model bindings");
             string[] propertyColumns = ["FileDescription", "FileLanguage", "FileType", "FileVersion", "ProductName",
                 "ProductVersion", "CompanyName", "OriginalFilename", "InternalName", "Copyright", "Trademarks", "Comments"];
             string[] peColumns = ["PeMachine", "PeFormat", "ManagedPlatform"];
@@ -610,8 +618,10 @@ internal static class UiChecks
         vm.Options.FitColumnsCommand.Execute(null);
         DrainDispatcher();
         LayoutGrid();
-        Check(grid.AlternationCount == 0 && ((SolidColorBrush)grid.Background).Color == Colors.White,
-            "table has a uniform light background without alternating rows");
+        Check(grid.AlternationCount == 0, "table keeps row striping disabled");
+        Check(grid.ReadLocalValue(Control.BackgroundProperty) == DependencyProperty.UnsetValue
+            && grid.ReadLocalValue(Control.ForegroundProperty) == DependencyProperty.UnsetValue,
+            "table uses the application theme instead of fixed light colors");
         Check(grid.Columns.All(column => column.Width.IsAuto && column.MinWidth > 0 && column.MaxWidth < 1000),
             "all columns use bounded automatic sizing");
         Check(grid.Columns.Where(column => column.Visibility == Visibility.Visible)
@@ -650,6 +660,7 @@ internal static class UiChecks
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
     }
+
     private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
     private sealed class MemoryPreferences : IPreferencesStore
     {

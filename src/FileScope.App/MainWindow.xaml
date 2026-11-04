@@ -37,7 +37,7 @@
     </Grid>
 
     <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
-      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+      <DockPanel>
         <StackPanel Orientation="Horizontal">
           <StackPanel Width="248">
             <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
@@ -70,9 +70,9 @@
           <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
           <StackPanel Width="224" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Metadata}" Style="{StaticResource GroupHeading}" />
-            <CheckBox Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
+            <CheckBox x:Name="InspectFilePropertiesCheckBox" Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
                       IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectFilePropertiesTip}" />
-            <CheckBox Content="{loc:Loc InspectPeHeader}" IsChecked="{Binding InspectPeHeader}"
+            <CheckBox x:Name="InspectPeHeaderCheckBox" Content="{loc:Loc InspectPeHeader}" IsChecked="{Binding InspectPeHeader}"
                       IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc InspectPeHeaderTip}" />
           </StackPanel>
           <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
@@ -86,7 +86,7 @@
             </Button>
           </StackPanel>
         </StackPanel>
-      </ScrollViewer>
+      </DockPanel>
     </Border>
 
     <Grid Grid.Row="2" Margin="24,0,24,14">

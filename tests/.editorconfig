@@ -1,5 +1,9 @@
+# Ausnahmen nur für C#-Testquellen in diesem Ordner und darunter.
+# Erbt die übrigen Regeln aus ../.editorconfig.
 [*.cs]
+# [AUS] CA2201: Zu allgemeine Exception-Typen nicht werfen. Testfehler werden bewusst mit Exception signalisiert.
 dotnet_diagnostic.CA2201.severity = none
-
+# [AUS] CA5350: Schwache kryptografische Algorithmen wie SHA-1 erkennen. Hier werden bekannte Hash-Testvektoren geprüft.
 dotnet_diagnostic.CA5350.severity = none
+# [AUS] CA5351: Gebrochene kryptografische Algorithmen wie MD5 erkennen. Hier werden bekannte Hash-Testvektoren geprüft.
 dotnet_diagnostic.CA5351.severity = none

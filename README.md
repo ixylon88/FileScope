@@ -59,7 +59,7 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
 | Statusfelder | Verarbeitungs- und Signaturstatus verwenden dieselbe abgerundete `StatusBadge`-Komponente. Grün: fertig/gültig; Blau: Verarbeitung läuft; Gelb: abgebrochen oder Warnfall; Rot: Fehler/ungültige Prüfung; Grau: wartend, nicht geprüft oder keine eingebettete Signatur. Die übersetzte Beschriftung und der vollständige Tooltip bleiben maßgeblich. |
-| Tabelle | Schreibgeschützt und horizontal scrollbar. Einheitlich helle Zeilen mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
+| Tabelle | Schreibgeschützt und horizontal scrollbar. Zeilen ohne wechselnde Hintergrundfarben mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
 | Spaltenreihenfolge | Zahnrad → Optionen: Alle 39 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
 | Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, innerhalb fester Mindest-/Höchstbreiten je Spalte. Lange Werte sind über Tooltip, Details und Kopieren vollständig verfügbar. Manuelles Vergrößern bleibt möglich; „Breiten neu anpassen“ schaltet wieder auf Automatik. |
 | Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
@@ -68,7 +68,7 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
-| Design | Festes helles Design. Der Theme-Umschalter und die eigenen Vorlagen für Zeilen/Zellen wurden entfernt. |
+| Design | Festes Fluent-Dark-Theme über `App.xaml`. Kein Theme-Umschalter und keine eigenen Vorlagen für Zeilen/Zellen. |
 
 Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
 
@@ -204,3 +204,9 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 - [PE- und COFF-Format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format)
 - [Windows-Dateityp: SHGetFileInfoW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shgetfileinfow)
 - [VS-Code-Workspace-Tasks](https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces)
+
+## Code-Stil
+
+Die `.editorconfig` ist nach Themen und Regel-IDs geordnet; jede Einstellung trägt einen kurzen Kommentar. [Einstellungen und Erklärungen nebeneinander](docs/EDITORCONFIG.md). Die engeren Testausnahmen stehen in `tests/.editorconfig`.
+
+[Review der Analyzer-/Dark-Commits und Korrektur des UI-Tests](docs/REVIEW-2026-11-04.md).

@@ -2,11 +2,13 @@
 
 Stand: 4. November 2026.
 
+Aktueller Nachtrag: [Review der Analyzer-/Dark-Commits und UI-Testkorrektur](docs/REVIEW-2026-11-04.md). Core (115) und Präsentation/Einstellungen (107) wurden erneut ausgeführt; das korrigierte WPF-Testprogramm wurde kompiliert. Der Theme-Test entspricht jetzt `App.xaml` (Dark), die Metadaten-Kästchen werden über ihren XAML-Namen gefunden. Windows-Laufzeittests stehen weiterhin aus.
+
 ## Hier tatsächlich ausgeführt
 
 | Prüfung | Ergebnis |
 | --- | --- |
-| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten und Workspace-Tasks | 907 Prüfungen bestanden |
+| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten, Workspace-Tasks und Test-Theme | 908 Prüfungen bestanden |
 | Drei Ressourcensätze mit jeweils 142 Schlüsseln; gleiche Formatplatzhalter | Bestanden |
 | Genau zwei Produktionsprojekte; Kernbibliothek ohne WPF-Abhängigkeit | Bestanden |
 | Alle 39 Spalten in XAML und Optionskatalog; begrenzte automatische Breiten | Bestanden |

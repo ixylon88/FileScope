@@ -106,7 +106,11 @@ check('AlternationCount="0"' in xaml and 'AlternatingRowBackground=' not in xaml
 check('ThemeSelector' not in xaml and not (ROOT / 'src/FileScope.App/Services/ThemeService.cs').exists(),
       'The removed runtime theme must not return.')
 controls = (ROOT / 'src/FileScope.App/Styles/Controls.xaml').read_text(encoding='utf-8')
-check('ControlTemplate' not in controls, 'Use native control templates for the fixed light UI.')
+check('ControlTemplate' not in controls, 'Use native control templates for the application theme.')
+app_theme = ET.parse(ROOT / 'src/FileScope.App/App.xaml').getroot().attrib.get('ThemeMode')
+ui_checks = (ROOT / 'tests/UiChecks.cs').read_text(encoding='utf-8')
+check(app_theme is not None and f'ThemeMode = ThemeMode.{app_theme}' in ui_checks,
+      'The UI test host must use the same ThemeMode as App.xaml.')
 namespace = '{http://schemas.microsoft.com/winfx/2006/xaml/presentation}'
 behavior = '{clr-namespace:FileScope.App.Behaviors}ColumnLayoutBehavior.Id'
 view = ET.fromstring(xaml)
