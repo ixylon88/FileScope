@@ -366,4 +366,76 @@
   <data name="Timestamp_Unverified" xml:space="preserve">
     <value>未确认</value>
   </data>
+  <data name="Group_Metadata" xml:space="preserve">
+    <value>文件元数据</value>
+  </data>
+  <data name="InspectFileProperties" xml:space="preserve">
+    <value>文件属性</value>
+  </data>
+  <data name="InspectFilePropertiesTip" xml:space="preserve">
+    <value>读取版本信息和 Windows 文件类型。缺失的字段留空。启用后重新分析可更新现有行。</value>
+  </data>
+  <data name="InspectPeHeader" xml:space="preserve">
+    <value>PE 头 / 平台</value>
+  </data>
+  <data name="InspectPeHeaderTip" xml:space="preserve">
+    <value>读取 PE 机器类型、PE32/PE32+ 和 .NET 平台，不执行文件。没有 PE 头的文件留空。启用后重新分析可更新现有行。</value>
+  </data>
+  <data name="ReadingMetadata" xml:space="preserve">
+    <value>正在读取元数据…</value>
+  </data>
+  <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
+    <value>AnyCPU（首选 32 位）</value>
+  </data>
+  <data name="PropertiesError" xml:space="preserve">
+    <value>文件属性：{0}</value>
+  </data>
+  <data name="PeHeaderError" xml:space="preserve">
+    <value>PE 头：{0}</value>
+  </data>
+  <data name="Column_FileDescription" xml:space="preserve">
+    <value>文件说明</value>
+  </data>
+  <data name="Column_FileLanguage" xml:space="preserve">
+    <value>文件语言</value>
+  </data>
+  <data name="Column_FileType" xml:space="preserve">
+    <value>文件类型</value>
+  </data>
+  <data name="Column_FileVersion" xml:space="preserve">
+    <value>文件版本</value>
+  </data>
+  <data name="Column_ProductName" xml:space="preserve">
+    <value>产品名称</value>
+  </data>
+  <data name="Column_ProductVersion" xml:space="preserve">
+    <value>产品版本</value>
+  </data>
+  <data name="Column_CompanyName" xml:space="preserve">
+    <value>公司</value>
+  </data>
+  <data name="Column_OriginalFilename" xml:space="preserve">
+    <value>原始文件名</value>
+  </data>
+  <data name="Column_InternalName" xml:space="preserve">
+    <value>内部名称</value>
+  </data>
+  <data name="Column_Copyright" xml:space="preserve">
+    <value>版权</value>
+  </data>
+  <data name="Column_Trademarks" xml:space="preserve">
+    <value>商标</value>
+  </data>
+  <data name="Column_Comments" xml:space="preserve">
+    <value>备注</value>
+  </data>
+  <data name="Column_PeMachine" xml:space="preserve">
+    <value>PE 机器类型</value>
+  </data>
+  <data name="Column_PeFormat" xml:space="preserve">
+    <value>PE 格式</value>
+  </data>
+  <data name="Column_ManagedPlatform" xml:space="preserve">
+    <value>.NET 平台</value>
+  </data>
 </root>

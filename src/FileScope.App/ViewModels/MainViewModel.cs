@@ -20,6 +20,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellation;
     private bool _busy, _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
     private bool _checkingSignature;
+    private bool _inspectFileProperties, _inspectPeHeader;
     private long _epoch;
     private int _processed, _batchTotal, _skipped;
     private double _progress;
@@ -61,6 +62,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ]);
         _inspectCertificates = selection.InspectCertificates;
         _onlineRevocation = selection.OnlineRevocation;
+        _inspectFileProperties = selection.InspectFileProperties;
+        _inspectPeHeader = selection.InspectPeHeader;
         StateFilters = Array.AsReadOnly(new[]
         {
             new FilterOption<RowStatus?>(null, "AllStates", strings),
@@ -129,6 +132,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         set { if (SetProperty(ref _onlineRevocation, value)) SaveAnalysisPreferences(); }
     }
     public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
+    public bool InspectFileProperties
+    {
+        get => _inspectFileProperties;
+        set { if (SetProperty(ref _inspectFileProperties, value)) SaveAnalysisPreferences(); }
+    }
+    public bool InspectPeHeader
+    {
+        get => _inspectPeHeader;
+        set { if (SetProperty(ref _inspectPeHeader, value)) SaveAnalysisPreferences(); }
+    }
     public bool ShowMD5Column => IsChecksumSelected(ChecksumAlgorithm.MD5);
     public bool ShowSHA1Column => IsChecksumSelected(ChecksumAlgorithm.SHA1);
     public bool ShowSHA256Column => IsChecksumSelected(ChecksumAlgorithm.SHA256);
@@ -191,7 +204,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SHA384 = IsChecksumSelected(ChecksumAlgorithm.SHA384),
         SHA512 = IsChecksumSelected(ChecksumAlgorithm.SHA512),
         InspectCertificates = InspectCertificates,
-        OnlineRevocation = OnlineRevocation
+        OnlineRevocation = OnlineRevocation,
+        InspectFileProperties = InspectFileProperties,
+        InspectPeHeader = InspectPeHeader
     });
 
     private async Task AddFilesAsync(IEnumerable<string> paths)
@@ -224,7 +239,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (!IsIdle || batch.Count == 0) return;
         var options = new AnalysisOptions(ChecksumOptions.Where(x => x.IsSelected).Select(x => x.Algorithm),
-            InspectCertificates, OnlineRevocation ? RevocationMode.Online : RevocationMode.OfflineCache);
+            InspectCertificates, OnlineRevocation ? RevocationMode.Online : RevocationMode.OfflineCache,
+            InspectFileProperties, InspectPeHeader);
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
         var epoch = ++_epoch;
@@ -253,7 +269,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     if (_disposed || _epoch != epoch || row.State != RowStatus.Running) return;
                     IsCheckingSignature = p.Stage == AnalysisStage.CheckingSignature;
                     var fraction = p.TotalBytes == 0 ? 1.0 : Math.Clamp((double)p.BytesRead / p.TotalBytes, 0, 1);
-                    var percent = p.Stage == AnalysisStage.CheckingSignature ? 95 : fraction * (options.InspectSignature ? 90 : 100);
+                    var percent = p.Stage is AnalysisStage.CheckingSignature or AnalysisStage.ReadingMetadata ? 95
+                        : fraction * (options.InspectSignature || options.InspectFileProperties || options.InspectPeHeader ? 90 : 100);
                     row.SetProgress(p, percent);
                     Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
                 });

@@ -366,4 +366,76 @@
   <data name="Timestamp_Unverified" xml:space="preserve">
     <value>nicht bestätigt</value>
   </data>
+  <data name="Group_Metadata" xml:space="preserve">
+    <value>Dateimetadaten</value>
+  </data>
+  <data name="InspectFileProperties" xml:space="preserve">
+    <value>Dateieigenschaften</value>
+  </data>
+  <data name="InspectFilePropertiesTip" xml:space="preserve">
+    <value>Versionsinformationen und Windows-Dateityp lesen. Fehlende Felder bleiben leer. Für vorhandene Zeilen aktivieren und erneut analysieren.</value>
+  </data>
+  <data name="InspectPeHeader" xml:space="preserve">
+    <value>PE-Header / Plattform</value>
+  </data>
+  <data name="InspectPeHeaderTip" xml:space="preserve">
+    <value>PE-Maschinentyp, PE32/PE32+ und .NET-Plattform lesen, ohne die Datei auszuführen. Ohne PE-Header bleiben die Felder leer. Für vorhandene Zeilen aktivieren und erneut analysieren.</value>
+  </data>
+  <data name="ReadingMetadata" xml:space="preserve">
+    <value>Metadaten werden gelesen…</value>
+  </data>
+  <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
+    <value>AnyCPU (32 Bit bevorzugt)</value>
+  </data>
+  <data name="PropertiesError" xml:space="preserve">
+    <value>Dateieigenschaften: {0}</value>
+  </data>
+  <data name="PeHeaderError" xml:space="preserve">
+    <value>PE-Header: {0}</value>
+  </data>
+  <data name="Column_FileDescription" xml:space="preserve">
+    <value>Dateibeschreibung</value>
+  </data>
+  <data name="Column_FileLanguage" xml:space="preserve">
+    <value>Dateisprache</value>
+  </data>
+  <data name="Column_FileType" xml:space="preserve">
+    <value>Dateityp</value>
+  </data>
+  <data name="Column_FileVersion" xml:space="preserve">
+    <value>Dateiversion</value>
+  </data>
+  <data name="Column_ProductName" xml:space="preserve">
+    <value>Produktname</value>
+  </data>
+  <data name="Column_ProductVersion" xml:space="preserve">
+    <value>Produktversion</value>
+  </data>
+  <data name="Column_CompanyName" xml:space="preserve">
+    <value>Hersteller</value>
+  </data>
+  <data name="Column_OriginalFilename" xml:space="preserve">
+    <value>Originaldateiname</value>
+  </data>
+  <data name="Column_InternalName" xml:space="preserve">
+    <value>Interner Name</value>
+  </data>
+  <data name="Column_Copyright" xml:space="preserve">
+    <value>Copyright</value>
+  </data>
+  <data name="Column_Trademarks" xml:space="preserve">
+    <value>Marken</value>
+  </data>
+  <data name="Column_Comments" xml:space="preserve">
+    <value>Kommentare</value>
+  </data>
+  <data name="Column_PeMachine" xml:space="preserve">
+    <value>PE-Maschinentyp</value>
+  </data>
+  <data name="Column_PeFormat" xml:space="preserve">
+    <value>PE-Format</value>
+  </data>
+  <data name="Column_ManagedPlatform" xml:space="preserve">
+    <value>.NET-Plattform</value>
+  </data>
 </root>

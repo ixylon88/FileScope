@@ -46,6 +46,7 @@ internal static class UiChecks
                 new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var strings = LocalizationService.Instance;
             CheckCheckboxPersistence(strings);
+            CheckMetadataOptions(strings);
             CheckFileIntake(strings);
             CheckMultipleSignatures(strings);
             CheckWindowPersistence(strings);
@@ -148,7 +149,7 @@ internal static class UiChecks
             Analysis = new AnalysisPreferences
             {
                 MD5 = true, SHA1 = true, SHA256 = false, SHA384 = true, SHA512 = false,
-                InspectCertificates = false, OnlineRevocation = true
+                InspectCertificates = false, OnlineRevocation = true, InspectFileProperties = true, InspectPeHeader = true
             }
         });
         var saves = store.SaveCount;
@@ -162,6 +163,9 @@ internal static class UiChecks
                 "disabled online-revocation checkbox retains its saved selection");
             Check(vm.ShowMD5Column && vm.ShowSHA1Column && !vm.ShowSHA256Column && vm.ShowSHA384Column && !vm.ShowSHA512Column,
                 "initial column visibility follows restored checksum choices");
+            Check(vm.InspectFileProperties && vm.InspectPeHeader, "new metadata checkboxes restore their saved choices");
+            vm.InspectFileProperties = false;
+            vm.InspectPeHeader = false;
             foreach (var option in vm.ChecksumOptions) option.IsSelected = false;
             vm.OnlineRevocation = false;
             Check(store.Saved.Analysis == new AnalysisPreferences { SHA256 = false, InspectCertificates = false },
@@ -169,21 +173,71 @@ internal static class UiChecks
         }
         var analysis = new ImmediateAnalysis();
         using var reopened = new MainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
-        Check(reopened.ChecksumOptions.All(o => !o.IsSelected) && !reopened.InspectCertificates && !reopened.OnlineRevocation,
-            "restart preserves all seven checkboxes off");
+        Check(reopened.ChecksumOptions.All(o => !o.IsSelected) && !reopened.InspectCertificates && !reopened.OnlineRevocation && !reopened.InspectFileProperties && !reopened.InspectPeHeader,
+            "restart preserves all nine checkboxes off");
         reopened.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "restored-options.bin") });
         PumpUntil(() => !reopened.IsBusy && reopened.Rows.Count == 1);
-        Check(analysis.LastOptions is { Algorithms.Count: 0, InspectSignature: false, RevocationMode: RevocationMode.OfflineCache },
+        Check(analysis.LastOptions is { Algorithms.Count: 0, InspectSignature: false, RevocationMode: RevocationMode.OfflineCache,
+            InspectFileProperties: false, InspectPeHeader: false },
             "analysis uses restored checkbox choices");
         foreach (var option in reopened.ChecksumOptions) option.IsSelected = true;
         reopened.InspectCertificates = true;
         reopened.OnlineRevocation = true;
+        reopened.InspectFileProperties = true;
+        reopened.InspectPeHeader = true;
         Check(store.Saved.Analysis is { MD5: true, SHA1: true, SHA256: true, SHA384: true, SHA512: true,
-            InspectCertificates: true, OnlineRevocation: true } && reopened.CanChooseOnlineRevocation,
-            "each checksum and both signature checkboxes can be enabled and saved");
+            InspectCertificates: true, OnlineRevocation: true, InspectFileProperties: true, InspectPeHeader: true } && reopened.CanChooseOnlineRevocation,
+            "each checksum, signature and metadata checkbox can be enabled and saved");
         reopened.ClearCommand.Execute(null);
         Check(store.Saved.Analysis == reopened.Options.AnalysisPreferences && reopened.ChecksumOptions.All(o => o.IsSelected),
             "clear keeps saved analysis choices");
+    }
+
+    private static void CheckMetadataOptions(LocalizationService strings)
+    {
+        var store = new MemoryPreferences();
+        var analysis = new ImmediateAnalysis();
+        using var vm = new MainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        var window = new MainWindow(vm);
+        try
+        {
+            window.Measure(new Size(1600, 900));
+            window.Arrange(new Rect(0, 0, 1600, 900));
+            DrainDispatcher();
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var columns = grid.Columns.ToDictionary(ColumnLayoutBehavior.GetId);
+            CheckBox Box(string property) => VisualChildren(window).OfType<CheckBox>().Single(box =>
+                BindingOperations.GetBinding(box, CheckBox.IsCheckedProperty)?.Path.Path == property);
+            var properties = Box(nameof(MainViewModel.InspectFileProperties));
+            var pe = Box(nameof(MainViewModel.InspectPeHeader));
+            string[] propertyColumns = ["FileDescription", "FileLanguage", "FileType", "FileVersion", "ProductName",
+                "ProductVersion", "CompanyName", "OriginalFilename", "InternalName", "Copyright", "Trademarks", "Comments"];
+            string[] peColumns = ["PeMachine", "PeFormat", "ManagedPlatform"];
+            Check(properties.IsChecked == false && pe.IsChecked == false
+                && propertyColumns.Concat(peColumns).All(id => columns[id].Visibility == Visibility.Collapsed),
+                "metadata controls and columns start disabled for old or missing settings");
+            foreach (var (inspectProperties, inspectPe) in new[] { (true, false), (false, true), (true, true), (false, false) })
+            {
+                properties.IsChecked = inspectProperties;
+                pe.IsChecked = inspectPe;
+                DrainDispatcher();
+                Check(vm.InspectFileProperties == inspectProperties && vm.InspectPeHeader == inspectPe
+                    && store.Saved.Analysis?.InspectFileProperties == inspectProperties && store.Saved.Analysis.InspectPeHeader == inspectPe,
+                    "actual metadata checkbox bindings update and save independent choices");
+                Check(propertyColumns.All(id => columns[id].Visibility == (inspectProperties ? Visibility.Visible : Visibility.Collapsed))
+                    && peColumns.All(id => columns[id].Visibility == (inspectPe ? Visibility.Visible : Visibility.Collapsed)),
+                    "metadata column groups follow their own checkbox");
+                var calls = analysis.Calls;
+                if (vm.Rows.Count == 0)
+                    vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "metadata.exe") });
+                else vm.ReanalyseCommand.Execute(null);
+                PumpUntil(() => analysis.Calls > calls && !vm.IsBusy);
+                Check(analysis.LastOptions?.InspectFileProperties == inspectProperties && analysis.LastOptions.InspectPeHeader == inspectPe
+                    && (vm.Rows[0].FileDescription.Length != 0) == inspectProperties && (vm.Rows[0].PeMachine.Length != 0) == inspectPe,
+                    "drop/reanalysis uses selected metadata flags and publishes the returned values");
+            }
+        }
+        finally { window.Close(); }
     }
 
     private static void CheckFileIntake(LocalizationService strings)
@@ -678,5 +732,9 @@ internal static class UiChecks
     private static FileAnalysisResult Result(string path, AnalysisOptions options) => new(
         path, 3, DateTimeOffset.UtcNow,
         options.Algorithms.ToDictionary(a => a, HashValue),
-        new SignatureResult(SignatureStatus.NoEmbeddedSignature, options.RevocationMode));
+        new SignatureResult(SignatureStatus.NoEmbeddedSignature, options.RevocationMode))
+    {
+        Properties = options.InspectFileProperties ? new(new FilePropertiesInfo { FileDescription = "Example description", FileVersion = "1.2.3.4" }) : null,
+        PeHeader = options.InspectPeHeader ? new(new PeHeaderInfo(0x014c, "i386", "PE32", ManagedPlatform.AnyCpu)) : null
+    };
 }

@@ -1,13 +1,19 @@
+using System.ComponentModel;
 using System.Security;
 using System.Security.Cryptography;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Models;
+using FileScope.Core.Metadata;
 
 namespace FileScope.Core.Services;
 
-public sealed class FileAnalysisService(IChecksumService checksums, ISignatureInspector signatures)
+public sealed class FileAnalysisService(IChecksumService checksums, ISignatureInspector signatures,
+    IFilePropertiesInspector properties, IPeHeaderInspector peHeaders)
     : IFileAnalysisService
 {
+    public FileAnalysisService(IChecksumService checksums, ISignatureInspector signatures)
+        : this(checksums, signatures, new FilePropertiesInspector(), new PeHeaderInspector()) { }
+
     public async Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
         IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -38,6 +44,21 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             var hashes = await checksums.ComputeAsync(stream, options.Algorithms, hashProgress, cancellationToken)
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            FilePropertiesResult? fileProperties = null;
+            PeHeaderResult? peHeader = null;
+            if (options.InspectFileProperties || options.InspectPeHeader)
+                progress?.Report(new AnalysisProgress(AnalysisStage.ReadingMetadata, length, length));
+            if (options.InspectFileProperties)
+                fileProperties = ReadOptional(() => properties.Inspect(fullPath, cancellationToken),
+                    message => new FilePropertiesResult(null, message));
+            cancellationToken.ThrowIfCancellationRequested();
+            if (options.InspectPeHeader)
+            {
+                stream.Position = 0;
+                peHeader = ReadOptional(() => peHeaders.Inspect(stream, cancellationToken),
+                    message => new PeHeaderResult(null, message));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
             var signature = SignatureResult.NotChecked;
             if (options.InspectSignature)
             {
@@ -46,7 +67,8 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
                 signature = signatures.Inspect(stream, fullPath, options.RevocationMode, cancellationToken);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new FileAnalysisResult(fullPath, length, modified, hashes, signature);
+            return new FileAnalysisResult(fullPath, length, modified, hashes, signature)
+            { Properties = fileProperties, PeHeader = peHeader };
         }
         catch (OperationCanceledException) { throw; }
         catch (FileNotFoundException ex) { return Failure(AnalysisError.NotFound, ex); }
@@ -60,6 +82,14 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
 
         FileAnalysisResult Failure(AnalysisError error, Exception ex) =>
             FileAnalysisResult.Failure(fullPath, error, ex.Message);
+    }
+
+    private static T ReadOptional<T>(Func<T> read, Func<string, T> failure)
+    {
+        try { return read(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SecurityException
+            or Win32Exception or BadImageFormatException or ArgumentException or NotSupportedException)
+        { return failure(ex.Message); }
     }
 
     private sealed class ForwardProgress<T>(Action<T> report) : IProgress<T>

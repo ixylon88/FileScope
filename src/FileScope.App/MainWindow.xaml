@@ -68,6 +68,14 @@
             <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
           </StackPanel>
           <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
+          <StackPanel Width="224" Margin="0,0,16,0">
+            <TextBlock Text="{loc:Loc Group_Metadata}" Style="{StaticResource GroupHeading}" />
+            <CheckBox Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
+                      IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectFilePropertiesTip}" />
+            <CheckBox Content="{loc:Loc InspectPeHeader}" IsChecked="{Binding InspectPeHeader}"
+                      IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc InspectPeHeaderTip}" />
+          </StackPanel>
+          <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
           <StackPanel Width="146">
             <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
                     ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}">
@@ -178,6 +186,51 @@
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="CertAlgorithm" Width="Auto" MinWidth="140" MaxWidth="280" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_NativeCode}" Binding="{Binding NativeCode}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="NativeCode" Width="Auto" MinWidth="120" MaxWidth="180" ElementStyle="{StaticResource HashText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_FileDescription}" Binding="{Binding FileDescription}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="FileDescription" Width="Auto" MinWidth="180" MaxWidth="420" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_FileLanguage}" Binding="{Binding FileLanguage}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="FileLanguage" Width="Auto" MinWidth="140" MaxWidth="260" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_FileType}" Binding="{Binding FileType}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="FileType" Width="Auto" MinWidth="150" MaxWidth="300" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_FileVersion}" Binding="{Binding FileVersion}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="FileVersion" Width="Auto" MinWidth="140" MaxWidth="280" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_ProductName}" Binding="{Binding ProductName}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="ProductName" Width="Auto" MinWidth="170" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_ProductVersion}" Binding="{Binding ProductVersion}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="ProductVersion" Width="Auto" MinWidth="150" MaxWidth="300" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_CompanyName}" Binding="{Binding CompanyName}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="CompanyName" Width="Auto" MinWidth="170" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_OriginalFilename}" Binding="{Binding OriginalFilename}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="OriginalFilename" Width="Auto" MinWidth="170" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_InternalName}" Binding="{Binding InternalName}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="InternalName" Width="Auto" MinWidth="150" MaxWidth="300" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Copyright}" Binding="{Binding FileCopyright}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="Copyright" Width="Auto" MinWidth="180" MaxWidth="480" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Trademarks}" Binding="{Binding FileTrademarks}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="Trademarks" Width="Auto" MinWidth="180" MaxWidth="420" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Comments}" Binding="{Binding FileComments}"
+                                Visibility="{Binding Data.InspectFileProperties, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="Comments" Width="Auto" MinWidth="180" MaxWidth="480" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_PeMachine}" Binding="{Binding PeMachine}"
+                                Visibility="{Binding Data.InspectPeHeader, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="PeMachine" Width="Auto" MinWidth="150" MaxWidth="280" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_PeFormat}" Binding="{Binding PeFormat}"
+                                Visibility="{Binding Data.InspectPeHeader, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="PeFormat" Width="Auto" MinWidth="100" MaxWidth="180" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_ManagedPlatform}" Binding="{Binding ManagedPlatformText}"
+                                Visibility="{Binding Data.InspectPeHeader, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="ManagedPlatform" Width="Auto" MinWidth="180" MaxWidth="340" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}" behaviors:ColumnLayoutBehavior.Id="Diagnostic" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
           </DataGrid.Columns>
         </DataGrid>

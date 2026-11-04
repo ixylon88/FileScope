@@ -3,6 +3,7 @@
 from pathlib import Path
 from xml.etree import ElementTree as ET
 import hashlib
+import json
 import re
 import sys
 
@@ -111,7 +112,7 @@ behavior = '{clr-namespace:FileScope.App.Behaviors}ColumnLayoutBehavior.Id'
 view = ET.fromstring(xaml)
 columns = [node for node in view.iter() if node.tag in {namespace + 'DataGridTextColumn', namespace + 'DataGridTemplateColumn'}]
 ids = [column.attrib.get(behavior) for column in columns]
-check(len(ids) == 24 and None not in ids and len(set(ids)) == len(ids), 'Missing or duplicate column IDs.')
+check(len(ids) == 39 and None not in ids and len(set(ids)) == len(ids), 'Missing or duplicate column IDs.')
 catalog = (ROOT / 'src/FileScope.App/ViewModels/ColumnOption.cs').read_text(encoding='utf-8')
 catalog_ids = re.findall(r'new\("(\w+)",', catalog)
 check(set(ids) == set(catalog_ids), 'Options must include every table column, including hidden columns.')
@@ -121,6 +122,24 @@ for column in columns:
           'Invalid column width bounds: ' + column.attrib[behavior])
 for format in ['HexUpper', 'HexLower', 'HexColon', 'Base64', 'Base64Url']:
     check('HashFormat_' + format in base, 'Missing hash format label: ' + format)
+
+# Workspace tasks must resolve against the named folder and run the checked-in scripts.
+workspace = json.loads((ROOT / 'FileScope.code-workspace').read_text(encoding='utf-8-sig'))
+check(any(folder.get('name') == 'FileScope' and folder.get('path') == '.' for folder in workspace['folders']),
+      'Task workspace folder must resolve to the repository root.')
+tasks = workspace['tasks']['tasks']
+check(len(tasks) == 3 and len({task['label'] for task in tasks}) == 3, 'Expected three distinct workspace tasks.')
+for task in tasks:
+    check(task['type'] == 'process' and task['command'] == 'powershell.exe', 'Use PowerShell process tasks.')
+    args = task['args']
+    script = args[args.index('-File') + 1]
+    check(script.startswith('${workspaceFolder:FileScope}/') and (ROOT / script.split('/')[-1]).is_file(),
+          'Task must invoke an existing script in this workspace: ' + task['label'])
+    check(task['options']['cwd'] == '${workspaceFolder:FileScope}', 'Task working directory must be the repository root.')
+publish = [task for task in tasks if '-Publish' in task['args']]
+check(len(publish) == 1 and publish[0]['args'][publish[0]['args'].index('-Runtime') + 1] == 'win-x64',
+      'Publish task must target win-x64.')
+check(any(task['args'][-1].endswith('/Verify.ps1') for task in tasks), 'Verify task must invoke Verify.ps1.')
 
 # Independently check the known-answer constants shipped with the C# harness.
 tests = (ROOT / 'tests/CoreChecks.cs').read_text(encoding='utf-8')

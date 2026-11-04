@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.ObjectModel;
 using System.Formats.Asn1;
 using System.Reflection;
@@ -6,6 +7,7 @@ using System.Text;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Models;
+using FileScope.Core.Metadata;
 using FileScope.Core.Services;
 using FileScope.Core.Signatures;
 
@@ -20,6 +22,7 @@ internal static class CoreChecks
         try
         {
             CheckTimestamps();
+            CheckPeHeaders();
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
             var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
             var abcExpected = new Dictionary<ChecksumAlgorithm, string>
@@ -97,6 +100,8 @@ internal static class CoreChecks
 
             var path = Path.Combine(temp, "Prüfung 中文 ' sample.bin");
             await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
+            CheckFileProperties(path);
+            await CheckMetadataPipeline(path, checksumService);
             var signatures = new StubSignatures();
             var analyzer = new FileAnalysisService(checksumService, signatures);
             var analyzed = await analyzer.AnalyzeAsync(path, new AnalysisOptions(algorithms, true));
@@ -177,6 +182,204 @@ internal static class CoreChecks
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
         finally { Directory.Delete(temp, true); }
+    }
+
+    private static void CheckPeHeaders()
+    {
+        var inspector = new PeHeaderInspector();
+        foreach (var (code, name, plus) in new (ushort, string, bool)[]
+        {
+            (0x014c, "i386", false), (0x0184, "Alpha", false), (0x0284, "Alpha64", true),
+            (0x01c0, "ARM", false), (0x01c4, "ARMNT (Thumb-2)", false),
+            (0x8664, "AMD64 (x64)", true), (0xaa64, "ARM64", true),
+            (0xa641, "ARM64EC", true), (0xa64e, "ARM64X", true), (0xffff, "0xFFFF", false)
+        })
+        {
+            using var stream = new MemoryStream(PeFixture(code, plus));
+            stream.Position = 17;
+            var result = inspector.Inspect(stream);
+            Check(result is { Diagnostic: null, Header: not null } && result.Header.MachineCode == code
+                && result.Header.MachineName == name && result.Header.Format == (plus ? "PE32+" : "PE32")
+                && result.Header.ManagedPlatform == ManagedPlatform.None, "native PE machine and format / " + name);
+            Check(stream.CanRead && stream.Position == 17, "PE inspection preserves stream ownership and position / " + name);
+        }
+        foreach (var (flags, dll, nativeHeader, expected) in new (uint, bool, bool, ManagedPlatform)[]
+        {
+            (1, false, false, ManagedPlatform.AnyCpu), (1, true, false, ManagedPlatform.AnyCpu),
+            (3, false, false, ManagedPlatform.MachineSpecific),
+            (0x20001, false, false, ManagedPlatform.Prefer32Bit),
+            (0x20003, false, false, ManagedPlatform.Prefer32Bit),
+            (0x20001, true, false, ManagedPlatform.MachineSpecific),
+            (0, false, false, ManagedPlatform.MachineSpecific),
+            (17, false, false, ManagedPlatform.MachineSpecific),
+            (1, false, true, ManagedPlatform.MachineSpecific)
+        })
+        {
+            using var stream = new MemoryStream(PeFixture(0x014c, false, flags, dll, nativeHeader));
+            var result = inspector.Inspect(stream);
+            Check(result.Diagnostic is null && result.Header?.ManagedPlatform == expected,
+                $"CLR flags / {flags:X} / DLL={dll} / native header={nativeHeader}: {result.Diagnostic}");
+        }
+        using (var stream = new MemoryStream(PeFixture(0x8664, true, 1)))
+            Equal(ManagedPlatform.MachineSpecific, inspector.Inspect(stream).Header!.ManagedPlatform, "IL-only x64 stays machine-specific");
+        using (var stream = File.OpenRead(typeof(FileAnalysisService).Assembly.Location))
+            Equal(ManagedPlatform.AnyCpu, inspector.Inspect(stream).Header!.ManagedPlatform, "real SDK-built AnyCPU assembly");
+
+        var dosOnly = new byte[128];
+        dosOnly[0] = (byte)'M'; dosOnly[1] = (byte)'Z';
+        var ne = PeFixture(0x014c, false); ne[128] = (byte)'N';
+        var hugeOffset = (byte[])dosOnly.Clone();
+        BinaryPrimitives.WriteUInt32LittleEndian(hugeOffset.AsSpan(60), uint.MaxValue);
+        foreach (var bytes in new byte[][] { [], "ordinary text"u8.ToArray(), new byte[512], dosOnly, ne, hugeOffset })
+        {
+            using var stream = new MemoryStream(bytes);
+            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: null }, "non-PE input stays empty without error");
+        }
+        foreach (var bytes in new[] { PeFixture(0x014c, false)[..140], PeFixture(0x014c, false)[..200] })
+        {
+            using var stream = new MemoryStream(bytes);
+            stream.Position = 7;
+            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
+                "truncated PE reports a diagnostic and restores the stream");
+        }
+        using (var stream = new PeCountingStream(new byte[2 * 1024 * 1024]))
+        {
+            stream.Write(PeFixture(0x014c, false));
+            stream.Position = 35;
+            Check(inspector.Inspect(stream).Header?.MachineCode == 0x014c && stream.BytesRead < 64 * 1024,
+                "PE inspection reads headers without scanning the file payload");
+        }
+        using (var cancelled = new CancellationTokenSource())
+        using (var stream = new PeCountingStream(PeFixture(0x014c, false)))
+        {
+            cancelled.Cancel();
+            try { inspector.Inspect(stream, cancelled.Token); throw new Exception("Expected PE cancellation."); }
+            catch (OperationCanceledException) { }
+            Equal(0L, stream.BytesRead, "cancelled PE inspection performs no reads");
+        }
+    }
+
+    // A minimal PE image with one .text section and an optional CLR header.
+    // Fields are encoded independently of the framework parser used by production code.
+    private static byte[] PeFixture(ushort machine, bool plus, uint? corFlags = null, bool dll = false, bool nativeHeader = false)
+    {
+        var bytes = new byte[1024];
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void U32(int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset), value);
+        bytes[0] = (byte)'M'; bytes[1] = (byte)'Z'; U32(60, 128);
+        bytes[128] = (byte)'P'; bytes[129] = (byte)'E';
+        U16(132, machine); U16(134, 1);
+        var optionalSize = plus ? 240 : 224;
+        U16(148, (ushort)optionalSize); U16(150, (ushort)(2 | (dll ? 0x2000 : 0)));
+        const int optional = 152;
+        U16(optional, (ushort)(plus ? 0x20b : 0x10b));
+        U32(optional + 32, 0x2000); U32(optional + 36, 0x200);
+        U32(optional + 56, 0x4000); U32(optional + 60, 0x200); U16(optional + 68, 2);
+        U32(optional + (plus ? 108 : 92), 16);
+        var section = optional + optionalSize;
+        Encoding.ASCII.GetBytes(".text").CopyTo(bytes, section);
+        U32(section + 8, 512); U32(section + 12, 0x2000);
+        U32(section + 16, 512); U32(section + 20, 512); U32(section + 36, 0x60000020);
+        if (corFlags.HasValue)
+        {
+            var corDirectory = optional + (plus ? 112 : 96) + 14 * 8;
+            U32(corDirectory, 0x2000); U32(corDirectory + 4, 72);
+            U32(512, 72); U16(516, 2); U16(518, 5); U32(528, corFlags.Value);
+            U32(520, 0x2100); U32(524, 24); // Bounded metadata directory.
+            U32(768, 0x424A5342); U16(772, 1); U16(774, 1); U32(780, 4);
+            Encoding.ASCII.GetBytes("v4\0\0").CopyTo(bytes, 784);
+            if (nativeHeader) { U32(576, 0x2180); U32(580, 4); }
+        }
+        return bytes;
+    }
+
+    private static void CheckFileProperties(string plainFile)
+    {
+        var native = typeof(FilePropertiesInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
+        var shellInfo = native.GetNestedType("ShellFileInfo", BindingFlags.NonPublic)!;
+        Equal(IntPtr.Size == 8 ? 696 : 692, Marshal.SizeOf(shellInfo), "SHFILEINFOW ABI size");
+        var inspector = new FilePropertiesInspector();
+        var plain = inspector.Inspect(plainFile);
+        Check(plain is { Diagnostic: null, Info: not null } && string.IsNullOrEmpty(plain.Info.FileVersion)
+            && string.IsNullOrEmpty(plain.Info.ProductName), "ordinary file has no fabricated version information");
+        var assembly = inspector.Inspect(typeof(FileAnalysisService).Assembly.Location);
+        Check(assembly is { Diagnostic: null, Info: not null } && !string.IsNullOrWhiteSpace(assembly.Info.FileVersion)
+            && assembly.Info.OriginalFilename == "FileScope.Core.dll", "read VERSIONINFO from the built core assembly");
+        Check(!string.IsNullOrWhiteSpace(assembly.Info?.FileType), "file type is available independently of version fields");
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        try { inspector.Inspect(plainFile, cancelled.Token); throw new Exception("Expected properties cancellation."); }
+        catch (OperationCanceledException) { Check(true, "cancelled properties inspection propagates cancellation"); }
+    }
+
+    private static async Task CheckMetadataPipeline(string path, IChecksumService checksums)
+    {
+        foreach (var flags in new[] { (false, false), (true, false), (false, true), (true, true) })
+        {
+            var metadata = new StubMetadata();
+            var signatures = new StubSignatures();
+            var analyzer = new FileAnalysisService(checksums, signatures, metadata, metadata);
+            var result = await analyzer.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], true,
+                inspectFileProperties: flags.Item1, inspectPeHeader: flags.Item2));
+            Check(result.Succeeded && metadata.PropertyCalls == (flags.Item1 ? 1 : 0)
+                && metadata.PeCalls == (flags.Item2 ? 1 : 0) && (result.Properties is not null) == flags.Item1
+                && (result.PeHeader is not null) == flags.Item2, "metadata options independently control inspection and results / " + flags);
+            Check(signatures.SawReadableHandle && result.Checksums.Count == 1,
+                "metadata inspection retains hashes and resets the stream for signature verification / " + flags);
+        }
+        var throwing = new StubMetadata { ThrowProperties = true, ThrowPe = true };
+        var service = new FileAnalysisService(checksums, new StubSignatures(), throwing, throwing);
+        var partial = await service.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], false,
+            inspectFileProperties: true, inspectPeHeader: true));
+        Check(partial.Succeeded && partial.Properties?.Diagnostic == "Properties unavailable"
+            && partial.PeHeader?.Diagnostic == "PE unreadable" && throwing.PeCalls == 1 && partial.Checksums.Count == 1,
+            "optional metadata failures preserve hashes and allow the other inspector to run");
+        using (var cancelled = new CancellationTokenSource())
+        {
+            var metadata = new StubMetadata { Cancel = cancelled };
+            service = new FileAnalysisService(checksums, new StubSignatures(), metadata, metadata);
+            await ExpectCancellation(() => service.AnalyzeAsync(path, new AnalysisOptions([], false,
+                inspectFileProperties: true, inspectPeHeader: true), cancellationToken: cancelled.Token));
+            Equal(0, metadata.PeCalls, "cancellation during properties does not become a diagnostic or run the next inspector");
+        }
+        // Content, not an extension, identifies the PE header.
+        await File.WriteAllBytesAsync(path, PeFixture(0x0184, false));
+        var real = await new FileAnalysisService(checksums, new StubSignatures()).AnalyzeAsync(path,
+            new AnalysisOptions([], false, inspectPeHeader: true));
+        Check(real.PeHeader?.Header?.MachineName == "Alpha" && real.Properties is null,
+            "real pipeline reads PE from a .bin file with properties disabled");
+        await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
+    }
+
+    private sealed class StubMetadata : IFilePropertiesInspector, IPeHeaderInspector
+    {
+        public int PropertyCalls, PeCalls;
+        public bool ThrowProperties, ThrowPe;
+        public CancellationTokenSource? Cancel;
+        public FilePropertiesResult Inspect(string path, CancellationToken cancellationToken = default)
+        {
+            PropertyCalls++;
+            Cancel?.Cancel(); cancellationToken.ThrowIfCancellationRequested();
+            if (ThrowProperties) throw new IOException("Properties unavailable");
+            return new(new FilePropertiesInfo { ProductName = "Example product" });
+        }
+        public PeHeaderResult Inspect(Stream stream, CancellationToken cancellationToken = default)
+        {
+            PeCalls++;
+            if (ThrowPe) throw new BadImageFormatException("PE unreadable");
+            Check(stream.Position == 0 && stream.CanRead, "PE strategy receives the original readable stream at offset zero");
+            stream.Position = stream.Length;
+            return new(new PeHeaderInfo(0x014c, "i386", "PE32", ManagedPlatform.AnyCpu));
+        }
+    }
+
+    private sealed class PeCountingStream(byte[] bytes) : MemoryStream(bytes)
+    {
+        public long BytesRead;
+        public override int Read(byte[] buffer, int offset, int count)
+        { var read = base.Read(buffer, offset, count); BytesRead += read; return read; }
+        public override int Read(Span<byte> buffer)
+        { var read = base.Read(buffer); BytesRead += read; return read; }
     }
 
     private static void CheckTimestamps()

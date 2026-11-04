@@ -14,6 +14,7 @@ internal static class PresentationChecks
         {
             CheckFormats();
             CheckRows();
+            CheckMetadata();
             CheckSignatures();
             CheckWindowSizes();
             CheckOptions();
@@ -73,6 +74,54 @@ internal static class PresentationChecks
         row.Complete(result);
         Check(row.SHA256 == base64, "in-flight/future results use the most recent format");
     }
+    private static void CheckMetadata()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        var row = new FileRowViewModel("sample.exe", strings);
+        var result = new FileAnalysisResult("sample.exe", 1, null,
+            new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = "00FF" }, SignatureResult.NotChecked)
+        {
+            Properties = new(new FilePropertiesInfo
+            {
+                FileDescription = "Example description", Language = "Deutsch", FileType = "Application",
+                FileVersion = "1.2.3.4", ProductName = "Example product", ProductVersion = "2.3.4-beta",
+                CompanyName = "Example company", OriginalFilename = "original.exe", InternalName = "internal",
+                Copyright = "Copyright sample", Trademarks = "Trademark sample", Comments = "Comment sample"
+            }),
+            PeHeader = new(new PeHeaderInfo(0x014c, "i386", "PE32", ManagedPlatform.Prefer32Bit))
+        };
+        row.Complete(result);
+        foreach (var value in new[] { "Example description", "Deutsch", "Application", "1.2.3.4", "Example product",
+            "2.3.4-beta", "Example company", "original.exe", "internal", "Copyright sample", "Trademark sample", "Comment sample",
+            "i386 (0x014C)", "PE32", "AnyCPU" })
+            Check(row.Matches(value) && row.Details.Contains(value), "metadata is included in search and details / " + value);
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName); row.RefreshLanguage();
+            Check(row.ManagedPlatformText == strings["ManagedPlatform_Prefer32Bit"] && !row.ManagedPlatformText.StartsWith('['),
+                "platform annotation translates / " + language.CultureName);
+        }
+        row.SetHashFormat(HashFormat.Base64);
+        Check(row.SHA256 == "AP8=" && ReferenceEquals(row.Result, result) && row.FileVersion == "1.2.3.4"
+            && row.PeMachine == "i386 (0x014C)", "hash format does not modify version or machine values");
+        row.Complete(result with { Properties = new(null, "Version read failed"), PeHeader = new(null, "Header read failed") });
+        Check(row.State == RowStatus.Completed && row.FileVersion == "" && row.PeMachine == ""
+            && row.Diagnostic.Contains("Version read failed") && row.Diagnostic.Contains("Header read failed")
+            && row.SHA256 == "AP8=", "metadata errors leave the row usable and expose both diagnostics");
+        row.Complete(result with { Properties = null, PeHeader = new(null) });
+        Check(row.FileDescription == "" && row.FileType == "" && row.PeMachine == "" && row.PeFormat == ""
+            && row.ManagedPlatformText == "" && row.Diagnostic == "", "disabled or non-PE metadata remains empty");
+        row.Complete(result with { PeHeader = new(new PeHeaderInfo(0xffff, "0xFFFF", "PE32", ManagedPlatform.None)) });
+        Check(row.PeMachine == "0xFFFF" && row.ManagedPlatformText == "", "unknown native machine code remains visible without duplication");
+        row.Reset();
+        Check(row.FileVersion == "" && row.ManagedPlatformText == "" && !row.Matches("Example product"), "reset clears all metadata");
+        row.Start();
+        row.SetProgress(new(AnalysisStage.ReadingMetadata, 1, 1), 95);
+        Check(row.StateText == strings["ReadingMetadata"] && !row.StateText.StartsWith('['), "metadata reading has a localized progress label");
+        strings.SetCulture("en");
+    }
+
     private static void CheckSignatures()
     {
         var strings = LocalizationService.Instance;
@@ -160,10 +209,10 @@ internal static class PresentationChecks
             var selection = new AnalysisPreferences
             {
                 MD5 = true, SHA1 = true, SHA256 = false, SHA384 = true, SHA512 = false,
-                InspectCertificates = false, OnlineRevocation = true
+                InspectCertificates = false, OnlineRevocation = true, InspectFileProperties = true, InspectPeHeader = true
             };
             options.SaveAnalysisPreferences(selection);
-            Check(options.Columns.Count == 24 && options.Columns.Select(column => column.Id).Distinct().Count() == 24,
+            Check(options.Columns.Count == 39 && options.Columns.Select(column => column.Id).Distinct().Count() == 39,
                 "all columns have unique persistent IDs");
             Check(!options.MoveUpCommand.CanExecute(null), "cannot move the first column above the start");
             var selected = options.Columns.Single(column => column.Id == "SHA512");
@@ -176,7 +225,7 @@ internal static class PresentationChecks
             options.MoveDownCommand.Execute(null);
             Check(options.Columns[^1] == selected, "up/down preserve a valid permutation");
             options.SetColumnOrder(["Issuer", "SHA512", "Issuer", "missing-column"]);
-            Check(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 24,
+            Check(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 39,
                 "restore ignores duplicates/unknown IDs and appends missing columns");
             var widthRevision = options.WidthRevision;
             var formatChanges = 0;
@@ -222,14 +271,14 @@ internal static class PresentationChecks
                     "all checkboxes off is retained without overwriting window/language/format settings");
             File.WriteAllText(path, "{\"Analysis\":{\"MD5\":true,\"SHA256\":false}}");
             using (var partial = new OptionsViewModel(strings, store))
-                Check(partial.AnalysisPreferences is { MD5: true, SHA256: false, InspectCertificates: true, OnlineRevocation: false },
+                Check(partial.AnalysisPreferences is { MD5: true, SHA256: false, InspectCertificates: true, OnlineRevocation: false, InspectFileProperties: false, InspectPeHeader: false },
                     "missing individual fields get defaults while explicit false is respected");
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store))
-                Check(fallback.HasSettingsError && fallback.Columns.Count == 24, "corrupt settings fall back without blocking the app");
+                Check(fallback.HasSettingsError && fallback.Columns.Count == 39, "corrupt settings fall back without blocking the app");
             store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", ColumnOrder = ["SHA256", "SHA256"] });
             using (var normalized = new OptionsViewModel(strings, store))
-                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 24
+                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 39
                     && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
             using (var failing = new OptionsViewModel(strings, new FailingStore()))

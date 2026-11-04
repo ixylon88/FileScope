@@ -24,6 +24,8 @@ public sealed record AnalysisPreferences
     public bool SHA512 { get; init; }
     public bool InspectCertificates { get; init; } = true;
     public bool OnlineRevocation { get; init; }
+    public bool InspectFileProperties { get; init; }
+    public bool InspectPeHeader { get; init; }
 }
 
 public interface IPreferencesStore

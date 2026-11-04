@@ -58,6 +58,31 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string SHA256 => Hash(ChecksumAlgorithm.SHA256);
     public string SHA384 => Hash(ChecksumAlgorithm.SHA384);
     public string SHA512 => Hash(ChecksumAlgorithm.SHA512);
+    public string FileDescription => Result?.Properties?.Info?.FileDescription ?? "";
+    public string FileLanguage => Result?.Properties?.Info?.Language ?? "";
+    public string FileType => Result?.Properties?.Info?.FileType ?? "";
+    public string FileVersion => Result?.Properties?.Info?.FileVersion ?? "";
+    public string ProductName => Result?.Properties?.Info?.ProductName ?? "";
+    public string ProductVersion => Result?.Properties?.Info?.ProductVersion ?? "";
+    public string CompanyName => Result?.Properties?.Info?.CompanyName ?? "";
+    public string OriginalFilename => Result?.Properties?.Info?.OriginalFilename ?? "";
+    public string InternalName => Result?.Properties?.Info?.InternalName ?? "";
+    public string FileCopyright => Result?.Properties?.Info?.Copyright ?? "";
+    public string FileTrademarks => Result?.Properties?.Info?.Trademarks ?? "";
+    public string FileComments => Result?.Properties?.Info?.Comments ?? "";
+    public string PeMachine => Result?.PeHeader?.Header is { } header
+        ? header.MachineName.StartsWith("0x", StringComparison.Ordinal)
+            ? header.MachineName : $"{header.MachineName} (0x{header.MachineCode:X4})"
+        : "";
+    public string PeFormat => Result?.PeHeader?.Header?.Format ?? "";
+    public string ManagedPlatformText => Result?.PeHeader?.Header is { } header
+        ? header.ManagedPlatform switch
+        {
+            ManagedPlatform.AnyCpu => "AnyCPU",
+            ManagedPlatform.Prefer32Bit => strings["ManagedPlatform_Prefer32Bit"],
+            ManagedPlatform.MachineSpecific => header.MachineName,
+            _ => ""
+        } : "";
     public SignatureStatus SignatureState => SelectedSignature?.Value.Status ?? Result?.Signature.Status ?? SignatureStatus.NotChecked;
     public string Publisher => Certificate?.Publisher ?? "";
     public string Subject => Certificate?.Subject ?? "";
@@ -72,7 +97,12 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string CertificateAlgorithm => Certificate?.SignatureAlgorithm ?? "";
     public string NativeCode => (SelectedSignature is not null ? SelectedSignature.Value.NativeStatusCode : Result?.Signature.NativeStatusCode) is int code ? $"0x{unchecked((uint)code):X8}" : "";
     public string StateText => State == RowStatus.Running
-        ? strings[Stage == AnalysisStage.CheckingSignature ? "CheckingSignature" : "Reading"]
+        ? strings[Stage switch
+        {
+            AnalysisStage.CheckingSignature => "CheckingSignature",
+            AnalysisStage.ReadingMetadata => "ReadingMetadata",
+            _ => "Reading"
+        }]
         : strings[$"Row_{State}"];
     public string SignatureText => SignatureState == SignatureStatus.Valid
         ? strings[Result?.Signature.RevocationMode == RevocationMode.Online ? "Signature_ValidOnline" : "Signature_ValidOffline"]
@@ -80,7 +110,9 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
     {
         Result.Error == AnalysisError.None ? null : strings[$"Error_{Result.Error}"],
-        Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null)
+        Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null),
+        MetadataDiagnostic("PropertiesError", Result.Properties?.Diagnostic),
+        MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic)
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details
@@ -108,6 +140,21 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             Line("Column_ValidUntil", ValidUntil);
             Line("Column_CertAlgorithm", CertificateAlgorithm);
             Line("Column_NativeCode", NativeCode);
+            Line("Column_FileDescription", FileDescription);
+            Line("Column_FileLanguage", FileLanguage);
+            Line("Column_FileType", FileType);
+            Line("Column_FileVersion", FileVersion);
+            Line("Column_ProductName", ProductName);
+            Line("Column_ProductVersion", ProductVersion);
+            Line("Column_CompanyName", CompanyName);
+            Line("Column_OriginalFilename", OriginalFilename);
+            Line("Column_InternalName", InternalName);
+            Line("Column_Copyright", FileCopyright);
+            Line("Column_Trademarks", FileTrademarks);
+            Line("Column_Comments", FileComments);
+            Line("Column_PeMachine", PeMachine);
+            Line("Column_PeFormat", PeFormat);
+            Line("Column_ManagedPlatform", ManagedPlatformText);
             Line("Column_Diagnostic", Diagnostic);
             return text.ToString().TrimEnd();
         }
@@ -201,11 +248,16 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText, MD5, SHA1, SHA256, SHA384, SHA512,
         Publisher, Subject, Issuer, SerialNumber, CertificateSha1, CertificateSha256,
-        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic
+        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic,
+        FileDescription, FileLanguage, FileType, FileVersion, ProductName, ProductVersion,
+        CompanyName, OriginalFilename, InternalName, FileCopyright, FileTrademarks, FileComments,
+        PeMachine, PeFormat, ManagedPlatformText
     }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase));
 
     private string Hash(ChecksumAlgorithm algorithm) =>
         _hashText.GetValueOrDefault(algorithm, "");
+    private string? MetadataDiagnostic(string key, string? diagnostic) =>
+        string.IsNullOrWhiteSpace(diagnostic) ? null : strings.Format(key, diagnostic);
     private string FormatDate(DateTimeOffset? date) =>
         date?.UtcDateTime.ToString("g", strings.Culture) is string formatted ? $"{formatted} UTC" : "";
     private static string GetName(string filePath)

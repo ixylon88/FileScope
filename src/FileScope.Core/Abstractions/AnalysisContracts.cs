@@ -33,3 +33,15 @@ public interface ISignatureInspector
     SignatureResult Inspect(FileStream file, string fullPath, RevocationMode revocationMode,
         CancellationToken cancellationToken = default);
 }
+
+public interface IFilePropertiesInspector
+{
+    // The caller keeps its read lock open while the platform version API reads the path.
+    FilePropertiesResult Inspect(string fullPath, CancellationToken cancellationToken = default);
+}
+
+public interface IPeHeaderInspector
+{
+    // Reads bytes only, leaves the stream open and restores its position.
+    PeHeaderResult Inspect(Stream stream, CancellationToken cancellationToken = default);
+}
