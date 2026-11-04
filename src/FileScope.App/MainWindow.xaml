@@ -99,7 +99,7 @@
 
     <Border Grid.Row="3" Margin="24,0,24,12" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <Grid>
-        <DataGrid x:Name="ResultsGrid" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
+        <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
                   behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True"
                   CanUserSortColumns="True" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"

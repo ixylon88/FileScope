@@ -48,6 +48,7 @@ internal static class UiChecks
             CheckFileIntake(strings);
             CheckMultipleSignatures(strings);
             CheckWindowPersistence(strings);
+            CheckHorizontalScrolling(strings);
             var service = new ImmediateAnalysis();
             using var vm = new MainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
             window = new MainWindow(vm);
@@ -311,6 +312,101 @@ internal static class UiChecks
             }
             finally { if (!closed) window.Close(); }
         }
+    }
+
+    private static void CheckHorizontalScrolling(LocalizationService strings)
+    {
+        using var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        foreach (var option in vm.ChecksumOptions) option.IsSelected = true;
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var trace = PresentationTraceSources.DataBindingSource;
+        var previousLevel = trace.Switch.Level;
+        using var messages = new StringWriter();
+        using var listener = new TextWriterTraceListener(messages);
+        trace.Switch.Level = SourceLevels.Error;
+        trace.Listeners.Add(listener);
+        try
+        {
+            // Showing the window exercises the production Loaded handler and the
+            // actual Fluent template, including its collapsed select-all button.
+            window.Show();
+            DrainDispatcher();
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var viewer = (ScrollViewer)grid.Template.FindName("DG_ScrollViewer", grid);
+            var button = VisualChildren(grid).OfType<Button>().Single(b =>
+                b.Command == DataGrid.SelectAllCommand && ReferenceEquals(b.TemplatedParent, viewer));
+            var binding = BindingOperations.GetBinding(button, FrameworkElement.WidthProperty)!;
+            Check(binding.Converter is not null && ReferenceEquals(binding.Source, grid)
+                && binding.Mode == BindingMode.OneWay && binding.Path.Path == nameof(DataGrid.CellsPanelHorizontalOffset),
+                "native select-all width uses a one-way nonnegative offset binding");
+            Check(button.Visibility == Visibility.Collapsed, "hidden row headers still have a safely bound corner button");
+            var expression = BindingOperations.GetBindingExpression(button, FrameworkElement.WidthProperty);
+            DataGridScrollFix.Apply(grid);
+            Check(ReferenceEquals(expression, BindingOperations.GetBindingExpression(button, FrameworkElement.WidthProperty)),
+                "repeated initialization leaves the existing corrected binding intact");
+
+            // Feed reported values through a real Width binding: a converter
+            // unit call alone would not catch WPF rejecting its result.
+            var source = new OffsetProbe();
+            var probe = new Button();
+            probe.SetBinding(FrameworkElement.WidthProperty, new Binding(nameof(OffsetProbe.Value))
+            { Source = source, Mode = BindingMode.OneWay, Converter = binding.Converter });
+            foreach (var value in new[] { -0.324324324324607, -0.007112375532415172, -4.547473508864641E-13,
+                -100d, 0d, 42.75, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+            {
+                source.Value = value;
+                DrainDispatcher();
+                var expected = double.IsFinite(value) && value > 0 ? value : 0;
+                Check(probe.Width == expected
+                    && !BindingOperations.GetBindingExpression(probe, FrameworkElement.WidthProperty)!.HasError,
+                    "Width binding accepts normalized offset / " + value);
+            }
+
+            vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "scroll-test-a.bin"),
+                Path.Combine(Path.GetTempPath(), "scroll-test-b.bin") });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            var template = grid.Template;
+            Check(viewer.ScrollableWidth > 0, "scroll fixture has horizontal overflow");
+            foreach (var offset in new[] { 0d, 0.1, 0.324324324324607, 100.75, 543.125, 10000d, 17.3, 0d })
+            {
+                viewer.ScrollToHorizontalOffset(offset);
+                grid.UpdateLayout();
+                DrainDispatcher();
+                Check(double.IsFinite(button.Width) && button.Width >= 0
+                    && !BindingOperations.GetBindingExpression(button, FrameworkElement.WidthProperty)!.HasError,
+                    "native corner width stays valid after horizontal scrolling / " + offset);
+            }
+            Check(ReferenceEquals(template, grid.Template) && grid.FrozenColumnCount == 2
+                && grid.EnableRowVirtualization && grid.EnableColumnVirtualization
+                && grid.Columns.All(column => column.Width.IsAuto),
+                "scroll fix preserves native template, frozen columns, virtualization and automatic widths");
+            trace.Flush();
+            Check(!messages.ToString().Contains(nameof(DataGrid.CellsPanelHorizontalOffset), StringComparison.Ordinal),
+                "horizontal scrolling produces no CellsPanelHorizontalOffset binding errors");
+        }
+        finally
+        {
+            trace.Listeners.Remove(listener);
+            trace.Switch.Level = previousLevel;
+            window.Close();
+        }
+    }
+
+    private static IEnumerable<DependencyObject> VisualChildren(DependencyObject parent)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            yield return child;
+            foreach (var descendant in VisualChildren(child)) yield return descendant;
+        }
+    }
+
+    private sealed class OffsetProbe : DependencyObject
+    {
+        public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(
+            nameof(Value), typeof(double), typeof(OffsetProbe), new PropertyMetadata(0d));
+        public double Value { get => (double)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
     }
 
     private static void CheckPresentation(MainWindow window, MainViewModel vm, ImmediateAnalysis analysis)

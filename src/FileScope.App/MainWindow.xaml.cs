@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using FileScope.App.Behaviors;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
 using FileScope.App.ViewModels;
@@ -53,6 +54,8 @@ public partial class MainWindow : Window
             bounds.IsEmpty ? Height : bounds.Height,
             state == WindowState.Maximized));
     }
+
+    private void OnResultsGridLoaded(object sender, RoutedEventArgs args) => DataGridScrollFix.Apply(ResultsGrid);
 
     private void OpenOptions(object sender, RoutedEventArgs args)
     {
