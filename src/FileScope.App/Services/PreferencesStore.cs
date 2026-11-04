@@ -8,9 +8,23 @@ public sealed record UserPreferences
     public string? HashFormat { get; init; }
     public string[]? ColumnOrder { get; init; }
     public WindowPreferences? Window { get; init; }
+    public AnalysisPreferences? Analysis { get; init; }
 }
 
 public sealed record WindowPreferences(double Width, double Height, bool Maximized);
+
+// Defaults apply only when settings/individual fields have not been saved yet.
+// Explicit false values, including all checks disabled, must survive a restart.
+public sealed record AnalysisPreferences
+{
+    public bool MD5 { get; init; }
+    public bool SHA1 { get; init; }
+    public bool SHA256 { get; init; } = true;
+    public bool SHA384 { get; init; }
+    public bool SHA512 { get; init; }
+    public bool InspectCertificates { get; init; } = true;
+    public bool OnlineRevocation { get; init; }
+}
 
 public interface IPreferencesStore
 {

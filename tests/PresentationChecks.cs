@@ -156,6 +156,13 @@ internal static class PresentationChecks
         try
         {
             using var options = new OptionsViewModel(strings, store);
+            Check(options.AnalysisPreferences == new AnalysisPreferences(), "missing checkbox settings retain first-run defaults");
+            var selection = new AnalysisPreferences
+            {
+                MD5 = true, SHA1 = true, SHA256 = false, SHA384 = true, SHA512 = false,
+                InspectCertificates = false, OnlineRevocation = true
+            };
+            options.SaveAnalysisPreferences(selection);
             Check(options.Columns.Count == 24 && options.Columns.Select(column => column.Id).Distinct().Count() == 24,
                 "all columns have unique persistent IDs");
             Check(!options.MoveUpCommand.CanExecute(null), "cannot move the first column above the start");
@@ -196,6 +203,8 @@ internal static class PresentationChecks
             var savedOrder = options.Columns.Select(column => column.Id).ToArray();
             using (var reopened = new OptionsViewModel(strings, store))
             {
+                Check(reopened.AnalysisPreferences == selection,
+                    "all checkbox states survive JSON save/load and other option changes");
                 Check(reopened.WindowPreferences == window, "normal size and maximized state survive a restart");
                 Check(reopened.Columns.Select(column => column.Id).SequenceEqual(savedOrder), "column order survives a restart");
                 Check(reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
@@ -205,12 +214,23 @@ internal static class PresentationChecks
                     "reset restores the entire default order");
             }
             Check(!Directory.EnumerateFiles(directory, "*.tmp").Any(), "settings save leaves no temporary files");
+            var none = new AnalysisPreferences { SHA256 = false, InspectCertificates = false };
+            options.SaveAnalysisPreferences(none);
+            using (var reopened = new OptionsViewModel(strings, store))
+                Check(reopened.AnalysisPreferences == none && reopened.WindowPreferences == window
+                    && reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
+                    "all checkboxes off is retained without overwriting window/language/format settings");
+            File.WriteAllText(path, "{\"Analysis\":{\"MD5\":true,\"SHA256\":false}}");
+            using (var partial = new OptionsViewModel(strings, store))
+                Check(partial.AnalysisPreferences is { MD5: true, SHA256: false, InspectCertificates: true, OnlineRevocation: false },
+                    "missing individual fields get defaults while explicit false is respected");
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store))
                 Check(fallback.HasSettingsError && fallback.Columns.Count == 24, "corrupt settings fall back without blocking the app");
             store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", ColumnOrder = ["SHA256", "SHA256"] });
             using (var normalized = new OptionsViewModel(strings, store))
-                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 24,
+                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 24
+                    && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
             using (var failing = new OptionsViewModel(strings, new FailingStore()))
             {

@@ -45,6 +45,7 @@ internal static class UiChecks
             SynchronizationContext.SetSynchronizationContext(
                 new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var strings = LocalizationService.Instance;
+            CheckCheckboxPersistence(strings);
             CheckFileIntake(strings);
             CheckMultipleSignatures(strings);
             CheckWindowPersistence(strings);
@@ -137,6 +138,52 @@ internal static class UiChecks
             app?.Shutdown();
             SynchronizationContext.SetSynchronizationContext(originalContext);
         }
+    }
+
+    private static void CheckCheckboxPersistence(LocalizationService strings)
+    {
+        var store = new MemoryPreferences();
+        store.Save(new UserPreferences
+        {
+            Analysis = new AnalysisPreferences
+            {
+                MD5 = true, SHA1 = true, SHA256 = false, SHA384 = true, SHA512 = false,
+                InspectCertificates = false, OnlineRevocation = true
+            }
+        });
+        var saves = store.SaveCount;
+        using (var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, new OptionsViewModel(strings, store)))
+        {
+            Check(store.SaveCount == saves, "restoring checkbox state performs no writes");
+            Check(vm.ChecksumOptions.Where(o => o.IsSelected).Select(o => o.Algorithm)
+                .SequenceEqual(new[] { ChecksumAlgorithm.MD5, ChecksumAlgorithm.SHA1, ChecksumAlgorithm.SHA384 }),
+                "main view restores each checksum independently, including disabled SHA-256");
+            Check(!vm.InspectCertificates && vm.OnlineRevocation && !vm.CanChooseOnlineRevocation,
+                "disabled online-revocation checkbox retains its saved selection");
+            Check(vm.ShowMD5Column && vm.ShowSHA1Column && !vm.ShowSHA256Column && vm.ShowSHA384Column && !vm.ShowSHA512Column,
+                "initial column visibility follows restored checksum choices");
+            foreach (var option in vm.ChecksumOptions) option.IsSelected = false;
+            vm.OnlineRevocation = false;
+            Check(store.Saved.Analysis == new AnalysisPreferences { SHA256 = false, InspectCertificates = false },
+                "unchecking options persists immediately before closing the window");
+        }
+        var analysis = new ImmediateAnalysis();
+        using var reopened = new MainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        Check(reopened.ChecksumOptions.All(o => !o.IsSelected) && !reopened.InspectCertificates && !reopened.OnlineRevocation,
+            "restart preserves all seven checkboxes off");
+        reopened.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "restored-options.bin") });
+        PumpUntil(() => !reopened.IsBusy && reopened.Rows.Count == 1);
+        Check(analysis.LastOptions is { Algorithms.Count: 0, InspectSignature: false, RevocationMode: RevocationMode.OfflineCache },
+            "analysis uses restored checkbox choices");
+        foreach (var option in reopened.ChecksumOptions) option.IsSelected = true;
+        reopened.InspectCertificates = true;
+        reopened.OnlineRevocation = true;
+        Check(store.Saved.Analysis is { MD5: true, SHA1: true, SHA256: true, SHA384: true, SHA512: true,
+            InspectCertificates: true, OnlineRevocation: true } && reopened.CanChooseOnlineRevocation,
+            "each checksum and both signature checkboxes can be enabled and saved");
+        reopened.ClearCommand.Execute(null);
+        Check(store.Saved.Analysis == reopened.Options.AnalysisPreferences && reopened.ChecksumOptions.All(o => o.IsSelected),
+            "clear keeps saved analysis choices");
     }
 
     private static void CheckFileIntake(LocalizationService strings)
@@ -554,8 +601,9 @@ internal static class UiChecks
     private sealed class MemoryPreferences : IPreferencesStore
     {
         public UserPreferences Saved { get; private set; } = new();
+        public int SaveCount { get; private set; }
         public UserPreferences Load() => Saved;
-        public void Save(UserPreferences preferences) => Saved = preferences;
+        public void Save(UserPreferences preferences) { Saved = preferences; SaveCount++; }
     }
     private sealed class TestPicker : IFilePickerService
     {

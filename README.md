@@ -34,7 +34,7 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | Funktion | Verhalten |
 | --- | --- |
 | Dateien ablegen | Eine oder mehrere Dateien auf einen beliebigen Bereich des Fensters ziehen. Alternativ „Dateien öffnen“ / Ctrl+O. |
-| Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Standard: SHA-256 und Signaturprüfung. |
+| Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Beim ersten Start: SHA-256 und Signaturprüfung. Danach wird die gespeicherte Auswahl aller Prüf-Häkchen wiederhergestellt. |
 | Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
 | Zertifikate | Von Windows gemeldete primäre und zusätzliche eingebettete Authenticode-Signaturen jeweils prüfen; Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke der gewählten Signatur anzeigen. |
@@ -60,7 +60,11 @@ Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. E
 
 Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden als eigene Fehlerzeilen gemeldet und nicht rekursiv eingelesen. Ohne gewählten Hash und ohne Signaturprüfung werden nur Dateimetadaten ermittelt.
 
-Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Sprache, Hashformat, die vollständige Spaltenreihenfolge sowie Fenstergröße und Maximierungszustand werden in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse, Prüf-Häkchen und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, Signaturprüfung und Online-Sperrprüfung werden bei jeder Änderung zusammen mit Sprache, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+
+Auch eine vollständig abgewählte Prüfauswahl wird gespeichert. Die Online-Sperrprüfung behält ihren gewählten Wert, wenn sie durch abgeschaltete Signaturprüfung ausgegraut ist; sie wird erst bei aktivierter Signaturprüfung verwendet. „Leeren“ setzt die Prüf-Häkchen nicht zurück.
+
+Im Code liegen die Bindungswerte in `MainViewModel`: `ChecksumOptions[*].IsSelected`, `InspectCertificates` und `OnlineRevocation`. Die Startwerte sind zentral in `AnalysisPreferences` in `Services/PreferencesStore.cs` definiert. Ältere Einstellungen ohne den Abschnitt `Analysis` verwenden die bisherigen Standards. `OptionsViewModel` speichert alle Bereiche gemeinsam, damit eine Änderung der Prüf-Häkchen keine anderen Einstellungen überschreibt.
 
 Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
 

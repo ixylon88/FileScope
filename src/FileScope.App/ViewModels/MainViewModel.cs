@@ -18,7 +18,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
     private CancellationTokenSource? _cancellation;
-    private bool _busy, _clearRequested, _disposed, _inspectCertificates = true, _onlineRevocation;
+    private bool _busy, _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
     private bool _checkingSignature;
     private long _epoch;
     private int _processed, _batchTotal, _skipped;
@@ -30,14 +30,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<FileRowViewModel> Rows { get; } = [];
     public ListCollectionView RowsView { get; }
-    public IReadOnlyList<ChecksumOption> ChecksumOptions { get; } = Array.AsReadOnly(
-    [
-        new ChecksumOption(ChecksumAlgorithm.MD5, "MD5", false),
-        new ChecksumOption(ChecksumAlgorithm.SHA1, "SHA-1", false),
-        new ChecksumOption(ChecksumAlgorithm.SHA256, "SHA-256", true),
-        new ChecksumOption(ChecksumAlgorithm.SHA384, "SHA-384", false),
-        new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", false)
-    ]);
+    public IReadOnlyList<ChecksumOption> ChecksumOptions { get; }
     public OptionsViewModel Options { get; }
     public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
@@ -55,6 +48,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _picker = picker;
         _strings = strings;
         Options = options;
+        // Restore before attaching change handlers: initialization must not save
+        // defaults over the loaded choices or write a partially restored state.
+        var selection = options.AnalysisPreferences;
+        ChecksumOptions = Array.AsReadOnly(
+        [
+            new ChecksumOption(ChecksumAlgorithm.MD5, "MD5", selection.MD5),
+            new ChecksumOption(ChecksumAlgorithm.SHA1, "SHA-1", selection.SHA1),
+            new ChecksumOption(ChecksumAlgorithm.SHA256, "SHA-256", selection.SHA256),
+            new ChecksumOption(ChecksumAlgorithm.SHA384, "SHA-384", selection.SHA384),
+            new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", selection.SHA512)
+        ]);
+        _inspectCertificates = selection.InspectCertificates;
+        _onlineRevocation = selection.OnlineRevocation;
         StateFilters = Array.AsReadOnly(new[]
         {
             new FilterOption<RowStatus?>(null, "AllStates", strings),
@@ -113,10 +119,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (!SetProperty(ref _inspectCertificates, value)) return;
             OnPropertyChanged(nameof(CanChooseOnlineRevocation));
             OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
+            SaveAnalysisPreferences();
         }
     }
     public bool ShowSignatureSelectorColumn => InspectCertificates && _multipleSignatures.Count > 0;
-    public bool OnlineRevocation { get => _onlineRevocation; set => SetProperty(ref _onlineRevocation, value); }
+    public bool OnlineRevocation
+    {
+        get => _onlineRevocation;
+        set { if (SetProperty(ref _onlineRevocation, value)) SaveAnalysisPreferences(); }
+    }
     public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
     public bool ShowMD5Column => IsChecksumSelected(ChecksumAlgorithm.MD5);
     public bool ShowSHA1Column => IsChecksumSelected(ChecksumAlgorithm.SHA1);
@@ -169,7 +180,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(option.Algorithm))
         };
         OnPropertyChanged(property);
+        SaveAnalysisPreferences();
     }
+
+    private void SaveAnalysisPreferences() => Options.SaveAnalysisPreferences(new AnalysisPreferences
+    {
+        MD5 = IsChecksumSelected(ChecksumAlgorithm.MD5),
+        SHA1 = IsChecksumSelected(ChecksumAlgorithm.SHA1),
+        SHA256 = IsChecksumSelected(ChecksumAlgorithm.SHA256),
+        SHA384 = IsChecksumSelected(ChecksumAlgorithm.SHA384),
+        SHA512 = IsChecksumSelected(ChecksumAlgorithm.SHA512),
+        InspectCertificates = InspectCertificates,
+        OnlineRevocation = OnlineRevocation
+    });
 
     private async Task AddFilesAsync(IEnumerable<string> paths)
     {

@@ -28,6 +28,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public bool HasSettingsError => _settingsErrorKey is not null;
     public int WidthRevision => _widthRevision;
     public WindowPreferences? WindowPreferences { get; private set; }
+    public AnalysisPreferences AnalysisPreferences { get; private set; }
     public RelayCommand MoveUpCommand { get; }
     public RelayCommand MoveDownCommand { get; }
     public RelayCommand MoveFirstCommand { get; }
@@ -43,6 +44,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         try { saved = store.Load(); }
         catch (Exception ex) when (IsSettingsFailure(ex)) { _settingsErrorKey = "SettingsLoadError"; }
         WindowPreferences = saved.Window;
+        AnalysisPreferences = saved.Analysis ?? new AnalysisPreferences();
         _selectedLanguage = Languages.FirstOrDefault(language => language.CultureName == saved.Language)
             ?? Languages.First(language => language.CultureName == strings.Culture.Name);
         strings.SetCulture(_selectedLanguage.CultureName);
@@ -150,6 +152,14 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         Save();
     }
 
+    public void SaveAnalysisPreferences(AnalysisPreferences analysis)
+    {
+        ArgumentNullException.ThrowIfNull(analysis);
+        if (AnalysisPreferences == analysis) return;
+        AnalysisPreferences = analysis;
+        Save();
+    }
+
     private void Save()
     {
         try
@@ -159,7 +169,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 Language = SelectedLanguage.CultureName,
                 HashFormat = SelectedHashFormat.Value.ToString(),
                 ColumnOrder = Columns.Select(column => column.Id).ToArray(),
-                Window = WindowPreferences
+                Window = WindowPreferences,
+                Analysis = AnalysisPreferences
             });
             _settingsErrorKey = null;
         }
