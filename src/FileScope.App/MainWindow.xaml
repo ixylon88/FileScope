@@ -27,7 +27,7 @@
     <Grid Margin="24,20,24,18">
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
       <Border Width="44" Height="44" Background="{DynamicResource SystemFillColorAttentionBrush}" CornerRadius="12" Margin="0,0,14,0">
-        <TextBlock Text="FS" FontSize="19" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Text="FS" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
       <StackPanel Grid.Column="1">
         <TextBlock Text="FileScope" FontSize="24" FontWeight="SemiBold" />
