@@ -3,13 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:FileScope.App.Localization"
         xmlns:behaviors="clr-namespace:FileScope.App.Behaviors"
-        xmlns:vm="clr-namespace:FileScope.App.ViewModels"
+        xmlns:controls="clr-namespace:FileScope.App.Controls"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
         Title="{loc:Loc WindowTitle}" Width="1440" Height="900" MinWidth="1080" MinHeight="680"
         WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
     <infra:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+    <infra:StatusToneConverter x:Key="StatusToneConverter" />
   </Window.Resources>
   <Window.InputBindings>
     <KeyBinding Key="O" Modifiers="Control" Command="{Binding BrowseCommand}" />
@@ -113,20 +114,8 @@
             <DataGridTemplateColumn Header="{loc:Loc Column_Status}" behaviors:ColumnLayoutBehavior.Id="Status" Width="Auto" MinWidth="110" MaxWidth="250" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <Border Margin="8,5" Padding="8,3" CornerRadius="5" HorizontalAlignment="Left">
-                    <Border.Style>
-                      <Style TargetType="Border">
-                        <Setter Property="Background" Value="#E8ECF3" />
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Completed}"><Setter Property="Background" Value="#DDEFE3" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Running}"><Setter Property="Background" Value="#DEE7FF" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Failed}"><Setter Property="Background" Value="#FBE0E0" /></DataTrigger>
-                          <DataTrigger Binding="{Binding State}" Value="{x:Static vm:RowStatus.Cancelled}"><Setter Property="Background" Value="#FFF0CC" /></DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </Border.Style>
-                    <TextBlock Text="{Binding StateText}" FontSize="12" Foreground="#25384B" TextTrimming="CharacterEllipsis" ToolTip="{Binding StateText}" />
-                  </Border>
+                  <controls:StatusBadge Text="{Binding StateText}"
+                                        Tone="{Binding State, Converter={StaticResource StatusToneConverter}}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -146,8 +135,17 @@
             <DataGridTextColumn Header="{loc:Loc Column_SigningTime}" Binding="{Binding SigningTimeText}" SortMemberPath="SigningTime"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                 behaviors:ColumnLayoutBehavior.Id="SigningTime" Width="Auto" MinWidth="180" MaxWidth="380" ElementStyle="{StaticResource GridText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Signature}" Binding="{Binding SignatureText}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Signature" Width="Auto" MinWidth="160" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
+            <DataGridTemplateColumn Header="{loc:Loc Column_Signature}" SortMemberPath="SignatureText"
+                                    ClipboardContentBinding="{Binding SignatureText}"
+                                    Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                    behaviors:ColumnLayoutBehavior.Id="Signature" Width="Auto" MinWidth="160" MaxWidth="360">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <controls:StatusBadge Text="{Binding SignatureText}"
+                                        Tone="{Binding SignatureState, Converter={StaticResource StatusToneConverter}}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Publisher" Width="Auto" MinWidth="150" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}"

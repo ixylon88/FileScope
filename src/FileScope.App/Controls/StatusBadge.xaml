@@ -1,0 +1,35 @@
+<UserControl x:Class="FileScope.App.Controls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:FileScope.App.Controls"
+             x:Name="BadgeRoot"
+             Margin="8,5" Padding="8,3" FontSize="12" Foreground="#25384B"
+             HorizontalAlignment="Left" VerticalAlignment="Center"
+             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+             Focusable="False" IsTabStop="False"
+             ToolTip="{Binding Text, ElementName=BadgeRoot}"
+             AutomationProperties.Name="{Binding Text, ElementName=BadgeRoot}">
+  <Border CornerRadius="5" Padding="{Binding Padding, ElementName=BadgeRoot}">
+    <Border.Style>
+      <Style TargetType="Border">
+        <Setter Property="Background" Value="#E8ECF3" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Success}">
+            <Setter Property="Background" Value="#DDEFE3" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Information}">
+            <Setter Property="Background" Value="#DEE7FF" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Warning}">
+            <Setter Property="Background" Value="#FFF0CC" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Error}">
+            <Setter Property="Background" Value="#FBE0E0" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </Border.Style>
+    <TextBlock Text="{Binding Text, ElementName=BadgeRoot}" TextTrimming="CharacterEllipsis"
+               FontSize="{Binding FontSize, ElementName=BadgeRoot}" Foreground="{Binding Foreground, ElementName=BadgeRoot}" />
+  </Border>
+</UserControl>

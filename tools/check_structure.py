@@ -76,7 +76,8 @@ for error in ['InvalidPath', 'DirectoryNotSupported', 'NotFound', 'AccessDenied'
 # Catch missing simple binding properties. Nested paths are checked at their root;
 # actual WPF binding/type validation still requires Verify.ps1 on Windows.
 declared = set(re.findall(r'public\s+(?:[\w<>?\[\],.]+\s+)+([A-Za-z_]\w*)\s*(?:\{|=>)', sources))
-declared.update(['Text', 'AreRowDetailsFrozen', 'HeadersVisibility'])  # WPF RelativeSource bindings.
+declared.update(['Text', 'AreRowDetailsFrozen', 'HeadersVisibility',
+                 'Padding', 'FontSize', 'Foreground'])  # Inherited WPF properties in view bindings.
 for binding in re.findall(r'\{Binding\s+([A-Za-z_]\w*(?:\.\w+)*)', sources):
     check(binding.split('.')[0] in declared, f'Unknown simple binding root: {binding}')
 

@@ -23,7 +23,7 @@ Stand: 4. November 2026.
 | Neue native Strukturen CRYPT_PROVIDER_SGNR, CMSG_SIGNER_INFO und CRYPT_ATTRIBUTE: Größe und kritische Offsets | x64 zur Laufzeit geprüft; x86/ARM64 hier nicht ausgeführt |
 | WPF-Testprogramm mit `UiChecks.cs` kompiliert | Bestanden, 0 Warnungen / 0 Fehler; nicht ausgeführt |
 
-Für die Speicherung der Prüf-Häkchen wurden der Release-Build einschließlich WPF-Testprogramm, die Präsentations-/Einstellungsprüfungen und die statischen Strukturprüfungen erneut ausgeführt. Die unveränderten Core-Prüfungen wurden dabei nicht erneut gestartet; deren 55 Ergebnisse stammen aus dem vorherigen Signatur-/Fenster-Update.
+Für die gemeinsamen Statusfelder wurden der Release-Build einschließlich des angepassten WPF-Testprogramms und die statischen Strukturprüfungen erneut ausgeführt. Die unveränderten Core- und Präsentationsprüfungen wurden dafür nicht erneut gestartet: Die 55 Core-Ergebnisse stammen aus dem Signatur-/Fenster-Update, die 83 Präsentationsergebnisse aus dem Update zur Speicherung der Prüf-Häkchen. Die bestehenden Spaltenprüfungen verwenden nun stabile Spalten-IDs, damit sie auch die als DataGridTemplateColumn dargestellte Signaturstatus-Spalte erfassen.
 
 `python tools/check_structure.py` reproduziert die statischen Strukturprüfungen. Diese untersuchen die Quelldateien; sie führen die C#-Implementierung nicht aus.
 
@@ -75,5 +75,7 @@ Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekan
 16. Viele Spalten einblenden und wiederholt horizontal von links nach rechts und zurück scrollen, auch nach Größenänderung und Verschieben/Ausblenden von Spalten. Bei 100 %, 125 %, 150 % und 175 % Skalierung in Visual Studio die Binding-Fehleransicht prüfen: keine negativen Breitenfehler für `CellsPanelHorizontalOffset` mehr. Die Tabelle behält ihre Darstellung und die ersten beiden fixierten Spalten.
 
 17. Eine gemischte Prüfauswahl setzen (einschließlich ausgeschaltetem SHA-256), Signaturprüfung und Online-Sperrprüfung ändern und die App neu starten. Alle sieben Häkchen und die zugehörige Spaltensichtbarkeit müssen wiederhergestellt werden. Dasselbe mit allen Häkchen aus sowie mit gewählter, aber ausgegrauter Online-Sperrprüfung testen. Anschließend Sprache, Hashformat, Spaltenreihenfolge und Fenstergröße ändern und erneut starten: Alle Bereiche müssen ihre Einstellungen behalten. „Leeren“ darf die Prüfauswahl nicht zurücksetzen.
+
+18. Verarbeitungs- und Signaturstatus müssen dieselbe abgerundete Form, Abstände und Schrift verwenden. Gültige Signaturen erscheinen grün; fehlendes Vertrauen, unbekannter Sperrstatus und nicht unterstützte Prüfung gelb; ungültige, abgelaufene, gesperrte und fehlgeschlagene Prüfungen rot; ungeprüfte/unsignierte Dateien grau. Bei mehreren Signaturen wechseln Text und Farbe gemeinsam mit der Auswahl. Alle drei Sprachen, lange Beschriftungen mit Tooltip, Sortieren, Kopieren per Ctrl+C, Spaltenausblendung sowie Scrollen mit wiederverwendeten Zeilen kontrollieren.
 
 Für unternehmenseigene Vertrauensrichtlinien, besondere Signaturformate und sehr große Dateimengen sind zusätzliche reale Testdateien sinnvoll.

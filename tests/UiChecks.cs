@@ -459,12 +459,11 @@ internal static class UiChecks
     private static void CheckPresentation(MainWindow window, MainViewModel vm, ImmediateAnalysis analysis)
     {
         var grid = (DataGrid)window.FindName("ResultsGrid");
-        var columns = grid.Columns.OfType<DataGridTextColumn>()
-            .ToDictionary(column => ((Binding)column.Binding).Path.Path);
+        var columns = grid.Columns.ToDictionary(ColumnLayoutBehavior.GetId);
         var results = vm.Rows.Select(row => row.Result).ToArray();
         var analysisCalls = analysis.Calls;
-        string[] certificateColumns = ["SigningTimeText", "SignatureText", "Publisher", "Subject", "Issuer", "SerialNumber",
-            "ValidFrom", "ValidUntil", "CertificateSha1", "CertificateSha256", "CertificateAlgorithm", "NativeCode"];
+        string[] certificateColumns = ["SigningTime", "Signature", "Publisher", "Subject", "Issuer", "Serial",
+            "ValidFrom", "ValidUntil", "CertSha1", "CertSha256", "CertAlgorithm", "NativeCode"];
         foreach (var option in vm.ChecksumOptions)
         {
             var column = columns[option.Algorithm.ToString()];
@@ -485,7 +484,7 @@ internal static class UiChecks
             Check(certificateColumns.All(path => columns[path].Visibility ==
                 (enabled ? Visibility.Visible : Visibility.Collapsed)), "certificate columns toggle together");
             Check(vm.CanChooseOnlineRevocation == enabled, "revocation enablement follows certificate option");
-            Check(new[] { "FileName", "SizeText", "ModifiedText", "FullPath", "Diagnostic" }
+            Check(new[] { "Name", "Size", "Modified", "Path", "Diagnostic" }
                 .All(path => columns[path].Visibility == Visibility.Visible), "file metadata and diagnostics stay visible");
         }
         foreach (var option in vm.ChecksumOptions) option.IsSelected = option.Algorithm == ChecksumAlgorithm.SHA256;
