@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Formats.Asn1;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,6 +19,7 @@ internal static class CoreChecks
         Directory.CreateDirectory(temp);
         try
         {
+            CheckTimestamps();
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
             var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
             var abcExpected = new Dictionary<ChecksumAlgorithm, string>
@@ -121,6 +123,16 @@ internal static class CoreChecks
             Equal(IntPtr.Size == 8 ? 32 : 16, Marshal.SizeOf(nativeFile), "WINTRUST_FILE_INFO ABI size");
             Equal(IntPtr.Size == 8 ? 32 : 24, Marshal.SizeOf(nativeSettings), "WINTRUST_SIGNATURE_SETTINGS ABI size");
 
+            var nativeSigner = native.GetNestedType("ProviderSigner", BindingFlags.NonPublic)!;
+            var nativeMessage = native.GetNestedType("MessageSignerInfo", BindingFlags.NonPublic)!;
+            var nativeAttribute = native.GetNestedType("CryptAttribute", BindingFlags.NonPublic)!;
+            Equal(IntPtr.Size == 8 ? 64 : 44, Marshal.SizeOf(nativeSigner), "CRYPT_PROVIDER_SGNR ABI size");
+            Equal(4L, Marshal.OffsetOf(nativeSigner, "VerifyAsOf").ToInt64(), "FILETIME keeps DWORD alignment");
+            Equal(IntPtr.Size == 8 ? 136 : 68, Marshal.SizeOf(nativeMessage), "CMSG_SIGNER_INFO ABI size");
+            Equal(IntPtr.Size == 8 ? 120L : 60L, Marshal.OffsetOf(nativeMessage, "UnauthenticatedAttributes").ToInt64(),
+                "CMSG_SIGNER_INFO unsigned attributes offset");
+            Equal(IntPtr.Size == 8 ? 24 : 12, Marshal.SizeOf(nativeAttribute), "CRYPT_ATTRIBUTE ABI size");
+
             if (OperatingSystem.IsWindows())
             {
                 using (var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
@@ -133,12 +145,19 @@ internal static class CoreChecks
                     new AnalysisOptions([], true));
                 Equal(SignatureStatus.NoEmbeddedSignature, unsigned.Signature.Status, "unsigned PE / native WinVerifyTrust");
                 Check(unsigned.Signature.Certificate is null, "unsigned PE has no signer metadata");
+                Equal(0, unsigned.Signature.Signatures.Count, "unsigned PE has no selectable signature");
                 if (args.Length == 2 && args[0] == "--signed-file")
                 {
                     var signed = await nativeAnalyzer.AnalyzeAsync(args[1], new AnalysisOptions([], true));
                     Check(signed.Succeeded, "signed fixture can be read");
                     Check(signed.Signature.Certificate is not null, "embedded signer metadata extracted");
                     Check(signed.Signature.NativeStatusCode.HasValue, "native trust result retained");
+                    Check(signed.Signature.Signatures.Count >= 1, "signed fixture exposes signature entries");
+                    Check(signed.Signature.Signatures.Select(s => s.Index).SequenceEqual(
+                        Enumerable.Range(0, signed.Signature.Signatures.Count).Select(i => (uint)i)),
+                        "signature indices are complete and unique");
+                    foreach (var entry in signed.Signature.Signatures)
+                        Console.WriteLine($"INFO signature {entry.Index + 1}: {entry.Status}, {entry.DigestAlgorithm}, {entry.Timestamp}");
                     Console.WriteLine($"INFO signed fixture: {signed.Signature.Status}, 0x{signed.Signature.NativeStatusCode:X8}");
                     // Trust depends on this machine's roots, clock and cached revocation data.
                     // This does not assert that an arbitrary supplied file is trusted.
@@ -158,6 +177,88 @@ internal static class CoreChecks
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
         finally { Directory.Delete(temp, true); }
+    }
+
+    private static void CheckTimestamps()
+    {
+        var time = new DateTimeOffset(2024, 2, 3, 12, 34, 56, TimeSpan.Zero);
+        var legacy = LegacyTimestamp(time);
+        var rfc = RfcTimestamp(time.AddMilliseconds(123));
+        Equal<DateTimeOffset?>(time, AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid, legacy),
+            "legacy countersignature signing-time decoded");
+        Equal<DateTimeOffset?>(time.AddMilliseconds(123), AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc),
+            "RFC 3161 genTime decoded with fractional seconds");
+        Check(AuthenticodeTimestampReader.Read("1.2.840.113549.1.9.5", legacy) is null,
+            "self-declared signing time is not accepted as a countersignature");
+        foreach (var oid in new[] { AuthenticodeTimestampReader.CounterSignatureOid, AuthenticodeTimestampReader.Rfc3161Oid })
+        {
+            Check(AuthenticodeTimestampReader.Read(oid, new byte[] { 0x30, 0x82, 0xff }) is null,
+                "truncated timestamp is handled / " + oid);
+            Check(AuthenticodeTimestampReader.Read(oid, Array.Empty<byte>()) is null,
+                "empty timestamp is handled / " + oid);
+        }
+        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
+            LegacyTimestamp(time, duplicate: true)) is null, "ambiguous duplicate signing times are rejected");
+        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
+            LegacyTimestamp(time, includeTime: false)) is null, "countersignature without signing-time has no invented date");
+        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc[..^10]) is null,
+            "truncated RFC 3161 container is rejected");
+        var confirmed = AuthenticodeTimestampReader.Select([time.AddDays(-1), time], true, time, true);
+        Check(confirmed.Time == time && confirmed.Status == TimestampStatus.Verified,
+            "only the timestamp used by a successful Windows check is confirmed");
+        Equal(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time, false).Status,
+            "decoded time alone is not proof of timestamp trust");
+        Equal(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time.AddDays(1), true).Status,
+            "Windows verification time cannot replace a different embedded timestamp");
+        Equal(TimestampStatus.NotPresent, AuthenticodeTimestampReader.Select([], false, DateTimeOffset.UtcNow, true).Status,
+            "current verification time never becomes a missing signing date");
+        Equal(TimestampStatus.Unreadable, AuthenticodeTimestampReader.Select([], true, time, true).Status,
+            "unreadable and absent timestamps are distinguished");
+    }
+
+    private static byte[] LegacyTimestamp(DateTimeOffset time, bool duplicate = false, bool includeTime = true)
+    {
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        var tag = new Asn1Tag(TagClass.ContextSpecific, 0, true);
+        writer.PushSequence();
+        writer.WriteInteger(1);
+        writer.PushSequence(); writer.PushSequence(); writer.PopSequence(); writer.WriteInteger(1); writer.PopSequence();
+        WriteAlgorithm(writer);
+        writer.PushSetOf(tag);
+        if (includeTime)
+            for (var i = 0; i < (duplicate ? 2 : 1); i++)
+            {
+                writer.PushSequence(); writer.WriteObjectIdentifier("1.2.840.113549.1.9.5");
+                writer.PushSetOf(); writer.WriteUtcTime(time); writer.PopSetOf(); writer.PopSequence();
+            }
+        writer.PopSetOf(tag);
+        WriteAlgorithm(writer);
+        writer.WriteOctetString([1, 2, 3]);
+        writer.PopSequence();
+        return writer.Encode();
+    }
+
+    private static byte[] RfcTimestamp(DateTimeOffset time)
+    {
+        var tst = new AsnWriter(AsnEncodingRules.DER);
+        tst.PushSequence(); tst.WriteInteger(1); tst.WriteObjectIdentifier("1.2.3");
+        tst.PushSequence(); WriteAlgorithm(tst); tst.WriteOctetString(new byte[32]); tst.PopSequence();
+        tst.WriteInteger(123); tst.WriteGeneralizedTime(time, omitFractionalSeconds: false); tst.PopSequence();
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        var tag = new Asn1Tag(TagClass.ContextSpecific, 0, true);
+        writer.PushSequence(); writer.WriteObjectIdentifier("1.2.840.113549.1.7.2");
+        writer.PushSequence(tag); writer.PushSequence(); writer.WriteInteger(3);
+        writer.PushSetOf(); WriteAlgorithm(writer); writer.PopSetOf();
+        writer.PushSequence(); writer.WriteObjectIdentifier("1.2.840.113549.1.9.16.1.4");
+        writer.PushSequence(tag); writer.WriteOctetString(tst.Encode()); writer.PopSequence(tag); writer.PopSequence();
+        writer.PushSetOf(); writer.PopSetOf();
+        writer.PopSequence(); writer.PopSequence(tag); writer.PopSequence();
+        return writer.Encode();
+    }
+
+    private static void WriteAlgorithm(AsnWriter writer)
+    {
+        writer.PushSequence(); writer.WriteObjectIdentifier("2.16.840.1.101.3.4.2.1"); writer.PopSequence();
     }
 
     private static void Check(bool condition, string label)

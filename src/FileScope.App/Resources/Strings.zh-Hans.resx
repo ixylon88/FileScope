@@ -342,4 +342,28 @@
   <data name="HashFormat_Base64Url" xml:space="preserve">
     <value>Base64url · 无填充</value>
   </data>
+  <data name="Column_SignatureChoice" xml:space="preserve">
+    <value>选择签名</value>
+  </data>
+  <data name="Column_SigningTime" xml:space="preserve">
+    <value>签名时间戳（UTC）</value>
+  </data>
+  <data name="SignatureChoice" xml:space="preserve">
+    <value>签名 {0}</value>
+  </data>
+  <data name="SignatureChoiceHint" xml:space="preserve">
+    <value>验证状态、证书信息和时间戳均对应所选签名。</value>
+  </data>
+  <data name="Timestamp_NotPresent" xml:space="preserve">
+    <value>无时间戳</value>
+  </data>
+  <data name="Timestamp_Unreadable" xml:space="preserve">
+    <value>无法读取时间戳</value>
+  </data>
+  <data name="Timestamp_Verified" xml:space="preserve">
+    <value>已验证</value>
+  </data>
+  <data name="Timestamp_Unverified" xml:space="preserve">
+    <value>未确认</value>
+  </data>
 </root>

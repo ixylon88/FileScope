@@ -18,6 +18,8 @@ public sealed class ColumnOption(string id, string label, LocalizationService st
         new("MD5", "MD5", strings, false), new("SHA1", "SHA-1", strings, false),
         new("SHA256", "SHA-256", strings, false), new("SHA384", "SHA-384", strings, false),
         new("SHA512", "SHA-512", strings, false),
+        new("SignatureChoice", "Column_SignatureChoice", strings),
+        new("SigningTime", "Column_SigningTime", strings),
         new("Signature", "Column_Signature", strings), new("Publisher", "Column_Publisher", strings),
         new("Subject", "Column_Subject", strings), new("Issuer", "Column_Issuer", strings),
         new("Serial", "Column_Serial", strings), new("ValidFrom", "Column_ValidFrom", strings),

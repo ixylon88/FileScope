@@ -14,6 +14,8 @@ internal static class PresentationChecks
         {
             CheckFormats();
             CheckRows();
+            CheckSignatures();
+            CheckWindowSizes();
             CheckOptions();
             Console.WriteLine($"PASS: {_passed} presentation / settings assertions.");
             return 0;
@@ -71,6 +73,79 @@ internal static class PresentationChecks
         row.Complete(result);
         Check(row.SHA256 == base64, "in-flight/future results use the most recent format");
     }
+    private static void CheckSignatures()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        var firstDate = new DateTimeOffset(2024, 2, 3, 4, 5, 6, TimeSpan.Zero);
+        var certificate = new CertificateInfo("First publisher", "First subject", "First issuer", "01", "00FF", "00FF",
+            firstDate.AddYears(-1), firstDate.AddYears(1), "sha256RSA");
+        var second = certificate with { Publisher = "Second publisher", SerialNumber = "02", ThumbprintSha1 = "FF",
+            NotBefore = firstDate.AddYears(-2), NotAfter = firstDate.AddYears(2) };
+        var entries = new EmbeddedSignature[]
+        {
+            new(0, SignatureStatus.Valid, certificate, 0, null, "SHA-256", new(firstDate, TimestampStatus.Verified)),
+            new(1, SignatureStatus.Untrusted, second, unchecked((int)0x800B0109), "Second diagnostic", "SHA-1", SignatureTimestamp.NotPresent),
+            new(2, SignatureStatus.Valid, certificate, 0, null, "SHA-384", new(firstDate.AddDays(1), TimestampStatus.Unverified)),
+            new(3, SignatureStatus.CheckFailed, null, null, "No metadata", "", SignatureTimestamp.Unreadable)
+        };
+        var result = new FileAnalysisResult("signed.exe", 1, firstDate,
+            new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = "00FF" },
+            new SignatureResult(SignatureStatus.Valid, RevocationMode.OfflineCache, certificate, 0)
+            { Signatures = Array.AsReadOnly(entries) });
+        var row = new FileRowViewModel(result.FullPath, strings);
+        row.Complete(result);
+        Check(row.HasMultipleSignatures && row.Signatures.Count == 4 && row.SelectedSignature == row.Signatures[0],
+            "all signatures are selectable, including repeated certificates and failed entries");
+        Check(row.SigningTime == firstDate && row.SigningTimeText.Contains("verified") && row.Publisher == "First publisher",
+            "primary timestamp and certificate belong to the same signature");
+        var changes = 0;
+        row.SignatureSelectionChanged += (_, _) => changes++;
+        row.SetHashFormat(HashFormat.Base64);
+        row.SelectedSignature = row.Signatures[1];
+        Check(changes == 1 && row.SignatureState == SignatureStatus.Untrusted && row.NativeCode == "0x800B0109"
+            && row.Publisher == "Second publisher" && row.SerialNumber == "02" && row.CertificateSha1 == "/w==",
+            "selection switches verification status, certificate fields and formatted fingerprints together");
+        Check(row.ValidFromDate == second.NotBefore && row.ValidUntilDate == second.NotAfter,
+            "date sorting follows the selected certificate");
+        Check(row.SigningTime is null && row.SigningTimeText == strings["Timestamp_NotPresent"],
+            "missing timestamp does not reuse the previous signature's date");
+        Check(row.SHA256 == "AP8=" && ReferenceEquals(result, row.Result), "signature selection preserves file hashes and analysis result");
+        Check(row.Details.Contains("Second publisher") && row.Details.Contains("Second diagnostic") && row.Matches("Second publisher")
+            && !row.Matches("First publisher"), "details and search follow the selected signature");
+        row.SelectedSignature = row.Signatures[2];
+        Check(row.SigningTimeText.Contains(strings["Timestamp_Unverified"]) && row.SigningTime == firstDate.AddDays(1),
+            "unconfirmed timestamp remains explicitly labelled");
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            row.RefreshLanguage();
+            Check(row.SelectedSignature.Label.StartsWith(strings.Format("SignatureChoice", 3))
+                && !row.SigningTimeText.Contains('['), "signature labels and timestamp status translate / " + language.CultureName);
+        }
+        row.SelectedSignature = row.Signatures[3];
+        Check(row.Publisher == "" && row.CertificateSha1 == "" && row.NativeCode == ""
+            && row.SigningTimeText == strings["Timestamp_Unreadable"], "failed entry never borrows primary metadata");
+        row.Reset();
+        Check(!row.HasMultipleSignatures && row.Signatures.Count == 0 && row.SelectedSignature is null
+            && row.SigningTime is null && row.SigningTimeText == "", "reset removes all signature state");
+        strings.SetCulture("en");
+    }
+
+    private static void CheckWindowSizes()
+    {
+        WindowSize Restore(WindowPreferences? saved, double width = 1920, double height = 1040) =>
+            WindowSize.Restore(saved, 1440, 900, 1080, 680, width, height);
+        Check(Restore(null) is { Width: 1440, Height: 900 }, "old settings without window data use the default size");
+        Check(Restore(new(1234, 789, true)) is { Width: 1234, Height: 789 }, "saved normal dimensions are preserved");
+        Check(Restore(new(9000, 9000, false)) is { Width: 1920, Height: 1040 }, "oversized window is clamped to the new work area");
+        Check(Restore(new(200, 100, false)) is { Width: 1080, Height: 680 }, "tiny saved size respects the minimum");
+        Check(Restore(new(double.NaN, double.PositiveInfinity, false)) is { Width: 1440, Height: 900 }, "non-finite dimensions are ignored");
+        Check(Restore(new(-10, 0, false)) is { Width: 1440, Height: 900 }, "non-positive dimensions are ignored");
+        Check(Restore(null, 800, 600) is { Width: 800, Height: 600, MinWidth: 800, MinHeight: 600 },
+            "small primary monitor also reduces minimum bounds so the window fits");
+    }
+
     private static void CheckOptions()
     {
         var strings = LocalizationService.Instance;
@@ -81,7 +156,7 @@ internal static class PresentationChecks
         try
         {
             using var options = new OptionsViewModel(strings, store);
-            Check(options.Columns.Count == 22 && options.Columns.Select(column => column.Id).Distinct().Count() == 22,
+            Check(options.Columns.Count == 24 && options.Columns.Select(column => column.Id).Distinct().Count() == 24,
                 "all columns have unique persistent IDs");
             Check(!options.MoveUpCommand.CanExecute(null), "cannot move the first column above the start");
             var selected = options.Columns.Single(column => column.Id == "SHA512");
@@ -94,7 +169,7 @@ internal static class PresentationChecks
             options.MoveDownCommand.Execute(null);
             Check(options.Columns[^1] == selected, "up/down preserve a valid permutation");
             options.SetColumnOrder(["Issuer", "SHA512", "Issuer", "missing-column"]);
-            Check(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 22,
+            Check(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 24,
                 "restore ignores duplicates/unknown IDs and appends missing columns");
             var widthRevision = options.WidthRevision;
             var formatChanges = 0;
@@ -108,9 +183,20 @@ internal static class PresentationChecks
                     && options.Columns.All(column => !column.Label.StartsWith('[')), "translated option labels / " + culture.CultureName);
             }
             options.SelectedLanguage = options.Languages.Single(language => language.CultureName == "de");
+            var window = new WindowPreferences(1270, 810, true);
+            options.SaveWindowPreferences(window);
+            options.SelectedHashFormat = options.HashFormats.Single(format => format.Value == HashFormat.Base64Url);
+            options.SelectedLanguage = options.Languages.Single(language => language.CultureName == "en");
+            options.SelectedLanguage = options.Languages.Single(language => language.CultureName == "de");
+            Check(store.Load().Window == window, "changing UI options preserves saved window size/state");
+            Check(store.Load().Language == "de" && store.Load().HashFormat == nameof(HashFormat.Base64Url),
+                "saving window state preserves language and hash format");
+            options.SaveWindowPreferences(new(double.NaN, 0, false));
+            Check(store.Load().Window == window, "invalid geometry never replaces usable saved settings");
             var savedOrder = options.Columns.Select(column => column.Id).ToArray();
             using (var reopened = new OptionsViewModel(strings, store))
             {
+                Check(reopened.WindowPreferences == window, "normal size and maximized state survive a restart");
                 Check(reopened.Columns.Select(column => column.Id).SequenceEqual(savedOrder), "column order survives a restart");
                 Check(reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
                     "language and hash format survive a restart");
@@ -121,10 +207,10 @@ internal static class PresentationChecks
             Check(!Directory.EnumerateFiles(directory, "*.tmp").Any(), "settings save leaves no temporary files");
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store))
-                Check(fallback.HasSettingsError && fallback.Columns.Count == 22, "corrupt settings fall back without blocking the app");
+                Check(fallback.HasSettingsError && fallback.Columns.Count == 24, "corrupt settings fall back without blocking the app");
             store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", ColumnOrder = ["SHA256", "SHA256"] });
             using (var normalized = new OptionsViewModel(strings, store))
-                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 22,
+                Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 24,
                     "invalid saved enum and duplicate columns are normalized");
             using (var failing = new OptionsViewModel(strings, new FailingStore()))
             {

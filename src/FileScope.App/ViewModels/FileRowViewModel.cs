@@ -11,6 +11,39 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     private HashFormat _hashFormat = format;
     private readonly Dictionary<ChecksumAlgorithm, string> _hashText = [];
     private string _certificateSha1 = "", _certificateSha256 = "";
+    private SignatureOption? _selectedSignature;
+    public IReadOnlyList<SignatureOption> Signatures { get; private set; } = [];
+    public bool HasMultipleSignatures => Signatures.Count > 1;
+    public event EventHandler? SignaturesChanged;
+    public event EventHandler? SignatureSelectionChanged;
+    public SignatureOption? SelectedSignature
+    {
+        get => _selectedSignature;
+        set
+        {
+            if (value is null || !Signatures.Contains(value) || ReferenceEquals(value, _selectedSignature)) return;
+            _selectedSignature = value;
+            RebuildCertificateHashText();
+            OnPropertyChanged(null);
+            SignatureSelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private CertificateInfo? Certificate => SelectedSignature?.Value.Certificate ??
+        (Signatures.Count == 0 ? Result?.Signature.Certificate : null);
+    public string SignatureChoiceText => SelectedSignature?.Label ?? "";
+    public DateTimeOffset? SigningTime => SelectedSignature?.Value.Timestamp.Time;
+    public string SigningTimeText
+    {
+        get
+        {
+            if (SelectedSignature is null) return "";
+            var timestamp = SelectedSignature.Value.Timestamp;
+            if (timestamp.Status == TimestampStatus.NotPresent) return strings["Timestamp_NotPresent"];
+            if (timestamp.Status == TimestampStatus.Unreadable) return strings["Timestamp_Unreadable"];
+            var date = timestamp.Time?.UtcDateTime.ToString("G", strings.Culture) ?? "";
+            return $"{date} UTC ({strings["Timestamp_" + timestamp.Status]})";
+        }
+    }
     public string FullPath { get; } = path;
     public string FileName { get; } = GetName(path);
     public FileAnalysisResult? Result { get; private set; }
@@ -25,17 +58,19 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string SHA256 => Hash(ChecksumAlgorithm.SHA256);
     public string SHA384 => Hash(ChecksumAlgorithm.SHA384);
     public string SHA512 => Hash(ChecksumAlgorithm.SHA512);
-    public SignatureStatus SignatureState => Result?.Signature.Status ?? SignatureStatus.NotChecked;
-    public string Publisher => Result?.Signature.Certificate?.Publisher ?? "";
-    public string Subject => Result?.Signature.Certificate?.Subject ?? "";
-    public string Issuer => Result?.Signature.Certificate?.Issuer ?? "";
-    public string SerialNumber => Result?.Signature.Certificate?.SerialNumber ?? "";
+    public SignatureStatus SignatureState => SelectedSignature?.Value.Status ?? Result?.Signature.Status ?? SignatureStatus.NotChecked;
+    public string Publisher => Certificate?.Publisher ?? "";
+    public string Subject => Certificate?.Subject ?? "";
+    public string Issuer => Certificate?.Issuer ?? "";
+    public string SerialNumber => Certificate?.SerialNumber ?? "";
     public string CertificateSha1 => _certificateSha1;
     public string CertificateSha256 => _certificateSha256;
-    public string ValidFrom => FormatDate(Result?.Signature.Certificate?.NotBefore);
-    public string ValidUntil => FormatDate(Result?.Signature.Certificate?.NotAfter);
-    public string CertificateAlgorithm => Result?.Signature.Certificate?.SignatureAlgorithm ?? "";
-    public string NativeCode => Result?.Signature.NativeStatusCode is int code ? $"0x{unchecked((uint)code):X8}" : "";
+    public DateTimeOffset? ValidFromDate => Certificate?.NotBefore;
+    public DateTimeOffset? ValidUntilDate => Certificate?.NotAfter;
+    public string ValidFrom => FormatDate(Certificate?.NotBefore);
+    public string ValidUntil => FormatDate(Certificate?.NotAfter);
+    public string CertificateAlgorithm => Certificate?.SignatureAlgorithm ?? "";
+    public string NativeCode => (SelectedSignature is not null ? SelectedSignature.Value.NativeStatusCode : Result?.Signature.NativeStatusCode) is int code ? $"0x{unchecked((uint)code):X8}" : "";
     public string StateText => State == RowStatus.Running
         ? strings[Stage == AnalysisStage.CheckingSignature ? "CheckingSignature" : "Reading"]
         : strings[$"Row_{State}"];
@@ -45,7 +80,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
     {
         Result.Error == AnalysisError.None ? null : strings[$"Error_{Result.Error}"],
-        Result.Diagnostic, Result.Signature.Diagnostic
+        Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null)
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details
@@ -60,7 +95,9 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             Line("Column_Modified", ModifiedText);
             foreach (var algorithm in Enum.GetValues<ChecksumAlgorithm>())
                 if (Hash(algorithm).Length != 0) text.AppendLine($"{algorithm}: {Hash(algorithm)}");
+            Line("Column_SignatureChoice", SignatureChoiceText);
             Line("Column_Signature", SignatureText);
+            Line("Column_SigningTime", SigningTimeText);
             Line("Column_Publisher", Publisher);
             Line("Column_Subject", Subject);
             Line("Column_Issuer", Issuer);
@@ -79,6 +116,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public void Reset()
     {
         Result = null;
+        RebuildSignatures();
         RebuildHashText();
         State = RowStatus.Queued;
         Progress = 0;
@@ -104,6 +142,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public void Complete(FileAnalysisResult result)
     {
         Result = result;
+        RebuildSignatures();
         RebuildHashText();
         State = result.Succeeded ? RowStatus.Completed : RowStatus.Failed;
         Progress = 100;
@@ -116,7 +155,23 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         RefreshLanguage();
     }
 
-    public void RefreshLanguage() => OnPropertyChanged(null);
+    public void RefreshLanguage()
+    {
+        foreach (var signature in Signatures) signature.RefreshLanguage();
+        OnPropertyChanged(null);
+    }
+
+    private void RebuildSignatures()
+    {
+        var entries = Result?.Signature.Signatures ?? [];
+        // Also support inspectors using the original single-signature contract.
+        if (entries.Count == 0 && Result?.Signature is { Certificate: not null } single)
+            entries = [new EmbeddedSignature(0, single.Status, single.Certificate,
+                single.NativeStatusCode, single.Diagnostic, "", SignatureTimestamp.NotPresent)];
+        Signatures = Array.AsReadOnly(entries.Select(entry => new SignatureOption(entry, strings)).ToArray());
+        _selectedSignature = Signatures.FirstOrDefault();
+        SignaturesChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public void SetHashFormat(HashFormat format)
     {
@@ -133,13 +188,18 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         if (Result is not null)
             foreach (var (algorithm, hex) in Result.Checksums)
                 _hashText[algorithm] = DigestFormatter.Format(hex, _hashFormat);
-        _certificateSha1 = DigestFormatter.Format(Result?.Signature.Certificate?.ThumbprintSha1, _hashFormat);
-        _certificateSha256 = DigestFormatter.Format(Result?.Signature.Certificate?.ThumbprintSha256, _hashFormat);
+        RebuildCertificateHashText();
+    }
+
+    private void RebuildCertificateHashText()
+    {
+        _certificateSha1 = DigestFormatter.Format(Certificate?.ThumbprintSha1, _hashFormat);
+        _certificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashFormat);
     }
 
     public bool Matches(string query) => query.Length == 0 || new[]
     {
-        FullPath, SizeText, ModifiedText, StateText, SignatureText, MD5, SHA1, SHA256, SHA384, SHA512,
+        FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText, MD5, SHA1, SHA256, SHA384, SHA512,
         Publisher, Subject, Issuer, SerialNumber, CertificateSha1, CertificateSha256,
         ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic
     }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase));

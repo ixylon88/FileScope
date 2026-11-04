@@ -37,27 +37,32 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Standard: SHA-256 und Signaturprüfung. |
 | Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
-| Zertifikate | Primäre eingebettete Authenticode-Signatur prüfen und Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke anzeigen. |
+| Zertifikate | Von Windows gemeldete primäre und zusätzliche eingebettete Authenticode-Signaturen jeweils prüfen; Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke der gewählten Signatur anzeigen. |
+| Signaturauswahl | Sobald mindestens eine geladene Datei mehrere Signaturen hat, erscheint eine Auswahlspalte pro Zeile. Die Einträge nennen Signaturnummer, Unterzeichner und Dateisignatur-Hashalgorithmus. Auch dasselbe Zertifikat kann mehrfach vorkommen. Status, Zertifikatsdaten, Datum, Details, Suche und Sortierung folgen der Auswahl; keine erneute Analyse. Bei einzelnen Signaturen ist die Auswahl deaktiviert. |
+| Signaturzeitstempel | Authenticode-Gegensignatur oder RFC-3161-Zeitstempel in UTC. Fehlende, nicht auslesbare und nicht bestätigte Zeitstempel sind ausdrücklich beschriftet. |
 | Online-Sperrprüfung | Optional. Ohne Häkchen werden ausschließlich lokale/zwischengespeicherte Ketten- und Sperrinformationen verwendet. |
 | Alle neu prüfen | Alle geladenen Dateien mit der aktuellen Auswahl erneut verarbeiten, einschließlich ausgefilterter Dateien. Vorherige Ergebnisse dieser Dateien werden dabei ersetzt. |
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
 | Tabelle | Schreibgeschützt und horizontal scrollbar. Einheitlich helle Zeilen mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
-| Spaltenreihenfolge | Zahnrad → Optionen: Alle 22 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
+| Spaltenreihenfolge | Zahnrad → Optionen: Alle 24 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
 | Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, innerhalb fester Mindest-/Höchstbreiten je Spalte. Lange Werte sind über Tooltip, Details und Kopieren vollständig verfügbar. Manuelles Vergrößern bleibt möglich; „Breiten neu anpassen“ schaltet wieder auf Automatik. |
 | Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Unter „Ausgewählte Datei“ ist der komplette Detailtext markierbar. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
 | Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
+| Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
 | Design | Festes helles Design. Der Theme-Umschalter und die eigenen Vorlagen für Zeilen/Zellen wurden entfernt. |
 
 Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
 
 Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden als eigene Fehlerzeilen gemeldet und nicht rekursiv eingelesen. Ohne gewählten Hash und ohne Signaturprüfung werden nur Dateimetadaten ermittelt.
 
-Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Sprache, Hashformat und die vollständige Spaltenreihenfolge werden in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse, Prüf-Häkchen und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Sprache, Hashformat, die vollständige Spaltenreihenfolge sowie Fenstergröße und Maximierungszustand werden in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse, Prüf-Häkchen und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+
+Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
 
 Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die Messung neu und erlaubt auch schmalere Spalten. Das Filtern allein setzt manuell gewählte Breiten nicht zurück.
 
@@ -80,7 +85,7 @@ Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur 
 | `IPreferencesStore` / `PreferencesStore` | Speichert kleine Benutzereinstellungen über eine temporäre Datei mit anschließendem Ersetzen der Zieldatei. |
 | `BindingProxy` | Liefert den Fenster-DataContext an DataGrid-Spalten, die selbst keinen DataContext erben. Damit bleibt die Sichtbarkeit per Binding an die Prüfoptionen gekoppelt. |
 
-MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Fensterlebenszyklus, Öffnen des Optionsdialogs und Sichtbarhalten der ausgewählten Listenzeile. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
+MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Fensterlebenszyklus einschließlich Größenwiederherstellung, Öffnen des Optionsdialogs und Sichtbarhalten der ausgewählten Listenzeile. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
 Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kein zusätzlicher Ribbon-Control-Anbieter**. Der WPF-Tabellentyp heißt `DataGrid`; `DataGridView` gehört zu Windows Forms.
 
@@ -96,7 +101,11 @@ Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch
 - **Keine eingebettete Signatur** und **Signaturformat nicht unterstützt** bleiben getrennte Ergebnisse.
 - Fehlerhafte, nicht vertrauenswürdige, gesperrte und zeitlich ungültige Zertifikate erhalten getrennte Statuswerte. Der originale Windows-Rückgabecode wird als Hexwert angezeigt.
 
-Der Umfang ist **die primäre eingebettete Authenticode-Signatur und ihr Unterzeichnerzertifikat**. Separate `.cat`-Zuordnungen, sämtliche Zusatz-/Gegensignaturen, Signaturen innerhalb von Archiven, PDF-/Office-Signaturen sowie der Import eigenständiger CER/PFX-Zertifikate sind nicht implementiert. Hashwerte können unabhängig davon für beliebige lesbare Dateien berechnet werden. „Keine eingebettete Signatur“ bedeutet deshalb nicht, dass eine Datei niemals anderweitig signiert ist.
+Der Umfang sind **die primäre und alle zusätzlichen eingebetteten Authenticode-Signaturen, die Windows über `WINTRUST_SIGNATURE_SETTINGS` meldet**. Jede wird separat geprüft, auch wenn die primäre Prüfung fehlschlägt. Die Tabelle zeigt den Prüfstatus der ausgewählten Signatur, kein pauschales „alle Signaturen gültig“. Zertifikate aus der Vertrauenskette und Zeitstempel-Unterzeichner werden nicht als zusätzliche Dateisignaturen angeboten. Separate `.cat`-Zuordnungen, Signaturen innerhalb von Archiven, PDF-/Office-Signaturen sowie der Import eigenständiger CER/PFX-Zertifikate sind nicht implementiert. Hashwerte können unabhängig davon für beliebige lesbare Dateien berechnet werden. „Keine eingebettete Signatur“ bedeutet deshalb nicht, dass eine Datei niemals anderweitig signiert ist.
+
+**Zum Datum:** „Gültig ab“ ist der Gültigkeitsbeginn des Zertifikats. Ein X.509-Zertifikat enthält kein allgemeines separates Feld für das Datum seiner eigenen Unterzeichnung. Die neue Spalte zeigt stattdessen die Zeit aus dem Zeitstempel der Dateisignatur: ältere PKCS#9-Gegensignaturen oder RFC-3161-Token. Ein Zeitstempel bestätigt bei erfolgreicher Prüfung, dass die Signatur zu dieser Zeit bereits vorlag; er ist nicht zwingend der exakte Moment der ursprünglichen Unterzeichnung. Selbst angegebene `signingTime`-Attribute des Dateisignierers, die aktuelle Uhrzeit und der Gültigkeitsbeginn werden nicht als Ersatz verwendet.
+
+Die Beschriftung „bestätigt“ verlangt einen erfolgreichen Windows-Prüfstatus, einen fehlerfrei geprüften Gegensignierer und einen ausgelesenen Zeitstempel, der zur von Windows verwendeten Prüfzeit passt. Andernfalls bleibt ein lesbares Datum „nicht bestätigt“; das ist keine Behauptung, dass der Zeitstempel ungültig sei. Offline fehlende Vertrauens-/Sperrinformationen können eine Bestätigung verhindern.
 
 Die angezeigten Zertifikatsfingerabdrücke beziehen sich auf das Zertifikat; die Hashspalten beziehen sich auf die Datei. Der Zertifikatssignaturalgorithmus ist ebenfalls der Algorithmus des Zertifikats und nicht automatisch der Dateisignatur. MD5/SHA-1 sind für den Vergleich vorhandener/älterer Prüfsummen enthalten; SHA-256 ist voreingestellt.
 
@@ -153,6 +162,8 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 - [.NET-Supportübersicht](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core)
 - [WPF in .NET 10](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net100)
 - [Fluent-Theme und ThemeMode](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net90)
+- [Mehrere Signaturen: WINTRUST_SIGNATURE_SETTINGS](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_signature_settings)
+- [Authenticode-Zeitstempel](https://learn.microsoft.com/en-us/windows/win32/seccrypto/time-stamping-authenticode-signatures)
 - [WinVerifyTrust](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust)
 - [WINTRUST_DATA und Offline-Flags](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data)
 - [WINTRUST_FILE_INFO und Dateihandle](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_file_info)

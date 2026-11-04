@@ -46,6 +46,8 @@ internal static class UiChecks
                 new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var strings = LocalizationService.Instance;
             CheckFileIntake(strings);
+            CheckMultipleSignatures(strings);
+            CheckWindowPersistence(strings);
             var service = new ImmediateAnalysis();
             using var vm = new MainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
             window = new MainWindow(vm);
@@ -201,6 +203,116 @@ internal static class UiChecks
         finally { viewNotifications.CollectionChanged -= readView; }
     }
 
+    private static void CheckMultipleSignatures(LocalizationService strings)
+    {
+        var analysis = new MultipleSignatureAnalysis();
+        using var vm = new MainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
+        var window = new MainWindow(vm);
+        try
+        {
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            DrainDispatcher();
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var column = (DataGridTemplateColumn)grid.Columns.Single(c => ColumnLayoutBehavior.GetId(c) == "SignatureChoice");
+            vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "single.exe") });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
+            Check(!vm.ShowSignatureSelectorColumn && column.Visibility == Visibility.Collapsed,
+                "selector column stays hidden for single signatures");
+            vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "multi.exe") });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            Check(vm.ShowSignatureSelectorColumn && column.Visibility == Visibility.Visible,
+                "one multiply signed file reveals the bound selector column");
+            var row = vm.Rows.Single(r => r.HasMultipleSignatures);
+            var calls = analysis.Calls;
+            // Instantiate the real cell template even when this column is scrolled out.
+            var combo = (ComboBox)column.CellTemplate.LoadContent();
+            combo.DataContext = row;
+            DrainDispatcher();
+            Check(combo.Items.Count == 2 && combo.SelectedItem == row.Signatures[0] && combo.IsEnabled,
+                "real dropdown binds the signature list and primary selection");
+            vm.SignatureFilterOption = vm.SignatureFilters.Single(f => f.Value == SignatureFilter.Valid);
+            combo.SelectedItem = row.Signatures[1];
+            DrainDispatcher();
+            Check(row.SelectedSignature == row.Signatures[1] && row.Publisher == "Second publisher"
+                && row.SignatureState == SignatureStatus.Untrusted && analysis.Calls == calls,
+                "dropdown changes selected metadata without reanalysis");
+            Check(vm.RowsView.Count == 1 && vm.ShowSignatureSelectorColumn,
+                "selection refreshes the signature filter; a hidden multi-signature row keeps the column available");
+            vm.ResetFiltersCommand.Execute(null);
+            vm.SearchText = "Second publisher";
+            Check(vm.RowsView.Count == 1, "search sees the selected certificate");
+            combo.SelectedItem = row.Signatures[0];
+            DrainDispatcher();
+            Check(vm.RowsView.Count == 0, "search refreshes after dropdown selection");
+            vm.ResetFiltersCommand.Execute(null);
+            combo.DataContext = vm.Rows.Single(r => !r.HasMultipleSignatures);
+            DrainDispatcher();
+            Check(!combo.IsEnabled && combo.Items.Count == 1, "single-signature rows have a disabled single choice");
+            foreach (var enabled in new[] { false, true })
+            {
+                vm.InspectCertificates = enabled;
+                DrainDispatcher();
+                Check(column.Visibility == (enabled ? Visibility.Visible : Visibility.Collapsed),
+                    "signature selector also follows the inspection checkbox");
+            }
+            analysis.Multiple = false;
+            vm.ReanalyseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.ShowSignatureSelectorColumn && column.Visibility == Visibility.Collapsed,
+                "reanalysis drops obsolete multiple-signature state");
+            vm.ClearCommand.Execute(null);
+            Check(!vm.ShowSignatureSelectorColumn && vm.Rows.Count == 0, "clear hides the selector again");
+        }
+        finally { window.Close(); }
+    }
+
+    private static void CheckWindowPersistence(LocalizationService strings)
+    {
+        foreach (var maximize in new[] { false, true })
+        {
+            var store = new MemoryPreferences();
+            var options = new OptionsViewModel(strings, store);
+            using var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
+            var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+            var closed = false;
+            var area = SystemParameters.WorkArea;
+            Check(Math.Abs(window.Left + window.Width / 2 - (area.Left + area.Width / 2)) < 1
+                && Math.Abs(window.Top + window.Height / 2 - (area.Top + area.Height / 2)) < 1,
+                "normal window starts centered on the primary work area");
+            try
+            {
+                window.Show();
+                DrainDispatcher();
+                var width = Math.Min(1234, area.Width);
+                var height = Math.Min(789, area.Height);
+                window.Width = width;
+                window.Height = height;
+                DrainDispatcher();
+                if (maximize) window.WindowState = WindowState.Maximized;
+                DrainDispatcher();
+                window.WindowState = WindowState.Minimized;
+                DrainDispatcher();
+                window.Close();
+                closed = true;
+                Check(store.Saved.Window is { } saved && saved.Maximized == maximize
+                    && Math.Abs(saved.Width - width) < 2 && Math.Abs(saved.Height - height) < 2,
+                    "closing minimized preserves normal bounds and last non-minimized state / " + maximize);
+                using var nextVm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
+                    new OptionsViewModel(strings, store));
+                var next = new MainWindow(nextVm);
+                try
+                {
+                    Check(next.WindowState == (maximize ? WindowState.Maximized : WindowState.Normal)
+                        && Math.Abs(next.Width - width) < 2 && Math.Abs(next.Height - height) < 2,
+                        "next window restores saved dimensions and maximized state / " + maximize);
+                }
+                finally { next.Close(); }
+            }
+            finally { if (!closed) window.Close(); }
+        }
+    }
+
     private static void CheckPresentation(MainWindow window, MainViewModel vm, ImmediateAnalysis analysis)
     {
         var grid = (DataGrid)window.FindName("ResultsGrid");
@@ -208,7 +320,7 @@ internal static class UiChecks
             .ToDictionary(column => ((Binding)column.Binding).Path.Path);
         var results = vm.Rows.Select(row => row.Result).ToArray();
         var analysisCalls = analysis.Calls;
-        string[] certificateColumns = ["SignatureText", "Publisher", "Subject", "Issuer", "SerialNumber",
+        string[] certificateColumns = ["SigningTimeText", "SignatureText", "Publisher", "Subject", "Issuer", "SerialNumber",
             "ValidFrom", "ValidUntil", "CertificateSha1", "CertificateSha256", "CertificateAlgorithm", "NativeCode"];
         foreach (var option in vm.ChecksumOptions)
         {
@@ -345,8 +457,9 @@ internal static class UiChecks
     private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
     private sealed class MemoryPreferences : IPreferencesStore
     {
-        public UserPreferences Load() => new();
-        public void Save(UserPreferences preferences) { }
+        public UserPreferences Saved { get; private set; } = new();
+        public UserPreferences Load() => Saved;
+        public void Save(UserPreferences preferences) => Saved = preferences;
     }
     private sealed class TestPicker : IFilePickerService
     {
@@ -366,6 +479,32 @@ internal static class UiChecks
             return Task.FromResult(Result(path, options));
         }
     }
+    private sealed class MultipleSignatureAnalysis : IFileAnalysisService
+    {
+        public int Calls;
+        public bool Multiple = true;
+        public Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
+            IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            var time = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
+            var certificate = new CertificateInfo("First publisher", "Subject", "Issuer", "01", "00FF", "00FF",
+                time.AddYears(-1), time.AddYears(1), "sha256RSA");
+            var entries = new List<EmbeddedSignature>
+            {
+                new(0, SignatureStatus.Valid, certificate, 0, null, "SHA-256", new(time, TimestampStatus.Verified))
+            };
+            if (Multiple && Path.GetFileName(path) == "multi.exe")
+                entries.Add(new(1, SignatureStatus.Untrusted, certificate with { Publisher = "Second publisher" },
+                    unchecked((int)0x800B0109), null, "SHA-1", new(time.AddDays(1), TimestampStatus.Unverified)));
+            return Task.FromResult(Result(path, options) with
+            {
+                Signature = new(SignatureStatus.Valid, options.RevocationMode, certificate, 0)
+                { Signatures = entries.AsReadOnly() }
+            });
+        }
+    }
+
     private sealed class BlockingAnalysis : IFileAnalysisService
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

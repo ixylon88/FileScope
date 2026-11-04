@@ -39,11 +39,29 @@ public sealed record CertificateInfo(
     string ThumbprintSha1, string ThumbprintSha256,
     DateTimeOffset NotBefore, DateTimeOffset NotAfter, string SignatureAlgorithm);
 
+public enum TimestampStatus { NotPresent, Unverified, Verified, Unreadable }
+
+public sealed record SignatureTimestamp(DateTimeOffset? Time, TimestampStatus Status)
+{
+    public static SignatureTimestamp NotPresent { get; } = new(null, TimestampStatus.NotPresent);
+    public static SignatureTimestamp Unreadable { get; } = new(null, TimestampStatus.Unreadable);
+}
+
+// One file signature, not one certificate in its trust chain. Index is the
+// Windows signature index (zero-based); timestamps belong to this signer only.
+public sealed record EmbeddedSignature(
+    uint Index, SignatureStatus Status, CertificateInfo? Certificate,
+    int? NativeStatusCode, string? Diagnostic, string DigestAlgorithm,
+    SignatureTimestamp Timestamp);
+
 public sealed record SignatureResult(
     SignatureStatus Status, RevocationMode RevocationMode,
     CertificateInfo? Certificate = null, int? NativeStatusCode = null,
     string? Diagnostic = null)
 {
+    // The original properties describe the primary signature for compatibility.
+    // Each additional signature has its own independent verification result.
+    public IReadOnlyList<EmbeddedSignature> Signatures { get; init; } = [];
     public static SignatureResult NotChecked { get; } =
         new(SignatureStatus.NotChecked, RevocationMode.OfflineCache);
 }

@@ -7,7 +7,10 @@ public sealed record UserPreferences
     public string? Language { get; init; }
     public string? HashFormat { get; init; }
     public string[]? ColumnOrder { get; init; }
+    public WindowPreferences? Window { get; init; }
 }
+
+public sealed record WindowPreferences(double Width, double Height, bool Maximized);
 
 public interface IPreferencesStore
 {

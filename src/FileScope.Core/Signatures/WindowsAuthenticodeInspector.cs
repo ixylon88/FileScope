@@ -8,7 +8,7 @@ using FileScope.Core.Models;
 namespace FileScope.Core.Signatures;
 
 /// <summary>
-/// Inspects the primary embedded Authenticode signature using Windows trust policy.
+/// Inspects embedded Authenticode signatures independently using Windows trust policy.
 /// No catalog lookup, private-key import, certificate installation or file execution.
 /// </summary>
 public sealed class WindowsAuthenticodeInspector : ISignatureInspector
@@ -21,7 +21,7 @@ public sealed class WindowsAuthenticodeInspector : ISignatureInspector
             return new SignatureResult(SignatureStatus.UnsupportedPlatform, revocationMode);
         try
         {
-            var result = InspectWindows(file, fullPath, revocationMode);
+            var result = InspectWindows(file, fullPath, revocationMode, cancellationToken);
             // WinVerifyTrust is synchronous and cannot be interrupted mid-call.
             cancellationToken.ThrowIfCancellationRequested();
             return result;
@@ -37,7 +37,8 @@ public sealed class WindowsAuthenticodeInspector : ISignatureInspector
     }
 
     [SupportedOSPlatform("windows")]
-    private static SignatureResult InspectWindows(FileStream stream, string path, RevocationMode mode)
+    private static SignatureResult InspectWindows(FileStream stream, string path, RevocationMode mode,
+        CancellationToken cancellationToken)
     {
         var fileInfo = new Native.WinTrustFileInfo
         {
@@ -65,37 +66,72 @@ public sealed class WindowsAuthenticodeInspector : ISignatureInspector
         {
             Marshal.StructureToPtr(fileInfo, filePointer, false);
             marshaled = true;
-            var settings = new Native.WinTrustSignatureSettings
-            {
-                Size = (uint)Marshal.SizeOf<Native.WinTrustSignatureSettings>(),
-                Index = 0,
-                Flags = 1 // WSS_VERIFY_SPECIFIC: explicitly choose the primary signature.
-            };
             settingsPointer = Marshal.AllocHGlobal(Marshal.SizeOf<Native.WinTrustSignatureSettings>());
-            Marshal.StructureToPtr(settings, settingsPointer, false);
             data.SignatureSettings = settingsPointer;
-            var status = Native.WinVerifyTrust(new IntPtr(-1), ref action, ref data);
-            CertificateInfo? certificate = null;
-            string? diagnostic = null;
-            try
+            var signatures = new List<EmbeddedSignature>();
+            uint secondaryCount = 0;
+            var foundSigner = false;
+            for (uint index = 0; ; index++)
             {
-                // Read the signer associated with this trust operation, including on
-                // an untrusted/expired certificate. Metadata is not proof of trust.
-                certificate = ReadSigner(data.StateData);
+                cancellationToken.ThrowIfCancellationRequested();
+                var settings = new Native.WinTrustSignatureSettings
+                {
+                    Size = (uint)Marshal.SizeOf<Native.WinTrustSignatureSettings>(),
+                    Index = index,
+                    Flags = index == 0 ? 3u : 1u // VERIFY_SPECIFIC; first call also GET_SECONDARY_SIG_COUNT
+                };
+                Marshal.StructureToPtr(settings, settingsPointer, false);
+                data.StateAction = 1;
+                data.StateData = IntPtr.Zero;
+                try
+                {
+                    var status = Native.WinVerifyTrust(new IntPtr(-1), ref action, ref data);
+                    settings = Marshal.PtrToStructure<Native.WinTrustSignatureSettings>(settingsPointer);
+                    if (index == 0) secondaryCount = settings.SecondarySignatures;
+                    CertificateInfo? certificate = null;
+                    var timestamp = SignatureTimestamp.Unreadable;
+                    var algorithm = "";
+                    string? diagnostic = null;
+                    var mappedStatus = MapStatus(status);
+                    if (settings.VerifiedIndex != index)
+                    {
+                        mappedStatus = SignatureStatus.CheckFailed;
+                        diagnostic = $"Windows did not return the requested signature index {index}.";
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var metadata = ReadSigner(data.StateData, status == 0);
+                            certificate = metadata.Certificate;
+                            timestamp = metadata.Timestamp;
+                            algorithm = metadata.DigestAlgorithm;
+                            foundSigner |= metadata.FoundSigner;
+                        }
+                        catch (CryptographicException ex) { diagnostic = ex.Message; }
+                        catch (ArgumentException ex) { diagnostic = ex.Message; }
+                    }
+                    signatures.Add(new(index, mappedStatus, certificate, status, diagnostic, algorithm, timestamp));
+                }
+                finally { CloseState(ref action, ref data); }
+                if (index >= secondaryCount) break;
             }
-            catch (CryptographicException ex) { diagnostic = ex.Message; }
-            catch (ArgumentException ex) { diagnostic = ex.Message; }
-            return new SignatureResult(MapStatus(status), mode, certificate, status, diagnostic);
+            var primary = signatures[0];
+            var hasSignature = foundSigner || secondaryCount > 0 || primary.Status is
+                SignatureStatus.Valid or SignatureStatus.InvalidSignature or SignatureStatus.Untrusted
+                or SignatureStatus.Expired or SignatureStatus.Revoked or SignatureStatus.RevocationUnknown;
+            return new SignatureResult(primary.Status, mode, primary.Certificate,
+                primary.NativeStatusCode, primary.Diagnostic)
+            {
+                Signatures = hasSignature
+                    ? signatures.AsReadOnly() : Array.Empty<EmbeddedSignature>()
+            };
         }
         finally
         {
             try
             {
-                if (data.StateData != IntPtr.Zero)
-                {
-                    data.StateAction = 2; // WTD_STATEACTION_CLOSE, including failure paths
-                    _ = Native.WinVerifyTrust(new IntPtr(-1), ref action, ref data);
-                }
+                CloseState(ref action, ref data);
             }
             finally
             {
@@ -108,13 +144,84 @@ public sealed class WindowsAuthenticodeInspector : ISignatureInspector
     }
 
     [SupportedOSPlatform("windows")]
-    private static CertificateInfo? ReadSigner(IntPtr state)
+    private static void CloseState(ref Guid action, ref Native.WinTrustData data)
     {
-        if (state == IntPtr.Zero) return null;
+        if (data.StateData == IntPtr.Zero) return;
+        data.StateAction = 2; // CLOSE even for failed verification and cancellation
+        try { _ = Native.WinVerifyTrust(new IntPtr(-1), ref action, ref data); }
+        finally { data.StateData = IntPtr.Zero; }
+    }
+
+    private sealed record SignerMetadata(bool FoundSigner, CertificateInfo? Certificate,
+        string DigestAlgorithm, SignatureTimestamp Timestamp);
+
+    [SupportedOSPlatform("windows")]
+    private static SignerMetadata ReadSigner(IntPtr state, bool trusted)
+    {
+        var empty = new SignerMetadata(false, null, "", SignatureTimestamp.Unreadable);
+        if (state == IntPtr.Zero) return empty;
         var provider = Native.WTHelperProvDataFromStateData(state);
-        if (provider == IntPtr.Zero) return null;
+        if (provider == IntPtr.Zero) return empty;
         var signer = Native.WTHelperGetProvSignerFromChain(provider, 0, false, 0);
-        if (signer == IntPtr.Zero) return null;
+        if (signer == IntPtr.Zero) return empty;
+        var info = Marshal.PtrToStructure<Native.ProviderSigner>(signer);
+        var certificate = ReadCertificate(signer);
+        if (info.SignerInfo == IntPtr.Zero)
+            return new(true, certificate, "", SignatureTimestamp.Unreadable);
+        var message = Marshal.PtrToStructure<Native.MessageSignerInfo>(info.SignerInfo);
+        var algorithm = Marshal.PtrToStringAnsi(message.HashAlgorithm.ObjectId) ?? "";
+        algorithm = algorithm switch
+        {
+            "1.2.840.113549.2.5" => "MD5", "1.3.14.3.2.26" => "SHA-1",
+            "2.16.840.1.101.3.4.2.1" => "SHA-256", "2.16.840.1.101.3.4.2.2" => "SHA-384",
+            "2.16.840.1.101.3.4.2.3" => "SHA-512", _ => algorithm
+        };
+        var hasTimestamp = false;
+        var times = new List<DateTimeOffset>();
+        var attributes = message.UnauthenticatedAttributes;
+        // Native arrays are owned by WinVerifyTrust and read only while its state is open.
+        if (attributes.Count > 4096) throw new CryptographicException("Too many signature attributes.");
+        for (var i = 0; attributes.Data != IntPtr.Zero && i < attributes.Count; i++)
+        {
+            var attribute = Marshal.PtrToStructure<Native.CryptAttribute>(
+                IntPtr.Add(attributes.Data, checked(i * Marshal.SizeOf<Native.CryptAttribute>())));
+            var oid = Marshal.PtrToStringAnsi(attribute.ObjectId) ?? "";
+            if (!AuthenticodeTimestampReader.IsTimestamp(oid)) continue;
+            hasTimestamp = true;
+            if (attribute.Values.Count > 4096) throw new CryptographicException("Too many timestamp values.");
+            for (var j = 0; attribute.Values.Data != IntPtr.Zero && j < attribute.Values.Count; j++)
+            {
+                var blob = Marshal.PtrToStructure<Native.Blob>(
+                    IntPtr.Add(attribute.Values.Data, checked(j * Marshal.SizeOf<Native.Blob>())));
+                if (blob.Data == IntPtr.Zero || blob.Count == 0 || blob.Count > 16 * 1024 * 1024) continue;
+                var bytes = new byte[checked((int)blob.Count)];
+                Marshal.Copy(blob.Data, bytes, 0, bytes.Length);
+                if (AuthenticodeTimestampReader.Read(oid, bytes) is { } time) times.Add(time);
+            }
+        }
+        var trustedCounterSigner = false;
+        // The metadata parser does not establish trust. Confirmation also needs a
+        // successful Windows policy result and a successfully checked countersigner.
+        for (uint i = 0; trusted && i < info.CounterSignerCount; i++)
+        {
+            var pointer = Native.WTHelperGetProvSignerFromChain(provider, 0, true, i);
+            if (pointer != IntPtr.Zero && Marshal.PtrToStructure<Native.ProviderSigner>(pointer).Error == 0)
+            { trustedCounterSigner = true; break; }
+        }
+        DateTimeOffset? verifiedAsOf = null;
+        try
+        {
+            var fileTime = ((long)info.VerifyAsOf.High << 32) | info.VerifyAsOf.Low;
+            if (fileTime > 0) verifiedAsOf = new DateTimeOffset(DateTime.FromFileTimeUtc(fileTime));
+        }
+        catch (ArgumentOutOfRangeException) { /* No usable verification time. */ }
+        return new(true, certificate, algorithm,
+            AuthenticodeTimestampReader.Select(times, hasTimestamp, verifiedAsOf, trustedCounterSigner));
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static CertificateInfo? ReadCertificate(IntPtr signer)
+    {
         var providerCertificate = Native.WTHelperGetProvCertFromChain(signer, 0);
         if (providerCertificate == IntPtr.Zero) return null;
         var prefix = Marshal.PtrToStructure<Native.ProviderCertificatePrefix>(providerCertificate);
@@ -206,6 +313,46 @@ public sealed class WindowsAuthenticodeInspector : ISignatureInspector
             public uint EncodedLength;
             public IntPtr CertificateInfo;
             public IntPtr CertificateStore;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NativeFileTime { public uint Low; public uint High; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct ProviderSigner
+        {
+            public uint Size;
+            public NativeFileTime VerifyAsOf; // FILETIME has DWORD alignment, not Int64 alignment.
+            public uint CertificateCount;
+            public IntPtr Certificates;
+            public uint SignerType;
+            public IntPtr SignerInfo;
+            public uint Error;
+            public uint CounterSignerCount;
+            public IntPtr CounterSigners;
+            public IntPtr ChainContext;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Blob { public uint Count; public IntPtr Data; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct AlgorithmIdentifier { public IntPtr ObjectId; public Blob Parameters; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct CryptAttribute { public IntPtr ObjectId; public Blob Values; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct MessageSignerInfo
+        {
+            public uint Version;
+            public Blob Issuer;
+            public Blob SerialNumber;
+            public AlgorithmIdentifier HashAlgorithm;
+            public AlgorithmIdentifier HashEncryptionAlgorithm;
+            public Blob EncryptedHash;
+            public Blob AuthenticatedAttributes;
+            public Blob UnauthenticatedAttributes;
         }
 
         [DllImport("wintrust.dll", ExactSpelling = true)]

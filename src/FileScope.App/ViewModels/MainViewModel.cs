@@ -16,6 +16,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFilePickerService _picker;
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
     private CancellationTokenSource? _cancellation;
     private bool _busy, _clearRequested, _disposed, _inspectCertificates = true, _onlineRevocation;
     private bool _checkingSignature;
@@ -107,8 +108,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool InspectCertificates
     {
         get => _inspectCertificates;
-        set { if (SetProperty(ref _inspectCertificates, value)) OnPropertyChanged(nameof(CanChooseOnlineRevocation)); }
+        set
+        {
+            if (!SetProperty(ref _inspectCertificates, value)) return;
+            OnPropertyChanged(nameof(CanChooseOnlineRevocation));
+            OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
+        }
     }
+    public bool ShowSignatureSelectorColumn => InspectCertificates && _multipleSignatures.Count > 0;
     public bool OnlineRevocation { get => _onlineRevocation; set => SetProperty(ref _onlineRevocation, value); }
     public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
     public bool ShowMD5Column => IsChecksumSelected(ChecksumAlgorithm.MD5);
@@ -180,6 +187,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             { normalized = path; } // The core service reports the invalid path as a row.
             if (!_paths.Add(normalized)) { _skipped++; continue; }
             var row = new FileRowViewModel(normalized, _strings, Options.SelectedHashFormat.Value);
+            row.SignaturesChanged += OnSignaturesChanged;
+            row.SignatureSelectionChanged += OnSignatureSelectionChanged;
             Rows.Add(row);
             added.Add(row);
         }
@@ -285,6 +294,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void ClearRows()
     {
         ++_epoch;
+        foreach (var row in Rows) UnsubscribeRow(row);
+        _multipleSignatures.Clear();
+        OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
         Rows.Clear();
         _paths.Clear();
         SelectedRow = null;
@@ -297,6 +309,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SetStatus("Cleared");
         NotifyRowsChanged();
         Options.RequestColumnSizing();
+    }
+
+    private void OnSignaturesChanged(object? sender, EventArgs args)
+    {
+        if (sender is not FileRowViewModel row) return;
+        var wasVisible = ShowSignatureSelectorColumn;
+        if (row.HasMultipleSignatures) _multipleSignatures.Add(row);
+        else _multipleSignatures.Remove(row);
+        if (wasVisible != ShowSignatureSelectorColumn) OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
+    }
+
+    private void OnSignatureSelectionChanged(object? sender, EventArgs args) => RefreshAfterStateChange();
+
+    private void UnsubscribeRow(FileRowViewModel row)
+    {
+        row.SignaturesChanged -= OnSignaturesChanged;
+        row.SignatureSelectionChanged -= OnSignatureSelectionChanged;
     }
 
     private bool MatchesFilters(object item)
@@ -374,6 +403,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ++_epoch;
         _strings.CultureChanged -= OnCultureChanged;
         Options.HashFormatChanged -= OnHashFormatChanged;
+        foreach (var row in Rows) UnsubscribeRow(row);
         Options.Dispose();
         foreach (var option in ChecksumOptions) option.PropertyChanged -= OnChecksumOptionChanged;
         _cancellation?.Cancel();

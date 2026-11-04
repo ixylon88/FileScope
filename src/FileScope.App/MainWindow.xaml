@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:FileScope.App.ViewModels"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
         Title="{loc:Loc WindowTitle}" Width="1440" Height="900" MinWidth="1080" MinHeight="680"
-        WindowStartupLocation="CenterScreen" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
+        WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
     <infra:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
@@ -131,6 +131,21 @@
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" behaviors:ColumnLayoutBehavior.Id="Size" Width="Auto" MinWidth="100" MaxWidth="170" ElementStyle="{StaticResource GridText}" />
+            <DataGridTemplateColumn Header="{loc:Loc Column_SignatureChoice}" behaviors:ColumnLayoutBehavior.Id="SignatureChoice"
+                                    Width="Auto" MinWidth="180" MaxWidth="480" SortMemberPath="SignatureChoiceText"
+                                    ClipboardContentBinding="{Binding SignatureChoiceText}"
+                                    Visibility="{Binding Data.ShowSignatureSelectorColumn, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <ComboBox ItemsSource="{Binding Signatures}" SelectedItem="{Binding SelectedSignature, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            DisplayMemberPath="Label" IsEnabled="{Binding HasMultipleSignatures}" Margin="5,3" MinWidth="160"
+                            ToolTip="{loc:Loc SignatureChoiceHint}" AutomationProperties.Name="{loc:Loc Column_SignatureChoice}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="{loc:Loc Column_SigningTime}" Binding="{Binding SigningTimeText}" SortMemberPath="SigningTime"
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="SigningTime" Width="Auto" MinWidth="180" MaxWidth="380" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Signature}" Binding="{Binding SignatureText}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Signature" Width="Auto" MinWidth="160" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
@@ -154,9 +169,9 @@
             <DataGridTextColumn Header="{loc:Loc Column_Serial}" Binding="{Binding SerialNumber}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Serial" Width="Auto" MinWidth="140" MaxWidth="360" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_ValidFrom}" Binding="{Binding ValidFrom}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotBefore" behaviors:ColumnLayoutBehavior.Id="ValidFrom" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="ValidFromDate" behaviors:ColumnLayoutBehavior.Id="ValidFrom" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_ValidUntil}" Binding="{Binding ValidUntil}"
-                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="Result.Signature.Certificate.NotAfter" behaviors:ColumnLayoutBehavior.Id="ValidUntil" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
+                                Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" SortMemberPath="ValidUntilDate" behaviors:ColumnLayoutBehavior.Id="ValidUntil" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_CertSha1}" Binding="{Binding CertificateSha1}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="CertSha1" Width="Auto" MinWidth="170" MaxWidth="420" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_CertSha256}" Binding="{Binding CertificateSha256}"

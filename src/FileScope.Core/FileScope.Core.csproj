@@ -3,4 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Description>Streaming checksums and Windows Authenticode inspection, independent of the UI.</Description>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CoreChecks" />
+  </ItemGroup>
 </Project>

@@ -27,6 +27,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public string SettingsError => _settingsErrorKey is null ? "" : _strings[_settingsErrorKey];
     public bool HasSettingsError => _settingsErrorKey is not null;
     public int WidthRevision => _widthRevision;
+    public WindowPreferences? WindowPreferences { get; private set; }
     public RelayCommand MoveUpCommand { get; }
     public RelayCommand MoveDownCommand { get; }
     public RelayCommand MoveFirstCommand { get; }
@@ -41,6 +42,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         var saved = new UserPreferences();
         try { saved = store.Load(); }
         catch (Exception ex) when (IsSettingsFailure(ex)) { _settingsErrorKey = "SettingsLoadError"; }
+        WindowPreferences = saved.Window;
         _selectedLanguage = Languages.FirstOrDefault(language => language.CultureName == saved.Language)
             ?? Languages.First(language => language.CultureName == strings.Culture.Name);
         strings.SetCulture(_selectedLanguage.CultureName);
@@ -140,6 +142,14 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         MoveFirstCommand.NotifyCanExecuteChanged();
         MoveLastCommand.NotifyCanExecuteChanged();
     }
+    public void SaveWindowPreferences(WindowPreferences window)
+    {
+        if (!double.IsFinite(window.Width) || !double.IsFinite(window.Height)
+            || window.Width <= 0 || window.Height <= 0) return;
+        WindowPreferences = window;
+        Save();
+    }
+
     private void Save()
     {
         try
@@ -148,7 +158,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             {
                 Language = SelectedLanguage.CultureName,
                 HashFormat = SelectedHashFormat.Value.ToString(),
-                ColumnOrder = Columns.Select(column => column.Id).ToArray()
+                ColumnOrder = Columns.Select(column => column.Id).ToArray(),
+                Window = WindowPreferences
             });
             _settingsErrorKey = null;
         }

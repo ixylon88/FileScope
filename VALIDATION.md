@@ -9,17 +9,18 @@ Stand: 4. November 2026.
 | XML-Parser für XAML, RESX, Projektdateien und Manifest | Bestanden |
 | Zwei Projekte in der Projektmappe, existierende Referenzpfade | Bestanden |
 | Keine WPF-/App-Abhängigkeit der Kernbibliothek | Bestanden |
-| Drei vollständige Ressourcensätze mit jeweils 110 Schlüsseln | Bestanden |
+| Drei vollständige Ressourcensätze mit jeweils 118 Schlüsseln | Bestanden |
 | Identische Formatplatzhalter in allen Sprachen | Bestanden |
 | Verwendete XAML-Ressourcenschlüssel und dynamische Statusschlüssel | Bestanden |
 | Einfache Binding-Wurzeln und ausgeglichene C#-Klammern | Bestanden; dies ist kein C#-Compiler |
 | Fünf `abc`-Prüfsummen-Testkonstanten, unabhängig mit Python hashlib verglichen | Bestanden |
 | Feldreihenfolge und Strukturgrößen von WINTRUST_DATA, WINTRUST_FILE_INFO und WINTRUST_SIGNATURE_SETTINGS für 32/64 Bit | Bestanden, mit unabhängig nachgebildeten ctypes-Layouts |
-| Übereinstimmung aller 22 Spalten-IDs zwischen Tabelle und Optionskatalog; begrenzte automatische Breiten | Bestanden |
+| Übereinstimmung aller 24 Spalten-IDs zwischen Tabelle und Optionskatalog; begrenzte automatische Breiten | Bestanden |
 | Theme-Umschalter, eigene ControlTemplates und Zeilenwechsel deaktiviert/entfernt | Statische Prüfung bestanden |
 | Release-Build beider Projekte mit .NET SDK 10.0.100 unter Linux, inklusive WPF-XAML-Kompilierung | Bestanden, 0 Warnungen / 0 Fehler |
-| `CoreChecks.cs` ausgeführt mit .NET 10 unter Linux | 35 Prüfungen bestanden; Windows-spezifische Prüfungen übersprungen |
-| `PresentationChecks.cs` ausgeführt mit .NET 10 unter Linux | 55 Prüfungen bestanden |
+| `CoreChecks.cs` ausgeführt mit .NET 10 unter Linux | 55 Prüfungen bestanden; Windows-spezifische Prüfungen übersprungen |
+| `PresentationChecks.cs` ausgeführt mit .NET 10 unter Linux | 79 Prüfungen bestanden |
+| Neue native Strukturen CRYPT_PROVIDER_SGNR, CMSG_SIGNER_INFO und CRYPT_ATTRIBUTE: Größe und kritische Offsets | x64 zur Laufzeit geprüft; x86/ARM64 hier nicht ausgeführt |
 | WPF-Testprogramm mit `UiChecks.cs` kompiliert | Bestanden, 0 Warnungen / 0 Fehler; nicht ausgeführt |
 
 `python tools/check_structure.py` reproduziert die statischen Strukturprüfungen. Diese untersuchen die Quelldateien; sie führen die C#-Implementierung nicht aus.
@@ -42,13 +43,13 @@ Das Skript baut zuerst beide Produktionsprojekte. Anschließend kompiliert und s
 
 | Testdatei | Abgedeckte Fälle |
 | --- | --- |
-| `CoreChecks.cs` | Fünf bekannte Hashwerte, leere Datei, ein gemeinsamer Lesedurchlauf, nicht-seekbarer Stream, mehrere Puffer, Abbruch vor/während des Lesens, Ressourcenfreigabe bei Fehlern, unveränderliche Optionen, Unicode-Pfade, Dateigröße/-datum, Metadatenmodus, fehlende Datei, Ordner, Dateisperre unter Windows, native ABI-Größen und unsignierte PE-Datei. |
-| `PresentationChecks.cs` | Bekannte Hex-/Base64-/Base64url-Vektoren inklusive führender Nullbytes und Padding; alle Digest-Längen; unveränderte Analysewerte und nicht-Hash-Felder; Details und Suche; Formatwechsel während/nach einer Analyse; Spaltenpermutationen und Grenzen; drei Sprachen; Speichern/Laden; fehlende, doppelte, unbekannte oder ungültige Einstellungen; beschädigte JSON-Datei und Schreibfehler. |
-| `UiChecks.cs` | Reales XAML und Optionsfenster initialisieren, Sprachbindungen, Dateiaufnahme und Deduplizierung, Filter, Clear/Cancel und verspätete Fortschrittsmeldungen. Spalten-Häkchen, vollständige Reihenfolge einschließlich ausgeblendeter Spalten über die Fixierungsgrenze, Formatwechsel über die ComboBox ohne Analyseaufruf, Filteraktualisierung, unveränderte Resultate sowie automatische Breiten innerhalb der Grenzen. |
+| `CoreChecks.cs` | Fünf bekannte Hashwerte, leere Datei, ein gemeinsamer Lesedurchlauf, nicht-seekbarer Stream, mehrere Puffer, Abbruch vor/während des Lesens, Ressourcenfreigabe bei Fehlern, unveränderliche Optionen, Unicode-Pfade, Dateigröße/-datum, Metadatenmodus, fehlende Datei, Ordner, Dateisperre unter Windows, native ABI-Größen und unsignierte PE-Datei. ASN.1-Metadaten für klassische und RFC-3161-Zeitstempel; beschädigte, leere und mehrdeutige Daten; Trennung von ausgelesenem Datum und bestätigtem Zeitstempel; niemals aktuelle Prüfzeit als Ersatz. |
+| `PresentationChecks.cs` | Bekannte Hex-/Base64-/Base64url-Vektoren inklusive führender Nullbytes und Padding; alle Digest-Längen; unveränderte Analysewerte und nicht-Hash-Felder; Details und Suche; Formatwechsel während/nach einer Analyse; Spaltenpermutationen und Grenzen; drei Sprachen; Speichern/Laden; fehlende, doppelte, unbekannte oder ungültige Einstellungen; beschädigte JSON-Datei und Schreibfehler. Mehrere Signaturen mit eigenen Zertifikaten/Status/Zeitstempeln; dasselbe Zertifikat in mehreren Signaturen; fehlende Metadaten ohne Übernahme aus einer anderen Signatur; Fenstermaße, Monitorgrenzen und Erhalt aller übrigen Einstellungen beim Speichern. |
+| `UiChecks.cs` | Reales XAML und Optionsfenster initialisieren, Sprachbindungen, Dateiaufnahme und Deduplizierung, Filter, Clear/Cancel und verspätete Fortschrittsmeldungen. Spalten-Häkchen, vollständige Reihenfolge einschließlich ausgeblendeter Spalten über die Fixierungsgrenze, Formatwechsel über die ComboBox ohne Analyseaufruf, Filteraktualisierung, unveränderte Resultate sowie automatische Breiten innerhalb der Grenzen. Echte Signatur-ComboBox und bedingte Spaltensichtbarkeit; Suche/Statusfilter nach Auswahlwechsel; Reset und Leeren; Fenstermaße und Zustand über Schließen/Neustart einschließlich minimiertem Schließen. |
 
-Die automatisierten UI-Tests laufen auf einem STA-Thread mit WPF-Dispatcher und echten ViewModels. Sie initialisieren die View ohne ein sichtbares Fenster. Sie ersetzen weder einen physischen Drag-and-drop-Test aus Explorer noch eine visuelle Prüfung.
+Die automatisierten UI-Tests laufen auf einem STA-Thread mit WPF-Dispatcher und echten ViewModels. Die meisten Prüfungen initialisieren die View ohne ein sichtbares Fenster. Die Fensterzustandsprüfungen öffnen kurz Testfenster ohne Aktivierung und ohne Taskleisten-Eintrag, um reale RestoreBounds und Zustandwechsel zu prüfen. Sie ersetzen weder einen physischen Drag-and-drop-Test aus Explorer noch eine visuelle Prüfung.
 
-Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekannte eingebettet signierte Datei geprüft werden. Dieser Test verwendet standardmäßig den lokalen Cache und setzt keine pauschale Vertrauenswürdigkeit voraus.
+Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekannte eingebettet signierte Datei geprüft werden. Dabei werden die gefundenen Signaturindizes, Statuswerte, Hashalgorithmen und Zeitstempelinformationen ausgegeben. Die erwartete Anzahl und die tatsächlichen Datumswerte müssen mit der bekannten Testdatei verglichen werden. Dieser Test verwendet standardmäßig den lokalen Cache und setzt keine pauschale Vertrauenswürdigkeit voraus.
 
 ## Sinnvolle manuelle Abnahme unter Windows
 
@@ -64,5 +65,9 @@ Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekan
 10. Zahnrad → Optionen öffnen. Sichtbare und ausgeblendete Spalten ganz nach oben/unten und schrittweise verschieben. Schließen, Spalten wieder einblenden und die gewählte Position prüfen. Auch die ersten zwei fixierten Positionen lassen sich im Optionsfenster frei belegen. Danach eine Tabellenüberschrift mit der Maus verschieben und die synchronisierte Optionsliste kontrollieren.
 11. Hex groß/klein, Hex mit Doppelpunkten, Base64 und Base64url durchschalten, auch bei laufender Analyse und aktiver Suche. Bestehende Werte, Details und Kopierausgabe müssen sofort wechseln, ohne neuen Lesedurchlauf. Seriennummer und Windows-Statuscode bleiben unverändert. Sprache umschalten und die Übersetzungen im Optionsdialog prüfen.
 12. Kurze und lange Dateinamen/Pfade, alle Hash-Längen und alle Formate prüfen. Spalten müssen innerhalb ihrer Mindest-/Höchstbreiten wachsen. „Breiten neu anpassen“, Sprach-/Formatwechsel und Leeren müssen auch Verkleinern erlauben. Lange Werte über Tooltip und Details vollständig lesen. App schließen/neu öffnen: Reihenfolge, Sprache und Hashformat müssen erhalten bleiben.
+
+13. Eine Datei mit mehreren eingebetteten Signaturen laden, etwa SHA-1 und SHA-256. Beide Einträge mit den Windows-Dateieigenschaften vergleichen. Zwischen ihnen umschalten: Status, Unterzeichner, Fingerabdrücke, Zertifikatsgültigkeit und Zeitstempel müssen gemeinsam wechseln. Datei-Hashes bleiben gleich. Auch fehlgeschlagene Zusatzsignaturen müssen sichtbar sein.
+14. Je eine Datei mit klassischem Zeitstempel, mit RFC-3161-Zeitstempel und ohne Zeitstempel prüfen; Datum mit einer unabhängigen Anzeige vergleichen. Aktuelle Prüfzeit oder „Gültig ab“ dürfen niemals als Ersatz erscheinen. Offline nicht bestätigte Zeitstempel behalten die entsprechende Kennzeichnung. Signaturprüfung ausschalten: Auswahl- und Zeitstempelspalten verschwinden. Mehrfach signierte Zeile nur ausfiltern: Auswahlspalte bleibt für die geladenen Daten vorhanden.
+15. Fenster normal vergrößern/verkleinern und schließen/neu öffnen. Maximiert sowie aus Normal/Maximiert jeweils minimiert schließen/neu öffnen. Normale Maße und letzter nicht minimierter Zustand müssen erhalten bleiben. Auf einem Nebenmonitor schließen und nach Wechsel zu einem kleineren Primärmonitor starten: zentriert bzw. maximiert auf dem Primärmonitor, erreichbar innerhalb der Arbeitsfläche. Sprache, Hashformat und Spaltenreihenfolge bleiben erhalten.
 
 Für unternehmenseigene Vertrauensrichtlinien, besondere Signaturformate und sehr große Dateimengen sind zusätzliche reale Testdateien sinnvoll.

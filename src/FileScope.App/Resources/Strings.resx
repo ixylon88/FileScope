@@ -342,4 +342,28 @@
   <data name="HashFormat_Base64Url" xml:space="preserve">
     <value>Base64url · no padding</value>
   </data>
+  <data name="Column_SignatureChoice" xml:space="preserve">
+    <value>Signature selection</value>
+  </data>
+  <data name="Column_SigningTime" xml:space="preserve">
+    <value>Signing timestamp (UTC)</value>
+  </data>
+  <data name="SignatureChoice" xml:space="preserve">
+    <value>Signature {0}</value>
+  </data>
+  <data name="SignatureChoiceHint" xml:space="preserve">
+    <value>Status, certificate details and timestamp refer to the selected signature.</value>
+  </data>
+  <data name="Timestamp_NotPresent" xml:space="preserve">
+    <value>No timestamp</value>
+  </data>
+  <data name="Timestamp_Unreadable" xml:space="preserve">
+    <value>Timestamp unreadable</value>
+  </data>
+  <data name="Timestamp_Verified" xml:space="preserve">
+    <value>verified</value>
+  </data>
+  <data name="Timestamp_Unverified" xml:space="preserve">
+    <value>not confirmed</value>
+  </data>
 </root>
