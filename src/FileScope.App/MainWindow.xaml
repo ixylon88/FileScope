@@ -37,7 +37,7 @@
     </Grid>
 
     <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
-      <DockPanel>
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <StackPanel Orientation="Horizontal">
           <StackPanel Width="248">
             <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
@@ -86,7 +86,7 @@
             </Button>
           </StackPanel>
         </StackPanel>
-      </DockPanel>
+      </ScrollViewer>
     </Border>
 
     <Grid Grid.Row="2" Margin="24,0,24,14">
