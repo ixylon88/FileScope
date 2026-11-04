@@ -282,4 +282,13 @@
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>诊断详情</value>
   </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
 </root>

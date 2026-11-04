@@ -35,6 +35,7 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | --- | --- |
 | Dateien ablegen | Eine oder mehrere Dateien auf einen beliebigen Bereich des Fensters ziehen. Alternativ „Dateien öffnen“ / Ctrl+O. |
 | Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Standard: SHA-256 und Signaturprüfung. |
+| Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
 | Zertifikate | Primäre eingebettete Authenticode-Signatur prüfen und Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke anzeigen. |
 | Online-Sperrprüfung | Optional. Ohne Häkchen werden ausschließlich lokale/zwischengespeicherte Ketten- und Sperrinformationen verwendet. |
@@ -42,11 +43,12 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
-| Tabelle | Schreibgeschützt, verschiebbare/vergrößerbare Spalten, horizontal scrollbar. Die ersten zwei Spalten bleiben links stehen. Jede zweite sichtbare Zeile ist leicht grau. |
+| Tabelle | Schreibgeschützt, verschiebbare/vergrößerbare Spalten, horizontal scrollbar. Die ersten zwei Spalten bleiben links stehen. Jede zweite sichtbare Zeile erhält eine passende graue Hintergrundfarbe, auch nach Sortierung und Filterung. |
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Unter „Ausgewählte Datei“ ist der komplette Detailtext markierbar. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
 | Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
 | Sprachen | Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
+| Design | Direkt unter der Sprachauswahl zwischen Hell und Dunkel wechseln. Das dunkle Design verwendet an Visual Studio angelehnte Anthrazitflächen; Controls, Zeilen, Auswahl und Statusfarben wechseln gemeinsam. |
 
 Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
 
@@ -67,6 +69,8 @@ Die gewählten Optionen gelten als unveränderlicher Schnappschuss für einen Du
 | `App.xaml.cs` | Composition Root: Abhängigkeiten werden per Konstruktor injiziert. Kein Service Locator und kein DI-Container erforderlich. |
 | `RelayCommand` / `AsyncRelayCommand` | Command Pattern; asynchrone Ausführung mit Fehlerbehandlung und Schutz vor Mehrfachstart. |
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
+| `IThemeService` / `ThemeService` | Schaltet Fluent-Controls und die dynamischen Farbressourcen gemeinsam um. Die zwei Paletten liegen unter `Styles/Themes`; die Auswahl ist in allen drei Sprachen lokalisiert. |
+| `BindingProxy` | Liefert den Fenster-DataContext an DataGrid-Spalten, die selbst keinen DataContext erben. Damit bleibt die Sichtbarkeit per Binding an die Prüfoptionen gekoppelt. |
 
 MVVM trennt View, ViewModel und Domänenmodelle. Der kleine Code-behind-Teil setzt nur den DataContext und behandelt den Fensterlebenszyklus. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
@@ -92,7 +96,7 @@ Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offe
 
 ## Sprachressourcen
 
-Alle 90 Oberflächentexte stehen in `src/FileScope.App/Resources`:
+Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 | Datei | Sprache |
 | --- | --- |

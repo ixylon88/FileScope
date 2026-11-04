@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Threading;
 using FileScope.App;
 using FileScope.App.Localization;
@@ -30,13 +31,15 @@ internal static class UiChecks
             app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
-                Source = new Uri("/PresentationFramework.Fluent;component/Themes/Fluent.xaml", UriKind.Relative)
+                Source = new Uri("/FileScope.App;component/Styles/ThemePalette.xaml", UriKind.Relative)
             });
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
                 Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
             });
             app.Resources.Add("BoolToVisibility", new BooleanToVisibilityConverter());
+            // Let the same service as production load/switch the Fluent dictionaries.
+            var themes = new ThemeService(app);
             // Commands are invoked before PumpUntil enters its dispatcher frame.
             // Their await continuations must already capture the UI context here.
             SynchronizationContext.SetSynchronizationContext(
@@ -44,7 +47,7 @@ internal static class UiChecks
             var strings = LocalizationService.Instance;
             CheckFileIntake(strings);
             var service = new ImmediateAnalysis();
-            using var vm = new MainViewModel(service, new EmptyPicker(), strings);
+            using var vm = new MainViewModel(service, new EmptyPicker(), strings, themes);
             window = new MainWindow(vm);
             // Initialize and lay out real XAML, without opening a visible window.
             window.Measure(new Size(1440, 900));
@@ -57,6 +60,8 @@ internal static class UiChecks
                 DrainDispatcher();
                 Check(window.Title == strings["WindowTitle"] && !window.Title.StartsWith('['),
                     $"XAML resource binding / {language.CultureName}");
+                Check(vm.Themes[0].Label == strings["Theme_Light"] && vm.Themes[1].Label == strings["Theme_Dark"]
+                    && !vm.Themes[0].Label.StartsWith('['), $"theme labels / {language.CultureName}");
             }
             vm.SelectedLanguage = vm.Languages.Single(l => l.CultureName == "en");
             var first = Path.Combine(Path.GetTempPath(), "FileScope-a.bin");
@@ -66,6 +71,7 @@ internal static class UiChecks
             Check(vm.Rows.All(r => r.State == RowStatus.Completed), "drop command processes all unique paths");
             Check(vm.Rows.All(r => r.SHA256 == "CHECK-SHA256"), "results reach the grid model");
             Check(vm.Rows.All(r => r.MD5.Length == 0), "unselected hashes remain empty");
+            CheckPresentation(window, vm, themes);
             vm.SearchText = "check-sha256";
             Check(vm.RowsView.Count == 2, "case-insensitive checksum search");
             vm.SearchText = "does-not-exist";
@@ -92,7 +98,7 @@ internal static class UiChecks
                 "clear removes results and resets filters");
 
             var blocked = new BlockingAnalysis();
-            using var busyVm = new MainViewModel(blocked, new EmptyPicker(), strings);
+            using var busyVm = new MainViewModel(blocked, new EmptyPicker(), strings, new TestThemeService());
             busyVm.DropFilesCommand.Execute(new[] { first });
             PumpUntil(() => blocked.Started.Task.IsCompleted);
             Check(busyVm.IsBusy && !busyVm.DropFilesCommand.CanExecute(new[] { second }),
@@ -109,7 +115,7 @@ internal static class UiChecks
                 "late progress cannot restore cleared state");
 
             var cancelled = new BlockingAnalysis();
-            using var cancelVm = new MainViewModel(cancelled, new EmptyPicker(), strings);
+            using var cancelVm = new MainViewModel(cancelled, new EmptyPicker(), strings, new TestThemeService());
             cancelVm.DropFilesCommand.Execute(new[] { first, second });
             PumpUntil(() => cancelled.Started.Task.IsCompleted);
             cancelVm.CancelCommand.Execute(null);
@@ -133,7 +139,7 @@ internal static class UiChecks
     private static void CheckFileIntake(LocalizationService strings)
     {
         var picker = new TestPicker();
-        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings);
+        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings, new TestThemeService());
         var first = Path.Combine(Path.GetTempPath(), "FileScope-intake-a.bin");
         var second = Path.Combine(Path.GetTempPath(), "FileScope-intake-b.bin");
         var third = Path.Combine(Path.GetTempPath(), "FileScope-intake-c.bin");
@@ -147,7 +153,8 @@ internal static class UiChecks
             _ = vm.RowsView.CurrentPosition;
             if (change.Action == NotifyCollectionChangedAction.Add) observedAdds++;
         };
-        vm.RowsView.CollectionChanged += readView;
+        var viewNotifications = (INotifyCollectionChanged)vm.RowsView;
+        viewNotifications.CollectionChanged += readView;
         try
         {
             void AwaitFinished(int count)
@@ -191,7 +198,103 @@ internal static class UiChecks
             AwaitFinished(1);
             Check(vm.RowsView.Count == 1, "the same file can be dropped again after clear");
         }
-        finally { vm.RowsView.CollectionChanged -= readView; }
+        finally { viewNotifications.CollectionChanged -= readView; }
+    }
+
+    private static void CheckPresentation(MainWindow window, MainViewModel vm, ThemeService themes)
+    {
+        var grid = (DataGrid)window.FindName("ResultsGrid");
+        var selector = (ComboBox)window.FindName("ThemeSelector");
+        var columns = grid.Columns.OfType<DataGridTextColumn>()
+            .ToDictionary(column => ((Binding)column.Binding).Path.Path);
+        var results = vm.Rows.Select(row => row.Result).ToArray();
+        string[] certificateColumns = ["SignatureText", "Publisher", "Subject", "Issuer", "SerialNumber",
+            "ValidFrom", "ValidUntil", "CertificateSha1", "CertificateSha256", "CertificateAlgorithm", "NativeCode"];
+
+        foreach (var option in vm.ChecksumOptions)
+        {
+            var column = columns[option.Algorithm.ToString()];
+            Check(column.Visibility == (option.IsSelected ? Visibility.Visible : Visibility.Collapsed),
+                $"initial column visibility / {option.Label}");
+            foreach (var selected in new[] { true, false, true })
+            {
+                option.IsSelected = selected;
+                DrainDispatcher();
+                Check(column.Visibility == (selected ? Visibility.Visible : Visibility.Collapsed),
+                    $"bound column responds to checkbox / {option.Label} / {selected}");
+            }
+        }
+        foreach (var enabled in new[] { false, true, false })
+        {
+            vm.InspectCertificates = enabled;
+            DrainDispatcher();
+            Check(certificateColumns.All(path => columns[path].Visibility ==
+                (enabled ? Visibility.Visible : Visibility.Collapsed)), "certificate columns toggle together");
+            Check(vm.CanChooseOnlineRevocation == enabled, "revocation enablement follows certificate option");
+            Check(new[] { "FileName", "SizeText", "ModifiedText", "FullPath", "Diagnostic" }
+                .All(path => columns[path].Visibility == Visibility.Visible), "file metadata and diagnostics stay visible");
+        }
+        foreach (var option in vm.ChecksumOptions) option.IsSelected = option.Algorithm == ChecksumAlgorithm.SHA256;
+        vm.InspectCertificates = true;
+
+        void LayoutGrid()
+        {
+            grid.ApplyTemplate();
+            grid.Measure(new Size(1280, 480));
+            grid.Arrange(new Rect(0, 0, 1280, 480));
+            grid.UpdateLayout();
+            DrainDispatcher();
+        }
+        void CheckRowColor(int index, string brushKey)
+        {
+            var row = (DataGridRow?)grid.ItemContainerGenerator.ContainerFromIndex(index);
+            Check(row is not null, $"row {index} is realized for visual checks");
+            var surface = (Border)row!.Template.FindName("RowSurface", row);
+            Check(surface.Background is SolidColorBrush actual
+                && actual.Color == ((SolidColorBrush)grid.FindResource(brushKey)).Color,
+                $"rendered row {index} uses {brushKey} / {themes.CurrentTheme}");
+        }
+
+        var brushBeforeSwitch = window.Background;
+        foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light, AppTheme.Dark, AppTheme.Light })
+        {
+            selector.SelectedIndex = vm.Themes.ToList().FindIndex(option => option.Value == theme);
+            DrainDispatcher();
+            Check(themes.CurrentTheme == theme && vm.SelectedTheme.Value == theme,
+                "theme selector invokes the injected service");
+#pragma warning disable WPF0001
+            Check(Application.Current.ThemeMode == (theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light),
+                "native Fluent theme matches palette");
+#pragma warning restore WPF0001
+            Check(!ReferenceEquals(window.Background, brushBeforeSwitch), "window updates its dynamic palette");
+            brushBeforeSwitch = window.Background;
+            grid.UnselectAll();
+            LayoutGrid();
+            CheckRowColor(0, "RowBrush");
+            CheckRowColor(1, "AlternateRowBrush");
+            Check(((SolidColorBrush)grid.RowBackground).Color != ((SolidColorBrush)grid.AlternatingRowBackground).Color,
+                "alternating rows have different colors");
+            grid.SelectedItem = vm.RowsView.GetItemAt(1);
+            DrainDispatcher();
+            CheckRowColor(1, "SelectionBrush");
+            Check(vm.Rows.Select(row => row.Result).Zip(results).All(pair => ReferenceEquals(pair.First, pair.Second)),
+                "presentation changes retain analysis results");
+            Check(columns["MD5"].Visibility == Visibility.Collapsed && columns["SHA256"].Visibility == Visibility.Visible,
+                "theme switch preserves column choices");
+        }
+
+        grid.UnselectAll();
+        vm.RowsView.SortDescriptions.Add(new SortDescription(nameof(FileRowViewModel.FileName), ListSortDirection.Descending));
+        LayoutGrid();
+        CheckRowColor(0, "RowBrush");
+        CheckRowColor(1, "AlternateRowBrush");
+        vm.SearchText = "FileScope-a.bin";
+        LayoutGrid();
+        Check(grid.Items.Count == 1, "filter removes nonmatching visual rows");
+        CheckRowColor(0, "RowBrush");
+        vm.RowsView.SortDescriptions.Clear();
+        vm.ResetFiltersCommand.Execute(null);
+        LayoutGrid();
     }
 
     private static void Check(bool condition, string label)
@@ -224,6 +327,11 @@ internal static class UiChecks
     private sealed class EmptyPicker : IFilePickerService
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
+    }
+    private sealed class TestThemeService : IThemeService
+    {
+        public AppTheme CurrentTheme { get; private set; } = AppTheme.Light;
+        public void Apply(AppTheme theme) => CurrentTheme = theme;
     }
     private sealed class TestPicker : IFilePickerService
     {

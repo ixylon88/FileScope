@@ -282,4 +282,13 @@
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>Diagnostic details</value>
   </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
 </root>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Markup;
 using FileScope.App.Infrastructure;
@@ -14,6 +15,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFileAnalysisService _analysis;
     private readonly IFilePickerService _picker;
     private readonly LocalizationService _strings;
+    private readonly IThemeService _themes;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _cancellation;
     private bool _busy, _clearRequested, _disposed, _inspectCertificates = true, _onlineRevocation;
@@ -24,6 +26,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _searchText = "", _currentFile = "", _statusKey = "Ready", _lastError = "";
     private FileRowViewModel? _selectedRow;
     private LanguageOption _selectedLanguage;
+    private FilterOption<AppTheme> _selectedTheme;
     private FilterOption<RowStatus?> _stateFilter;
     private FilterOption<SignatureFilter> _signatureFilter;
 
@@ -38,6 +41,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", false)
     ]);
     public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
+    public IReadOnlyList<FilterOption<AppTheme>> Themes { get; }
     public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
     public AsyncRelayCommand BrowseCommand { get; }
@@ -47,12 +51,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand ClearCommand { get; }
     public RelayCommand ResetFiltersCommand { get; }
 
-    public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings)
+    public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
+        IThemeService themes)
     {
         _analysis = analysis;
         _picker = picker;
         _strings = strings;
+        _themes = themes;
         _selectedLanguage = Languages.First(l => l.CultureName == strings.Culture.Name);
+        Themes = Array.AsReadOnly(new[]
+        {
+            new FilterOption<AppTheme>(AppTheme.Light, "Theme_Light", strings),
+            new FilterOption<AppTheme>(AppTheme.Dark, "Theme_Dark", strings)
+        });
+        _selectedTheme = Themes.Single(option => option.Value == themes.CurrentTheme);
         StateFilters = Array.AsReadOnly(new[]
         {
             new FilterOption<RowStatus?>(null, "AllStates", strings),
@@ -84,6 +96,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearCommand = new RelayCommand(Clear, () => HasRows && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters);
         strings.CultureChanged += OnCultureChanged;
+        foreach (var option in ChecksumOptions) option.PropertyChanged += OnChecksumOptionChanged;
     }
 
     public bool IsBusy
@@ -108,6 +121,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
     public bool OnlineRevocation { get => _onlineRevocation; set => SetProperty(ref _onlineRevocation, value); }
     public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
+    public bool ShowMD5Column => IsChecksumSelected(ChecksumAlgorithm.MD5);
+    public bool ShowSHA1Column => IsChecksumSelected(ChecksumAlgorithm.SHA1);
+    public bool ShowSHA256Column => IsChecksumSelected(ChecksumAlgorithm.SHA256);
+    public bool ShowSHA384Column => IsChecksumSelected(ChecksumAlgorithm.SHA384);
+    public bool ShowSHA512Column => IsChecksumSelected(ChecksumAlgorithm.SHA512);
     public bool IsCheckingSignature { get => _checkingSignature; private set => SetProperty(ref _checkingSignature, value); }
     public double Progress { get => _progress; private set => SetProperty(ref _progress, value); }
     public string CurrentFile { get => _currentFile; private set => SetProperty(ref _currentFile, value); }
@@ -139,6 +157,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (value is not null && SetProperty(ref _selectedLanguage, value)) _strings.SetCulture(value.CultureName);
         }
+    }
+
+    public FilterOption<AppTheme> SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            if (value is null || value == _selectedTheme) return;
+            _themes.Apply(value.Value);
+            SetProperty(ref _selectedTheme, value);
+        }
+    }
+
+    private bool IsChecksumSelected(ChecksumAlgorithm algorithm) =>
+        ChecksumOptions.Single(option => option.Algorithm == algorithm).IsSelected;
+
+    private void OnChecksumOptionChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (sender is not ChecksumOption option || args.PropertyName != nameof(ChecksumOption.IsSelected)) return;
+        var property = option.Algorithm switch
+        {
+            ChecksumAlgorithm.MD5 => nameof(ShowMD5Column),
+            ChecksumAlgorithm.SHA1 => nameof(ShowSHA1Column),
+            ChecksumAlgorithm.SHA256 => nameof(ShowSHA256Column),
+            ChecksumAlgorithm.SHA384 => nameof(ShowSHA384Column),
+            ChecksumAlgorithm.SHA512 => nameof(ShowSHA512Column),
+            _ => throw new ArgumentOutOfRangeException(nameof(option.Algorithm))
+        };
+        OnPropertyChanged(property);
     }
 
     private async Task AddFilesAsync(IEnumerable<string> paths)
@@ -339,6 +386,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var row in Rows) row.RefreshLanguage();
         foreach (var option in StateFilters) option.RefreshLanguage();
         foreach (var option in SignatureFilters) option.RefreshLanguage();
+        foreach (var option in Themes) option.RefreshLanguage();
         OnPropertyChanged(nameof(UiLanguage));
         OnPropertyChanged(nameof(StatusText));
         RefreshView();
@@ -349,6 +397,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _disposed = true;
         ++_epoch;
         _strings.CultureChanged -= OnCultureChanged;
+        foreach (var option in ChecksumOptions) option.PropertyChanged -= OnChecksumOptionChanged;
         _cancellation?.Cancel();
     }
 }
