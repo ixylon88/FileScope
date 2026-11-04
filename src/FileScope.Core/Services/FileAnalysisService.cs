@@ -30,11 +30,14 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             // WinVerifyTrust receives this very same handle, not a newly opened file.
             await using var stream = new FileStream(fullPath, new FileStreamOptions
             {
-                Mode = FileMode.Open, Access = FileAccess.Read, Share = FileShare.Read,
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
                 // Keep a synchronous native handle for Windows SIP providers.
                 // ReadAsync still supplies the asynchronous managed read API;
                 // the UI invokes this service on a background worker.
-                BufferSize = 128 * 1024, Options = FileOptions.SequentialScan
+                BufferSize = 128 * 1024,
+                Options = FileOptions.SequentialScan
             });
             var length = stream.Length;
             var modified = new DateTimeOffset(File.GetLastWriteTimeUtc(stream.SafeFileHandle));

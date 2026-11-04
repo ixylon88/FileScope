@@ -18,14 +18,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
     private CancellationTokenSource? _cancellation;
-    private bool _busy, _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
-    private bool _checkingSignature;
+    private bool _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
     private bool _inspectFileProperties, _inspectPeHeader;
     private long _epoch;
     private int _processed, _batchTotal, _skipped;
-    private double _progress;
-    private string _searchText = "", _currentFile = "", _statusKey = "Ready", _lastError = "";
-    private FileRowViewModel? _selectedRow;
+    private string _searchText = "";
     private FilterOption<RowStatus?> _stateFilter;
     private FilterOption<SignatureFilter> _signatureFilter;
 
@@ -64,23 +61,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _onlineRevocation = selection.OnlineRevocation;
         _inspectFileProperties = selection.InspectFileProperties;
         _inspectPeHeader = selection.InspectPeHeader;
-        StateFilters = Array.AsReadOnly(new[]
-        {
+        StateFilters = Array.AsReadOnly(
+        [
             new FilterOption<RowStatus?>(null, "AllStates", strings),
             new FilterOption<RowStatus?>(RowStatus.Queued, "Row_Queued", strings),
             new FilterOption<RowStatus?>(RowStatus.Running, "Row_Running", strings),
             new FilterOption<RowStatus?>(RowStatus.Completed, "Row_Completed", strings),
             new FilterOption<RowStatus?>(RowStatus.Failed, "Row_Failed", strings),
             new FilterOption<RowStatus?>(RowStatus.Cancelled, "Row_Cancelled", strings)
-        });
-        SignatureFilters = Array.AsReadOnly(new[]
-        {
+        ]);
+        SignatureFilters = Array.AsReadOnly(
+        [
             new FilterOption<SignatureFilter>(SignatureFilter.All, "AllSignatures", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.Valid, "Filter_Valid", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.NoSignature, "Signature_NoEmbeddedSignature", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.Attention, "Filter_Attention", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.NotChecked, "Signature_NotChecked", strings)
-        });
+        ]);
         _stateFilter = StateFilters[0];
         _signatureFilter = SignatureFilters[0];
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
@@ -101,10 +98,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsBusy
     {
-        get => _busy;
+        get;
         private set
         {
-            if (!SetProperty(ref _busy, value)) return;
+            if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(IsIdle));
             OnPropertyChanged(nameof(CanChooseOnlineRevocation));
             NotifyCommands();
@@ -147,15 +144,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool ShowSHA256Column => IsChecksumSelected(ChecksumAlgorithm.SHA256);
     public bool ShowSHA384Column => IsChecksumSelected(ChecksumAlgorithm.SHA384);
     public bool ShowSHA512Column => IsChecksumSelected(ChecksumAlgorithm.SHA512);
-    public bool IsCheckingSignature { get => _checkingSignature; private set => SetProperty(ref _checkingSignature, value); }
-    public double Progress { get => _progress; private set => SetProperty(ref _progress, value); }
-    public string CurrentFile { get => _currentFile; private set => SetProperty(ref _currentFile, value); }
-    public string LastError { get => _lastError; private set => SetProperty(ref _lastError, value); }
+    public bool IsCheckingSignature { get; private set => SetProperty(ref field, value); }
+    public double Progress { get; private set => SetProperty(ref field, value); }
+    public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
+    public string LastError { get; private set => SetProperty(ref field, value); } = "";
     public bool HasError => LastError.Length != 0;
-    public string StatusText => _strings.Format(_statusKey, _processed, _batchTotal, _skipped);
+    public string StatusText { get => _strings.Format(field, _processed, _batchTotal, _skipped); private set; } = "Ready";
     public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
     public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
-    public FileRowViewModel? SelectedRow { get => _selectedRow; set => SetProperty(ref _selectedRow, value); }
+    public FileRowViewModel? SelectedRow { get; set => SetProperty(ref field, value); }
     public string SearchText
     {
         get => _searchText;
@@ -190,7 +187,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ChecksumAlgorithm.SHA256 => nameof(ShowSHA256Column),
             ChecksumAlgorithm.SHA384 => nameof(ShowSHA384Column),
             ChecksumAlgorithm.SHA512 => nameof(ShowSHA512Column),
-            _ => throw new ArgumentOutOfRangeException(nameof(option.Algorithm))
+            _ => throw new ArgumentOutOfRangeException(nameof(sender), option.Algorithm, "The value of member 'Algorithm' exceeded the expected range.")
         };
         OnPropertyChanged(property);
         SaveAnalysisPreferences();
@@ -274,6 +271,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     row.SetProgress(p, percent);
                     Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
                 });
+#pragma warning disable CA1031 // Do not catch general exception types // we report and display the job error
                 try
                 {
                     // Offload both CPU hashing and synchronous WinVerifyTrust.
@@ -286,6 +284,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     // An unexpected per-file failure must not discard the rest of the batch.
                     row.Complete(FileAnalysisResult.Failure(row.FullPath, AnalysisError.AnalysisFailure, ex.Message));
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
                 _processed++;
                 Progress = 100.0 * _processed / _batchTotal;
                 OnPropertyChanged(nameof(StatusText));
@@ -328,7 +327,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             SetStatus("Clearing");
             NotifyCommands();
         }
-        else ClearRows();
+        else
+        {
+            ClearRows();
+        }
     }
 
     private void ClearRows()
@@ -379,6 +381,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             SignatureFilter.NotChecked => row.SignatureState == SignatureStatus.NotChecked,
             SignatureFilter.Attention => row.SignatureState is not (SignatureStatus.Valid
                 or SignatureStatus.NotChecked or SignatureStatus.NoEmbeddedSignature),
+            SignatureFilter.All => true,
             _ => true
         };
         return matchesSignature && row.Matches(SearchText.Trim());
@@ -389,8 +392,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         // Refresh sorted/filtered values after a result arrives. No refresh is
         // needed in the common unfiltered/unsorted view, avoiding repeated scans.
         if (StateFilter.Value is not null || SignatureFilterOption.Value != SignatureFilter.All
-            || SearchText.Length != 0 || RowsView.SortDescriptions.Count != 0) RefreshView();
-        else NotifyRowsChanged();
+            || SearchText.Length != 0 || RowsView.SortDescriptions.Count != 0)
+        {
+            RefreshView();
+        }
+        else
+        {
+            NotifyRowsChanged();
+        }
     }
 
     private void RefreshView() { RowsView.Refresh(); NotifyRowsChanged(); }
@@ -412,7 +421,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowNoMatches));
         NotifyCommands();
     }
-    private void SetStatus(string key) { _statusKey = key; OnPropertyChanged(nameof(StatusText)); }
+    private void SetStatus(string key) { StatusText = key; OnPropertyChanged(nameof(StatusText)); }
     private void NotifyCommands()
     {
         BrowseCommand.NotifyCanExecuteChanged();

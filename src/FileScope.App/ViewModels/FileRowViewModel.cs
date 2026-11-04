@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using FileScope.App.Infrastructure;
 using FileScope.App.Localization;
@@ -10,7 +11,6 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
 {
     private HashFormat _hashFormat = format;
     private readonly Dictionary<ChecksumAlgorithm, string> _hashText = [];
-    private string _certificateSha1 = "", _certificateSha256 = "";
     private SignatureOption? _selectedSignature;
     public IReadOnlyList<SignatureOption> Signatures { get; private set; } = [];
     public bool HasMultipleSignatures => Signatures.Count > 1;
@@ -81,6 +81,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             ManagedPlatform.AnyCpu => "AnyCPU",
             ManagedPlatform.Prefer32Bit => strings["ManagedPlatform_Prefer32Bit"],
             ManagedPlatform.MachineSpecific => header.MachineName,
+            ManagedPlatform.None => "",
             _ => ""
         } : "";
     public SignatureStatus SignatureState => SelectedSignature?.Value.Status ?? Result?.Signature.Status ?? SignatureStatus.NotChecked;
@@ -88,8 +89,8 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string Subject => Certificate?.Subject ?? "";
     public string Issuer => Certificate?.Issuer ?? "";
     public string SerialNumber => Certificate?.SerialNumber ?? "";
-    public string CertificateSha1 => _certificateSha1;
-    public string CertificateSha256 => _certificateSha256;
+    public string CertificateSha1 { get; private set; } = "";
+    public string CertificateSha256 { get; private set; } = "";
     public DateTimeOffset? ValidFromDate => Certificate?.NotBefore;
     public DateTimeOffset? ValidUntilDate => Certificate?.NotAfter;
     public string ValidFrom => FormatDate(Certificate?.NotBefore);
@@ -99,6 +100,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string StateText => State == RowStatus.Running
         ? strings[Stage switch
         {
+            AnalysisStage.Reading => "Reading",
             AnalysisStage.CheckingSignature => "CheckingSignature",
             AnalysisStage.ReadingMetadata => "ReadingMetadata",
             _ => "Reading"
@@ -120,13 +122,16 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         get
         {
             var text = new StringBuilder();
-            void Line(string key, string value) { if (value.Length != 0) text.AppendLine($"{strings[key]}: {value}"); }
+            void Line(string key, string value) { if (value.Length != 0) { text.AppendLine(CultureInfo.CurrentCulture, $"{strings[key]}: {value}"); } }
             Line("Column_Path", FullPath);
             Line("Column_Status", StateText);
             Line("Column_Size", SizeText);
             Line("Column_Modified", ModifiedText);
             foreach (var algorithm in Enum.GetValues<ChecksumAlgorithm>())
-                if (Hash(algorithm).Length != 0) text.AppendLine($"{algorithm}: {Hash(algorithm)}");
+            {
+                if (Hash(algorithm).Length != 0) text.AppendLine(CultureInfo.CurrentCulture, $"{algorithm}: {Hash(algorithm)}");
+            }
+
             Line("Column_SignatureChoice", SignatureChoiceText);
             Line("Column_Signature", SignatureText);
             Line("Column_SigningTime", SigningTimeText);
@@ -213,10 +218,13 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         var entries = Result?.Signature.Signatures ?? [];
         // Also support inspectors using the original single-signature contract.
         if (entries.Count == 0 && Result?.Signature is { Certificate: not null } single)
+        {
             entries = [new EmbeddedSignature(0, single.Status, single.Certificate,
                 single.NativeStatusCode, single.Diagnostic, "", SignatureTimestamp.NotPresent)];
+        }
+
         Signatures = Array.AsReadOnly(entries.Select(entry => new SignatureOption(entry, strings)).ToArray());
-        _selectedSignature = Signatures.FirstOrDefault();
+        _selectedSignature = Signatures.Count > 0 ? Signatures[0] : default;
         SignaturesChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -233,15 +241,20 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         _hashText.Clear();
         if (Result is not null)
+        {
             foreach (var (algorithm, hex) in Result.Checksums)
+            {
                 _hashText[algorithm] = DigestFormatter.Format(hex, _hashFormat);
+            }
+        }
+
         RebuildCertificateHashText();
     }
 
     private void RebuildCertificateHashText()
     {
-        _certificateSha1 = DigestFormatter.Format(Certificate?.ThumbprintSha1, _hashFormat);
-        _certificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashFormat);
+        CertificateSha1 = DigestFormatter.Format(Certificate?.ThumbprintSha1, _hashFormat);
+        CertificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashFormat);
     }
 
     public bool Matches(string query) => query.Length == 0 || new[]

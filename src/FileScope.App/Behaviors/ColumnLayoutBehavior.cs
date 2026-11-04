@@ -29,7 +29,9 @@ public static class ColumnLayoutBehavior
     {
         if (target is not DataGrid grid) return;
         (grid.GetValue(ControllerProperty) as Controller)?.Dispose();
+#pragma warning disable CA2000 // Dispose objects before losing scope: we dispose on new assignments (line above)
         grid.SetValue(ControllerProperty, args.NewValue is OptionsViewModel options ? new Controller(grid, options) : null);
+#pragma warning restore CA2000 // Dispose objects before losing scope
     }
     private static void OnFitRequested(DependencyObject target, DependencyPropertyChangedEventArgs args) =>
         (target.GetValue(ControllerProperty) as Controller)?.RequestFit();

@@ -24,7 +24,10 @@ public static class DataGridScrollFix
             if (button.Command != DataGrid.SelectAllCommand) continue;
             var binding = BindingOperations.GetBinding(button, FrameworkElement.WidthProperty);
             if (binding?.Path?.Path != nameof(DataGrid.CellsPanelHorizontalOffset)
-                || binding.Converter is not null) continue;
+                || binding.Converter is not null)
+            {
+                continue;
+            }
 
             button.SetBinding(FrameworkElement.WidthProperty, new Binding(nameof(DataGrid.CellsPanelHorizontalOffset))
             {
@@ -41,7 +44,11 @@ public static class DataGridScrollFix
         {
             // Only visit this ScrollViewer's template, never cells or user content.
             if (VisualTreeHelper.GetChild(parent, index) is not FrameworkElement child
-                || !ReferenceEquals(child.TemplatedParent, owner)) continue;
+                || !ReferenceEquals(child.TemplatedParent, owner))
+            {
+                continue;
+            }
+
             yield return child;
             foreach (var descendant in TemplateChildren(child, owner)) yield return descendant;
         }

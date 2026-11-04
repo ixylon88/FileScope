@@ -50,8 +50,7 @@ public sealed class PreferencesStore(string path) : IPreferencesStore
         var temporary = Path.Combine(directory, $".settings-{Guid.NewGuid():N}.tmp");
         try
         {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(preferences,
-                new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(preferences, SerializationOptions));
             File.Move(temporary, path, overwrite: true);
         }
         finally
@@ -61,4 +60,6 @@ public sealed class PreferencesStore(string path) : IPreferencesStore
             catch (UnauthorizedAccessException) { }
         }
     }
+
+    private static JsonSerializerOptions SerializationOptions => field ??= new JsonSerializerOptions { WriteIndented = true };
 }

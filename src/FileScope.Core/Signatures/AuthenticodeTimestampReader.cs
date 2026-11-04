@@ -65,7 +65,11 @@ internal static class AuthenticodeTimestampReader
         }
         _ = signer.ReadSequence();                 // signatureAlgorithm
         _ = signer.ReadOctetString();              // signature
-        if (signer.HasData) _ = signer.ReadSetOf(true, new Asn1Tag(TagClass.ContextSpecific, 1, true));
+        if (signer.HasData)
+        {
+            _ = signer.ReadSetOf(true, new Asn1Tag(TagClass.ContextSpecific, 1, true));
+        }
+
         signer.ThrowIfNotEmpty();
         return result;
     }

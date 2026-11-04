@@ -17,7 +17,6 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     private FilterOption<HashFormat> _selectedHashFormat;
     private ColumnOption? _selectedColumn;
     private string? _settingsErrorKey;
-    private int _widthRevision;
     public event EventHandler? HashFormatChanged;
     public event EventHandler? ColumnOrderChanged;
     public ReadOnlyObservableCollection<ColumnOption> Columns { get; }
@@ -26,7 +25,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public string UiLanguage => _strings.Culture.IetfLanguageTag;
     public string SettingsError => _settingsErrorKey is null ? "" : _strings[_settingsErrorKey];
     public bool HasSettingsError => _settingsErrorKey is not null;
-    public int WidthRevision => _widthRevision;
+    public int WidthRevision { get; private set; }
     public WindowPreferences? WindowPreferences { get; private set; }
     public AnalysisPreferences AnalysisPreferences { get; private set; }
     public RelayCommand MoveUpCommand { get; }
@@ -134,7 +133,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     }
     public void RequestColumnSizing()
     {
-        _widthRevision = unchecked(_widthRevision + 1);
+        WidthRevision = unchecked(WidthRevision + 1);
         OnPropertyChanged(nameof(WidthRevision));
     }
     private void NotifyMoveCommands()
@@ -147,7 +146,11 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public void SaveWindowPreferences(WindowPreferences window)
     {
         if (!double.IsFinite(window.Width) || !double.IsFinite(window.Height)
-            || window.Width <= 0 || window.Height <= 0) return;
+            || window.Width <= 0 || window.Height <= 0)
+        {
+            return;
+        }
+
         WindowPreferences = window;
         Save();
     }

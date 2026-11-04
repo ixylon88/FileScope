@@ -8,7 +8,7 @@ using FileScope.Core.Models;
 
 namespace FileScope.Core.Metadata;
 
-public sealed class FilePropertiesInspector : IFilePropertiesInspector
+public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
 {
     public FilePropertiesResult Inspect(string fullPath, CancellationToken cancellationToken = default)
     {
@@ -52,7 +52,7 @@ public sealed class FilePropertiesInspector : IFilePropertiesInspector
         // SHGetFileInfo requires COM on its calling thread. Balance successful
         // initialization, including S_FALSE; an existing STA is already usable.
         var initialized = Native.CoInitializeEx(IntPtr.Zero, 0); // COINIT_MULTITHREADED
-        if (initialized < 0 && initialized != unchecked((int)0x80010106)) return extension; // RPC_E_CHANGED_MODE
+        if (initialized is < 0 and not unchecked((int)0x80010106)) return extension; // RPC_E_CHANGED_MODE
         // Query the extension's registered type only. No target-file access,
         // icon extraction, shell preview handler, or target program execution.
         try
@@ -65,15 +65,15 @@ public sealed class FilePropertiesInspector : IFilePropertiesInspector
     }
 
     [SupportedOSPlatform("windows")]
-    private static class Native
+    private static partial class Native
     {
-        [DllImport("ole32.dll", ExactSpelling = true)]
+        [LibraryImport("ole32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern int CoInitializeEx(IntPtr reserved, uint apartment);
+        internal static partial int CoInitializeEx(IntPtr reserved, uint apartment);
 
-        [DllImport("ole32.dll", ExactSpelling = true)]
+        [LibraryImport("ole32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern void CoUninitialize();
+        internal static partial void CoUninitialize();
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal struct ShellFileInfo
@@ -85,9 +85,12 @@ public sealed class FilePropertiesInspector : IFilePropertiesInspector
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName;
         }
 
+        // The type 'FileScope.Core.Metadata.FilePropertiesInspector.Native.ShellFileInfo' is not supported by source-generated P/Invokes. The generated source will not handle marshalling of parameter 'info'. Hence we keep DllImport.
+#pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern IntPtr SHGetFileInfoW(string path, uint attributes,
             out ShellFileInfo info, uint size, uint flags);
+#pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
     }
 }

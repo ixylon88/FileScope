@@ -13,8 +13,11 @@ public sealed class FilePickerService : IFilePickerService
     {
         var dialog = new OpenFileDialog
         {
-            Title = title, Filter = $"{allFilesLabel} (*.*)|*.*", Multiselect = true,
-            CheckFileExists = true, CheckPathExists = true
+            Title = title,
+            Filter = $"{allFilesLabel} (*.*)|*.*",
+            Multiselect = true,
+            CheckFileExists = true,
+            CheckPathExists = true
         };
         return dialog.ShowDialog() == true ? dialog.FileNames : [];
     }
