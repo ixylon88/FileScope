@@ -34,6 +34,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public bool HasExportColumns => Columns.Any(column => column.IsExportSelected);
     public int WidthRevision { get; private set; }
     public WindowPreferences? WindowPreferences { get; private set; }
+    public WindowPreferences? OptionsWindowPreferences { get; private set; }
     public AnalysisPreferences AnalysisPreferences { get; private set; }
     public RelayCommand MoveUpCommand { get; }
     public RelayCommand MoveDownCommand { get; }
@@ -52,6 +53,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         try { saved = store.Load(); }
         catch (Exception ex) when (IsSettingsFailure(ex)) { _settingsErrorKey = "SettingsLoadError"; }
         WindowPreferences = saved.Window;
+        OptionsWindowPreferences = saved.OptionsWindow;
         AnalysisPreferences = saved.Analysis ?? new AnalysisPreferences();
         _selectedLanguage = Languages.FirstOrDefault(language => language.CultureName == saved.Language)
             ?? Languages.First(language => language.CultureName == strings.Culture.Name);
@@ -175,7 +177,11 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         MoveFirstCommand.NotifyCanExecuteChanged();
         MoveLastCommand.NotifyCanExecuteChanged();
     }
-    public void SaveWindowPreferences(WindowPreferences window)
+    public void SaveWindowPreferences(WindowPreferences window) => SaveWindowPreferences(window, false);
+
+    public void SaveOptionsWindowPreferences(WindowPreferences window) => SaveWindowPreferences(window, true);
+
+    private void SaveWindowPreferences(WindowPreferences window, bool forOptionsWindow)
     {
         if (!double.IsFinite(window.Width) || !double.IsFinite(window.Height)
             || window.Width <= 0 || window.Height <= 0)
@@ -183,7 +189,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        WindowPreferences = window;
+        if (forOptionsWindow) OptionsWindowPreferences = window;
+        else WindowPreferences = window;
         Save();
     }
 
@@ -228,6 +235,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 ExportColumns = Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(),
                 CsvDelimiter = SelectedCsvDelimiter.Value.ToString(),
                 Window = WindowPreferences,
+                OptionsWindow = OptionsWindowPreferences,
                 Analysis = AnalysisPreferences
             });
             _settingsErrorKey = null;

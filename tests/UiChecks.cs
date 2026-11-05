@@ -59,6 +59,7 @@ internal static class UiChecks
             CheckMultipleSignatures(strings);
             CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
+            CheckOptionsWindowPersistence(strings);
             CheckHorizontalScrolling(strings);
             CheckScrollBarSizing();
             var service = new ImmediateAnalysis();
@@ -606,6 +607,58 @@ internal static class UiChecks
                     Check(next.WindowState == (maximize ? WindowState.Maximized : WindowState.Normal)
                         && Math.Abs(next.Width - width) < 2 && Math.Abs(next.Height - height) < 2,
                         "next window restores saved dimensions and maximized state / " + maximize);
+                }
+                finally { next.Close(); }
+            }
+            finally { if (!closed) window.Close(); }
+        }
+    }
+
+    private static void CheckOptionsWindowPersistence(LocalizationService strings)
+    {
+        foreach (var maximize in new[] { false, true })
+        foreach (var minimize in new[] { false, true })
+        {
+            var store = new MemoryPreferences();
+            using var options = new OptionsViewModel(strings, store);
+            var main = new WindowPreferences(1200, 800, false);
+            options.SaveWindowPreferences(main);
+            var window = new OptionsWindow(options) { ShowActivated = false };
+            var closed = false;
+            var area = SystemParameters.WorkArea;
+            var width = Math.Min(900, area.Width);
+            var height = Math.Min(850, area.Height);
+            try
+            {
+                window.Show();
+                DrainDispatcher();
+                window.Width = width;
+                window.Height = height;
+                DrainDispatcher();
+                if (maximize) window.WindowState = WindowState.Maximized;
+                DrainDispatcher();
+                if (minimize) window.WindowState = WindowState.Minimized;
+                DrainDispatcher();
+                window.Close();
+                closed = true;
+                Check(store.Saved.OptionsWindow is { } saved && saved.Maximized == maximize
+                    && Math.Abs(saved.Width - width) < 2 && Math.Abs(saved.Height - height) < 2
+                    && store.Saved.Window == main,
+                    "options close preserves normal dimensions and independent state / " + maximize + "/" + minimize);
+                using var reopened = new OptionsViewModel(strings, store);
+                var next = new OptionsWindow(reopened) { ShowActivated = false };
+                try
+                {
+                    Check(next.WindowState == (maximize ? WindowState.Maximized : WindowState.Normal)
+                        && Math.Abs(next.Width - width) < 2 && Math.Abs(next.Height - height) < 2
+                        && next.WindowStartupLocation == WindowStartupLocation.CenterOwner,
+                        "reopened options restore size/state and keep CenterOwner / " + maximize + "/" + minimize);
+                    next.Show();
+                    DrainDispatcher();
+                    next.WindowState = WindowState.Normal;
+                    DrainDispatcher();
+                    Check(Math.Abs(next.ActualWidth - width) < 2 && Math.Abs(next.ActualHeight - height) < 2,
+                        "restoring maximized options recovers the saved normal size");
                 }
                 finally { next.Close(); }
             }

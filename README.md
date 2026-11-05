@@ -250,3 +250,7 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 ## Code-Stil
 
 Die `.editorconfig` ist nach Themen und Regel-IDs geordnet; jede Einstellung trägt einen kurzen Kommentar. [Einstellungen und Erklärungen nebeneinander](docs/EDITORCONFIG.md). Die engeren Testausnahmen stehen in `tests/.editorconfig`.
+
+### Fenstergröße der Optionen
+
+Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.

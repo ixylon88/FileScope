@@ -18,6 +18,7 @@ internal static class PresentationChecks
             CheckMetadata();
             CheckSignatures();
             CheckWindowSizes();
+            CheckOptionsWindowPreferences();
             CheckOptions();
             CheckExportProjection();
             Console.WriteLine($"PASS: {_passed} presentation / settings assertions.");
@@ -190,6 +191,35 @@ internal static class PresentationChecks
         Check(!row.HasMultipleSignatures && row.Signatures.Count == 0 && row.SelectedSignature is null
             && row.SigningTime is null && row.SigningTimeText == "", "reset removes all signature state");
         strings.SetCulture("en");
+    }
+
+    private static void CheckOptionsWindowPreferences()
+    {
+        var strings = LocalizationService.Instance;
+        var directory = Path.Combine(Path.GetTempPath(), "FileScope-options-window-" + Guid.NewGuid().ToString("N"));
+        var store = new PreferencesStore(Path.Combine(directory, "settings.json"));
+        var main = new WindowPreferences(1200, 800, false);
+        var settings = new WindowPreferences(900, 850, true);
+        try
+        {
+            store.Save(new UserPreferences { Window = main });
+            using var options = new OptionsViewModel(strings, store);
+            Check(options.OptionsWindowPreferences is null && options.WindowPreferences == main,
+                "old settings retain independent options window defaults");
+            options.SaveOptionsWindowPreferences(settings);
+            options.SelectedCsvDelimiter = options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
+            options.SaveWindowPreferences(main);
+            Check(store.Load().OptionsWindow == settings && store.Load().Window == main,
+                "options size/state survives other saves without changing main window geometry");
+            foreach (var invalid in new[] { new WindowPreferences(double.NaN, 800, false), new(-1, 800, false), new(800, double.PositiveInfinity, false), new(800, 0, false) })
+                options.SaveOptionsWindowPreferences(invalid);
+            using var reopened = new OptionsViewModel(strings, store);
+            Check(reopened.OptionsWindowPreferences == settings && reopened.WindowPreferences == main,
+                "options window geometry survives JSON save/reload and invalid dimensions are ignored");
+            var restored = WindowSize.Restore(settings, 730, 740, 640, 600, 800, 700);
+            Check(restored is { Width: 800, Height: 700 }, "options window fits a smaller work area on restore");
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
     }
 
     private static void CheckWindowSizes()
