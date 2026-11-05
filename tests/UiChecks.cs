@@ -663,7 +663,8 @@ internal static class UiChecks
                     && store.Saved.Window == main,
                     "options close preserves normal dimensions and independent state / " + maximize + "/" + minimize);
                 using var reopened = new OptionsViewModel(strings, store);
-                var next = new OptionsWindow(reopened) { ShowActivated = false };
+                // WPF requires activation when the initial window state is maximized.
+                var next = new OptionsWindow(reopened);
                 try
                 {
                     Check(next.WindowState == (maximize ? WindowState.Maximized : WindowState.Normal)
