@@ -4,6 +4,20 @@ WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen oder g
 
 Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
 
+## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
+
+**FileScope ist darauf ausgelegt, vollständige Lesedurchläufe durch Dateien auf ein Minimum zu reduzieren.** Unabhängig davon, wie viele Prüfsummenalgorithmen aktiviert sind, liest FileScope den Dateiinhalt für die Hashberechnung nur **ein einziges Mal vollständig**.
+
+- **Ein gemeinsamer Lesedurchlauf:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 werden gleichzeitig aus denselben eingelesenen Datenblöcken berechnet. Auch bei fünf aktivierten Algorithmen ist nur ein vollständiger Lesedurchlauf erforderlich.
+- **Ein zentral verwalteter Datei-Handle:** Jede Datei wird für die Analyse einmal durch FileScope geöffnet. Der Stream bleibt während der Analyse geöffnet und wird für die Prüfsummenberechnung, die PE-Header-Analyse und die Windows-Signaturprüfung wiederverwendet.
+- **Streaming statt vollständigem Laden:** Die Hashberechnung verarbeitet die Datei blockweise mit einem gemeinsamen 128-KiB-Puffer. Dadurch bleibt der Speicherbedarf weitgehend unabhängig von der Dateigröße.
+- **Gezielte zusätzliche Lesezugriffe:** Die optionale PE-Header-Analyse liest benötigte Headerbereiche erneut. Die Windows-Versionsinformationen werden über eine separate Windows-API abgefragt.
+- **Native Signaturprüfung:** Für Authenticode erhält `WinVerifyTrust` den bereits geöffneten Datei-Handle. Windows kann für die kryptografische Prüfung zusätzliche Leseoperationen ausführen, gegebenenfalls auch über den gesamten Dateiinhalt.
+
+**Wichtig:** Die Aussage über den einmaligen vollständigen Lesedurchlauf bezieht sich auf die von FileScope selbst implementierte Prüfsummenberechnung. Optionale Metadaten- und Signaturprüfungen können weitere Lesezugriffe verursachen. Insbesondere lässt sich nicht garantieren, dass Windows intern jede Datei nur einmal liest.
+
+Durch die gemeinsame Verarbeitung eignet sich FileScope besonders für die Prüfsummenberechnung großer Dateien und umfangreicher Dateisammlungen.
+
 ## Starten
 
 Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine Version mit .NET-10-Unterstützung verwenden. Es wird ein workspace für Visual Studio Code mit vordefinierten Tasks mitgeliefert.
