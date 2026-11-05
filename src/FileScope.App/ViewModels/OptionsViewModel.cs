@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Text.Json;
 using FileScope.App.Infrastructure;
 using FileScope.App.Localization;
@@ -17,14 +18,17 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     private FilterOption<HashFormat> _selectedHashFormat;
     private ColumnOption? _selectedColumn;
     private string? _settingsErrorKey;
+    private bool _updatingExportSelection;
     public event EventHandler? HashFormatChanged;
     public event EventHandler? ColumnOrderChanged;
+    public event EventHandler? ExportSelectionChanged;
     public ReadOnlyObservableCollection<ColumnOption> Columns { get; }
     public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
     public IReadOnlyList<FilterOption<HashFormat>> HashFormats { get; }
     public string UiLanguage => _strings.Culture.IetfLanguageTag;
     public string SettingsError => _settingsErrorKey is null ? "" : _strings[_settingsErrorKey];
     public bool HasSettingsError => _settingsErrorKey is not null;
+    public bool HasExportColumns => Columns.Any(column => column.IsExportSelected);
     public int WidthRevision { get; private set; }
     public WindowPreferences? WindowPreferences { get; private set; }
     public AnalysisPreferences AnalysisPreferences { get; private set; }
@@ -34,6 +38,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public RelayCommand MoveLastCommand { get; }
     public RelayCommand ResetOrderCommand { get; }
     public RelayCommand FitColumnsCommand { get; }
+    public RelayCommand SelectAllExportColumnsCommand { get; }
+    public RelayCommand ClearExportColumnsCommand { get; }
 
     public OptionsViewModel(LocalizationService strings, IPreferencesStore store)
     {
@@ -55,6 +61,13 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         _defaults = ColumnOption.CreateDefaults(strings);
         _columns = new ObservableCollection<ColumnOption>(NormalizeOrder(saved.ColumnOrder));
         Columns = new ReadOnlyObservableCollection<ColumnOption>(_columns);
+        // null means an older settings file; [] deliberately means no columns.
+        var exported = saved.ExportColumns?.ToHashSet(StringComparer.Ordinal);
+        foreach (var column in Columns)
+        {
+            column.IsExportSelected = exported is null || exported.Contains(column.Id);
+            column.PropertyChanged += OnColumnPropertyChanged;
+        }
         _selectedColumn = Columns[0];
         MoveUpCommand = new RelayCommand(() => MoveSelected(SelectedIndex - 1), () => SelectedIndex > 0);
         MoveDownCommand = new RelayCommand(() => MoveSelected(SelectedIndex + 1),
@@ -64,6 +77,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             () => SelectedIndex >= 0 && SelectedIndex < Columns.Count - 1);
         ResetOrderCommand = new RelayCommand(() => SetColumnOrder(_defaults.Select(column => column.Id)));
         FitColumnsCommand = new RelayCommand(RequestColumnSizing);
+        SelectAllExportColumnsCommand = new RelayCommand(() => SetExportSelection(true));
+        ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(false));
         strings.CultureChanged += OnCultureChanged;
     }
 
@@ -163,6 +178,27 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         Save();
     }
 
+    private void SetExportSelection(bool selected)
+    {
+        _updatingExportSelection = true;
+        try { foreach (var column in Columns) column.IsExportSelected = selected; }
+        finally { _updatingExportSelection = false; }
+        NotifyExportSelection();
+    }
+
+    private void OnColumnPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (!_updatingExportSelection && args.PropertyName == nameof(ColumnOption.IsExportSelected))
+            NotifyExportSelection();
+    }
+
+    private void NotifyExportSelection()
+    {
+        OnPropertyChanged(nameof(HasExportColumns));
+        ExportSelectionChanged?.Invoke(this, EventArgs.Empty);
+        Save();
+    }
+
     private void Save()
     {
         try
@@ -172,6 +208,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 Language = SelectedLanguage.CultureName,
                 HashFormat = SelectedHashFormat.Value.ToString(),
                 ColumnOrder = Columns.Select(column => column.Id).ToArray(),
+                ExportColumns = Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(),
                 Window = WindowPreferences,
                 Analysis = AnalysisPreferences
             });
@@ -193,5 +230,9 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(UiLanguage));
         RequestColumnSizing();
     }
-    public void Dispose() => _strings.CultureChanged -= OnCultureChanged;
+    public void Dispose()
+    {
+        _strings.CultureChanged -= OnCultureChanged;
+        foreach (var column in Columns) column.PropertyChanged -= OnColumnPropertyChanged;
+    }
 }

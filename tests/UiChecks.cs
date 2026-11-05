@@ -16,6 +16,8 @@ using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Models;
+using FileScope.Core.Files;
+using FileScope.Core.Export;
 
 internal static class UiChecks
 {
@@ -51,11 +53,13 @@ internal static class UiChecks
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
+            CheckFolderAndExport(strings);
+            CheckFileOperationCancellation(strings);
             CheckMultipleSignatures(strings);
             CheckWindowPersistence(strings);
             CheckHorizontalScrolling(strings);
             var service = new ImmediateAnalysis();
-            using var vm = new MainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
+            using var vm = CreateMainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
             window = new MainWindow(vm);
             // Initialize and lay out real XAML, without opening a visible window.
             window.Measure(new Size(1440, 900));
@@ -106,7 +110,7 @@ internal static class UiChecks
                 "clear removes results and resets filters");
 
             var blocked = new BlockingAnalysis();
-            using var busyVm = new MainViewModel(blocked, new EmptyPicker(), strings, CreateOptions(strings));
+            using var busyVm = CreateMainViewModel(blocked, new EmptyPicker(), strings, CreateOptions(strings));
             busyVm.DropFilesCommand.Execute(new[] { first });
             PumpUntil(() => blocked.Started.Task.IsCompleted);
             Check(busyVm.IsBusy && !busyVm.DropFilesCommand.CanExecute(new[] { second }),
@@ -123,7 +127,7 @@ internal static class UiChecks
                 "late progress cannot restore cleared state");
 
             var cancelled = new BlockingAnalysis();
-            using var cancelVm = new MainViewModel(cancelled, new EmptyPicker(), strings, CreateOptions(strings));
+            using var cancelVm = CreateMainViewModel(cancelled, new EmptyPicker(), strings, CreateOptions(strings));
             cancelVm.DropFilesCommand.Execute(new[] { first, second });
             PumpUntil(() => cancelled.Started.Task.IsCompleted);
             cancelVm.CancelCommand.Execute(null);
@@ -156,7 +160,7 @@ internal static class UiChecks
             }
         });
         var saves = store.SaveCount;
-        using (var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, new OptionsViewModel(strings, store)))
+        using (var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, new OptionsViewModel(strings, store)))
         {
             Check(store.SaveCount == saves, "restoring checkbox state performs no writes");
             Check(vm.ChecksumOptions.Where(o => o.IsSelected).Select(o => o.Algorithm)
@@ -175,7 +179,7 @@ internal static class UiChecks
                 "unchecking options persists immediately before closing the window");
         }
         var analysis = new ImmediateAnalysis();
-        using var reopened = new MainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        using var reopened = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
         Check(reopened.ChecksumOptions.All(o => !o.IsSelected) && !reopened.InspectCertificates && !reopened.OnlineRevocation && !reopened.InspectFileProperties && !reopened.InspectPeHeader,
             "restart preserves all nine checkboxes off");
         reopened.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "restored-options.bin") });
@@ -200,7 +204,7 @@ internal static class UiChecks
     {
         var store = new MemoryPreferences();
         var analysis = new ImmediateAnalysis();
-        using var vm = new MainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
         var window = new MainWindow(vm);
         try
         {
@@ -248,10 +252,154 @@ internal static class UiChecks
         finally { window.Close(); }
     }
 
+    private static void CheckFolderAndExport(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var directory = Path.Combine(Path.GetTempPath(), "FileScope-folder-ui-" + Guid.NewGuid().ToString("N"));
+        var source = Path.Combine(directory, "input");
+        Directory.CreateDirectory(Path.Combine(source, "nested"));
+        var first = Path.Combine(source, "one, 中文.bin");
+        var second = Path.Combine(source, "nested", "two.bin");
+        File.WriteAllText(first, "original one");
+        File.WriteAllText(second, "original two");
+        var picker = new TestPicker { Files = [first], Folder = source, Destination = Path.Combine(directory, "results.csv") };
+        var analysis = new ImmediateAnalysis();
+        using var vm = CreateMainViewModel(analysis, picker, strings, CreateOptions(strings));
+        var window = new MainWindow(vm);
+        var optionsWindow = new OptionsWindow(vm.Options);
+        try
+        {
+            DrainDispatcher();
+            Check(((Button)window.FindName("AddFolderButton")).Command == vm.AddFolderCommand
+                && ((Button)window.FindName("ExportCsvButton")).Command == vm.ExportCsvCommand,
+                "new ribbon buttons are bound to folder and export commands");
+            Check(!vm.ExportCsvCommand.CanExecute(null), "empty results cannot be exported");
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            Check(analysis.Calls == 2 && vm.Rows.All(row => row.State == RowStatus.Completed),
+                "folder command includes subfolders and analyses only new paths");
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(analysis.Calls == 2 && vm.Rows.Count == 2, "adding the same folder again skips all duplicates");
+            vm.Options.ClearExportColumnsCommand.Execute(null);
+            DrainDispatcher();
+            Check(!vm.ExportCsvCommand.CanExecute(null) && !((Button)window.FindName("ExportCsvButton")).IsEnabled,
+                "zero selected fields disables the export button");
+            foreach (var column in vm.Options.Columns) column.IsExportSelected = column.Id is "Name" or "SHA256";
+            var list = (ListBox)optionsWindow.FindName("ExportColumnList");
+            Check(ReferenceEquals(list.ItemsSource, vm.Options.Columns), "CSV options use the complete ordered column collection");
+            var sha = vm.Options.Columns.Single(column => column.Id == "SHA256");
+            var checkbox = (CheckBox)list.ItemTemplate.LoadContent();
+            checkbox.DataContext = sha;
+            DrainDispatcher();
+            checkbox.IsChecked = false;
+            Check(!sha.IsExportSelected, "real CSV checkbox template updates the saved selection");
+            checkbox.IsChecked = true;
+            vm.Options.SetColumnOrder(["SHA256", "Name"]);
+            vm.Options.SelectedHashFormat = vm.Options.HashFormats.Single(format => format.Value == HashFormat.Base64);
+            vm.SearchText = "no-row-matches";
+            Check(vm.RowsView.Count == 0 && vm.ExportCsvCommand.CanExecute(null), "filters never disable export of loaded rows");
+            vm.ExportCsvCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            var csv = File.ReadAllText(picker.Destination!);
+            var digest = Convert.ToBase64String(Convert.FromHexString(HashValue(ChecksumAlgorithm.SHA256)));
+            Check(csv.StartsWith("\"SHA-256\",\"File name\"\r\n", StringComparison.Ordinal)
+                && csv.Contains($"\"{digest}\",\"one, 中文.bin\"") && csv.Contains($"\"{digest}\",\"two.bin\"")
+                && analysis.Calls == 2, "CSV saves every loaded row with selected fields/order/format without reanalysis");
+            picker.Destination = first;
+            vm.ExportCsvCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.HasError && File.ReadAllText(first) == "original one", "export cannot overwrite an analyzed source file");
+            picker.Destination = null;
+            vm.ExportCsvCommand.Execute(null);
+            Check(!vm.IsBusy && vm.Rows.Count == 2, "cancelling Save As leaves results unchanged");
+            picker.Folder = null;
+            vm.AddFolderCommand.Execute(null);
+            Check(!vm.IsBusy && vm.Rows.Count == 2, "cancelling the folder picker leaves results unchanged");
+            picker.Folder = Path.Combine(directory, "missing");
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.HasError && vm.AddFolderCommand.CanExecute(null), "folder errors are displayed and release the busy state");
+        }
+        finally { optionsWindow.Close(); window.Close(); Directory.Delete(directory, recursive: true); }
+    }
+
+    private static void CheckFileOperationCancellation(LocalizationService strings)
+    {
+        var source = Path.Combine(Path.GetTempPath(), "FileScope-operation-source.bin");
+        foreach (var clear in new[] { false, true })
+        {
+            var scanner = new BlockingFolderScanner();
+            var picker = new TestPicker { Files = [source], Folder = Path.GetTempPath() };
+            using var vm = CreateMainViewModel(new ImmediateAnalysis(), picker, strings, CreateOptions(strings), scanner);
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => scanner.Started.Task.IsCompleted);
+            Check(vm.IsBusy && vm.IsProgressIndeterminate && vm.CancelCommand.CanExecute(null)
+                && !vm.ExportCsvCommand.CanExecute(null) && !vm.BrowseCommand.CanExecute(null),
+                "folder scanning is cancellable and prevents concurrent file operations");
+            if (clear) vm.ClearCommand.Execute(null); else vm.CancelCommand.Execute(null);
+            scanner.Release.TrySetResult();
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == (clear ? 0 : 1) && !vm.IsProgressIndeterminate && !vm.HasError,
+                "cancel/clear during scanning discards scan results and keeps the correct existing rows");
+        }
+        var exporter = new BlockingExporter();
+        var exportPicker = new TestPicker { Files = [source], Destination = Path.Combine(Path.GetTempPath(), "FileScope-operation.csv") };
+        using (var vm = CreateMainViewModel(new ImmediateAnalysis(), exportPicker, strings, CreateOptions(strings), exporter: exporter))
+        {
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
+            vm.ExportCsvCommand.Execute(null);
+            PumpUntil(() => exporter.Started.Task.IsCompleted);
+            Check(vm.IsBusy && vm.CancelCommand.CanExecute(null) && !vm.AddFolderCommand.CanExecute(null),
+                "CSV writing participates in the same busy/cancel workflow");
+            vm.CancelCommand.Execute(null);
+            exporter.Release.TrySetResult();
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == 1 && !vm.HasError && vm.ExportCsvCommand.CanExecute(null),
+                "cancelled export retains all results and can be retried");
+        }
+        using var intake = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        intake.DropFilesCommand.Execute(Enumerable.Range(0, 300).Select(index => source + index).ToArray());
+        Check(intake.IsBusy && intake.Rows.Count is > 0 and < 300, "large intake yields while preparing rows");
+        intake.ClearCommand.Execute(null);
+        PumpUntil(() => !intake.IsBusy);
+        Check(intake.Rows.Count == 0 && !intake.HasError, "clear during chunked intake leaves no queued rows");
+    }
+
+    private sealed class BlockingFolderScanner : IFolderScanner
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            Release.Task.GetAwaiter().GetResult();
+            cancellationToken.ThrowIfCancellationRequested();
+            return new FolderScanResult([Path.Combine(folderPath, "new.bin")], [], 0);
+        }
+    }
+
+    private sealed class BlockingExporter : IResultExporter
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task ExportAsync(string path, ResultExportTable table, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            await Release.Task;
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
     private static void CheckFileIntake(LocalizationService strings)
     {
         var picker = new TestPicker();
-        using var vm = new MainViewModel(new ImmediateAnalysis(), picker, strings, CreateOptions(strings));
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), picker, strings, CreateOptions(strings));
         var first = Path.Combine(Path.GetTempPath(), "FileScope-intake-a.bin");
         var second = Path.Combine(Path.GetTempPath(), "FileScope-intake-b.bin");
         var third = Path.Combine(Path.GetTempPath(), "FileScope-intake-c.bin");
@@ -316,7 +464,7 @@ internal static class UiChecks
     private static void CheckMultipleSignatures(LocalizationService strings)
     {
         var analysis = new MultipleSignatureAnalysis();
-        using var vm = new MainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
         var window = new MainWindow(vm);
         try
         {
@@ -383,7 +531,7 @@ internal static class UiChecks
         {
             var store = new MemoryPreferences();
             var options = new OptionsViewModel(strings, store);
-            using var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
+            using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
             var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
             var closed = false;
             var area = SystemParameters.WorkArea;
@@ -408,7 +556,7 @@ internal static class UiChecks
                 Check(store.Saved.Window is { } saved && saved.Maximized == maximize
                     && Math.Abs(saved.Width - width) < 2 && Math.Abs(saved.Height - height) < 2,
                     "closing minimized preserves normal bounds and last non-minimized state / " + maximize);
-                using var nextVm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
+                using var nextVm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
                     new OptionsViewModel(strings, store));
                 var next = new MainWindow(nextVm);
                 try
@@ -425,7 +573,7 @@ internal static class UiChecks
 
     private static void CheckHorizontalScrolling(LocalizationService strings)
     {
-        using var vm = new MainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
         foreach (var option in vm.ChecksumOptions) option.IsSelected = true;
         var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var trace = PresentationTraceSources.DataBindingSource;
@@ -659,7 +807,13 @@ internal static class UiChecks
     private sealed class EmptyPicker : IFilePickerService
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
+        public string? PickFolder(string title) => null;
+        public string? PickCsvDestination(string title, string csvFilesLabel) => null;
     }
+
+    private static MainViewModel CreateMainViewModel(IFileAnalysisService analysis, IFilePickerService picker,
+        LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null) =>
+        new(analysis, picker, strings, options, scanner ?? new FolderScanner(), exporter ?? new CsvResultExporter());
 
     private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
     private sealed class MemoryPreferences : IPreferencesStore
@@ -673,6 +827,10 @@ internal static class UiChecks
     {
         public string[] Files { get; set; } = [];
         public string[] PickFiles(string title, string allFilesLabel) => Files;
+        public string? Folder { get; set; }
+        public string? Destination { get; set; }
+        public string? PickFolder(string title) => Folder;
+        public string? PickCsvDestination(string title, string csvFilesLabel) => Destination;
     }
     private sealed class ImmediateAnalysis : IFileAnalysisService
     {

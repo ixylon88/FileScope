@@ -39,10 +39,14 @@
     <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
       <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <StackPanel Orientation="Horizontal">
-          <StackPanel Width="248">
+          <StackPanel Width="316">
             <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
             <WrapPanel>
               <Button Content="{loc:Loc AddFiles}" Command="{Binding BrowseCommand}" Style="{StaticResource PrimaryButton}" ToolTip="{loc:Loc AddFilesTip}" />
+              <Button x:Name="AddFolderButton" Content="{loc:Loc AddFolder}" Command="{Binding AddFolderCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFolderTip}" />
+            </WrapPanel>
+            <WrapPanel>
+              <Button x:Name="ExportCsvButton" Content="{loc:Loc ExportCsv}" Command="{Binding ExportCsvCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportCsvTip}" />
               <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
             </WrapPanel>
             <StackPanel Orientation="Horizontal">
@@ -259,7 +263,7 @@
           <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
           <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
         </Grid>
-        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsCheckingSignature}" Height="4" Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate}" Height="4" Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
         <TextBlock Text="{Binding LastError}" Foreground="#B42318" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </Border>

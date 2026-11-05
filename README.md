@@ -1,6 +1,6 @@
 # FileScope
 
-WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Versionsinformationen und PE-Plattform lesen, Ergebnisse filtern und kopieren.
+WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen oder ganze Ordner hinzufügen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Versionsinformationen und PE-Plattform lesen, Ergebnisse filtern, kopieren und als CSV speichern.
 
 Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
 
@@ -46,6 +46,9 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Funktion | Verhalten |
 | --- | --- |
 | Dateien ablegen | Eine oder mehrere Dateien auf einen beliebigen Bereich des Fensters ziehen. Alternativ „Dateien öffnen“ / Ctrl+O. |
+| Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
+| CSV exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
+| Exportfelder | Unter Zahnrad → Optionen → CSV exportieren die gewünschten Felder anhaken. Die Auswahl wird gespeichert und ist unabhängig von der Sichtbarkeit der Tabellenspalten. |
 | Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Beim ersten Start: SHA-256 und Signaturprüfung. Danach wird die gespeicherte Auswahl aller Prüf-Häkchen wiederhergestellt. |
 | Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Dateieigenschaften und PE-Spalten folgen ihren jeweiligen Häkchen. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
@@ -72,7 +75,7 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 
 Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
 
-Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden als eigene Fehlerzeilen gemeldet und nicht rekursiv eingelesen. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
+Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Zum rekursiven Einlesen von Ordnern „Ordner hinzufügen“ verwenden; per Drag-and-drop abgelegte Ordner werden weiterhin als eigene Fehlerzeilen gemeldet. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
 
 Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, Signaturprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header werden bei jeder Änderung zusammen mit Sprache, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
 
@@ -85,6 +88,18 @@ Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt 
 Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die Messung neu und erlaubt auch schmalere Spalten. Das Filtern allein setzt manuell gewählte Breiten nicht zurück.
 
 Beim horizontalen Scrollen kann WPF für `CellsPanelHorizontalOffset` einen geringfügig negativen Wert berechnen. Die Fluent-Vorlage bindet diesen Wert direkt an die Breite ihres internen „Alles auswählen“-Knopfs, auch bei ausgeblendeten Zeilenüberschriften. `DataGridScrollFix` ergänzt beim Laden der Tabelle ausschließlich für diese Bindung eine Begrenzung auf null. Positive Breiten bleiben erhalten; die native Vorlage, fixierte Spalten, Virtualisierung und automatische Spaltenbreiten bleiben bestehen. Die Binding-Fehlerausgabe wird nicht abgeschaltet.
+
+## Ordnersuche und CSV-Export
+
+Die Ordnersuche berücksichtigt auch versteckte Dateien. Verzeichnisverknüpfungen (Junctions und symbolische Links) innerhalb des ausgewählten Ordners werden übersprungen, damit keine Schleifen entstehen. Nicht lesbare Unterordner werden gemeldet; lesbare Geschwisterordner werden weiter durchsucht. Bereits vorhandene Pfade werden nicht erneut analysiert. „Abbrechen“ beendet die Suche ohne neue Zeilen; beim späteren Hinzufügen oder Analysieren bleiben bereits hinzugefügte Zeilen erhalten und können mit „Alle neu prüfen“ verarbeitet werden. „Leeren“ bricht den laufenden Vorgang ab und entfernt danach alle Zeilen.
+
+Der Exportdialog schlägt `FileScope.csv` vor und fragt beim Überschreiben einer vorhandenen Datei nach. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene CSV.
+
+Alle **39 Felder** des Spaltenkatalogs sind auswählbar, auch PE-Maschinentyp, PE-Format und .NET-Plattform. Beim ersten Start sind alle Exportfelder gewählt. Die Auswahl wird als `ExportColumns` mit stabilen Spalten-IDs in der vorhandenen `settings.json` gespeichert; eine vollständig leere Auswahl bleibt leer und deaktiviert den Exportknopf. Reihenfolge, Sprache und Hashformat folgen den aktuellen Optionen. Pro Datei werden die Daten der jeweils ausgewählten Signatur exportiert. Es werden alle geladenen Zeilen in der Reihenfolge des Hinzufügens ausgegeben; Tabellenfilter und die Sortierung der Ansicht ändern diese Auswahl nicht. Fehlende Messergebnisse bleiben leer, Status und Diagnose bleiben erhalten.
+
+Das CSV-Format verwendet **UTF-8 mit BOM**, Kommas als Trennzeichen und CRLF als Zeilenenden. Alle Felder stehen in doppelten Anführungszeichen; enthaltene Anführungszeichen werden verdoppelt. Zeilenumbrüche, Umlaute, chinesische Zeichen und Hashwerte bleiben erhalten. Für Tabellenprogramme beim Import Komma als Trennzeichen und für Hashes, Seriennummern sowie Versionsfelder den Datentyp Text wählen, damit das Tabellenprogramm die Werte nicht umformatiert.
+
+Für weitere Exportformate liegt `IResultExporter` zusammen mit dem WPF-unabhängigen `ResultExportTable` im Core-Projekt. `ResultExportProjection` erstellt aus den Zeilen und gewählten Spalten eine Momentaufnahme. Neue Exportfelder lassen sich über den zentralen Katalog in `ColumnOption.CreateDefaults` ergänzen; der CSV-Schreiber muss dafür nicht geändert werden. Die Ordnersuche liegt getrennt in `IFolderScanner` / `FolderScanner`.
 
 ## Projekte und Entwurfsmuster
 

@@ -438,4 +438,25 @@
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET 平台</value>
   </data>
+  <data name="AddFolder" xml:space="preserve"><value>添加文件夹</value></data>
+  <data name="AddFolderTitle" xml:space="preserve"><value>选择要分析的文件夹</value></data>
+  <data name="AddFolderTip" xml:space="preserve"><value>分析所有文件（包括子文件夹）。跳过已添加的路径。</value></data>
+  <data name="ScanningFolder" xml:space="preserve"><value>正在扫描文件夹…</value></data>
+  <data name="FolderScanCancelled" xml:space="preserve"><value>文件夹扫描已取消，未添加任何文件。</value></data>
+  <data name="FolderEmpty" xml:space="preserve"><value>此文件夹中未找到文件。</value></data>
+  <data name="FolderScanWarning" xml:space="preserve"><value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>导出 CSV</value></data>
+  <data name="ExportCsvTitle" xml:space="preserve"><value>将结果保存为 CSV</value></data>
+  <data name="CsvFiles" xml:space="preserve"><value>CSV 文件</value></data>
+  <data name="ExportCsvTip" xml:space="preserve"><value>保存所有已加载文件的结果。在选项 → 导出 CSV 中选择导出列。</value></data>
+  <data name="ExportSourceConflict" xml:space="preserve"><value>请选择其他文件名：导出文件不能覆盖已分析的源文件。</value></data>
+  <data name="ExportingCsv" xml:space="preserve"><value>正在导出 CSV…</value></data>
+  <data name="CsvExported" xml:space="preserve"><value>CSV 已保存：已导出 {0} 个文件。</value></data>
+  <data name="CsvExportCancelled" xml:space="preserve"><value>CSV 导出已取消。</value></data>
+  <data name="ExportColumnsTitle" xml:space="preserve"><value>CSV 导出列</value></data>
+  <data name="ExportColumnsHint" xml:space="preserve"><value>导出所有已加载的文件，包括已筛除的行。勾选的字段使用表格列顺序、当前语言和哈希格式。每个文件使用其当前选中的签名。未分析的字段留空。</value></data>
+  <data name="SelectAllExportColumns" xml:space="preserve"><value>全选</value></data>
+  <data name="ClearExportColumns" xml:space="preserve"><value>全部取消</value></data>
+  <data name="PreparingFiles" xml:space="preserve"><value>正在添加文件…</value></data>
+  <data name="IntakeCancelled" xml:space="preserve"><value>已取消添加文件。已添加的行可重新分析。</value></data>
 </root>

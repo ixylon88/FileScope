@@ -18,6 +18,7 @@ internal static class PresentationChecks
             CheckSignatures();
             CheckWindowSizes();
             CheckOptions();
+            CheckExportProjection();
             Console.WriteLine($"PASS: {_passed} presentation / settings assertions.");
             return 0;
         }
@@ -163,6 +164,14 @@ internal static class PresentationChecks
         Check(row.SHA256 == "AP8=" && ReferenceEquals(result, row.Result), "signature selection preserves file hashes and analysis result");
         Check(row.Details.Contains("Second publisher") && row.Details.Contains("Second diagnostic") && row.Matches("Second publisher")
             && !row.Matches("First publisher"), "details and search follow the selected signature");
+        var exportColumns = ColumnOption.CreateDefaults(strings);
+        var signatureExport = ResultExportProjection.Capture([row], exportColumns);
+        var columnIds = exportColumns.Select(column => column.Id).ToList();
+        Check(signatureExport.Rows[0][columnIds.IndexOf("Publisher")] == "Second publisher"
+            && signatureExport.Rows[0][columnIds.IndexOf("Serial")] == "02"
+            && signatureExport.Rows[0][columnIds.IndexOf("CertSha1")] == "/w=="
+            && signatureExport.Rows[0][columnIds.IndexOf("SigningTime")] == strings["Timestamp_NotPresent"],
+            "CSV snapshot uses certificate, timestamp and fingerprint from the selected signature");
         row.SelectedSignature = row.Signatures[2];
         Check(row.SigningTimeText.Contains(strings["Timestamp_Unverified"]) && row.SigningTime == firstDate.AddDays(1),
             "unconfirmed timestamp remains explicitly labelled");
@@ -207,6 +216,12 @@ internal static class PresentationChecks
         {
             using var options = new OptionsViewModel(strings, store);
             Check(options.AnalysisPreferences == new AnalysisPreferences(), "missing checkbox settings retain first-run defaults");
+            Check(options.Columns.All(column => column.IsExportSelected), "older preferences select all export columns initially");
+            options.ClearExportColumnsCommand.Execute(null);
+            Check(!options.HasExportColumns && store.Load().ExportColumns is { Length: 0 }, "explicit empty export selection is saved");
+            using (var emptyExport = new OptionsViewModel(strings, store))
+                Check(!emptyExport.HasExportColumns, "an empty export selection survives a restart");
+            foreach (var column in options.Columns) column.IsExportSelected = column.Id is "Name" or "SHA256" or "PeMachine";
             var selection = new AnalysisPreferences
             {
                 MD5 = true, SHA1 = true, SHA256 = false, SHA384 = true, SHA512 = false,
@@ -255,11 +270,15 @@ internal static class PresentationChecks
             {
                 Check(reopened.AnalysisPreferences == selection,
                     "all checkbox states survive JSON save/load and other option changes");
+                Check(reopened.Columns.Where(column => column.IsExportSelected).Select(column => column.Id)
+                    .SequenceEqual(["Name", "SHA256", "PeMachine"]),
+                    "export field selection survives language, format, order, analysis and window saves");
                 Check(reopened.WindowPreferences == window, "normal size and maximized state survive a restart");
                 Check(reopened.Columns.Select(column => column.Id).SequenceEqual(savedOrder), "column order survives a restart");
                 Check(reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
                     "language and hash format survive a restart");
                 reopened.ResetOrderCommand.Execute(null);
+                Check(reopened.Columns.Count(column => column.IsExportSelected) == 3, "resetting column order retains export selection");
                 Check(reopened.Columns.Select(column => column.Id).SequenceEqual(ColumnOption.CreateDefaults(strings).Select(column => column.Id)),
                     "reset restores the entire default order");
             }
@@ -282,6 +301,14 @@ internal static class PresentationChecks
                 Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 39
                     && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
+            store.Save(new UserPreferences { ExportColumns = ["Name", "Name", "future-column"] });
+            using (var normalized = new OptionsViewModel(strings, store))
+            {
+                Check(normalized.Columns.Single(column => column.IsExportSelected).Id == "Name",
+                    "unknown/duplicate export IDs do not enable unintended fields");
+                normalized.SelectAllExportColumnsCommand.Execute(null);
+                Check(store.Load().ExportColumns?.Length == 39, "select all saves every supported export field");
+            }
             using (var failing = new OptionsViewModel(strings, new FailingStore()))
             {
                 failing.SelectedColumn = failing.Columns[^1];
@@ -291,6 +318,48 @@ internal static class PresentationChecks
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); strings.SetCulture("en"); }
     }
+    private static void CheckExportProjection()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        var columns = ColumnOption.CreateDefaults(strings);
+        var row = new FileRowViewModel("Prüfung 中文.exe", strings, HashFormat.Base64);
+        row.Complete(new FileAnalysisResult(row.FullPath, 1024, null,
+            new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = "00FF" }, SignatureResult.NotChecked)
+        {
+            Properties = new(new FilePropertiesInfo { FileVersion = "01.02.003", Comments = "with, comma\nand \"quotes\"" }),
+            PeHeader = new(new PeHeaderInfo(0x8664, "AMD64 (x64)", "PE32+", ManagedPlatform.MachineSpecific))
+        });
+        var failed = new FileRowViewModel("missing.exe", strings);
+        failed.Complete(FileAnalysisResult.Failure(failed.FullPath, AnalysisError.NotFound, "missing fixture"));
+        var all = ResultExportProjection.Capture([row, failed], columns);
+        var ids = columns.Select(column => column.Id).ToList();
+        Check(all.Headers.Count == 39 && all.Rows.Count == 2 && all.Rows.All(values => values.Count == 39),
+            "every registered column can export completed and failed rows");
+        Check(all.Rows[0][ids.IndexOf("SHA256")] == "AP8=" && all.Rows[0][ids.IndexOf("FileVersion")] == "01.02.003"
+            && all.Rows[0][ids.IndexOf("PeMachine")] == "AMD64 (x64) (0x8664)"
+            && all.Rows[0][ids.IndexOf("Comments")] == "with, comma\nand \"quotes\"",
+            "projection preserves current hash format, architecture, version zeros and multiline metadata");
+        Check(all.Rows[1][ids.IndexOf("SHA256")] == "" && all.Rows[1][ids.IndexOf("Diagnostic")].Contains("missing fixture"),
+            "failed rows export blank missing data and their diagnostic");
+        foreach (var column in columns) column.IsExportSelected = column.Id is "Name" or "SHA256" or "PeMachine";
+        var selected = ResultExportProjection.Capture([row, failed], columns.Reverse());
+        Check(selected.Headers.SequenceEqual(new[] { strings["Column_PeMachine"], "SHA-256", strings["Column_Name"] })
+            && selected.Rows[0].SequenceEqual(["AMD64 (x64) (0x8664)", "AP8=", "Prüfung 中文.exe"]),
+            "export selection and ordering are independent of grid visibility");
+        row.Reset();
+        strings.SetCulture("zh-Hans");
+        Check(selected.Rows[0][1] == "AP8=" && selected.Headers[2] == "File name",
+            "captured data and headers do not change after reset or a language switch");
+        var translated = ResultExportProjection.Capture([row], columns);
+        Check(translated.Headers[0] == strings["Column_Name"] && translated.Rows[0][1] == "",
+            "a fresh export uses the current language and current results");
+        foreach (var column in columns) column.IsExportSelected = false;
+        try { ResultExportProjection.Capture([row], columns); throw new Exception("Expected empty selection failure."); }
+        catch (InvalidOperationException) { Check(true, "projection rejects exporting zero fields"); }
+        strings.SetCulture("en");
+    }
+
     private sealed class FailingStore : IPreferencesStore
     {
         public UserPreferences Load() => new();

@@ -7,6 +7,7 @@ public sealed record UserPreferences
     public string? Language { get; init; }
     public string? HashFormat { get; init; }
     public string[]? ColumnOrder { get; init; }
+    public string[]? ExportColumns { get; init; }
     public WindowPreferences? Window { get; init; }
     public AnalysisPreferences? Analysis { get; init; }
 }

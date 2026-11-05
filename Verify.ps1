@@ -24,7 +24,7 @@ function Invoke-Checks {
     if ($Name -eq 'PresentationChecks') {
         # Compile the UI-independent presentation code without a Windows runtime.
         $sources = @('Infrastructure/ObservableObject.cs', 'Infrastructure/Commands.cs',
-            'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs', 'Presentation/WindowSize.cs',
+            'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs', 'Presentation/WindowSize.cs', 'Presentation/ResultExportProjection.cs',
             'Services/PreferencesStore.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
             'ViewModels/SignatureOption.cs', 'ViewModels/OptionsViewModel.cs', 'ViewModels/FileRowViewModel.cs')
         foreach ($relative in $sources) {

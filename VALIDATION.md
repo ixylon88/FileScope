@@ -1,32 +1,36 @@
 # Prüfstand der ausgelieferten Quellen
 
-Stand: 4. November 2026.
+Stand: 5. November 2026. Patchbasis: `48e8e4ec92b04157e720a7a34a4da675d69543c8` (`test fix`).
 
-Aktueller Nachtrag: [Review der Analyzer-/Dark-Commits und UI-Testkorrektur](docs/REVIEW-2026-11-04.md). Core (115) und Präsentation/Einstellungen (107) wurden erneut ausgeführt; das korrigierte WPF-Testprogramm wurde kompiliert. Der Theme-Test entspricht jetzt `App.xaml` (Dark), die Metadaten-Kästchen werden über ihren XAML-Namen gefunden. Windows-Laufzeittests stehen weiterhin aus.
+Aktuelle Erweiterung: rekursive Ordnersuche, CSV-Export aller geladenen Zeilen und gespeicherte Exportfeldauswahl. Core (132) und Präsentation/Einstellungen (122) wurden ausgeführt; das erweiterte WPF-Testprogramm wurde kompiliert. Der [vorige Review der Analyzer-/Dark-Commits](docs/REVIEW-2026-11-04.md) bleibt erhalten. Windows-Laufzeittests stehen weiterhin aus.
 
 ## Hier tatsächlich ausgeführt
 
 | Prüfung | Ergebnis |
 | --- | --- |
-| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten, Workspace-Tasks und Test-Theme | 908 Prüfungen bestanden |
-| Drei Ressourcensätze mit jeweils 142 Schlüsseln; gleiche Formatplatzhalter | Bestanden |
+| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten, Workspace-Tasks und Test-Theme | 995 Prüfungen bestanden |
+| Drei Ressourcensätze mit jeweils 163 Schlüsseln; gleiche Formatplatzhalter | Bestanden |
 | Genau zwei Produktionsprojekte; Kernbibliothek ohne WPF-Abhängigkeit | Bestanden |
 | Alle 39 Spalten in XAML und Optionskatalog; begrenzte automatische Breiten | Bestanden |
 | Workspace-JSON: drei eindeutige PowerShell-Tasks, existierende Skripte, Workspace-Pfade und win-x64-Ziel | Bestanden, statisch |
 | Release-Build beider Projekte mit .NET SDK 10.0.100 unter Linux, einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
-| `CoreChecks.cs` mit .NET 10 unter Linux | 115 Prüfungen bestanden; native Windows-Aufrufe übersprungen |
-| `PresentationChecks.cs` mit .NET 10 unter Linux | 107 Prüfungen bestanden |
+| `CoreChecks.cs` mit .NET 10 unter Linux | 132 Prüfungen bestanden; native Windows-Aufrufe übersprungen |
+| `PresentationChecks.cs` mit .NET 10 unter Linux | 122 Prüfungen bestanden |
 | Native Strukturen einschließlich SHFILEINFOW: Marshal-Größen und vorhandene kritische Offsets | x64 zur Laufzeit geprüft; x86/ARM64 nicht ausgeführt |
 | WPF-Testprogramm mit `UiChecks.cs` kompiliert | Bestanden, 0 Warnungen / 0 Fehler; nicht ausgeführt |
-| Self-contained Publish für win-x64, Trimming aus | Erfolgreich; AMD64-Apphost, Runtime sowie deutsche/chinesische Ressourcen vorhanden |
+| Self-contained Publish für win-x64, Trimming aus | Beim vorherigen Metadaten-Patch geprüft; für diese Erweiterung nicht erneut ausgeführt |
 
 Der PE-Prüfer wurde mit eigens kodierten PE32-/PE32+-Dateien für i386, Alpha/Alpha64, ARM/ARMNT, AMD64, ARM64/ARM64EC/ARM64X und einen unbekannten Maschinentyp ausgeführt. Weitere Fälle: Dateien ohne PE-Header, DOS/NE, beschädigte PE-Header, AnyCPU, 32-Bit-Pflicht/-Präferenz, DLL-Flags, gemischter/nativer CLR-Code, Erhalt der Streamposition und begrenztes Lesen. Eine echte gebaute .NET-DLL wurde auf PE-/CLR-Header und Versionsinformationen geprüft. Metadatenfehler und Abbruch wurden im vollständigen Analyseablauf geprüft.
 
-`python tools/check_structure.py` reproduziert die statischen Prüfungen, führt aber keine C#-Implementierung aus. Die C#-Prüfungen wurden über temporäre Harness-Projekte entsprechend `Verify.ps1` gebaut und gestartet. Die lokalen Builds verwendeten `-m:1 -nr:false`, um die MSBuild-Prozesse dieser Umgebung zu isolieren.
+`python tools/check_structure.py` reproduziert die statischen Prüfungen, führt aber keine C#-Implementierung aus. Die C#-Prüfungen wurden über temporäre Harness-Projekte entsprechend `Verify.ps1` gebaut und gestartet. Die lokalen Builds verwendeten `-m:1 -p:UseSharedCompilation=false`, um die Build-Prozesse dieser Umgebung zu isolieren.
+
+Die neuen ausführbaren Prüfungen umfassen Unterordner, Unicode- und versteckte Dateien, leere/fehlende Ordner, Abbruch und einen symbolischen Verzeichnislink zurück zum übergeordneten Ordner. CSV-Tests prüfen UTF-8-BOM, Kommas, Anführungszeichen, Zeilenumbrüche, unveränderte Hashwerte, leere Felder, ungültige Zeilenbreiten, vollständiges Ersetzen sowie Erhalt einer bestehenden Zieldatei bei Fehler und Abbruch. Alle 39 Spalten werden projiziert; Exportauswahl, Reihenfolge, Sprache, Hashformat, Architektur und ausgewählte Signatur werden geprüft. Auch leere Exportauswahl, JSON-Wiederherstellung und unbekannte/doppelte gespeicherte Feld-IDs sind abgedeckt.
+
+Die zusätzlichen WPF-Prüfungen für Ribbon-Bindungen, Options-Häkchen, rekursives Hinzufügen mit Duplikaterkennung, Export trotz aktivem Filter, Schutz geladener Quelldateien, Dialogabbruch, Fehlerbehandlung und Cancel/Clear während Suche/Export/Hinzufügen wurden nur kompiliert.
 
 ## Noch nicht ausgeführt
 
-Die Umgebung ist Linux. **Die PowerShell-/VS-Code-Tasks selbst, WPF-Laufzeittests, die visuelle Kontrolle sowie die nativen Windows-Dateityp- und Signaturaufrufe wurden hier nicht ausgeführt.** Der Publish wurde erzeugt und strukturell geprüft, auf Windows jedoch nicht gestartet. Ausgeliefert wird der Quellpatch; eine auf Windows getestete Binärausgabe liegt nicht bei.
+Die Umgebung ist Linux. **Die PowerShell-/VS-Code-Tasks selbst, WPF-Laufzeittests, Ordner-/Speicherdialoge, die visuelle Kontrolle sowie die nativen Windows-Dateityp- und Signaturaufrufe wurden hier nicht ausgeführt.** Der frühere Publish wurde auf Windows nicht gestartet; für diese Erweiterung wurde kein neuer Publish erstellt. Ausgeliefert wird der Quellpatch; eine auf Windows getestete Binärausgabe liegt nicht bei.
 
 Der erfolgreiche Build ersetzt keine Abnahme der Darstellung und Bedienung unter Windows. Den Task `FileScope: Verify` dort einmal ausführen; die abschließende Sichtprüfung bleibt manuell.
 
@@ -80,3 +84,7 @@ Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekan
 21. Beide Metadaten-Häkchen setzen, App neu starten und die Wiederherstellung prüfen. Ausschalten blendet jeweils die zugehörigen Spalten aus. Für bestehende Zeilen nach dem Einschalten „Alle neu prüfen“ verwenden. Neue Spalten unter Optionen umordnen, nach Metadaten suchen und Werte kopieren; Sprach- und Hashformatwechsel dürfen die Originalwerte nicht verändern.
 
 Für unternehmenseigene Vertrauensrichtlinien, besondere Signaturformate und sehr große Dateimengen sind zusätzliche reale Testdateien sinnvoll.
+
+22. „Ordner hinzufügen“ mit Unterordnern, versteckten Dateien und bereits geladenen Dateien prüfen. Duplikate werden übersprungen. Einen leeren Ordner wählen sowie den Dialog abbrechen. Bei nicht lesbaren Unterordnern und Verzeichnisverknüpfungen muss ein Hinweis erscheinen. Suche abbrechen; während des Hinzufügens oder Analysierens auch „Leeren“ prüfen.
+23. Unter Optionen → CSV exportieren einige Felder wählen, einschließlich eines ausgeblendeten Architekturfelds. Reihenfolge und Hashformat ändern, Dateien ausfiltern und exportieren: Alle geladenen Zeilen müssen mit den gewählten Feldern vorhanden sein. Bei mehreren Signaturen folgt der Export der Auswahl in der Zeile. Alle Felder abwählen: Exportknopf deaktiviert. App neu starten: Auswahl erhalten.
+24. CSV mit Kommas, Anführungszeichen, Zeilenumbrüchen, Umlauten und chinesischen Zeichen importieren. Vorhandene CSV überschreiben sowie den Speicherdialog abbrechen. Ein schreibgeschütztes Ziel ausprobieren: Fehlermeldung, vorhandene Datei unverändert, Ergebnisse weiter verfügbar. Einen geladenen Dateipfad als Ziel eingeben: Export muss abgelehnt werden. Einen größeren Export mit „Abbrechen“ beenden.

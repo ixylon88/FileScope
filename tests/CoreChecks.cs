@@ -10,6 +10,8 @@ using FileScope.Core.Models;
 using FileScope.Core.Metadata;
 using FileScope.Core.Services;
 using FileScope.Core.Signatures;
+using FileScope.Core.Files;
+using FileScope.Core.Export;
 
 internal static class CoreChecks
 {
@@ -23,6 +25,8 @@ internal static class CoreChecks
         {
             CheckTimestamps();
             CheckPeHeaders();
+            CheckFolderScan(temp);
+            await CheckCsvExport(temp);
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
             var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
             var abcExpected = new Dictionary<ChecksumAlgorithm, string>
@@ -182,6 +186,106 @@ internal static class CoreChecks
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
         finally { Directory.Delete(temp, true); }
+    }
+
+    private static void CheckFolderScan(string temp)
+    {
+        var root = Path.Combine(temp, "folder-input");
+        var nested = Path.Combine(root, "sub", "中文");
+        Directory.CreateDirectory(nested);
+        var first = Path.Combine(root, "first.bin");
+        var second = Path.Combine(nested, "Prüfung.txt");
+        var hidden = Path.Combine(root, ".hidden");
+        File.WriteAllText(first, "one");
+        File.WriteAllText(second, "two");
+        File.WriteAllText(hidden, "three");
+        if (OperatingSystem.IsWindows()) File.SetAttributes(hidden, FileAttributes.Hidden);
+        var scanner = new FolderScanner();
+        var found = scanner.Scan(root);
+        Check(found.Files.ToHashSet(StringComparer.Ordinal).SetEquals([first, second, hidden]),
+            "folder scan includes nested, Unicode and hidden files exactly once");
+        Check(found.Issues.Count == 0 && found.SkippedDirectoryLinks == 0, "normal scan has no omissions");
+        var empty = Path.Combine(temp, "empty-folder");
+        Directory.CreateDirectory(empty);
+        Check(scanner.Scan(empty).Files.Count == 0, "empty folder is a valid empty result");
+        try { scanner.Scan(Path.Combine(root, "missing")); throw new Exception("Expected missing root failure."); }
+        catch (DirectoryNotFoundException) { Check(true, "missing selected folder is reported"); }
+        using (var cancelled = new CancellationTokenSource())
+        {
+            cancelled.Cancel();
+            try { scanner.Scan(root, cancelled.Token); throw new Exception("Expected scan cancellation."); }
+            catch (OperationCanceledException) { Check(true, "folder enumeration observes cancellation"); }
+        }
+
+        var link = Path.Combine(nested, "back-to-root");
+        var created = false;
+        try { Directory.CreateSymbolicLink(link, root); created = true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        { Console.WriteLine("SKIP symbolic-link fixture: " + ex.Message); }
+        if (created)
+        {
+            try
+            {
+                found = scanner.Scan(root);
+                Check(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3,
+                    "directory link to an ancestor is counted and never traversed");
+            }
+            finally { Directory.Delete(link); }
+        }
+    }
+
+    private static async Task CheckCsvExport(string temp)
+    {
+        var exporter = new CsvResultExporter();
+        var path = Path.Combine(temp, "results.csv");
+        var table = new ResultExportTable(["Name", "Notes", "Hash"],
+            [["Prüfung 中文, sample.exe", "Line 1\r\n\"quoted\"; line 2", "+///"], ["second", "", "00FF"]]);
+        await exporter.ExportAsync(path, table);
+        var bytes = await File.ReadAllBytesAsync(path);
+        Check(bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }), "CSV has a UTF-8 BOM for Unicode readers");
+        Equal("\"Name\",\"Notes\",\"Hash\"\r\n\"Prüfung 中文, sample.exe\",\"Line 1\r\n\"\"quoted\"\"; line 2\",\"+///\"\r\n\"second\",\"\",\"00FF\"\r\n",
+            await File.ReadAllTextAsync(path), "CSV quotes delimiters, embedded quotes/newlines and empty fields without altering hashes");
+
+        var sentinel = "existing export must survive";
+        await File.WriteAllTextAsync(path, sentinel);
+        try
+        {
+            await exporter.ExportAsync(path, new ResultExportTable(["A", "B"], [["1", "2"], ["bad width"]]));
+            throw new Exception("Expected invalid row failure.");
+        }
+        catch (ArgumentException) { Check(true, "CSV rejects inconsistent row lengths"); }
+        Equal(sentinel, await File.ReadAllTextAsync(path), "a failed export preserves an existing destination");
+        using (var cancelled = new CancellationTokenSource())
+        {
+            cancelled.Cancel();
+            var absent = Path.Combine(temp, "cancelled.csv");
+            await ExpectCancellation(() => exporter.ExportAsync(absent, table, cancelled.Token));
+            Check(!File.Exists(absent), "pre-cancelled export creates no destination");
+        }
+        using (var cancelled = new CancellationTokenSource())
+        {
+            await ExpectCancellation(() => exporter.ExportAsync(path,
+                new ResultExportTable(["Name"], new CancellingRows(cancelled)), cancelled.Token));
+            Equal(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
+        }
+        try { await exporter.ExportAsync(path, new ResultExportTable([], [])); throw new Exception("Expected empty columns failure."); }
+        catch (ArgumentException) { Check(true, "CSV requires at least one column"); }
+        await exporter.ExportAsync(path, new ResultExportTable(["Name"], [["replacement"]]));
+        Equal("\"Name\"\r\n\"replacement\"\r\n", await File.ReadAllTextAsync(path), "a successful export replaces the destination completely");
+        Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "successful, failed and cancelled exports clean up temporary files");
+    }
+
+    private sealed class CancellingRows(CancellationTokenSource cancellation) : IReadOnlyList<IReadOnlyList<string>>
+    {
+        public int Count => 2;
+        public IReadOnlyList<string> this[int index] => new[] { index.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+        public IEnumerator<IReadOnlyList<string>> GetEnumerator()
+        {
+            yield return this[0];
+            cancellation.Cancel();
+            yield return this[1];
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private static void CheckPeHeaders()

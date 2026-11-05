@@ -2,11 +2,15 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Markup;
+using System.Windows.Threading;
 using FileScope.App.Infrastructure;
 using FileScope.App.Localization;
 using FileScope.App.Services;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Models;
+using FileScope.Core.Files;
+using FileScope.Core.Export;
+using FileScope.App.Presentation;
 
 namespace FileScope.App.ViewModels;
 
@@ -14,6 +18,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 {
     private readonly IFileAnalysisService _analysis;
     private readonly IFilePickerService _picker;
+    private readonly IFolderScanner _folderScanner;
+    private readonly IResultExporter _exporter;
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
@@ -33,6 +39,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
     public AsyncRelayCommand BrowseCommand { get; }
+    public AsyncRelayCommand AddFolderCommand { get; }
+    public AsyncRelayCommand ExportCsvCommand { get; }
     public AsyncRelayCommand DropFilesCommand { get; }
     public AsyncRelayCommand ReanalyseCommand { get; }
     public RelayCommand CancelCommand { get; }
@@ -40,10 +48,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand ResetFiltersCommand { get; }
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
-        OptionsViewModel options)
+        OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter)
     {
         _analysis = analysis;
         _picker = picker;
+        _folderScanner = folderScanner;
+        _exporter = exporter;
         _strings = strings;
         Options = options;
         // Restore before attaching change handlers: initialization must not save
@@ -84,6 +94,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RowsView.Filter = MatchesFilters;
         BrowseCommand = new AsyncRelayCommand(async _ =>
             await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => IsIdle);
+        AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => IsIdle);
+        ExportCsvCommand = new AsyncRelayCommand(_ => ExportCsvAsync(), OnCommandError,
+            _ => IsIdle && HasRows && Options.HasExportColumns);
         DropFilesCommand = new AsyncRelayCommand(p => AddFilesAsync((string[])p!), OnCommandError,
             p => IsIdle && p is string[] { Length: > 0 });
         ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
@@ -93,6 +106,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ResetFiltersCommand = new RelayCommand(ResetFilters);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
+        options.ExportSelectionChanged += OnExportSelectionChanged;
         foreach (var option in ChecksumOptions) option.PropertyChanged += OnChecksumOptionChanged;
     }
 
@@ -144,7 +158,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool ShowSHA256Column => IsChecksumSelected(ChecksumAlgorithm.SHA256);
     public bool ShowSHA384Column => IsChecksumSelected(ChecksumAlgorithm.SHA384);
     public bool ShowSHA512Column => IsChecksumSelected(ChecksumAlgorithm.SHA512);
-    public bool IsCheckingSignature { get; private set => SetProperty(ref field, value); }
+    public bool IsCheckingSignature
+    {
+        get;
+        private set { if (SetProperty(ref field, value)) OnPropertyChanged(nameof(IsProgressIndeterminate)); }
+    }
+    private bool IsFileOperation
+    {
+        get;
+        set { if (SetProperty(ref field, value)) OnPropertyChanged(nameof(IsProgressIndeterminate)); }
+    }
+    public bool IsProgressIndeterminate => IsCheckingSignature || IsFileOperation;
     public double Progress { get; private set => SetProperty(ref field, value); }
     public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
     public string LastError { get; private set => SetProperty(ref field, value); } = "";
@@ -206,33 +230,137 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         InspectPeHeader = InspectPeHeader
     });
 
-    private async Task AddFilesAsync(IEnumerable<string> paths)
+    private async Task AddFolderAsync()
     {
         if (!IsIdle) return;
-        var added = new List<FileRowViewModel>();
-        _skipped = 0;
-        // Rows.Add raises synchronous change notifications. Keep the view readable
-        // for the DataGrid (Count, current item, selection) during those callbacks.
-        foreach (var path in paths)
+        var folder = _picker.PickFolder(_strings["AddFolderTitle"]);
+        if (folder is null) return;
+        var token = BeginFileOperation("ScanningFolder");
+        CurrentFile = folder;
+        FolderScanResult? result = null;
+        try
         {
-            if (string.IsNullOrWhiteSpace(path)) continue;
-            string normalized;
-            try { normalized = Path.GetFullPath(path); }
-            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
-            { normalized = path; } // The core service reports the invalid path as a row.
-            if (!_paths.Add(normalized)) { _skipped++; continue; }
-            var row = new FileRowViewModel(normalized, _strings, Options.SelectedHashFormat.Value);
-            row.SignaturesChanged += OnSignaturesChanged;
-            row.SignatureSelectionChanged += OnSignatureSelectionChanged;
-            Rows.Add(row);
-            added.Add(row);
+            result = await Task.Run(() => _folderScanner.Scan(folder, token), token);
+            token.ThrowIfCancellationRequested();
         }
-        NotifyRowsChanged();
-        if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }
-        await RunBatchAsync(added);
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            result = null;
+            SetStatus("FolderScanCancelled");
+        }
+        finally { EndFileOperation(); }
+        if (result is null || _disposed) return;
+        var warning = result.Issues.Count == 0 && result.SkippedDirectoryLinks == 0 ? ""
+            : _strings.Format("FolderScanWarning", result.Issues.Count, result.SkippedDirectoryLinks);
+        if (result.Issues.Count > 0) warning += $"\n{result.Issues[0].Path}: {result.Issues[0].Message}";
+        await AddFilesAsync(result.Files, warning);
+        if (result.Files.Count == 0) SetStatus("FolderEmpty");
     }
 
-    private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch)
+    private async Task ExportCsvAsync()
+    {
+        if (!IsIdle || !HasRows || !Options.HasExportColumns) return;
+        var path = _picker.PickCsvDestination(_strings["ExportCsvTitle"], _strings["CsvFiles"]);
+        if (path is null) return;
+        // A manually typed filename must never replace an analyzed source file.
+        if (_paths.Contains(Path.GetFullPath(path)))
+        {
+            LastError = _strings["ExportSourceConflict"];
+            OnPropertyChanged(nameof(HasError));
+            return;
+        }
+        var token = BeginFileOperation("ExportingCsv");
+        CurrentFile = path;
+        try
+        {
+            // Rows, not RowsView: filters/selection never omit loaded files.
+            var table = ResultExportProjection.Capture(Rows, Options.Columns);
+            await Task.Run(() => _exporter.ExportAsync(path, table, token), token);
+            _processed = table.Rows.Count;
+            SetStatus("CsvExported");
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { SetStatus("CsvExportCancelled"); }
+        finally { EndFileOperation(); }
+    }
+
+    private CancellationToken BeginFileOperation(string status)
+    {
+        ++_epoch;
+        _cancellation = new CancellationTokenSource();
+        _clearRequested = false;
+        LastError = "";
+        OnPropertyChanged(nameof(HasError));
+        Progress = 0;
+        IsFileOperation = true;
+        IsBusy = true;
+        SetStatus(status);
+        return _cancellation.Token;
+    }
+
+    private void EndFileOperation()
+    {
+        ++_epoch;
+        _cancellation?.Dispose();
+        _cancellation = null;
+        IsFileOperation = false;
+        IsBusy = false;
+        CurrentFile = "";
+        if (_clearRequested) ClearRows();
+        NotifyCommands();
+    }
+
+    private void OnExportSelectionChanged(object? sender, EventArgs args) => ExportCsvCommand.NotifyCanExecuteChanged();
+
+    private async Task AddFilesAsync(IEnumerable<string> paths, string warning = "")
+    {
+        if (!IsIdle) return;
+        var token = BeginFileOperation("PreparingFiles");
+        LastError = warning;
+        OnPropertyChanged(nameof(HasError));
+        var added = new List<FileRowViewModel>();
+        _skipped = 0;
+        var cancelled = false;
+        var visited = 0;
+        try
+        {
+            // Keep the view readable during synchronous collection notifications.
+            // Yield in chunks so a large folder can render and accept Cancel/Clear.
+            foreach (var path in paths)
+            {
+                token.ThrowIfCancellationRequested();
+                if (++visited % 128 == 0)
+                {
+                    NotifyRowsChanged();
+                    await Dispatcher.Yield(DispatcherPriority.Background);
+                    token.ThrowIfCancellationRequested();
+                }
+                if (string.IsNullOrWhiteSpace(path)) continue;
+                string normalized;
+                try { normalized = Path.GetFullPath(path); }
+                catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
+                { normalized = path; } // The core service reports the invalid path as a row.
+                if (!_paths.Add(normalized)) { _skipped++; continue; }
+                var row = new FileRowViewModel(normalized, _strings, Options.SelectedHashFormat.Value);
+                row.SignaturesChanged += OnSignaturesChanged;
+                row.SignatureSelectionChanged += OnSignatureSelectionChanged;
+                Rows.Add(row);
+                added.Add(row);
+            }
+            token.ThrowIfCancellationRequested();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            cancelled = true;
+            foreach (var row in added) row.Cancel();
+            SetStatus("IntakeCancelled");
+        }
+        finally { EndFileOperation(); RefreshView(); }
+        if (cancelled || _disposed) return;
+        if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }
+        await RunBatchAsync(added, warning);
+    }
+
+    private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "")
     {
         if (!IsIdle || batch.Count == 0) return;
         var options = new AnalysisOptions(ChecksumOptions.Where(x => x.IsSelected).Select(x => x.Algorithm),
@@ -244,7 +372,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _processed = 0;
         _batchTotal = batch.Count;
         _clearRequested = false;
-        LastError = "";
+        LastError = warning;
         OnPropertyChanged(nameof(HasError));
         IsBusy = true;
         Progress = 0;
@@ -425,6 +553,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void NotifyCommands()
     {
         BrowseCommand.NotifyCanExecuteChanged();
+        AddFolderCommand.NotifyCanExecuteChanged();
+        ExportCsvCommand.NotifyCanExecuteChanged();
         DropFilesCommand.NotifyCanExecuteChanged();
         ReanalyseCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
@@ -452,6 +582,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ++_epoch;
         _strings.CultureChanged -= OnCultureChanged;
         Options.HashFormatChanged -= OnHashFormatChanged;
+        Options.ExportSelectionChanged -= OnExportSelectionChanged;
         foreach (var row in Rows) UnsubscribeRow(row);
         Options.Dispose();
         foreach (var option in ChecksumOptions) option.PropertyChanged -= OnChecksumOptionChanged;

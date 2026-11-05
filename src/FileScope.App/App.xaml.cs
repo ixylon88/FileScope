@@ -6,6 +6,8 @@ using FileScope.Core.Checksums;
 using FileScope.Core.Services;
 using FileScope.Core.Signatures;
 using FileScope.Core.Metadata;
+using FileScope.Core.Files;
+using FileScope.Core.Export;
 
 namespace FileScope.App;
 
@@ -20,7 +22,8 @@ public partial class App : Application
             new FilePropertiesInspector(), new PeHeaderInspector());
         var strings = LocalizationService.Instance;
         var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath));
-        var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options);
+        var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options,
+            new FolderScanner(), new CsvResultExporter());
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();
