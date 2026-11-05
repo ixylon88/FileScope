@@ -42,6 +42,6 @@ public interface IFilePropertiesInspector
 
 public interface IPeHeaderInspector
 {
-    // Reads bytes only, leaves the stream open and restores its position.
+    // PE and NE header metadata. Reads bytes only, leaves the stream open and restores its position.
     PeHeaderResult Inspect(Stream stream, CancellationToken cancellationToken = default);
 }

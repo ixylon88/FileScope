@@ -25,6 +25,7 @@ internal static class CoreChecks
         {
             CheckTimestamps();
             CheckPeHeaders();
+            CheckNeHeaders();
             CheckFolderScan(temp);
             await CheckCsvExport(temp);
             await CheckJsonExport(temp);
@@ -436,13 +437,13 @@ internal static class CoreChecks
 
         var dosOnly = new byte[128];
         dosOnly[0] = (byte)'M'; dosOnly[1] = (byte)'Z';
-        var ne = PeFixture(0x014c, false); ne[128] = (byte)'N';
+        var le = PeFixture(0x014c, false); le[128] = (byte)'L';
         var hugeOffset = (byte[])dosOnly.Clone();
         BinaryPrimitives.WriteUInt32LittleEndian(hugeOffset.AsSpan(60), uint.MaxValue);
-        foreach (var bytes in new byte[][] { [], "ordinary text"u8.ToArray(), new byte[512], dosOnly, ne, hugeOffset })
+        foreach (var bytes in new byte[][] { [], "ordinary text"u8.ToArray(), new byte[512], dosOnly, le, hugeOffset })
         {
             using var stream = new MemoryStream(bytes);
-            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: null }, "non-PE input stays empty without error");
+            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: null }, "unsupported header input stays empty without error");
         }
         foreach (var bytes in new[] { PeFixture(0x014c, false)[..140], PeFixture(0x014c, false)[..200] })
         {
@@ -466,6 +467,75 @@ internal static class CoreChecks
             catch (OperationCanceledException) { }
             Equal(0L, stream.BytesRead, "cancelled PE inspection performs no reads");
         }
+    }
+
+    private static void CheckNeHeaders()
+    {
+        var inspector = new PeHeaderInspector();
+        foreach (var dll in new[] { false, true })
+        {
+            using var stream = new PeCountingStream(NeFixture(dll));
+            stream.Position = 17;
+            var result = inspector.Inspect(stream);
+            Check(result is { Diagnostic: null, Header: { MachineCode: null, MachineName: "x86 (16-bit)", Format: "NE (Win16)", ManagedPlatform: ManagedPlatform.None } },
+                "Win16 NE header is recognized without a fabricated PE machine code / DLL=" + dll);
+            Check(stream.CanRead && stream.Position == 17 && stream.BytesRead <= 128,
+                "NE detection reuses the stream, restores its position and reads only fixed headers / DLL=" + dll);
+        }
+        foreach (var (target, format, machine) in new (byte, string, string)[]
+        {
+            (1, "NE (OS/2)", "x86 (16-bit)"), (3, "NE (DOS 4.x)", "x86 (16-bit)"),
+            (4, "NE (Windows/386)", "x86"), (255, "NE (target 0xFF)", "x86")
+        })
+        {
+            using var stream = new MemoryStream(NeFixture(false, target));
+            var result = inspector.Inspect(stream);
+            Check(result.Header is { } header && header.Format == format && header.MachineName == machine,
+                "NE target is preserved without assuming every NE image is Win16 / " + target);
+        }
+        var shortOs2 = NeFixture(true, 1)[..188];
+        BinaryPrimitives.WriteUInt16LittleEndian(shortOs2.AsSpan(128 + 6), 0);
+        BinaryPrimitives.WriteUInt16LittleEndian(shortOs2.AsSpan(128 + 0x1c), 0);
+        using (var stream = new MemoryStream(shortOs2))
+            Check(inspector.Inspect(stream).Header?.Format == "NE (OS/2)", "original 60-byte OS/2 NE header is accepted");
+        var hugeSegments = NeFixture(false);
+        BinaryPrimitives.WriteUInt16LittleEndian(hugeSegments.AsSpan(128 + 0x1c), ushort.MaxValue);
+        var overlap = NeFixture(false);
+        BinaryPrimitives.WriteUInt16LittleEndian(overlap.AsSpan(128 + 0x22), 32);
+        var outsideEntry = NeFixture(false);
+        BinaryPrimitives.WriteUInt16LittleEndian(outsideEntry.AsSpan(128 + 4), ushort.MaxValue);
+        foreach (var bytes in new[] { NeFixture(false)[..130], NeFixture(false)[..188], hugeSegments, overlap, outsideEntry })
+        {
+            using var stream = new MemoryStream(bytes);
+            stream.Position = 7;
+            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
+                "truncated NE header or invalid table bounds report a diagnostic and restore the stream");
+        }
+        using var cancellation = new CancellationTokenSource();
+        using var cancelled = new PeCountingStream(NeFixture(false));
+        cancellation.Cancel();
+        try { inspector.Inspect(cancelled, cancellation.Token); throw new Exception("Expected NE cancellation."); }
+        catch (OperationCanceledException) { Check(cancelled.BytesRead == 0, "cancelled NE inspection reads nothing"); }
+    }
+
+    // A small Win16 NE image: one code segment, entry table and DOS stub.
+    // Offsets follow the NE specification, independently of the production reader.
+    private static byte[] NeFixture(bool dll, byte target = 2)
+    {
+        var bytes = new byte[1024];
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void U32(int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset), value);
+        bytes[0] = (byte)'M'; bytes[1] = (byte)'Z';
+        U16(2, 128); U16(4, 1); U16(8, 4); U16(24, 64); U32(60, 128);
+        bytes[128] = (byte)'N'; bytes[129] = (byte)'E'; bytes[130] = 5;
+        U16(128 + 4, 72); U16(128 + 6, 2);
+        U16(128 + 0x0c, (ushort)(dll ? 0x8000 : 0));
+        U16(128 + 0x16, 1); U16(128 + 0x1c, 1);
+        U16(128 + 0x22, 64); U16(128 + 0x32, 4); bytes[128 + 0x36] = target;
+        U16(128 + 0x3e, 0x030a); // Windows 3.10
+        U16(192, 32); U16(194, 16); U16(196, 0); U16(198, 16);
+        bytes[512] = 0xcb; // RETF; inspected as bytes, never executed.
+        return bytes;
     }
 
     // A minimal PE image with one .text section and an optional CLR header.
@@ -557,6 +627,17 @@ internal static class CoreChecks
             new AnalysisOptions([], false, inspectPeHeader: true));
         Check(real.PeHeader?.Header?.MachineName == "Alpha" && real.Properties is null,
             "real pipeline reads PE from a .bin file with properties disabled");
+        foreach (var dll in new[] { false, true })
+        {
+            var image = NeFixture(dll);
+            var legacyPath = path + (dll ? ".dll" : ".exe");
+            await File.WriteAllBytesAsync(legacyPath, image);
+            var legacy = await new FileAnalysisService(checksums, new StubSignatures()).AnalyzeAsync(legacyPath,
+                new AnalysisOptions([ChecksumAlgorithm.SHA256], false, inspectPeHeader: true));
+            Check(legacy.PeHeader is { Diagnostic: null, Header.Format: "NE (Win16)" }
+                && legacy.Checksums[ChecksumAlgorithm.SHA256] == Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image)),
+                "real pipeline hashes and recognizes Win16 EXE/DLL without execution / DLL=" + dll);
+        }
         await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
     }
 
@@ -588,7 +669,14 @@ internal static class CoreChecks
         public override int Read(byte[] buffer, int offset, int count)
         { var read = base.Read(buffer, offset, count); BytesRead += read; return read; }
         public override int Read(Span<byte> buffer)
-        { var read = base.Read(buffer); BytesRead += read; return read; }
+        {
+            // MemoryStream subclasses may route this overload through Read(byte[],...).
+            // Count that read once, including when the base implementation delegates.
+            var before = BytesRead;
+            var read = base.Read(buffer);
+            BytesRead = before + read;
+            return read;
+        }
     }
 
     private static void CheckTimestamps()

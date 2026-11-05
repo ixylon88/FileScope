@@ -481,10 +481,10 @@
     <value>Versionsinformationen und Windows-Dateityp lesen. Fehlende Felder bleiben leer. Für vorhandene Zeilen aktivieren und erneut analysieren.</value>
   </data>
   <data name="InspectPeHeader" xml:space="preserve">
-    <value>PE-Header / Plattform</value>
+    <value>EXE-Header / Plattform</value>
   </data>
   <data name="InspectPeHeaderTip" xml:space="preserve">
-    <value>PE-Maschinentyp, PE32/PE32+ und .NET-Plattform lesen, ohne die Datei auszuführen. Ohne PE-Header bleiben die Felder leer. Für vorhandene Zeilen aktivieren und erneut analysieren.</value>
+    <value>PE32/PE32+, NE (Win16), Architektur und .NET-Plattform lesen, ohne die Datei auszuführen. Aktivieren und erneut prüfen, um vorhandene Zeilen zu ergänzen.</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
     <value>Metadaten werden gelesen…</value>
@@ -496,7 +496,7 @@
     <value>Dateieigenschaften: {0}</value>
   </data>
   <data name="PeHeaderError" xml:space="preserve">
-    <value>PE-Header: {0}</value>
+    <value>Programm-Header: {0}</value>
   </data>
   <data name="Column_FileDescription" xml:space="preserve">
     <value>Dateibeschreibung</value>
@@ -535,10 +535,10 @@
     <value>Kommentare</value>
   </data>
   <data name="Column_PeMachine" xml:space="preserve">
-    <value>PE-Maschinentyp</value>
+    <value>Architektur</value>
   </data>
   <data name="Column_PeFormat" xml:space="preserve">
-    <value>PE-Format</value>
+    <value>Programmformat</value>
   </data>
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET-Plattform</value>

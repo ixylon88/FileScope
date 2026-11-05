@@ -93,12 +93,12 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Unter „Ausgewählte Datei“ ist der komplette Detailtext markierbar. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
-| Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
+| Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Filter, sobald kein Vorgang mehr läuft. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
 | Design | Festes Fluent-Dark-Theme über `App.xaml`. Kein Theme-Umschalter und keine eigenen Vorlagen für Zeilen/Zellen. |
 
-Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
+Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
 
 Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Zum rekursiven Einlesen von Ordnern „Ordner hinzufügen“ verwenden; per Drag-and-drop abgelegte Ordner werden weiterhin als eigene Fehlerzeilen gemeldet. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
 
@@ -116,7 +116,7 @@ Beim horizontalen Scrollen kann WPF für `CellsPanelHorizontalOffset` einen geri
 
 ## Ordnersuche und Export
 
-Die Ordnersuche berücksichtigt auch versteckte Dateien. Verzeichnisverknüpfungen (Junctions und symbolische Links) innerhalb des ausgewählten Ordners werden übersprungen, damit keine Schleifen entstehen. Nicht lesbare Unterordner werden gemeldet; lesbare Geschwisterordner werden weiter durchsucht. Bereits vorhandene Pfade werden nicht erneut analysiert. „Abbrechen“ beendet die Suche ohne neue Zeilen; beim späteren Hinzufügen oder Analysieren bleiben bereits hinzugefügte Zeilen erhalten und können mit „Alle neu prüfen“ verarbeitet werden. „Leeren“ bricht den laufenden Vorgang ab und entfernt danach alle Zeilen.
+Die Ordnersuche berücksichtigt auch versteckte Dateien. Verzeichnisverknüpfungen (Junctions und symbolische Links) innerhalb des ausgewählten Ordners werden übersprungen, damit keine Schleifen entstehen. Nicht lesbare Unterordner werden gemeldet; lesbare Geschwisterordner werden weiter durchsucht. Bereits vorhandene Pfade werden nicht erneut analysiert. „Abbrechen“ beendet die Suche ohne neue Zeilen; beim späteren Hinzufügen oder Analysieren bleiben bereits hinzugefügte Zeilen erhalten und können mit „Alle neu prüfen“ verarbeitet werden. „Leeren“ ist erst nach Abschluss oder beendetem Abbruch verfügbar und entfernt dann alle Zeilen.
 
 Der Exportdialog bietet CSV (`*.csv`, Standard) und JSON (`*.json`) als Dateitypen an. Ohne eingegebene Endung ergänzt der Dialog die Endung des gewählten Dateityps. Eine explizite Endung `.csv` oder `.json` bestimmt das Format, unabhängig von Groß-/Kleinschreibung. Andere Endungen werden mit einem Hinweis abgewiesen. Die Überschreibabfrage gilt für den tatsächlich zurückgegebenen Dateinamen; danach wird nichts umbenannt. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene Exportdatei.
 
@@ -163,13 +163,17 @@ Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kei
 
 Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik lässt sich auch ohne Windows verwenden. Die WPF-App zielt auf `net10.0-windows`. Die native Authenticode-Strategie meldet außerhalb von Windows ausdrücklich „UnsupportedPlatform“.
 
-## Dateieigenschaften und PE-Header
+## Dateieigenschaften und Programm-Header
 
 **Dateieigenschaften** liest die vorhandenen `VERSIONINFO`-Felder: Dateibeschreibung, Sprache, Datei- und Produktversion, Produktname, Hersteller, Originaldateiname, interner Name, Copyright, Marken und Kommentare. Fehlende Felder bleiben leer. „Dateityp“ kommt aus der Windows-Zuordnung der Dateiendung; es ist keine Inhaltsprüfung und kann von der tatsächlichen Datei abweichen. Ohne Windows wird die Endung angezeigt. Versionsfelder, Dateisprache und Windows-Typbezeichnung bleiben in ihrer Original-/Systemsprache; die Spaltenüberschriften wechseln mit der App-Sprache. Allgemeine Office-/PDF-Dokumenteigenschaften oder Bild-EXIF sind nicht Teil dieser Auswertung.
 
-**PE-Header / Plattform** prüft DOS-/PE-Kennung und liest den COFF-Maschinentyp, beispielsweise `i386 (0x014C)`, `AMD64 (x64)`, `ARM`, `ARM64` oder `Alpha`. Unbekannte Werte bleiben als Hexcode sichtbar. Die Erkennung richtet sich nach dem Dateiinhalt, nicht nach `.exe` oder `.dll`. Dateien ohne PE-Header liefern leere PE-Felder; beschädigte erkannte PE-Header erhalten eine Diagnose.
+**EXE-Header / Plattform** prüft DOS-/PE-/NE-Kennung und liest den COFF-Maschinentyp, beispielsweise `i386 (0x014C)`, `AMD64 (x64)`, `ARM`, `ARM64` oder `Alpha`. Unbekannte Werte bleiben als Hexcode sichtbar. Die Erkennung richtet sich nach dem Dateiinhalt, nicht nach `.exe` oder `.dll`. Dateien ohne unterstützten PE- oder NE-Header liefern leere Header-Felder; beschädigte erkannte Header erhalten eine Diagnose.
 
 Die zusätzlichen Spalten zeigen `PE32`/`PE32+` und bei vorhandenen CLR-Headern die .NET-Plattform. Ein IL-only-i386-PE kann `AnyCPU`, `AnyCPU (32 Bit bevorzugt)` oder explizit `i386` sein. Native Dateien haben keine .NET-Plattform. Maschinentyp und CLR-Flags beschreiben die Header und sind keine Garantie für Lauffähigkeit auf einem bestimmten Windows-System. Es wird ausschließlich gelesen; keine Assembly wird geladen oder ausgeführt.
+
+**Windows-16-Bit-Dateien** verwenden NE (New Executable), nicht „PE16“. EXE und DLL werden als `NE (Win16)` mit `x86 (16-bit)` erkannt. NE enthält keinen COFF-Maschinentyp; deshalb wird kein PE-Hexcode erfunden. OS/2-, DOS-4.x- und Windows/386-Ziele bleiben unterscheidbar; bei Windows/386 und unbekannten Zielwerten wird keine 16-Bit-Codebreite unterstellt. Ein bloßes `MZ` am Dateianfang reicht nicht zur Win16-Erkennung, da auch PE, LE und LX einen DOS-Stub besitzen. Reine DOS-MZ-, LE- und LX-Dateien liefern weiterhin keine PE-/NE-Metadaten; ihre Prüfsummen sind davon unabhängig.
+
+Die NE-Erweiterung liest den festen Header und prüft die Grenzen von Segment- und Einsprungtabellen. Sie durchsucht weder Nutzdaten noch Ressourcen und übernimmt den vorhandenen Stream samt Positionswiederherstellung. `NeHeaderReader` kapselt das NE-Layout getrennt vom vorhandenen PE-/CLR-Parser. Die internen Namen `InspectPeHeader`, `PeMachine` und `PeFormat` bleiben für gespeicherte Einstellungen und Exporte bestehen. Die sichtbaren Bezeichnungen sind nun „EXE-Header / Plattform“, „Architektur“ und „Programmformat“. CSV und JSON enthalten die erkannten NE-Werte automatisch. VERSIONINFO bleibt bei der bestehenden Betriebssystem-/Framework-Abfrage; ein eigener Leser für Win16-Versionsressourcen ist nicht Bestandteil dieser Erweiterung.
 
 Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktivierte Prüfungen gelten für den nächsten Durchlauf; für vorhandene Zeilen „Alle neu prüfen“ verwenden. Ein erwarteter Lesefehler einer optionalen Metadatenprüfung wird in der Diagnosespalte ergänzt; bereits berechnete Hashes und die übrigen Prüfungen bleiben erhalten. Die Verarbeitungsanzeige kann deshalb „Fertig“ zeigen, während eine optionale Auswertung eine Diagnose enthält.
 
@@ -262,3 +266,5 @@ Die `.editorconfig` ist nach Themen und Regel-IDs geordnet; jede Einstellung tr�
 ### Fenstergröße der Optionen
 
 Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
+
+NE-Layoutreferenzen: [Open Watcom: exeos2.h](https://github.com/open-watcom/open-watcom-v2/blob/master/bld/watcom/h/exeos2.h), [Wine: IMAGE_OS2_HEADER](https://github.com/wine-mirror/wine/blob/master/include/winnt.h).

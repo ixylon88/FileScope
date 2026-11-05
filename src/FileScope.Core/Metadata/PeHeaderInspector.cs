@@ -11,22 +11,26 @@ public sealed class PeHeaderInspector : IPeHeaderInspector
     {
         ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!stream.CanRead || !stream.CanSeek) return new(null, "PE inspection requires a readable, seekable stream.");
+        if (!stream.CanRead || !stream.CanSeek) return new(null, "Executable header inspection requires a readable, seekable stream.");
         var originalPosition = stream.Position;
         try
         {
-            // Distinguish PE images from ordinary data, DOS/NE images and COFF
-            // object files before using the framework's bounded header parser.
+            // Dispatch by the extended signature, never by the file extension or
+            // MZ alone: DOS stubs are also present in PE, NE and other formats.
             if (stream.Length < 64) return new(null);
             stream.Position = 0;
             Span<byte> dosHeader = stackalloc byte[64];
             stream.ReadExactly(dosHeader);
             if (dosHeader[0] != 'M' || dosHeader[1] != 'Z') return new(null);
             var peOffset = BinaryPrimitives.ReadUInt32LittleEndian(dosHeader[60..]);
-            if (peOffset < 64 || peOffset > stream.Length - 4) return new(null);
+            if (peOffset < 64 || peOffset > stream.Length - 2) return new(null);
             stream.Position = peOffset;
             Span<byte> signature = stackalloc byte[4];
-            stream.ReadExactly(signature);
+            stream.ReadExactly(signature[..2]);
+            if (signature[..2].SequenceEqual("NE"u8))
+                return new(NeHeaderReader.Read(stream, peOffset, cancellationToken));
+            if (peOffset > stream.Length - 4) return new(null);
+            stream.ReadExactly(signature[2..]);
             if (!signature.SequenceEqual("PE\0\0"u8)) return new(null);
             cancellationToken.ThrowIfCancellationRequested();
             stream.Position = 0;

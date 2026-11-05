@@ -71,7 +71,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string FileTrademarks => Result?.Properties?.Info?.Trademarks ?? "";
     public string FileComments => Result?.Properties?.Info?.Comments ?? "";
     public string PeMachine => Result?.PeHeader?.Header is { } header
-        ? header.MachineName.StartsWith("0x", StringComparison.Ordinal)
+        ? header.MachineCode is null || header.MachineName.StartsWith("0x", StringComparison.Ordinal)
             ? header.MachineName : $"{header.MachineName} (0x{header.MachineCode:X4})"
         : "";
     public string PeFormat => Result?.PeHeader?.Header?.Format ?? "";

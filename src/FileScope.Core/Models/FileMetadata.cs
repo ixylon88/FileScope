@@ -16,9 +16,11 @@ public sealed record FilePropertiesInfo
     public string? Comments { get; init; }
 }
 
-// Null result: option disabled. Null Header: inspected, but no PE image found.
+// Null result: option disabled. Null Header: inspected, but no supported image found.
 // Optional metadata failures carry diagnostics without discarding file hashes.
 public sealed record FilePropertiesResult(FilePropertiesInfo? Info, string? Diagnostic = null);
 public enum ManagedPlatform { None, AnyCpu, Prefer32Bit, MachineSpecific }
-public sealed record PeHeaderInfo(ushort MachineCode, string MachineName, string Format, ManagedPlatform ManagedPlatform);
+// Historical PE names remain compatible with settings and export column IDs.
+// NE images have no COFF Machine field; do not invent a PE code for them.
+public sealed record PeHeaderInfo(ushort? MachineCode, string MachineName, string Format, ManagedPlatform ManagedPlatform);
 public sealed record PeHeaderResult(PeHeaderInfo? Header, string? Diagnostic = null);

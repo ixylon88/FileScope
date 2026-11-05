@@ -376,10 +376,10 @@
     <value>读取版本信息和 Windows 文件类型。缺失的字段留空。启用后重新分析可更新现有行。</value>
   </data>
   <data name="InspectPeHeader" xml:space="preserve">
-    <value>PE 头 / 平台</value>
+    <value>EXE 标头 / 平台</value>
   </data>
   <data name="InspectPeHeaderTip" xml:space="preserve">
-    <value>读取 PE 机器类型、PE32/PE32+ 和 .NET 平台，不执行文件。没有 PE 头的文件留空。启用后重新分析可更新现有行。</value>
+    <value>读取 PE32/PE32+、NE（Win16）、体系结构和 .NET 平台，不执行文件。启用后重新分析以更新已有结果。</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
     <value>正在读取元数据…</value>
@@ -391,7 +391,7 @@
     <value>文件属性：{0}</value>
   </data>
   <data name="PeHeaderError" xml:space="preserve">
-    <value>PE 头：{0}</value>
+    <value>可执行文件标头：{0}</value>
   </data>
   <data name="Column_FileDescription" xml:space="preserve">
     <value>文件说明</value>
@@ -430,10 +430,10 @@
     <value>备注</value>
   </data>
   <data name="Column_PeMachine" xml:space="preserve">
-    <value>PE 机器类型</value>
+    <value>体系结构</value>
   </data>
   <data name="Column_PeFormat" xml:space="preserve">
-    <value>PE 格式</value>
+    <value>可执行文件格式</value>
   </data>
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET 平台</value>

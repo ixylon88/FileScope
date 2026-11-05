@@ -119,12 +119,20 @@ internal static class UiChecks
             PumpUntil(() => blocked.Started.Task.IsCompleted);
             Check(busyVm.IsBusy && !busyVm.DropFilesCommand.CanExecute(new[] { second }),
                 "concurrent drop is disabled during a batch");
+            Check(!busyVm.ClearCommand.CanExecute(null), "clear is disabled during analysis");
             busyVm.ClearCommand.Execute(null);
-            Check(blocked.Token.IsCancellationRequested, "clear requests cancellation");
-            Check(busyVm.IsBusy, "clear waits for a non-interruptible strategy");
+            Check(busyVm.IsBusy && busyVm.Rows.Count == 1 && !blocked.Token.IsCancellationRequested,
+                "disabled clear neither removes rows nor cancels analysis");
+            busyVm.CancelCommand.Execute(null);
+            Check(blocked.Token.IsCancellationRequested, "cancel requests cancellation");
+            Check(busyVm.IsBusy && !busyVm.ClearCommand.CanExecute(null),
+                "clear stays disabled while cancellation waits for a non-interruptible strategy");
             blocked.Release.TrySetResult();
             PumpUntil(() => !busyVm.IsBusy);
-            Check(busyVm.Rows.Count == 0 && busyVm.ShowEmptyState, "clear empties the grid after the worker finishes");
+            Check(busyVm.Rows.Count == 1 && busyVm.Rows[0].State == RowStatus.Cancelled
+                && busyVm.ClearCommand.CanExecute(null), "cancelled analysis keeps rows and enables clear");
+            busyVm.ClearCommand.Execute(null);
+            Check(busyVm.Rows.Count == 0 && busyVm.ShowEmptyState, "clear empties the grid after cancellation finishes");
             blocked.Progress?.Report(new AnalysisProgress(AnalysisStage.Reading, 1, 1));
             DrainDispatcher();
             Check(busyVm.Rows.Count == 0 && busyVm.Progress == 0 && busyVm.CurrentFile.Length == 0,
@@ -358,23 +366,34 @@ internal static class UiChecks
     private static void CheckFileOperationCancellation(LocalizationService strings)
     {
         var source = Path.Combine(Path.GetTempPath(), "FileScope-operation-source.bin");
-        foreach (var clear in new[] { false, true })
+        var scanner = new BlockingFolderScanner();
+        var picker = new TestPicker { Files = [source], Folder = Path.GetTempPath() };
+        var analysis = new ImmediateAnalysis();
+        using (var vm = CreateMainViewModel(analysis, picker, strings, CreateOptions(strings), scanner))
         {
-            var scanner = new BlockingFolderScanner();
-            var picker = new TestPicker { Files = [source], Folder = Path.GetTempPath() };
-            using var vm = CreateMainViewModel(new ImmediateAnalysis(), picker, strings, CreateOptions(strings), scanner);
             vm.BrowseCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
+            var existingRow = vm.Rows[0];
             vm.AddFolderCommand.Execute(null);
             PumpUntil(() => scanner.Started.Task.IsCompleted);
             Check(vm.IsBusy && vm.IsProgressIndeterminate && vm.CancelCommand.CanExecute(null)
-                && !vm.ExportCommand.CanExecute(null) && !vm.BrowseCommand.CanExecute(null),
-                "folder scanning is cancellable and prevents concurrent file operations");
-            if (clear) vm.ClearCommand.Execute(null); else vm.CancelCommand.Execute(null);
+                && !vm.ExportCommand.CanExecute(null) && !vm.BrowseCommand.CanExecute(null)
+                && !vm.ClearCommand.CanExecute(null),
+                "folder scanning is cancellable and disables clear and concurrent file operations");
+            vm.ClearCommand.Execute(null);
+            Check(vm.IsBusy && vm.Rows.Count == 1 && ReferenceEquals(vm.Rows[0], existingRow)
+                && vm.CancelCommand.CanExecute(null), "disabled clear leaves the scan and existing rows unchanged");
+            vm.CancelCommand.Execute(null);
+            Check(vm.IsBusy && !vm.ClearCommand.CanExecute(null), "clear waits for scan cancellation to finish");
             scanner.Release.TrySetResult();
             PumpUntil(() => !vm.IsBusy);
-            Check(vm.Rows.Count == (clear ? 0 : 1) && !vm.IsProgressIndeterminate && !vm.HasError,
-                "cancel/clear during scanning discards scan results and keeps the correct existing rows");
+            Check(vm.Rows.Count == 1 && ReferenceEquals(vm.Rows[0], existingRow)
+                && existingRow.State == RowStatus.Completed && analysis.Calls == 1
+                && !vm.IsProgressIndeterminate && !vm.HasError && vm.ClearCommand.CanExecute(null),
+                "cancelled scan adds no results, keeps the existing row and enables clear");
+            vm.ClearCommand.Execute(null);
+            Check(vm.Rows.Count == 0 && vm.ShowEmptyState && !vm.ClearCommand.CanExecute(null),
+                "clear after scan cancellation removes existing rows");
         }
         var exporter = new BlockingExporter();
         var exportPicker = new TestPicker { Files = [source], Destination = Path.Combine(Path.GetTempPath(), "FileScope-operation.csv") };
@@ -384,20 +403,35 @@ internal static class UiChecks
             PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
             vm.ExportCommand.Execute(null);
             PumpUntil(() => exporter.Started.Task.IsCompleted);
-            Check(vm.IsBusy && vm.CancelCommand.CanExecute(null) && !vm.AddFolderCommand.CanExecute(null),
+            Check(vm.IsBusy && vm.CancelCommand.CanExecute(null) && !vm.AddFolderCommand.CanExecute(null)
+                && !vm.ClearCommand.CanExecute(null),
                 "CSV writing participates in the same busy/cancel workflow");
+            vm.ClearCommand.Execute(null);
+            Check(vm.IsBusy && vm.Rows.Count == 1 && vm.CancelCommand.CanExecute(null),
+                "disabled clear neither removes rows nor cancels export");
             vm.CancelCommand.Execute(null);
             exporter.Release.TrySetResult();
             PumpUntil(() => !vm.IsBusy);
             Check(vm.Rows.Count == 1 && !vm.HasError && vm.ExportCommand.CanExecute(null),
                 "cancelled export retains all results and can be retried");
         }
-        using var intake = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        var intakeAnalysis = new ImmediateAnalysis();
+        using var intake = CreateMainViewModel(intakeAnalysis, new EmptyPicker(), strings, CreateOptions(strings));
         intake.DropFilesCommand.Execute(Enumerable.Range(0, 300).Select(index => source + index).ToArray());
         Check(intake.IsBusy && intake.Rows.Count is > 0 and < 300, "large intake yields while preparing rows");
+        var preparedRows = intake.Rows.ToArray();
+        Check(!intake.ClearCommand.CanExecute(null) && intake.CancelCommand.CanExecute(null),
+            "chunked intake enables cancel and disables clear");
         intake.ClearCommand.Execute(null);
+        Check(intake.IsBusy && intake.Rows.SequenceEqual(preparedRows) && intake.CancelCommand.CanExecute(null),
+            "disabled clear leaves chunked intake and prepared rows unchanged");
+        intake.CancelCommand.Execute(null);
         PumpUntil(() => !intake.IsBusy);
-        Check(intake.Rows.Count == 0 && !intake.HasError, "clear during chunked intake leaves no queued rows");
+        Check(intake.Rows.SequenceEqual(preparedRows) && intake.Rows.All(row => row.State == RowStatus.Cancelled)
+            && intakeAnalysis.Calls == 0 && !intake.HasError && intake.ClearCommand.CanExecute(null),
+            "cancelled intake keeps prepared rows, adds no further rows and starts no analysis");
+        intake.ClearCommand.Execute(null);
+        Check(intake.Rows.Count == 0 && !intake.HasError, "clear after intake cancellation leaves no queued rows");
     }
 
     private sealed class BlockingFolderScanner : IFolderScanner

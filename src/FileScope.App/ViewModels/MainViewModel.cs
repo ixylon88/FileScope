@@ -332,7 +332,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         try
         {
             // Keep the view readable during synchronous collection notifications.
-            // Yield in chunks so a large folder can render and accept Cancel/Clear.
+            // Yield in chunks so a large folder can render and accept Cancel.
             foreach (var path in paths)
             {
                 token.ThrowIfCancellationRequested();

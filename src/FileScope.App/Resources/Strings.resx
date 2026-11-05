@@ -481,10 +481,10 @@
     <value>Read version information and the Windows file type. Missing fields stay empty. Enable and reanalyse to add these values to existing rows.</value>
   </data>
   <data name="InspectPeHeader" xml:space="preserve">
-    <value>PE header / platform</value>
+    <value>EXE header / platform</value>
   </data>
   <data name="InspectPeHeaderTip" xml:space="preserve">
-    <value>Read PE machine, PE32/PE32+ and .NET platform without executing the file. Files without a PE header stay empty. Enable and reanalyse to update existing rows.</value>
+    <value>Read PE32/PE32+, NE (Win16), architecture and .NET platform without executing the file. Enable and reanalyse to update existing rows.</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
     <value>Reading metadata…</value>
@@ -496,7 +496,7 @@
     <value>File properties: {0}</value>
   </data>
   <data name="PeHeaderError" xml:space="preserve">
-    <value>PE header: {0}</value>
+    <value>Executable header: {0}</value>
   </data>
   <data name="Column_FileDescription" xml:space="preserve">
     <value>File description</value>
@@ -535,10 +535,10 @@
     <value>Comments</value>
   </data>
   <data name="Column_PeMachine" xml:space="preserve">
-    <value>PE machine</value>
+    <value>Architecture</value>
   </data>
   <data name="Column_PeFormat" xml:space="preserve">
-    <value>PE format</value>
+    <value>Executable format</value>
   </data>
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET platform</value>

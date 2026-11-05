@@ -118,6 +118,16 @@ internal static class PresentationChecks
             && row.ManagedPlatformText == "" && row.Diagnostic == "", "disabled or non-PE metadata remains empty");
         row.Complete(result with { PeHeader = new(new PeHeaderInfo(0xffff, "0xFFFF", "PE32", ManagedPlatform.None)) });
         Check(row.PeMachine == "0xFFFF" && row.ManagedPlatformText == "", "unknown native machine code remains visible without duplication");
+        row.Complete(result with { PeHeader = new(new PeHeaderInfo(null, "x86 (16-bit)", "NE (Win16)", ManagedPlatform.None)) });
+        Check(row.PeMachine == "x86 (16-bit)" && row.PeFormat == "NE (Win16)" && row.ManagedPlatformText == "",
+            "Win16 display has neither a fictitious COFF code nor a .NET platform");
+        Check(row.Matches("Win16") && row.Details.Contains("NE (Win16)"), "Win16 header appears in search and details");
+        var legacyColumns = ColumnOption.CreateDefaults(strings);
+        foreach (var column in legacyColumns) column.IsExportSelected = column.Id is "PeMachine" or "PeFormat";
+        var legacyExport = ResultExportProjection.Capture([row], legacyColumns);
+        Check(legacyExport.Columns.Select(column => column.Id).SequenceEqual(["PeMachine", "PeFormat"])
+            && legacyExport.Rows[0].SequenceEqual(["x86 (16-bit)", "NE (Win16)"]),
+            "CSV/JSON projection includes NE metadata under the existing stable column IDs");
         row.Reset();
         Check(row.FileVersion == "" && row.ManagedPlatformText == "" && !row.Matches("Example product"), "reset clears all metadata");
         row.Start();
