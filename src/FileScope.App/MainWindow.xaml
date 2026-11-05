@@ -56,10 +56,10 @@
               </Button>
             </WrapPanel>
             <WrapPanel>
-              <Button x:Name="ExportCsvButton" Command="{Binding ExportCsvCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportCsvTip}" >
+              <Button x:Name="ExportButton" Command="{Binding ExportCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportTip}" >
                 <StackPanel Orientation="Horizontal">
                   <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc ExportCsv}" VerticalAlignment="Center" />
+                  <TextBlock Text="{loc:Loc ExportResults}" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
             </WrapPanel>

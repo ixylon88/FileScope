@@ -372,7 +372,7 @@ internal static class PresentationChecks
         failed.Complete(FileAnalysisResult.Failure(failed.FullPath, AnalysisError.NotFound, "missing fixture"));
         var all = ResultExportProjection.Capture([row, failed], columns);
         var ids = columns.Select(column => column.Id).ToList();
-        Check(all.Headers.Count == 39 && all.Rows.Count == 2 && all.Rows.All(values => values.Count == 39),
+        Check(all.Columns.Count == 39 && all.Rows.Count == 2 && all.Rows.All(values => values.Count == 39),
             "every registered column can export completed and failed rows");
         Check(all.Rows[0][ids.IndexOf("SHA256")] == "AP8=" && all.Rows[0][ids.IndexOf("FileVersion")] == "01.02.003"
             && all.Rows[0][ids.IndexOf("PeMachine")] == "AMD64 (x64) (0x8664)"
@@ -382,15 +382,19 @@ internal static class PresentationChecks
             "failed rows export blank missing data and their diagnostic");
         foreach (var column in columns) column.IsExportSelected = column.Id is "Name" or "SHA256" or "PeMachine";
         var selected = ResultExportProjection.Capture([row, failed], columns.Reverse());
-        Check(selected.Headers.SequenceEqual(new[] { strings["Column_PeMachine"], "SHA-256", strings["Column_Name"] })
+        Check(selected.Columns.Select(column => column.Header).SequenceEqual(new[] { strings["Column_PeMachine"], "SHA-256", strings["Column_Name"] })
             && selected.Rows[0].SequenceEqual(["AMD64 (x64) (0x8664)", "AP8=", "Prüfung 中文.exe"]),
             "export selection and ordering are independent of grid visibility");
         row.Reset();
         strings.SetCulture("zh-Hans");
-        Check(selected.Rows[0][1] == "AP8=" && selected.Headers[2] == "File name",
+        Check(selected.Rows[0][1] == "AP8=" && selected.Columns[2].Header == "File name",
             "captured data and headers do not change after reset or a language switch");
+        Check(selected.Columns.Select(column => column.Id).SequenceEqual(["PeMachine", "SHA256", "Name"]),
+            "snapshot retains stable JSON IDs in the selected field order");
         var translated = ResultExportProjection.Capture([row], columns);
-        Check(translated.Headers[0] == strings["Column_Name"] && translated.Rows[0][1] == "",
+        Check(translated.Columns.Select(column => column.Id).SequenceEqual(["Name", "SHA256", "PeMachine"]),
+            "JSON field IDs remain stable across language changes");
+        Check(translated.Columns[0].Header == strings["Column_Name"] && translated.Rows[0][1] == "",
             "a fresh export uses the current language and current results");
         foreach (var column in columns) column.IsExportSelected = false;
         try { ResultExportProjection.Capture([row], columns); throw new Exception("Expected empty selection failure."); }

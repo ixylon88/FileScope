@@ -564,35 +564,35 @@
   <data name="FolderScanWarning" xml:space="preserve">
     <value>Übersprungen: {0} nicht lesbare Ordner und {1} Verzeichnisverknüpfungen.</value>
   </data>
-  <data name="ExportCsv" xml:space="preserve">
-    <value>CSV exportieren</value>
+  <data name="ExportResults" xml:space="preserve">
+    <value>Exportieren</value>
   </data>
-  <data name="ExportCsvTitle" xml:space="preserve">
-    <value>Ergebnisse als CSV speichern</value>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>Ergebnisse exportieren</value>
   </data>
   <data name="CsvFiles" xml:space="preserve">
     <value>CSV-Dateien</value>
   </data>
-  <data name="ExportCsvTip" xml:space="preserve">
-    <value>Ergebnisse aller geladenen Dateien speichern. Exportspalten unter Optionen → CSV exportieren auswählen.</value>
+  <data name="ExportTip" xml:space="preserve">
+    <value>Alle geladenen Dateien als CSV oder JSON exportieren, ohne die Analyse erneut auszuführen.</value>
   </data>
   <data name="ExportSourceConflict" xml:space="preserve">
     <value>Bitte einen anderen Dateinamen wählen: Eine analysierte Quelldatei darf nicht durch den Export überschrieben werden.</value>
   </data>
-  <data name="ExportingCsv" xml:space="preserve">
-    <value>CSV wird exportiert…</value>
+  <data name="ExportingResults" xml:space="preserve">
+    <value>Ergebnisse werden exportiert…</value>
   </data>
-  <data name="CsvExported" xml:space="preserve">
-    <value>CSV gespeichert: {0} Dateien exportiert.</value>
+  <data name="ResultsExported" xml:space="preserve">
+    <value>Ergebnisse exportiert ({0} Dateien).</value>
   </data>
-  <data name="CsvExportCancelled" xml:space="preserve">
-    <value>CSV-Export abgebrochen.</value>
+  <data name="ExportCancelled" xml:space="preserve">
+    <value>Export abgebrochen.</value>
   </data>
   <data name="ExportColumnsTitle" xml:space="preserve">
     <value>CSV-Exportspalten</value>
   </data>
   <data name="ExportColumnsHint" xml:space="preserve">
-    <value>Alle geladenen Dateien exportieren, auch ausgefilterte Zeilen. Markierte Felder folgen der Spaltenreihenfolge sowie der aktuellen Sprache und Hash-Darstellung. Pro Datei gilt die ausgewählte Signatur. Nicht analysierte Felder bleiben leer.</value>
+    <value>Felder für CSV- und JSON-Exporte auswählen. Alle geladenen Dateien werden exportiert, auch durch Filter ausgeblendete Zeilen.</value>
   </data>
   <data name="SelectAllExportColumns" xml:space="preserve">
     <value>Alle auswählen</value>
@@ -619,6 +619,12 @@
     <value>Komma (,)</value>
   </data>
   <data name="CsvDelimiterHint" xml:space="preserve">
-    <value>Falls Excel die Spalten nicht richtig trennt, über Daten → Aus Text/CSV importieren und dasselbe Trennzeichen wählen.</value>
+    <value>Gilt nur für CSV. Semikolon passt meist zu deutschen Excel-Einstellungen; für andere Programme kann Komma gewählt werden.</value>
+  </data>
+  <data name="JsonFiles" xml:space="preserve">
+    <value>JSON-Dateien</value>
+  </data>
+  <data name="ExportUnsupportedExtension" xml:space="preserve">
+    <value>Bitte einen Dateinamen mit der Endung .csv oder .json wählen.</value>
   </data>
 </root>

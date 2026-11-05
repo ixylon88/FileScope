@@ -27,6 +27,7 @@ internal static class CoreChecks
             CheckPeHeaders();
             CheckFolderScan(temp);
             await CheckCsvExport(temp);
+            await CheckJsonExport(temp);
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
             var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
             var abcExpected = new Dictionary<ChecksumAlgorithm, string>
@@ -236,27 +237,27 @@ internal static class CoreChecks
 
     private static async Task CheckCsvExport(string temp)
     {
-        var exporter = new CsvResultExporter();
+        var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
         var path = Path.Combine(temp, "results.csv");
-        var table = new ResultExportTable(["Name", "Notes", "Hash"],
+        var table = new ResultExportTable([new("Name", "Name"), new("Notes", "Notes"), new("Hash", "Hash")],
             [["Prüfung 中文, sample.exe", "Line 1\r\n\"quoted\"; line 2", "+///"], ["second", "", "00FF"]]);
         await exporter.ExportAsync(path, table);
         var bytes = await File.ReadAllBytesAsync(path);
         Check(bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }), "CSV has a UTF-8 BOM for Unicode readers");
         Equal("\"Name\";\"Notes\";\"Hash\"\r\n\"Prüfung 中文, sample.exe\";\"Line 1\r\n\"\"quoted\"\"; line 2\";\"+///\"\r\n\"second\";\"\";\"00FF\"\r\n",
             await File.ReadAllTextAsync(path), "CSV uses semicolon by default and preserves embedded semicolons");
-        await exporter.ExportAsync(path, table, CsvDelimiter.Comma);
+        await exporter.ExportAsync(path, table, new ResultExportOptions(CsvDelimiter: CsvDelimiter.Comma));
         Equal("\"Name\",\"Notes\",\"Hash\"\r\n\"Prüfung 中文, sample.exe\",\"Line 1\r\n\"\"quoted\"\"; line 2\",\"+///\"\r\n\"second\",\"\",\"00FF\"\r\n",
             await File.ReadAllTextAsync(path), "CSV quotes delimiters, embedded quotes/newlines and empty fields without altering hashes");
 
         var sentinel = "existing export must survive";
         await File.WriteAllTextAsync(path, sentinel);
-        try { await exporter.ExportAsync(path, table, (CsvDelimiter)999); throw new Exception("Expected invalid delimiter failure."); }
+        try { await exporter.ExportAsync(path, table, new ResultExportOptions(CsvDelimiter: (CsvDelimiter)999)); throw new Exception("Expected invalid delimiter failure."); }
         catch (ArgumentOutOfRangeException) { Check(true, "unsupported delimiters are rejected before writing"); }
         Equal(sentinel, await File.ReadAllTextAsync(path), "an invalid delimiter preserves an existing destination");
         try
         {
-            await exporter.ExportAsync(path, new ResultExportTable(["A", "B"], [["1", "2"], ["bad width"]]));
+            await exporter.ExportAsync(path, new ResultExportTable([new("A", "A"), new("B", "B")], [["1", "2"], ["bad width"]]));
             throw new Exception("Expected invalid row failure.");
         }
         catch (ArgumentException) { Check(true, "CSV rejects inconsistent row lengths"); }
@@ -271,17 +272,17 @@ internal static class CoreChecks
         using (var cancelled = new CancellationTokenSource())
         {
             await ExpectCancellation(() => exporter.ExportAsync(path,
-                new ResultExportTable(["Name"], new CancellingRows(cancelled)), cancellationToken: cancelled.Token));
+                new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), cancellationToken: cancelled.Token));
             Equal(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
         }
         try { await exporter.ExportAsync(path, new ResultExportTable([], [])); throw new Exception("Expected empty columns failure."); }
         catch (ArgumentException) { Check(true, "CSV requires at least one column"); }
-        await exporter.ExportAsync(path, new ResultExportTable(["Name"], [["replacement"]]));
+        await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], [["replacement"]]));
         Equal("\"Name\"\r\n\"replacement\"\r\n", await File.ReadAllTextAsync(path), "a successful export replaces the destination completely");
         Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "successful, failed and cancelled exports clean up temporary files");
 
         // Parse with a separate BCL CSV reader, not with the writer's escaping logic.
-        var many = new ResultExportTable(["Name", "Comment", "Hash"], Enumerable.Range(0, 1500)
+        var many = new ResultExportTable([new("Name", "Name"), new("Comment", "Comment"), new("Hash", "Hash")], Enumerable.Range(0, 1500)
             .Select(index => (IReadOnlyList<string>)new[]
             {
                 "Prüfung 中文; file," + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -289,11 +290,11 @@ internal static class CoreChecks
             }).ToArray());
         foreach (var delimiter in Enum.GetValues<CsvDelimiter>())
         {
-            await exporter.ExportAsync(path, many, delimiter);
+            await exporter.ExportAsync(path, many, new ResultExportOptions(CsvDelimiter: delimiter));
             using var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(path, Encoding.UTF8)
             { HasFieldsEnclosedInQuotes = true, TrimWhiteSpace = false };
             parser.SetDelimiters(delimiter == CsvDelimiter.Semicolon ? ";" : ",");
-            Check(parser.ReadFields()!.SequenceEqual(many.Headers), "CSV header imports correctly / " + delimiter);
+            Check(parser.ReadFields()!.SequenceEqual(many.Columns.Select(column => column.Header)), "CSV header imports correctly / " + delimiter);
             var imported = 0;
             var matches = true;
             while (!parser.EndOfData)
@@ -305,6 +306,78 @@ internal static class CoreChecks
             Check(matches && imported == 1500,
                 "all 1500 rows round-trip with delimiters, quotes, CRLF, Unicode, spaces and leading zeros / " + delimiter);
         }
+    }
+
+    private static async Task CheckJsonExport(string temp)
+    {
+        var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
+        var options = new ResultExportOptions(ResultExportFormat.Json);
+        var path = Path.Combine(temp, "results.JSON");
+        var table = new ResultExportTable([new("Name", "Dateiname"), new("SHA256", "Wert"), new("Notes", "Wert")],
+            Enumerable.Range(0, 1500).Select(index => (IReadOnlyList<string>)new[]
+            {
+                "Prüfung 中文 😀; file," + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "0000ABCDEF+/==", index == 0 ? "" : "Line 1\r\n\"quoted\"\t\\path\u0001"
+            }).ToArray());
+        await exporter.ExportAsync(path, table, options);
+        var bytes = await File.ReadAllBytesAsync(path);
+        Check(bytes[0] == (byte)'[', "JSON is UTF-8 without BOM");
+        using (var parsed = System.Text.Json.JsonDocument.Parse(bytes))
+        {
+            var rows = parsed.RootElement;
+            Check(rows.GetArrayLength() == 1500, "JSON contains all 1500 exported rows");
+            Check(rows.EnumerateArray().Select((row, index) =>
+                row.EnumerateObject().Select(property => property.Name).SequenceEqual(table.Columns.Select(column => column.Id))
+                && row.EnumerateObject().Select(property => property.Value.GetString()).SequenceEqual(table.Rows[index])).All(match => match),
+                "JSON round-trips selected IDs/order, Unicode, quotes, controls, leading zeros and empty strings");
+            Check(rows[0].GetProperty("SHA256").ValueKind == System.Text.Json.JsonValueKind.String,
+                "JSON retains display values as strings instead of coercing hashes and versions");
+        }
+        var sentinel = "existing export must survive";
+        await File.WriteAllTextAsync(path, sentinel);
+        try
+        {
+            await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], [["good"], []]), options);
+            throw new Exception("Expected invalid row failure.");
+        }
+        catch (ArgumentException) { Check(true, "JSON rejects inconsistent row widths"); }
+        Equal(sentinel, await File.ReadAllTextAsync(path), "failed JSON export preserves the destination");
+        foreach (var precancel in new[] { false, true })
+        {
+            using var cancelled = new CancellationTokenSource();
+            if (precancel) cancelled.Cancel();
+            await ExpectCancellation(() => exporter.ExportAsync(path,
+                new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), options, cancelled.Token));
+            Equal(sentinel, await File.ReadAllTextAsync(path), "cancelled JSON preserves the destination / " + precancel);
+        }
+        foreach (var columns in new ResultExportColumn[][]
+        {
+            [], [new("duplicate", "A"), new("duplicate", "B")], [new("", "A")]
+        })
+        {
+            try
+            {
+                await exporter.ExportAsync(path, new ResultExportTable(columns, []), options);
+                throw new Exception("Expected invalid columns failure.");
+            }
+            catch (ArgumentException) { Check(true, "JSON rejects missing or duplicate column IDs"); }
+        }
+        try
+        {
+            await exporter.ExportAsync(path, table, new ResultExportOptions((ResultExportFormat)999));
+            throw new Exception("Expected unsupported format failure.");
+        }
+        catch (ArgumentOutOfRangeException) { Check(true, "unsupported export strategies are rejected"); }
+        Equal(sentinel, await File.ReadAllTextAsync(path), "invalid export options preserve an existing destination");
+        await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], []), options);
+        using (var parsed = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(path)))
+            Check(parsed.RootElement.GetArrayLength() == 0, "empty JSON data produces a valid empty array");
+        Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "JSON failure/cancellation/success leaves no temporary files");
+        Check(ResultExportFormats.TryFromPath("folder.csv/result.JsOn", out var json) && json == ResultExportFormat.Json
+            && ResultExportFormats.TryFromPath("result.json.CSV", out var csv) && csv == ResultExportFormat.Csv,
+            "format follows the final extension, case-insensitively");
+        Check(!ResultExportFormats.TryFromPath("result", out _) && !ResultExportFormats.TryFromPath("result.txt", out _),
+            "unsupported or missing extensions cannot silently select a format");
     }
 
     private sealed class CancellingRows(CancellationTokenSource cancellation) : IReadOnlyList<IReadOnlyList<string>>

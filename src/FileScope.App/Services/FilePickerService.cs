@@ -6,7 +6,7 @@ public interface IFilePickerService
 {
     string[] PickFiles(string title, string allFilesLabel);
     string? PickFolder(string title);
-    string? PickCsvDestination(string title, string csvFilesLabel);
+    string? PickExportDestination(string title, string csvFilesLabel, string jsonFilesLabel);
 }
 
 public sealed class FilePickerService : IFilePickerService
@@ -30,13 +30,14 @@ public sealed class FilePickerService : IFilePickerService
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 
-    public string? PickCsvDestination(string title, string csvFilesLabel)
+    public string? PickExportDestination(string title, string csvFilesLabel, string jsonFilesLabel)
     {
         var dialog = new SaveFileDialog
         {
             Title = title,
-            Filter = $"{csvFilesLabel} (*.csv)|*.csv",
-            FileName = "FileScope.csv",
+            Filter = $"{csvFilesLabel} (*.csv)|*.csv|{jsonFilesLabel} (*.json)|*.json",
+            FileName = "FileScope",
+            FilterIndex = 1,
             DefaultExt = ".csv",
             AddExtension = true,
             CheckPathExists = true,

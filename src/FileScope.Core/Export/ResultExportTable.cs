@@ -1,14 +1,27 @@
 namespace FileScope.Core.Export;
 
 public enum CsvDelimiter { Semicolon, Comma }
+public enum ResultExportFormat { Csv, Json }
 
-// A presentation snapshot: the writer knows neither WPF nor analysis models.
-// Other export strategies can consume the same ordered headers and values.
+public sealed record ResultExportOptions(
+    ResultExportFormat Format = ResultExportFormat.Csv, CsvDelimiter CsvDelimiter = CsvDelimiter.Semicolon);
+
+public sealed record ResultExportColumn(string Id, string Header);
+
+// A presentation snapshot: stable IDs for JSON, localized headers for CSV.
 public sealed record ResultExportTable(
-    IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows);
+    IReadOnlyList<ResultExportColumn> Columns, IReadOnlyList<IReadOnlyList<string>> Rows);
 
 public interface IResultExporter
 {
-    Task ExportAsync(string path, ResultExportTable table, CsvDelimiter delimiter = CsvDelimiter.Semicolon,
+    Task ExportAsync(string path, ResultExportTable table, ResultExportOptions? options = null,
         CancellationToken cancellationToken = default);
+}
+
+// Strategies only serialize. The export service owns files, replacement and cleanup.
+public interface IResultExportStrategy
+{
+    ResultExportFormat Format { get; }
+    Task WriteAsync(Stream destination, ResultExportTable table, ResultExportOptions options,
+        CancellationToken cancellationToken);
 }

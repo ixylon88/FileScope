@@ -40,7 +40,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
     public AsyncRelayCommand BrowseCommand { get; }
     public AsyncRelayCommand AddFolderCommand { get; }
-    public AsyncRelayCommand ExportCsvCommand { get; }
+    public AsyncRelayCommand ExportCommand { get; }
     public AsyncRelayCommand DropFilesCommand { get; }
     public AsyncRelayCommand ReanalyseCommand { get; }
     public RelayCommand CancelCommand { get; }
@@ -96,7 +96,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         BrowseCommand = new AsyncRelayCommand(async _ =>
             await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => IsIdle);
         AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => IsIdle);
-        ExportCsvCommand = new AsyncRelayCommand(_ => ExportCsvAsync(), OnCommandError,
+        ExportCommand = new AsyncRelayCommand(_ => ExportAsync(), OnCommandError,
             _ => IsIdle && HasRows && Options.HasExportColumns);
         DropFilesCommand = new AsyncRelayCommand(p => AddFilesAsync((string[])p!), OnCommandError,
             p => IsIdle && p is string[] { Length: > 0 });
@@ -258,10 +258,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (result.Files.Count == 0) SetStatus("FolderEmpty");
     }
 
-    private async Task ExportCsvAsync()
+    private async Task ExportAsync()
     {
         if (!IsIdle || !HasRows || !Options.HasExportColumns) return;
-        var path = _picker.PickCsvDestination(_strings["ExportCsvTitle"], _strings["CsvFiles"]);
+        var path = _picker.PickExportDestination(_strings["ExportTitle"], _strings["CsvFiles"], _strings["JsonFiles"]);
         if (path is null) return;
         // A manually typed filename must never replace an analyzed source file.
         if (_paths.Contains(Path.GetFullPath(path)))
@@ -270,18 +270,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(HasError));
             return;
         }
-        var token = BeginFileOperation("ExportingCsv");
+        if (!ResultExportFormats.TryFromPath(path, out var format))
+        {
+            LastError = _strings["ExportUnsupportedExtension"];
+            OnPropertyChanged(nameof(HasError));
+            return;
+        }
+        var token = BeginFileOperation("ExportingResults");
         CurrentFile = path;
         try
         {
             // Rows, not RowsView: filters/selection never omit loaded files.
             var table = ResultExportProjection.Capture(Rows, Options.Columns);
-            var delimiter = Options.SelectedCsvDelimiter.Value;
-            await Task.Run(() => _exporter.ExportAsync(path, table, delimiter, token), token);
+            var options = new ResultExportOptions(format, Options.SelectedCsvDelimiter.Value);
+            await Task.Run(() => _exporter.ExportAsync(path, table, options, token), token);
             _processed = table.Rows.Count;
-            SetStatus("CsvExported");
+            SetStatus("ResultsExported");
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { SetStatus("CsvExportCancelled"); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { SetStatus("ExportCancelled"); }
         finally { EndFileOperation(); }
     }
 
@@ -311,7 +317,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         NotifyCommands();
     }
 
-    private void OnExportSelectionChanged(object? sender, EventArgs args) => ExportCsvCommand.NotifyCanExecuteChanged();
+    private void OnExportSelectionChanged(object? sender, EventArgs args) => ExportCommand.NotifyCanExecuteChanged();
 
     private async Task AddFilesAsync(IEnumerable<string> paths, string warning = "")
     {
@@ -557,7 +563,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         BrowseCommand.NotifyCanExecuteChanged();
         AddFolderCommand.NotifyCanExecuteChanged();
-        ExportCsvCommand.NotifyCanExecuteChanged();
+        ExportCommand.NotifyCanExecuteChanged();
         DropFilesCommand.NotifyCanExecuteChanged();
         ReanalyseCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();

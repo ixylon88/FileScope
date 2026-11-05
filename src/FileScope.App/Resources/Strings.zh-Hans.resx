@@ -445,16 +445,16 @@
   <data name="FolderScanCancelled" xml:space="preserve"><value>文件夹扫描已取消，未添加任何文件。</value></data>
   <data name="FolderEmpty" xml:space="preserve"><value>此文件夹中未找到文件。</value></data>
   <data name="FolderScanWarning" xml:space="preserve"><value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value></data>
-  <data name="ExportCsv" xml:space="preserve"><value>导出 CSV</value></data>
-  <data name="ExportCsvTitle" xml:space="preserve"><value>将结果保存为 CSV</value></data>
+  <data name="ExportResults" xml:space="preserve"><value>导出</value></data>
+  <data name="ExportTitle" xml:space="preserve"><value>导出结果</value></data>
   <data name="CsvFiles" xml:space="preserve"><value>CSV 文件</value></data>
-  <data name="ExportCsvTip" xml:space="preserve"><value>保存所有已加载文件的结果。在选项 → 导出 CSV 中选择导出列。</value></data>
+  <data name="ExportTip" xml:space="preserve"><value>将所有已加载文件导出为 CSV 或 JSON，无需重新分析。</value></data>
   <data name="ExportSourceConflict" xml:space="preserve"><value>请选择其他文件名：导出文件不能覆盖已分析的源文件。</value></data>
-  <data name="ExportingCsv" xml:space="preserve"><value>正在导出 CSV…</value></data>
-  <data name="CsvExported" xml:space="preserve"><value>CSV 已保存：已导出 {0} 个文件。</value></data>
-  <data name="CsvExportCancelled" xml:space="preserve"><value>CSV 导出已取消。</value></data>
+  <data name="ExportingResults" xml:space="preserve"><value>正在导出结果…</value></data>
+  <data name="ResultsExported" xml:space="preserve"><value>已导出结果（{0} 个文件）。</value></data>
+  <data name="ExportCancelled" xml:space="preserve"><value>已取消导出。</value></data>
   <data name="ExportColumnsTitle" xml:space="preserve"><value>CSV 导出列</value></data>
-  <data name="ExportColumnsHint" xml:space="preserve"><value>导出所有已加载的文件，包括已筛除的行。勾选的字段使用表格列顺序、当前语言和哈希格式。每个文件使用其当前选中的签名。未分析的字段留空。</value></data>
+  <data name="ExportColumnsHint" xml:space="preserve"><value>选择 CSV 和 JSON 导出的字段。导出所有已加载文件，包括被筛选器隐藏的行。</value></data>
   <data name="SelectAllExportColumns" xml:space="preserve"><value>全选</value></data>
   <data name="ClearExportColumns" xml:space="preserve"><value>全部取消</value></data>
   <data name="PreparingFiles" xml:space="preserve"><value>正在添加文件…</value></data>
@@ -463,5 +463,11 @@
   <data name="CsvDelimiterLabel" xml:space="preserve"><value>CSV 分隔符</value></data>
   <data name="CsvDelimiter_Semicolon" xml:space="preserve"><value>分号（;）</value></data>
   <data name="CsvDelimiter_Comma" xml:space="preserve"><value>逗号（,）</value></data>
-  <data name="CsvDelimiterHint" xml:space="preserve"><value>如果 Excel 未正确拆分列，请通过“数据 → 从文本/CSV”导入，并选择相同的分隔符。</value></data>
+  <data name="CsvDelimiterHint" xml:space="preserve"><value>仅适用于 CSV。德语 Excel 通常使用分号；其他程序可选择逗号。</value></data>
+  <data name="JsonFiles" xml:space="preserve">
+    <value>JSON 文件</value>
+  </data>
+  <data name="ExportUnsupportedExtension" xml:space="preserve">
+    <value>请选择以 .csv 或 .json 结尾的文件名。</value>
+  </data>
 </root>

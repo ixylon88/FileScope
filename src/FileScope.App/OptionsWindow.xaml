@@ -48,7 +48,7 @@
           </WrapPanel>
         </Grid>
       </TabItem>
-      <TabItem x:Name="ExportOptionsTab" Header="{loc:Loc ExportCsv}">
+      <TabItem x:Name="ExportOptionsTab" Header="{loc:Loc ExportResults}">
         <Grid Margin="12">
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <TextBlock Text="{loc:Loc ExportColumnsHint}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />

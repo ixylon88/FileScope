@@ -275,9 +275,9 @@ internal static class UiChecks
         {
             DrainDispatcher();
             Check(((Button)window.FindName("AddFolderButton")).Command == vm.AddFolderCommand
-                && ((Button)window.FindName("ExportCsvButton")).Command == vm.ExportCsvCommand,
+                && ((Button)window.FindName("ExportButton")).Command == vm.ExportCommand,
                 "new ribbon buttons are bound to folder and export commands");
-            Check(!vm.ExportCsvCommand.CanExecute(null), "empty results cannot be exported");
+            Check(!vm.ExportCommand.CanExecute(null), "empty results cannot be exported");
             vm.BrowseCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
             vm.AddFolderCommand.Execute(null);
@@ -289,7 +289,7 @@ internal static class UiChecks
             Check(analysis.Calls == 2 && vm.Rows.Count == 2, "adding the same folder again skips all duplicates");
             vm.Options.ClearExportColumnsCommand.Execute(null);
             DrainDispatcher();
-            Check(!vm.ExportCsvCommand.CanExecute(null) && !((Button)window.FindName("ExportCsvButton")).IsEnabled,
+            Check(!vm.ExportCommand.CanExecute(null) && !((Button)window.FindName("ExportButton")).IsEnabled,
                 "zero selected fields disables the export button");
             foreach (var column in vm.Options.Columns) column.IsExportSelected = column.Id is "Name" or "SHA256";
             var list = (ListBox)optionsWindow.FindName("ExportColumnList");
@@ -304,8 +304,8 @@ internal static class UiChecks
             vm.Options.SetColumnOrder(["SHA256", "Name"]);
             vm.Options.SelectedHashFormat = vm.Options.HashFormats.Single(format => format.Value == HashFormat.Base64);
             vm.SearchText = "no-row-matches";
-            Check(vm.RowsView.Count == 0 && vm.ExportCsvCommand.CanExecute(null), "filters never disable export of loaded rows");
-            vm.ExportCsvCommand.Execute(null);
+            Check(vm.RowsView.Count == 0 && vm.ExportCommand.CanExecute(null), "filters never disable export of loaded rows");
+            vm.ExportCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy);
             var csv = File.ReadAllText(picker.Destination!);
             var digest = Convert.ToBase64String(Convert.FromHexString(HashValue(ChecksumAlgorithm.SHA256)));
@@ -315,17 +315,34 @@ internal static class UiChecks
             var separator = (ComboBox)optionsWindow.FindName("CsvDelimiterSelector");
             separator.SelectedItem = vm.Options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
             DrainDispatcher();
-            vm.ExportCsvCommand.Execute(null);
+            vm.ExportCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy);
             Check(vm.Options.SelectedCsvDelimiter.Value == CsvDelimiter.Comma
                 && File.ReadAllText(picker.Destination!).StartsWith("\"SHA-256\",\"File name\"\r\n", StringComparison.Ordinal)
                 && analysis.Calls == 2, "real delimiter selector changes exported separators without reanalysis");
+            picker.Destination = Path.Combine(directory, "results.JSON");
+            vm.ExportCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            using (var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(picker.Destination)))
+            {
+                Check(json.RootElement.GetArrayLength() == 2
+                    && json.RootElement.EnumerateArray().All(row => row.GetProperty("SHA256").GetString() == digest
+                        && row.EnumerateObject().Select(property => property.Name).SequenceEqual(["SHA256", "Name"]))
+                    && analysis.Calls == 2,
+                    "JSON command uses extension, selected stable IDs and all rows without reanalysis");
+            }
+            picker.Destination = Path.Combine(directory, "results.txt");
+            File.WriteAllText(picker.Destination, "keep existing");
+            vm.ExportCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.HasError && File.ReadAllText(picker.Destination) == "keep existing",
+                "unsupported export extension reports an error without overwriting a file");
             picker.Destination = first;
-            vm.ExportCsvCommand.Execute(null);
+            vm.ExportCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy);
             Check(vm.HasError && File.ReadAllText(first) == "original one", "export cannot overwrite an analyzed source file");
             picker.Destination = null;
-            vm.ExportCsvCommand.Execute(null);
+            vm.ExportCommand.Execute(null);
             Check(!vm.IsBusy && vm.Rows.Count == 2, "cancelling Save As leaves results unchanged");
             picker.Folder = null;
             vm.AddFolderCommand.Execute(null);
@@ -351,7 +368,7 @@ internal static class UiChecks
             vm.AddFolderCommand.Execute(null);
             PumpUntil(() => scanner.Started.Task.IsCompleted);
             Check(vm.IsBusy && vm.IsProgressIndeterminate && vm.CancelCommand.CanExecute(null)
-                && !vm.ExportCsvCommand.CanExecute(null) && !vm.BrowseCommand.CanExecute(null),
+                && !vm.ExportCommand.CanExecute(null) && !vm.BrowseCommand.CanExecute(null),
                 "folder scanning is cancellable and prevents concurrent file operations");
             if (clear) vm.ClearCommand.Execute(null); else vm.CancelCommand.Execute(null);
             scanner.Release.TrySetResult();
@@ -365,14 +382,14 @@ internal static class UiChecks
         {
             vm.BrowseCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1);
-            vm.ExportCsvCommand.Execute(null);
+            vm.ExportCommand.Execute(null);
             PumpUntil(() => exporter.Started.Task.IsCompleted);
             Check(vm.IsBusy && vm.CancelCommand.CanExecute(null) && !vm.AddFolderCommand.CanExecute(null),
                 "CSV writing participates in the same busy/cancel workflow");
             vm.CancelCommand.Execute(null);
             exporter.Release.TrySetResult();
             PumpUntil(() => !vm.IsBusy);
-            Check(vm.Rows.Count == 1 && !vm.HasError && vm.ExportCsvCommand.CanExecute(null),
+            Check(vm.Rows.Count == 1 && !vm.HasError && vm.ExportCommand.CanExecute(null),
                 "cancelled export retains all results and can be retried");
         }
         using var intake = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
@@ -400,7 +417,7 @@ internal static class UiChecks
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public async Task ExportAsync(string path, ResultExportTable table, CsvDelimiter delimiter = CsvDelimiter.Semicolon,
+        public async Task ExportAsync(string path, ResultExportTable table, ResultExportOptions? options = null,
             CancellationToken cancellationToken = default)
         {
             Started.TrySetResult();
@@ -943,12 +960,12 @@ internal static class UiChecks
     {
         public string[] PickFiles(string title, string allFilesLabel) => [];
         public string? PickFolder(string title) => null;
-        public string? PickCsvDestination(string title, string csvFilesLabel) => null;
+        public string? PickExportDestination(string title, string csvFilesLabel, string jsonFilesLabel) => null;
     }
 
     private static MainViewModel CreateMainViewModel(IFileAnalysisService analysis, IFilePickerService picker,
         LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null) =>
-        new(analysis, picker, strings, options, scanner ?? new FolderScanner(), exporter ?? new CsvResultExporter());
+        new(analysis, picker, strings, options, scanner ?? new FolderScanner(), exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]));
 
     private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
     private sealed class MemoryPreferences : IPreferencesStore
@@ -965,7 +982,7 @@ internal static class UiChecks
         public string? Folder { get; set; }
         public string? Destination { get; set; }
         public string? PickFolder(string title) => Folder;
-        public string? PickCsvDestination(string title, string csvFilesLabel) => Destination;
+        public string? PickExportDestination(string title, string csvFilesLabel, string jsonFilesLabel) => Destination;
     }
     private sealed class ImmediateAnalysis : IFileAnalysisService
     {
