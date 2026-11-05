@@ -1,21 +1,21 @@
 # Prüfstand der ausgelieferten Quellen
 
-Stand: 5. November 2026. Patchbasis: `48e8e4ec92b04157e720a7a34a4da675d69543c8` (`test fix`).
+Stand: 5. November 2026. Patchbasis: `5dd59b8ca7bf1524ee9423945bbfdfd549687d80` (`csv export, open folder`).
 
-Aktuelle Erweiterung: rekursive Ordnersuche, CSV-Export aller geladenen Zeilen und gespeicherte Exportfeldauswahl. Core (132) und Präsentation/Einstellungen (122) wurden ausgeführt; das erweiterte WPF-Testprogramm wurde kompiliert. Der [vorige Review der Analyzer-/Dark-Commits](docs/REVIEW-2026-11-04.md) bleibt erhalten. Windows-Laufzeittests stehen weiterhin aus.
+Aktuelle Erweiterung: Filter „Alles außer gültigen Signaturen“, doppelte Scrollbalkendicke und gespeicherte Auswahl des CSV-Trennzeichens (Semikolon als Standard, Komma wählbar). Core (139) und Präsentation/Einstellungen (127) wurden ausgeführt; das erweiterte WPF-Testprogramm wurde kompiliert. Der [vorige Review der Analyzer-/Dark-Commits](docs/REVIEW-2026-11-04.md) bleibt erhalten. Windows-Laufzeittests stehen weiterhin aus.
 
 ## Hier tatsächlich ausgeführt
 
 | Prüfung | Ergebnis |
 | --- | --- |
-| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten, Workspace-Tasks und Test-Theme | 995 Prüfungen bestanden |
-| Drei Ressourcensätze mit jeweils 163 Schlüsseln; gleiche Formatplatzhalter | Bestanden |
+| Statische Prüfung: XML, Ressourcen, Binding-Wurzeln, Projektstruktur, Spalten, Workspace-Tasks und Test-Theme | 1014 Prüfungen bestanden |
+| Drei Ressourcensätze mit jeweils 168 Schlüsseln; gleiche Formatplatzhalter | Bestanden |
 | Genau zwei Produktionsprojekte; Kernbibliothek ohne WPF-Abhängigkeit | Bestanden |
 | Alle 39 Spalten in XAML und Optionskatalog; begrenzte automatische Breiten | Bestanden |
 | Workspace-JSON: drei eindeutige PowerShell-Tasks, existierende Skripte, Workspace-Pfade und win-x64-Ziel | Bestanden, statisch |
 | Release-Build beider Projekte mit .NET SDK 10.0.100 unter Linux, einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
-| `CoreChecks.cs` mit .NET 10 unter Linux | 132 Prüfungen bestanden; native Windows-Aufrufe übersprungen |
-| `PresentationChecks.cs` mit .NET 10 unter Linux | 122 Prüfungen bestanden |
+| `CoreChecks.cs` mit .NET 10 unter Linux | 139 Prüfungen bestanden; native Windows-Aufrufe übersprungen |
+| `PresentationChecks.cs` mit .NET 10 unter Linux | 127 Prüfungen bestanden |
 | Native Strukturen einschließlich SHFILEINFOW: Marshal-Größen und vorhandene kritische Offsets | x64 zur Laufzeit geprüft; x86/ARM64 nicht ausgeführt |
 | WPF-Testprogramm mit `UiChecks.cs` kompiliert | Bestanden, 0 Warnungen / 0 Fehler; nicht ausgeführt |
 | Self-contained Publish für win-x64, Trimming aus | Beim vorherigen Metadaten-Patch geprüft; für diese Erweiterung nicht erneut ausgeführt |
@@ -28,9 +28,13 @@ Die neuen ausführbaren Prüfungen umfassen Unterordner, Unicode- und versteckte
 
 Die zusätzlichen WPF-Prüfungen für Ribbon-Bindungen, Options-Häkchen, rekursives Hinzufügen mit Duplikaterkennung, Export trotz aktivem Filter, Schutz geladener Quelldateien, Dialogabbruch, Fehlerbehandlung und Cancel/Clear während Suche/Export/Hinzufügen wurden nur kompiliert.
 
+Für das neue Trennzeichen werden je 1500 Zeilen mit Semikolon und Komma geschrieben und mit einem unabhängigen BCL-Leser (`TextFieldParser`) wieder eingelesen. Die Daten enthalten beide Trennzeichen, eingebettete Anführungszeichen und CRLF, Unicode, Rand-Leerzeichen und führende Nullen. Zusätzlich geprüft: Standard für alte Einstellungen, unbekannte Trennzeichen, Erhalt einer bestehenden Datei bei ungültiger Wahl sowie Beibehalten der Auswahl bei Sprachwechsel und anderen Einstellungen. Dies ist kein Test mit Excel.
+
+Neue WPF-Prüfungen (nur kompiliert): Filter über alle Signaturstatus, Kombination mit Suche, sofortige Aktualisierung beim Signaturwechsel, unveränderte Bedeutung von „Prüfbedarf“, echte Trennzeichen-ComboBox, gerenderte Scrollbalkendicke, Maus-Hit-Test des vergrößerten Schiebers und Scrollbefehle in beiden Richtungen. Die Scrollbalken übernehmen `DefaultScrollBarStyle` des .NET-10-Fluent-Themes; dessen Templates, Scrollbereich und Farben bleiben erhalten.
+
 ## Noch nicht ausgeführt
 
-Die Umgebung ist Linux. **Die PowerShell-/VS-Code-Tasks selbst, WPF-Laufzeittests, Ordner-/Speicherdialoge, die visuelle Kontrolle sowie die nativen Windows-Dateityp- und Signaturaufrufe wurden hier nicht ausgeführt.** Der frühere Publish wurde auf Windows nicht gestartet; für diese Erweiterung wurde kein neuer Publish erstellt. Ausgeliefert wird der Quellpatch; eine auf Windows getestete Binärausgabe liegt nicht bei.
+Die Umgebung ist Linux. **Die PowerShell-/VS-Code-Tasks selbst, WPF-Laufzeittests, Ordner-/Speicherdialoge, Scrollbalken mit echter Maus, Excel-Import, die visuelle Kontrolle sowie die nativen Windows-Dateityp- und Signaturaufrufe wurden hier nicht ausgeführt.** Der frühere Publish wurde auf Windows nicht gestartet; für diese Erweiterung wurde kein neuer Publish erstellt. Ausgeliefert wird der Quellpatch; eine auf Windows getestete Binärausgabe liegt nicht bei.
 
 Der erfolgreiche Build ersetzt keine Abnahme der Darstellung und Bedienung unter Windows. Den Task `FileScope: Verify` dort einmal ausführen; die abschließende Sichtprüfung bleibt manuell.
 
@@ -88,3 +92,6 @@ Für unternehmenseigene Vertrauensrichtlinien, besondere Signaturformate und seh
 22. „Ordner hinzufügen“ mit Unterordnern, versteckten Dateien und bereits geladenen Dateien prüfen. Duplikate werden übersprungen. Einen leeren Ordner wählen sowie den Dialog abbrechen. Bei nicht lesbaren Unterordnern und Verzeichnisverknüpfungen muss ein Hinweis erscheinen. Suche abbrechen; während des Hinzufügens oder Analysierens auch „Leeren“ prüfen.
 23. Unter Optionen → CSV exportieren einige Felder wählen, einschließlich eines ausgeblendeten Architekturfelds. Reihenfolge und Hashformat ändern, Dateien ausfiltern und exportieren: Alle geladenen Zeilen müssen mit den gewählten Feldern vorhanden sein. Bei mehreren Signaturen folgt der Export der Auswahl in der Zeile. Alle Felder abwählen: Exportknopf deaktiviert. App neu starten: Auswahl erhalten.
 24. CSV mit Kommas, Anführungszeichen, Zeilenumbrüchen, Umlauten und chinesischen Zeichen importieren. Vorhandene CSV überschreiben sowie den Speicherdialog abbrechen. Ein schreibgeschütztes Ziel ausprobieren: Fehlermeldung, vorhandene Datei unverändert, Ergebnisse weiter verfügbar. Einen geladenen Dateipfad als Ziel eingeben: Export muss abgelehnt werden. Einen größeren Export mit „Abbrechen“ beenden.
+25. „Alles außer gültigen Signaturen“ mit gültigen, unsignierten, ungeprüften, nicht unterstützten und fehlgeschlagenen Signaturen prüfen. Nur gültige ausblenden; bei mehreren Signaturen zwischen gültig und nicht gültig umschalten. Suche und Analysestatusfilter müssen weiterhin gemeinsam wirken.
+26. Horizontale und vertikale Scrollbalken in Tabelle, Optionen und Detailfeld mit der Maus ziehen, auf die Spur sowie Pfeile klicken und das Mausrad verwenden. Darstellung bei 100 %, 150 % und 200 % Skalierung kontrollieren. Die Dicke muss verdoppelt sein; Scrollweg, fixierte Spalten und Inhalte dürfen nicht skaliert werden.
+27. Unter Optionen → CSV exportieren zunächst Semikolon, dann Komma wählen und jeweils exportieren. In Excel über Daten → Aus Text/CSV mit demselben Trennzeichen importieren; Hash-/Seriennummer-/Versionsspalten als Text behandeln. App neu starten und Sprache/Feldauswahl/Fenstergröße ändern: Das gewählte Trennzeichen bleibt erhalten. Direktes Öffnen zusätzlich mit den eigenen Excel-/Regionaleinstellungen prüfen.

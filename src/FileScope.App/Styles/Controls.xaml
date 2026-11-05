@@ -3,6 +3,23 @@
   <!-- INFO: https://github.com/dotnet/wpf/blob/main/Documentation/docs/using-fluent.md -->
   <SolidColorBrush x:Key="MutedBrush" Color="#d6d0d5" />
   <SolidColorBrush x:Key="LineBrush" Color="#a5a9a0" />
+  <!-- Scale only the cross-axis: Fluent's 12-DIP bars occupy 24 DIPs,
+       including the thumb and its hit area. Keep the native templates,
+       colors, range, viewport and scrolling direction unchanged. -->
+  <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource DefaultScrollBarStyle}">
+    <Style.Triggers>
+      <Trigger Property="Orientation" Value="Vertical">
+        <Setter Property="LayoutTransform">
+          <Setter.Value><ScaleTransform ScaleX="2" ScaleY="1" /></Setter.Value>
+        </Setter>
+      </Trigger>
+      <Trigger Property="Orientation" Value="Horizontal">
+        <Setter Property="LayoutTransform">
+          <Setter.Value><ScaleTransform ScaleX="1" ScaleY="2" /></Setter.Value>
+        </Setter>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
   <Style x:Key="AppWindowStyle" TargetType="Window" BasedOn="{StaticResource {x:Type Window}}">
     <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Microsoft YaHei" />
     <Setter Property="FontSize" Value="13" />

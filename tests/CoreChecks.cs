@@ -243,11 +243,17 @@ internal static class CoreChecks
         await exporter.ExportAsync(path, table);
         var bytes = await File.ReadAllBytesAsync(path);
         Check(bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }), "CSV has a UTF-8 BOM for Unicode readers");
+        Equal("\"Name\";\"Notes\";\"Hash\"\r\n\"Prüfung 中文, sample.exe\";\"Line 1\r\n\"\"quoted\"\"; line 2\";\"+///\"\r\n\"second\";\"\";\"00FF\"\r\n",
+            await File.ReadAllTextAsync(path), "CSV uses semicolon by default and preserves embedded semicolons");
+        await exporter.ExportAsync(path, table, CsvDelimiter.Comma);
         Equal("\"Name\",\"Notes\",\"Hash\"\r\n\"Prüfung 中文, sample.exe\",\"Line 1\r\n\"\"quoted\"\"; line 2\",\"+///\"\r\n\"second\",\"\",\"00FF\"\r\n",
             await File.ReadAllTextAsync(path), "CSV quotes delimiters, embedded quotes/newlines and empty fields without altering hashes");
 
         var sentinel = "existing export must survive";
         await File.WriteAllTextAsync(path, sentinel);
+        try { await exporter.ExportAsync(path, table, (CsvDelimiter)999); throw new Exception("Expected invalid delimiter failure."); }
+        catch (ArgumentOutOfRangeException) { Check(true, "unsupported delimiters are rejected before writing"); }
+        Equal(sentinel, await File.ReadAllTextAsync(path), "an invalid delimiter preserves an existing destination");
         try
         {
             await exporter.ExportAsync(path, new ResultExportTable(["A", "B"], [["1", "2"], ["bad width"]]));
@@ -259,13 +265,13 @@ internal static class CoreChecks
         {
             cancelled.Cancel();
             var absent = Path.Combine(temp, "cancelled.csv");
-            await ExpectCancellation(() => exporter.ExportAsync(absent, table, cancelled.Token));
+            await ExpectCancellation(() => exporter.ExportAsync(absent, table, cancellationToken: cancelled.Token));
             Check(!File.Exists(absent), "pre-cancelled export creates no destination");
         }
         using (var cancelled = new CancellationTokenSource())
         {
             await ExpectCancellation(() => exporter.ExportAsync(path,
-                new ResultExportTable(["Name"], new CancellingRows(cancelled)), cancelled.Token));
+                new ResultExportTable(["Name"], new CancellingRows(cancelled)), cancellationToken: cancelled.Token));
             Equal(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
         }
         try { await exporter.ExportAsync(path, new ResultExportTable([], [])); throw new Exception("Expected empty columns failure."); }
@@ -273,6 +279,32 @@ internal static class CoreChecks
         await exporter.ExportAsync(path, new ResultExportTable(["Name"], [["replacement"]]));
         Equal("\"Name\"\r\n\"replacement\"\r\n", await File.ReadAllTextAsync(path), "a successful export replaces the destination completely");
         Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "successful, failed and cancelled exports clean up temporary files");
+
+        // Parse with a separate BCL CSV reader, not with the writer's escaping logic.
+        var many = new ResultExportTable(["Name", "Comment", "Hash"], Enumerable.Range(0, 1500)
+            .Select(index => (IReadOnlyList<string>)new[]
+            {
+                "Prüfung 中文; file," + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                " Line 1\r\n\"quoted\"; line 2, ", "0000ABCDEF+/=="
+            }).ToArray());
+        foreach (var delimiter in Enum.GetValues<CsvDelimiter>())
+        {
+            await exporter.ExportAsync(path, many, delimiter);
+            using var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(path, Encoding.UTF8)
+            { HasFieldsEnclosedInQuotes = true, TrimWhiteSpace = false };
+            parser.SetDelimiters(delimiter == CsvDelimiter.Semicolon ? ";" : ",");
+            Check(parser.ReadFields()!.SequenceEqual(many.Headers), "CSV header imports correctly / " + delimiter);
+            var imported = 0;
+            var matches = true;
+            while (!parser.EndOfData)
+            {
+                var row = parser.ReadFields();
+                matches &= imported < many.Rows.Count && row is not null && row.SequenceEqual(many.Rows[imported]);
+                imported++;
+            }
+            Check(matches && imported == 1500,
+                "all 1500 rows round-trip with delimiters, quotes, CRLF, Unicode, spaces and leading zeros / " + delimiter);
+        }
     }
 
     private sealed class CancellingRows(CancellationTokenSource cancellation) : IReadOnlyList<IReadOnlyList<string>>

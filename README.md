@@ -6,11 +6,19 @@ Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext l
 
 ## Starten
 
-Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine Version mit .NET-10-Unterstützung verwenden.
+Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine Version mit .NET-10-Unterstützung verwenden. Es wird ein workspace für Visual Studio Code mit vordefinierten Tasks mitgeliefert.
 
-1. Das ZIP vollständig entpacken.
+Visual Studio:
+
+1. Klonen oder herunterladen, und das ZIP vollständig entpacken.
 2. `FileScope.sln` öffnen und `FileScope.App` als Startprojekt festlegen.
 3. Mit F5 starten.
+
+Visual Studio Code:
+
+1. `FileScope.code-workspace` öffnen
+2. Strg + Umschalt + B startet den vordefinierten Build task (Release); es gibt noch weitere Tasks.
+3. Der Ausgabeordner erscheint in der Konsole, dort die Exe ausführen.
 
 Alternativ im entpackten Hauptordner:
 
@@ -49,6 +57,7 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
 | CSV exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
 | Exportfelder | Unter Zahnrad → Optionen → CSV exportieren die gewünschten Felder anhaken. Die Auswahl wird gespeichert und ist unabhängig von der Sichtbarkeit der Tabellenspalten. |
+| CSV-Trennzeichen | Im selben Reiter Semikolon oder Komma wählen. Standard ist Semikolon; die Auswahl wird gespeichert und bleibt beim Sprachwechsel erhalten. |
 | Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Beim ersten Start: SHA-256 und Signaturprüfung. Danach wird die gespeicherte Auswahl aller Prüf-Häkchen wiederhergestellt. |
 | Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Dateieigenschaften und PE-Spalten folgen ihren jeweiligen Häkchen. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
@@ -60,9 +69,11 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 | Alle neu prüfen | Alle geladenen Dateien mit der aktuellen Auswahl erneut verarbeiten, einschließlich ausgefilterter Dateien. Vorherige Ergebnisse dieser Dateien werden dabei ersetzt. |
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben, Dateieigenschaften, PE-Angaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
+| Alles außer gültigen Signaturen | Blendet ausschließlich den Status „gültig“ aus. Enthält auch unsignierte, ungeprüfte, nicht unterstützte und fehlgeschlagene Prüfungen. Bei mehreren Signaturen gilt die aktuelle Auswahl in der Zeile. „Prüfbedarf“ behält seine bisherige engere Bedeutung ohne unsignierte/ungeprüfte Dateien. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
 | Statusfelder | Verarbeitungs- und Signaturstatus verwenden dieselbe abgerundete `StatusBadge`-Komponente. Grün: fertig/gültig; Blau: Verarbeitung läuft; Gelb: abgebrochen oder Warnfall; Rot: Fehler/ungültige Prüfung; Grau: wartend, nicht geprüft oder keine eingebettete Signatur. Die übersetzte Beschriftung und der vollständige Tooltip bleiben maßgeblich. |
 | Tabelle | Schreibgeschützt und horizontal scrollbar. Zeilen ohne wechselnde Hintergrundfarben mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
+| Scrollbalken | Beide Richtungen sind doppelt so dick, einschließlich Schieber und Maus-Trefffläche. Die nativen Fluent-Vorlagen werden nur quer zur Scrollrichtung skaliert: 24 statt 12 geräteunabhängige Pixel. Gilt auch für Listen, Detailfeld und Menüband. |
 | Spaltenreihenfolge | Zahnrad → Optionen: Alle 39 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
 | Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, innerhalb fester Mindest-/Höchstbreiten je Spalte. Lange Werte sind über Tooltip, Details und Kopieren vollständig verfügbar. Manuelles Vergrößern bleibt möglich; „Breiten neu anpassen“ schaltet wieder auf Automatik. |
 | Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
@@ -97,7 +108,9 @@ Der Exportdialog schlägt `FileScope.csv` vor und fragt beim Überschreiben eine
 
 Alle **39 Felder** des Spaltenkatalogs sind auswählbar, auch PE-Maschinentyp, PE-Format und .NET-Plattform. Beim ersten Start sind alle Exportfelder gewählt. Die Auswahl wird als `ExportColumns` mit stabilen Spalten-IDs in der vorhandenen `settings.json` gespeichert; eine vollständig leere Auswahl bleibt leer und deaktiviert den Exportknopf. Reihenfolge, Sprache und Hashformat folgen den aktuellen Optionen. Pro Datei werden die Daten der jeweils ausgewählten Signatur exportiert. Es werden alle geladenen Zeilen in der Reihenfolge des Hinzufügens ausgegeben; Tabellenfilter und die Sortierung der Ansicht ändern diese Auswahl nicht. Fehlende Messergebnisse bleiben leer, Status und Diagnose bleiben erhalten.
 
-Das CSV-Format verwendet **UTF-8 mit BOM**, Kommas als Trennzeichen und CRLF als Zeilenenden. Alle Felder stehen in doppelten Anführungszeichen; enthaltene Anführungszeichen werden verdoppelt. Zeilenumbrüche, Umlaute, chinesische Zeichen und Hashwerte bleiben erhalten. Für Tabellenprogramme beim Import Komma als Trennzeichen und für Hashes, Seriennummern sowie Versionsfelder den Datentyp Text wählen, damit das Tabellenprogramm die Werte nicht umformatiert.
+Das CSV-Format verwendet **UTF-8 mit BOM**, standardmäßig **Semikolon** als Trennzeichen und CRLF als Zeilenenden. Unter Optionen → CSV exportieren lässt sich auch Komma wählen. `CsvDelimiter` wird in `settings.json` gespeichert; ältere Einstellungen ohne dieses Feld verwenden Semikolon. Die Wahl wird vor dem Export zusammen mit den Daten festgehalten, sodass ein späterer Optionswechsel eine laufende Ausgabe nicht verändert. Alle Felder stehen in doppelten Anführungszeichen; enthaltene Anführungszeichen werden verdoppelt. Zeilenumbrüche, Umlaute, chinesische Zeichen und Hashwerte bleiben erhalten.
+
+Excel berücksichtigt beim direkten Öffnen einer CSV regionale Einstellungen. Wenn die Spalten nicht richtig getrennt werden, über **Daten → Aus Text/CSV** importieren und das beim Export gewählte Trennzeichen einstellen. Für Hashes, Seriennummern sowie Versionsfelder den Datentyp Text wählen, damit Excel führende Nullen oder Versionsnummern nicht automatisch umformatiert. Siehe [Microsoft: Text- und CSV-Dateien importieren](https://support.microsoft.com/en-us/excel/get-started/import-or-export-text-txt-or-csv-files).
 
 Für weitere Exportformate liegt `IResultExporter` zusammen mit dem WPF-unabhängigen `ResultExportTable` im Core-Projekt. `ResultExportProjection` erstellt aus den Zeilen und gewählten Spalten eine Momentaufnahme. Neue Exportfelder lassen sich über den zentralen Katalog in `ColumnOption.CreateDefaults` ergänzen; der CSV-Schreiber muss dafür nicht geändert werden. Die Ordnersuche liegt getrennt in `IFolderScanner` / `FolderScanner`.
 

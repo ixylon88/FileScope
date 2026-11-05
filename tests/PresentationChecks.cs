@@ -4,6 +4,7 @@ using FileScope.App.Presentation;
 using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
+using FileScope.Core.Export;
 
 internal static class PresentationChecks
 {
@@ -216,6 +217,8 @@ internal static class PresentationChecks
         {
             using var options = new OptionsViewModel(strings, store);
             Check(options.AnalysisPreferences == new AnalysisPreferences(), "missing checkbox settings retain first-run defaults");
+            Check(options.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon, "old settings default to semicolon CSV");
+            options.SelectedCsvDelimiter = options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
             Check(options.Columns.All(column => column.IsExportSelected), "older preferences select all export columns initially");
             options.ClearExportColumnsCommand.Execute(null);
             Check(!options.HasExportColumns && store.Load().ExportColumns is { Length: 0 }, "explicit empty export selection is saved");
@@ -252,7 +255,9 @@ internal static class PresentationChecks
             {
                 options.SelectedLanguage = culture;
                 Check(options.HashFormats.All(format => !format.Label.StartsWith('['))
+                    && options.CsvDelimiters.All(delimiter => !delimiter.Label.StartsWith('['))
                     && options.Columns.All(column => !column.Label.StartsWith('[')), "translated option labels / " + culture.CultureName);
+                Check(options.SelectedCsvDelimiter.Value == CsvDelimiter.Comma, "language changes retain the CSV delimiter");
             }
             options.SelectedLanguage = options.Languages.Single(language => language.CultureName == "de");
             var window = new WindowPreferences(1270, 810, true);
@@ -268,6 +273,8 @@ internal static class PresentationChecks
             var savedOrder = options.Columns.Select(column => column.Id).ToArray();
             using (var reopened = new OptionsViewModel(strings, store))
             {
+                Check(reopened.SelectedCsvDelimiter.Value == CsvDelimiter.Comma,
+                    "CSV delimiter survives JSON save/load and all other preference changes");
                 Check(reopened.AnalysisPreferences == selection,
                     "all checkbox states survive JSON save/load and other option changes");
                 Check(reopened.Columns.Where(column => column.IsExportSelected).Select(column => column.Id)
@@ -296,9 +303,10 @@ internal static class PresentationChecks
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store))
                 Check(fallback.HasSettingsError && fallback.Columns.Count == 39, "corrupt settings fall back without blocking the app");
-            store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", ColumnOrder = ["SHA256", "SHA256"] });
+            store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", CsvDelimiter = "999", ColumnOrder = ["SHA256", "SHA256"] });
             using (var normalized = new OptionsViewModel(strings, store))
                 Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 39
+                    && normalized.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon
                     && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
             store.Save(new UserPreferences { ExportColumns = ["Name", "Name", "future-column"] });

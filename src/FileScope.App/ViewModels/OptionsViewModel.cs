@@ -5,6 +5,7 @@ using FileScope.App.Infrastructure;
 using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
+using FileScope.Core.Export;
 
 namespace FileScope.App.ViewModels;
 
@@ -16,6 +17,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     private readonly ObservableCollection<ColumnOption> _columns;
     private LanguageOption _selectedLanguage;
     private FilterOption<HashFormat> _selectedHashFormat;
+    private FilterOption<CsvDelimiter> _selectedCsvDelimiter;
     private ColumnOption? _selectedColumn;
     private string? _settingsErrorKey;
     private bool _updatingExportSelection;
@@ -25,6 +27,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public ReadOnlyObservableCollection<ColumnOption> Columns { get; }
     public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
     public IReadOnlyList<FilterOption<HashFormat>> HashFormats { get; }
+    public IReadOnlyList<FilterOption<CsvDelimiter>> CsvDelimiters { get; }
     public string UiLanguage => _strings.Culture.IetfLanguageTag;
     public string SettingsError => _settingsErrorKey is null ? "" : _strings[_settingsErrorKey];
     public bool HasSettingsError => _settingsErrorKey is not null;
@@ -58,6 +61,11 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         var format = Enum.TryParse<HashFormat>(saved.HashFormat, out var parsed) && Enum.IsDefined(parsed)
             ? parsed : HashFormat.HexUpper;
         _selectedHashFormat = HashFormats.Single(option => option.Value == format);
+        CsvDelimiters = Enum.GetValues<CsvDelimiter>()
+            .Select(delimiter => new FilterOption<CsvDelimiter>(delimiter, "CsvDelimiter_" + delimiter, strings)).ToArray();
+        var delimiter = Enum.TryParse<CsvDelimiter>(saved.CsvDelimiter, out var parsedDelimiter)
+            && Enum.IsDefined(parsedDelimiter) ? parsedDelimiter : CsvDelimiter.Semicolon;
+        _selectedCsvDelimiter = CsvDelimiters.Single(option => option.Value == delimiter);
         _defaults = ColumnOption.CreateDefaults(strings);
         _columns = new ObservableCollection<ColumnOption>(NormalizeOrder(saved.ColumnOrder));
         Columns = new ReadOnlyObservableCollection<ColumnOption>(_columns);
@@ -100,6 +108,15 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             if (value is null || !HashFormats.Contains(value) || !SetProperty(ref _selectedHashFormat, value)) return;
             HashFormatChanged?.Invoke(this, EventArgs.Empty);
             RequestColumnSizing();
+            Save();
+        }
+    }
+    public FilterOption<CsvDelimiter> SelectedCsvDelimiter
+    {
+        get => _selectedCsvDelimiter;
+        set
+        {
+            if (value is null || !CsvDelimiters.Contains(value) || !SetProperty(ref _selectedCsvDelimiter, value)) return;
             Save();
         }
     }
@@ -209,6 +226,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 HashFormat = SelectedHashFormat.Value.ToString(),
                 ColumnOrder = Columns.Select(column => column.Id).ToArray(),
                 ExportColumns = Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(),
+                CsvDelimiter = SelectedCsvDelimiter.Value.ToString(),
                 Window = WindowPreferences,
                 Analysis = AnalysisPreferences
             });
@@ -226,6 +244,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SelectedLanguage));
         foreach (var column in Columns) column.RefreshLanguage();
         foreach (var option in HashFormats) option.RefreshLanguage();
+        foreach (var option in CsvDelimiters) option.RefreshLanguage();
         OnPropertyChanged(nameof(SettingsError));
         OnPropertyChanged(nameof(UiLanguage));
         RequestColumnSizing();

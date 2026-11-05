@@ -42,16 +42,31 @@
           <StackPanel Width="316">
             <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
             <WrapPanel>
-              <Button Content="{loc:Loc AddFiles}" Command="{Binding BrowseCommand}" Style="{StaticResource PrimaryButton}" ToolTip="{loc:Loc AddFilesTip}" />
-              <Button x:Name="AddFolderButton" Content="{loc:Loc AddFolder}" Command="{Binding AddFolderCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFolderTip}" />
+              <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc AddFiles}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource PrimaryButton}" ToolTip="{loc:Loc AddFolderTip}" >
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc AddFolder}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
             </WrapPanel>
             <WrapPanel>
-              <Button x:Name="ExportCsvButton" Content="{loc:Loc ExportCsv}" Command="{Binding ExportCsvCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportCsvTip}" />
-              <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
+              <Button x:Name="ExportCsvButton" Command="{Binding ExportCsvCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportCsvTip}" >
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc ExportCsv}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
             </WrapPanel>
-            <StackPanel Orientation="Horizontal">
-              <Button Content="{loc:Loc Clear}" Command="{Binding ClearCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ClearTip}" />
+            <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
               <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc CancelTip}" />
+              <Button Content="{loc:Loc Clear}" Command="{Binding ClearCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ClearTip}" />
+              <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
             </StackPanel>
           </StackPanel>
           <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,0,18,0" />
@@ -84,6 +99,7 @@
             <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
                     ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}">
               <StackPanel Orientation="Horizontal">
+                <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
               </StackPanel>

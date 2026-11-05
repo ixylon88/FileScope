@@ -84,6 +84,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         [
             new FilterOption<SignatureFilter>(SignatureFilter.All, "AllSignatures", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.Valid, "Filter_Valid", strings),
+            new FilterOption<SignatureFilter>(SignatureFilter.ExceptValid, "Filter_ExceptValid", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.NoSignature, "Signature_NoEmbeddedSignature", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.Attention, "Filter_Attention", strings),
             new FilterOption<SignatureFilter>(SignatureFilter.NotChecked, "Signature_NotChecked", strings)
@@ -275,7 +276,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             // Rows, not RowsView: filters/selection never omit loaded files.
             var table = ResultExportProjection.Capture(Rows, Options.Columns);
-            await Task.Run(() => _exporter.ExportAsync(path, table, token), token);
+            var delimiter = Options.SelectedCsvDelimiter.Value;
+            await Task.Run(() => _exporter.ExportAsync(path, table, delimiter, token), token);
             _processed = table.Rows.Count;
             SetStatus("CsvExported");
         }
@@ -505,6 +507,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var matchesSignature = SignatureFilterOption.Value switch
         {
             SignatureFilter.Valid => row.SignatureState == SignatureStatus.Valid,
+            SignatureFilter.ExceptValid => row.SignatureState != SignatureStatus.Valid,
             SignatureFilter.NoSignature => row.SignatureState == SignatureStatus.NoEmbeddedSignature,
             SignatureFilter.NotChecked => row.SignatureState == SignatureStatus.NotChecked,
             SignatureFilter.Attention => row.SignatureState is not (SignatureStatus.Valid

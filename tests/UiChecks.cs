@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using FileScope.App.Behaviors;
@@ -56,8 +57,10 @@ internal static class UiChecks
             CheckFolderAndExport(strings);
             CheckFileOperationCancellation(strings);
             CheckMultipleSignatures(strings);
+            CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
             CheckHorizontalScrolling(strings);
+            CheckScrollBarSizing();
             var service = new ImmediateAnalysis();
             using var vm = CreateMainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
             window = new MainWindow(vm);
@@ -305,9 +308,17 @@ internal static class UiChecks
             PumpUntil(() => !vm.IsBusy);
             var csv = File.ReadAllText(picker.Destination!);
             var digest = Convert.ToBase64String(Convert.FromHexString(HashValue(ChecksumAlgorithm.SHA256)));
-            Check(csv.StartsWith("\"SHA-256\",\"File name\"\r\n", StringComparison.Ordinal)
-                && csv.Contains($"\"{digest}\",\"one, 中文.bin\"") && csv.Contains($"\"{digest}\",\"two.bin\"")
+            Check(csv.StartsWith("\"SHA-256\";\"File name\"\r\n", StringComparison.Ordinal)
+                && csv.Contains($"\"{digest}\";\"one, 中文.bin\"") && csv.Contains($"\"{digest}\";\"two.bin\"")
                 && analysis.Calls == 2, "CSV saves every loaded row with selected fields/order/format without reanalysis");
+            var separator = (ComboBox)optionsWindow.FindName("CsvDelimiterSelector");
+            separator.SelectedItem = vm.Options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
+            DrainDispatcher();
+            vm.ExportCsvCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Options.SelectedCsvDelimiter.Value == CsvDelimiter.Comma
+                && File.ReadAllText(picker.Destination!).StartsWith("\"SHA-256\",\"File name\"\r\n", StringComparison.Ordinal)
+                && analysis.Calls == 2, "real delimiter selector changes exported separators without reanalysis");
             picker.Destination = first;
             vm.ExportCsvCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy);
@@ -388,7 +399,8 @@ internal static class UiChecks
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public async Task ExportAsync(string path, ResultExportTable table, CancellationToken cancellationToken = default)
+        public async Task ExportAsync(string path, ResultExportTable table, CsvDelimiter delimiter = CsvDelimiter.Semicolon,
+            CancellationToken cancellationToken = default)
         {
             Started.TrySetResult();
             await Release.Task;
@@ -497,6 +509,14 @@ internal static class UiChecks
                 "dropdown changes selected metadata without reanalysis");
             Check(vm.RowsView.Count == 1 && vm.ShowSignatureSelectorColumn,
                 "selection refreshes the signature filter; a hidden multi-signature row keeps the column available");
+            vm.SignatureFilterOption = vm.SignatureFilters.Single(f => f.Value == SignatureFilter.ExceptValid);
+            Check(vm.RowsView.Count == 1 && vm.RowsView.Contains(row), "except-valid includes the selected untrusted signature");
+            combo.SelectedItem = row.Signatures[0];
+            DrainDispatcher();
+            Check(vm.RowsView.Count == 0, "selecting a valid signature removes the row from except-valid");
+            combo.SelectedItem = row.Signatures[1];
+            DrainDispatcher();
+            Check(vm.RowsView.Count == 1 && analysis.Calls == calls, "selecting a warning restores the row without reanalysis");
             vm.ResetFiltersCommand.Execute(null);
             vm.SearchText = "Second publisher";
             Check(vm.RowsView.Count == 1, "search sees the selected certificate");
@@ -523,6 +543,28 @@ internal static class UiChecks
             Check(!vm.ShowSignatureSelectorColumn && vm.Rows.Count == 0, "clear hides the selector again");
         }
         finally { window.Close(); }
+    }
+
+    private static void CheckExceptValidFilter(LocalizationService strings)
+    {
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        foreach (var status in Enum.GetValues<SignatureStatus>())
+        {
+            var row = new FileRowViewModel(Path.Combine(Path.GetTempPath(), status + ".exe"), strings);
+            row.Complete(new FileAnalysisResult(row.FullPath, 0, null, new Dictionary<ChecksumAlgorithm, string>(),
+                new SignatureResult(status, RevocationMode.OfflineCache)));
+            vm.Rows.Add(row);
+        }
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(filter => filter.Value == SignatureFilter.ExceptValid);
+        Check(vm.RowsView.Count == Enum.GetValues<SignatureStatus>().Length - 1
+            && vm.RowsView.Cast<FileRowViewModel>().All(row => row.SignatureState != SignatureStatus.Valid),
+            "except-valid excludes only valid and includes unsigned, unchecked, unsupported and failed signatures");
+        vm.SearchText = nameof(SignatureStatus.CheckFailed);
+        Check(vm.RowsView.Count == 1, "except-valid combines with text search");
+        vm.SearchText = "";
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(filter => filter.Value == SignatureFilter.Attention);
+        Check(vm.RowsView.Count == Enum.GetValues<SignatureStatus>().Length - 3,
+            "existing attention filter continues to omit unsigned and unchecked files");
     }
 
     private static void CheckWindowPersistence(LocalizationService strings)
@@ -647,6 +689,46 @@ internal static class UiChecks
             trace.Switch.Level = previousLevel;
             window.Close();
         }
+    }
+
+    private static void CheckScrollBarSizing()
+    {
+        var viewer = new ScrollViewer
+        {
+            Content = new Border { Width = 1200, Height = 1200 },
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Visible,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Visible
+        };
+        var window = new Window { Content = viewer, Width = 420, Height = 300, ShowActivated = false, ShowInTaskbar = false };
+        try
+        {
+            window.Show();
+            DrainDispatcher();
+            var vertical = (ScrollBar)viewer.Template.FindName("PART_VerticalScrollBar", viewer);
+            var horizontal = (ScrollBar)viewer.Template.FindName("PART_HorizontalScrollBar", viewer);
+            var verticalBounds = vertical.TransformToAncestor(viewer).TransformBounds(new Rect(vertical.RenderSize));
+            var horizontalBounds = horizontal.TransformToAncestor(viewer).TransformBounds(new Rect(horizontal.RenderSize));
+            Check(verticalBounds.Width >= 24 && horizontalBounds.Height >= 24,
+                "real scrollbars reserve at least 24 DIPs of rendered width/height");
+            foreach (var bar in new[] { vertical, horizontal })
+            {
+                var track = (Track)bar.Template.FindName("PART_Track", bar);
+                var thumb = track.Thumb;
+                var bounds = thumb.TransformToAncestor(viewer).TransformBounds(new Rect(thumb.RenderSize));
+                var thickness = bar.Orientation == Orientation.Vertical ? bounds.Width : bounds.Height;
+                Check(thickness >= 8, "native thumb has a doubled visible and clickable cross-section / " + bar.Orientation);
+                var point = thumb.TranslatePoint(new Point(thumb.ActualWidth / 2, thumb.ActualHeight / 2), viewer);
+                var hit = viewer.InputHitTest(point) as DependencyObject;
+                while (hit is not null && hit is not Thumb) hit = VisualTreeHelper.GetParent(hit);
+                Check(ReferenceEquals(hit, thumb), "scaled thumb remains reachable by mouse hit-testing / " + bar.Orientation);
+            }
+            ScrollBar.LineDownCommand.Execute(null, vertical);
+            ScrollBar.LineRightCommand.Execute(null, horizontal);
+            DrainDispatcher();
+            Check(viewer.VerticalOffset > 0 && viewer.HorizontalOffset > 0,
+                "both native scrollbars retain functional scroll commands after scaling");
+        }
+        finally { window.Close(); }
     }
 
     private static IEnumerable<DependencyObject> VisualChildren(DependencyObject parent)

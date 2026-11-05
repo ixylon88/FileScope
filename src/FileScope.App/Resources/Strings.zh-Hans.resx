@@ -459,4 +459,9 @@
   <data name="ClearExportColumns" xml:space="preserve"><value>全部取消</value></data>
   <data name="PreparingFiles" xml:space="preserve"><value>正在添加文件…</value></data>
   <data name="IntakeCancelled" xml:space="preserve"><value>已取消添加文件。已添加的行可重新分析。</value></data>
+  <data name="Filter_ExceptValid" xml:space="preserve"><value>除有效签名外的全部</value></data>
+  <data name="CsvDelimiterLabel" xml:space="preserve"><value>CSV 分隔符</value></data>
+  <data name="CsvDelimiter_Semicolon" xml:space="preserve"><value>分号（;）</value></data>
+  <data name="CsvDelimiter_Comma" xml:space="preserve"><value>逗号（,）</value></data>
+  <data name="CsvDelimiterHint" xml:space="preserve"><value>如果 Excel 未正确拆分列，请通过“数据 → 从文本/CSV”导入，并选择相同的分隔符。</value></data>
 </root>

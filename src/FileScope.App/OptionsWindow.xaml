@@ -50,9 +50,18 @@
       </TabItem>
       <TabItem x:Name="ExportOptionsTab" Header="{loc:Loc ExportCsv}">
         <Grid Margin="12">
-          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <TextBlock Text="{loc:Loc ExportColumnsHint}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
-          <ListBox x:Name="ExportColumnList" Grid.Row="1" ItemsSource="{Binding Columns}"
+          <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="{loc:Loc CsvDelimiterLabel}" Style="{StaticResource FieldLabel}" />
+            <ComboBox x:Name="CsvDelimiterSelector" ItemsSource="{Binding CsvDelimiters}"
+                      SelectedItem="{Binding SelectedCsvDelimiter}" DisplayMemberPath="Label"
+                      MinHeight="34" Width="220" HorizontalAlignment="Left"
+                      AutomationProperties.Name="{loc:Loc CsvDelimiterLabel}" />
+            <TextBlock Text="{loc:Loc CsvDelimiterHint}" Foreground="{StaticResource MutedBrush}"
+                       TextWrapping="Wrap" Margin="0,6,0,0" />
+          </StackPanel>
+          <ListBox x:Name="ExportColumnList" Grid.Row="2" ItemsSource="{Binding Columns}"
                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"
                    AutomationProperties.Name="{loc:Loc ExportColumnsTitle}">
             <ListBox.ItemTemplate>
@@ -61,7 +70,7 @@
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
-          <WrapPanel Grid.Row="2" Margin="0,12,0,0">
+          <WrapPanel Grid.Row="3" Margin="0,12,0,0">
             <Button Content="{loc:Loc SelectAllExportColumns}" Command="{Binding SelectAllExportColumnsCommand}" Style="{StaticResource BandButton}" />
             <Button Content="{loc:Loc ClearExportColumns}" Command="{Binding ClearExportColumnsCommand}" Style="{StaticResource BandButton}" />
           </WrapPanel>

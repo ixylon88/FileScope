@@ -19,4 +19,4 @@ public sealed class FilterOption<T>(T value, string resourceKey, LocalizationSer
 }
 
 public enum RowStatus { Queued, Running, Completed, Failed, Cancelled }
-public enum SignatureFilter { All, Valid, NoSignature, Attention, NotChecked }
+public enum SignatureFilter { All, Valid, NoSignature, Attention, NotChecked, ExceptValid }

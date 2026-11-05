@@ -1,5 +1,110 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -7,10 +112,10 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="WindowTitle" xml:space="preserve">
     <value>FileScope · Dateianalyse</value>
@@ -37,7 +142,7 @@
     <value>Dateien hinzufügen (Strg+O). Dateien können auch auf das Fenster gezogen werden.</value>
   </data>
   <data name="Reanalyse" xml:space="preserve">
-    <value>Alle neu prüfen</value>
+    <value>Alle erneut prüfen</value>
   </data>
   <data name="ReanalyseTip" xml:space="preserve">
     <value>Alle geladenen Dateien mit den aktuellen Optionen erneut analysieren, auch ausgefilterte Dateien.</value>
@@ -438,25 +543,82 @@
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET-Plattform</value>
   </data>
-  <data name="AddFolder" xml:space="preserve"><value>Ordner hinzufügen</value></data>
-  <data name="AddFolderTitle" xml:space="preserve"><value>Ordner zur Analyse auswählen</value></data>
-  <data name="AddFolderTip" xml:space="preserve"><value>Alle Dateien einschließlich Unterordner analysieren. Bereits vorhandene Pfade werden übersprungen.</value></data>
-  <data name="ScanningFolder" xml:space="preserve"><value>Ordner wird durchsucht…</value></data>
-  <data name="FolderScanCancelled" xml:space="preserve"><value>Ordnersuche abgebrochen. Es wurden keine Dateien hinzugefügt.</value></data>
-  <data name="FolderEmpty" xml:space="preserve"><value>Keine Dateien in diesem Ordner gefunden.</value></data>
-  <data name="FolderScanWarning" xml:space="preserve"><value>Übersprungen: {0} nicht lesbare Ordner und {1} Verzeichnisverknüpfungen.</value></data>
-  <data name="ExportCsv" xml:space="preserve"><value>CSV exportieren</value></data>
-  <data name="ExportCsvTitle" xml:space="preserve"><value>Ergebnisse als CSV speichern</value></data>
-  <data name="CsvFiles" xml:space="preserve"><value>CSV-Dateien</value></data>
-  <data name="ExportCsvTip" xml:space="preserve"><value>Ergebnisse aller geladenen Dateien speichern. Exportspalten unter Optionen → CSV exportieren auswählen.</value></data>
-  <data name="ExportSourceConflict" xml:space="preserve"><value>Bitte einen anderen Dateinamen wählen: Eine analysierte Quelldatei darf nicht durch den Export überschrieben werden.</value></data>
-  <data name="ExportingCsv" xml:space="preserve"><value>CSV wird exportiert…</value></data>
-  <data name="CsvExported" xml:space="preserve"><value>CSV gespeichert: {0} Dateien exportiert.</value></data>
-  <data name="CsvExportCancelled" xml:space="preserve"><value>CSV-Export abgebrochen.</value></data>
-  <data name="ExportColumnsTitle" xml:space="preserve"><value>CSV-Exportspalten</value></data>
-  <data name="ExportColumnsHint" xml:space="preserve"><value>Alle geladenen Dateien exportieren, auch ausgefilterte Zeilen. Markierte Felder folgen der Spaltenreihenfolge sowie der aktuellen Sprache und Hash-Darstellung. Pro Datei gilt die ausgewählte Signatur. Nicht analysierte Felder bleiben leer.</value></data>
-  <data name="SelectAllExportColumns" xml:space="preserve"><value>Alle auswählen</value></data>
-  <data name="ClearExportColumns" xml:space="preserve"><value>Alle abwählen</value></data>
-  <data name="PreparingFiles" xml:space="preserve"><value>Dateien werden hinzugefügt…</value></data>
-  <data name="IntakeCancelled" xml:space="preserve"><value>Hinzufügen abgebrochen. Bereits hinzugefügte Zeilen können erneut analysiert werden.</value></data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>Ordner öffnen...</value>
+  </data>
+  <data name="AddFolderTitle" xml:space="preserve">
+    <value>Ordner zur Analyse auswählen</value>
+  </data>
+  <data name="AddFolderTip" xml:space="preserve">
+    <value>Alle Dateien einschließlich Unterordner analysieren. Bereits vorhandene Pfade werden übersprungen.</value>
+  </data>
+  <data name="ScanningFolder" xml:space="preserve">
+    <value>Ordner wird durchsucht…</value>
+  </data>
+  <data name="FolderScanCancelled" xml:space="preserve">
+    <value>Ordnersuche abgebrochen. Es wurden keine Dateien hinzugefügt.</value>
+  </data>
+  <data name="FolderEmpty" xml:space="preserve">
+    <value>Keine Dateien in diesem Ordner gefunden.</value>
+  </data>
+  <data name="FolderScanWarning" xml:space="preserve">
+    <value>Übersprungen: {0} nicht lesbare Ordner und {1} Verzeichnisverknüpfungen.</value>
+  </data>
+  <data name="ExportCsv" xml:space="preserve">
+    <value>CSV exportieren</value>
+  </data>
+  <data name="ExportCsvTitle" xml:space="preserve">
+    <value>Ergebnisse als CSV speichern</value>
+  </data>
+  <data name="CsvFiles" xml:space="preserve">
+    <value>CSV-Dateien</value>
+  </data>
+  <data name="ExportCsvTip" xml:space="preserve">
+    <value>Ergebnisse aller geladenen Dateien speichern. Exportspalten unter Optionen → CSV exportieren auswählen.</value>
+  </data>
+  <data name="ExportSourceConflict" xml:space="preserve">
+    <value>Bitte einen anderen Dateinamen wählen: Eine analysierte Quelldatei darf nicht durch den Export überschrieben werden.</value>
+  </data>
+  <data name="ExportingCsv" xml:space="preserve">
+    <value>CSV wird exportiert…</value>
+  </data>
+  <data name="CsvExported" xml:space="preserve">
+    <value>CSV gespeichert: {0} Dateien exportiert.</value>
+  </data>
+  <data name="CsvExportCancelled" xml:space="preserve">
+    <value>CSV-Export abgebrochen.</value>
+  </data>
+  <data name="ExportColumnsTitle" xml:space="preserve">
+    <value>CSV-Exportspalten</value>
+  </data>
+  <data name="ExportColumnsHint" xml:space="preserve">
+    <value>Alle geladenen Dateien exportieren, auch ausgefilterte Zeilen. Markierte Felder folgen der Spaltenreihenfolge sowie der aktuellen Sprache und Hash-Darstellung. Pro Datei gilt die ausgewählte Signatur. Nicht analysierte Felder bleiben leer.</value>
+  </data>
+  <data name="SelectAllExportColumns" xml:space="preserve">
+    <value>Alle auswählen</value>
+  </data>
+  <data name="ClearExportColumns" xml:space="preserve">
+    <value>Alle abwählen</value>
+  </data>
+  <data name="PreparingFiles" xml:space="preserve">
+    <value>Dateien werden hinzugefügt…</value>
+  </data>
+  <data name="IntakeCancelled" xml:space="preserve">
+    <value>Hinzufügen abgebrochen. Bereits hinzugefügte Zeilen können erneut analysiert werden.</value>
+  </data>
+  <data name="Filter_ExceptValid" xml:space="preserve">
+    <value>Alles außer gültigen Signaturen</value>
+  </data>
+  <data name="CsvDelimiterLabel" xml:space="preserve">
+    <value>CSV-Trennzeichen</value>
+  </data>
+  <data name="CsvDelimiter_Semicolon" xml:space="preserve">
+    <value>Semikolon (;)</value>
+  </data>
+  <data name="CsvDelimiter_Comma" xml:space="preserve">
+    <value>Komma (,)</value>
+  </data>
+  <data name="CsvDelimiterHint" xml:space="preserve">
+    <value>Falls Excel die Spalten nicht richtig trennt, über Daten → Aus Text/CSV importieren und dasselbe Trennzeichen wählen.</value>
+  </data>
 </root>
