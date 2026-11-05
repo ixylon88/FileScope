@@ -236,5 +236,3 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 ## Code-Stil
 
 Die `.editorconfig` ist nach Themen und Regel-IDs geordnet; jede Einstellung trägt einen kurzen Kommentar. [Einstellungen und Erklärungen nebeneinander](docs/EDITORCONFIG.md). Die engeren Testausnahmen stehen in `tests/.editorconfig`.
-
-[Review der Analyzer-/Dark-Commits und Korrektur des UI-Tests](docs/REVIEW-2026-11-04.md).
