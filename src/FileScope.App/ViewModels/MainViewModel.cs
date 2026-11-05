@@ -103,7 +103,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
             _ => IsIdle && HasRows);
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
-        ClearCommand = new RelayCommand(Clear, () => HasRows && !_clearRequested);
+        ClearCommand = new RelayCommand(Clear, () => IsIdle && HasRows && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;

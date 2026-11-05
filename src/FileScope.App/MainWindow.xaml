@@ -44,22 +44,22 @@
             <WrapPanel>
               <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >
                 <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc AddFiles}" VerticalAlignment="Center" />
+                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                  <Label Content="{loc:Loc AddFiles}" VerticalAlignment="Center" Padding="0" />
                 </StackPanel>
               </Button>
               <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource PrimaryButton}" ToolTip="{loc:Loc AddFolderTip}" >
                 <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc AddFolder}" VerticalAlignment="Center" />
+                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                  <Label Content="{loc:Loc AddFolder}" VerticalAlignment="Center" Padding="0" />
                 </StackPanel>
               </Button>
             </WrapPanel>
             <WrapPanel>
               <Button x:Name="ExportButton" Command="{Binding ExportCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportTip}" >
                 <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc ExportResults}" VerticalAlignment="Center" />
+                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                  <Label Content="{loc:Loc ExportResults}" VerticalAlignment="Center" Padding="0" />
                 </StackPanel>
               </Button>
             </WrapPanel>
