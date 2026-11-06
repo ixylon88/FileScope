@@ -654,8 +654,8 @@ internal static class UiChecks
         Check(vm.LastRunSummary is { ProcessedFiles: 3, TotalBytes: 6, UnknownSizeFiles: 1 }
             && vm.LastRunSummary.Elapsed >= TimeSpan.Zero, "finished runs count their results and known sizes, including metadata warnings");
         Check(vm.StatusText.StartsWith(strings.Format("CompletedSummary", 3, 3, 0), StringComparison.Ordinal)
-            && vm.StatusText.Contains(vm.LastRunSummary!.Format(strings), StringComparison.Ordinal)
-            && vm.StatusText.EndsWith(strings.Format("DiagnosticSummary", 2), StringComparison.Ordinal),
+            && vm.StatusText.Contains(" · " + vm.LastRunSummary!.Format(strings), StringComparison.Ordinal)
+            && vm.StatusText.EndsWith(" · " + strings.Format("DiagnosticSummary", 2), StringComparison.Ordinal),
             "completion status combines file count, duration, byte total and diagnostic details");
         vm.DropFilesCommand.Execute(new[] { Input("clean"), Input("another") });
         PumpUntil(() => !vm.IsBusy);
@@ -689,7 +689,7 @@ internal static class UiChecks
             && cancelled.Rows.Count(row => row.State == RowStatus.Cancelled) == 2,
             "cancellation summarizes completed results and excludes unfinished files and their bytes");
         Check(cancelled.StatusText.StartsWith(strings.Format("CancelledSummary", 1, 3, 0), StringComparison.Ordinal)
-            && cancelled.StatusText.Contains(cancelled.LastRunSummary!.Format(strings), StringComparison.Ordinal),
+            && cancelled.StatusText.Contains(" · " + cancelled.LastRunSummary!.Format(strings), StringComparison.Ordinal),
             "cancelled status also reports elapsed time and the partial byte total");
     }
 
@@ -726,7 +726,7 @@ internal static class UiChecks
                 && metadataRow.State == RowStatus.Completed,
                 "optional metadata diagnostics and file failures reveal the column and count affected rows");
             Check(vm.StatusText.StartsWith(strings.Format("CompletedSummary", 4, 4, 0), StringComparison.Ordinal)
-                && vm.StatusText.EndsWith(strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
+                && vm.StatusText.EndsWith(" · " + strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
                 && status.Text == vm.StatusText && status.TextWrapping == TextWrapping.Wrap
                 && status.TextTrimming == TextTrimming.None,
                 "the bound completion status appends diagnostic details and wraps instead of truncating them");
@@ -753,7 +753,7 @@ internal static class UiChecks
             {
                 vm.Options.SelectedLanguage = language;
                 DrainDispatcher();
-                Check(status.Text == vm.StatusText && status.Text.EndsWith(strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
+                Check(status.Text == vm.StatusText && status.Text.EndsWith(" · " + strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
                     && !status.Text.Contains("[DiagnosticSummary]", StringComparison.Ordinal),
                     "diagnostic status follows the selected language / " + language.CultureName);
             }

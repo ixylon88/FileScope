@@ -1,5 +1,17 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Statustrenner und Diagnose-Testdatei
+
+Stand: 6. November 2026. Patchbasis: `9271c44` (`wip: presentation test`), einschließlich Durchlaufstatistik und Theme-Umschalter.
+
+Der Mittelpunkt ` · ` steht jetzt vor der Durchlaufstatistik und vor dem optionalen Diagnosehinweis. Die bestehenden UI-Prüfungen kontrollieren diese Trenner bei Abschluss, Abbruch und Sprachwechsel; es wurden keine Assertions hinzugefügt. Der dokumentierte Umfang bleibt unverändert: Core 472 im letzten dokumentierten Windows-Lauf beziehungsweise 183 unter Linux, Präsentation zuletzt 147 bestanden, UI 255 erwartet. Die README unterscheidet diese Zahlen vom aktuellen Ausführungsstand.
+
+Der Release-Build der App besteht mit .NET SDK 10.0.100 unter Linux: 0 Warnungen / 0 Fehler. Der aktuelle UI-Test-Harness scheitert bereits an acht vorhandenen Aufrufen von `OptionsViewModel` ohne den neu benötigten `IThemeService`. Der Präsentations-Harness bindet nun `ThemeService.cs` ein, zielt jedoch weiter auf `net10.0` ohne WPF und kann dessen `Application`-Typ nicht auflösen. Diese offenen Anpassungen stammen aus der Theme-Umstellung der Patchbasis. Die WPF-Laufzeitprüfung bleibt unter Windows auszuführen, sobald die Harnesses wieder kompilieren.
+
+Die separat mitgelieferte Datei `FileScope-Diagnose-NE-abgeschnitten.bin` enthält 66 Bytes: einen unvollständigen MZ-/NE-Header ohne ausführbaren Programmteil. Für die manuelle Prüfung **EXE-Header / Plattform** einschalten und die Datei in FileScope öffnen. Erwartete Diagnose: `Programm-Header: Truncated NE header.` Die Datei bleibt lesbar und hashbar; gezielt schlägt die optionale Headerauswertung fehl. Die Zeile kann daher weiterhin als abgeschlossene Analyse erscheinen, während Diagnosespalte und Statushinweis sichtbar werden.
+
+Die Testdatei wurde mit dem echten `FileAnalysisService` geprüft: Dateigröße 66 Bytes, erwartete Headerdiagnose, korrekter SHA-256 und keine Headerdiagnose bei ausgeschalteter Headerprüfung. Die deutsche Diagnoseprojektion wurde ebenfalls vor der Theme-Umstellung geprüft. SHA-256: `8D9C309693716CF2FCDA524D1BB5D20F8828DCAF178D51A8B8C38089DCBA8622`. Diese separate Artefaktprüfung erhöht die drei Testgruppen nicht.
+
 ## Ergänzung: Durchlaufstatistik
 
 Stand: 6. November 2026. Patchbasis: `dda03f7` (`readme`). Ausführung mit .NET SDK 10.0.100 unter Linux.

@@ -643,10 +643,10 @@ Continue? Choosing “No” cancels the entire drop.</value>
     <value>… and {0} more folder(s).</value>
   </data>
   <data name="DiagnosticSummary" xml:space="preserve">
-    <value>Rows with diagnostic details: {0}.</value>
+    <value>Rows with diagnostic details: {0}</value>
   </data>
   <data name="RunSummary" xml:space="preserve">
-    <value>Elapsed: {0} · Total file size: {1:N0} bytes.</value>
+    <value>Elapsed: {0} · Total file size: {1:N0} bytes</value>
   </data>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>Unknown size for {0:N0} file(s).</value>

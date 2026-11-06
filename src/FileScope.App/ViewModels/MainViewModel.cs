@@ -194,8 +194,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             var status = _strings.Format(field, _processed, _batchTotal, _skipped);
             if (LastRunSummary is { } summary && field is "CompletedSummary" or "CancelledSummary")
-                status += " " + summary.Format(_strings);
-            return ShowDiagnosticColumn ? $"{status} {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
+                status += " · " + summary.Format(_strings);
+            return ShowDiagnosticColumn ? $"{status} · {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
         }
         private set;
     } = "Ready";

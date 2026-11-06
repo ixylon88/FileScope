@@ -643,10 +643,10 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
     <value>… und {0} weitere Ordner.</value>
   </data>
   <data name="DiagnosticSummary" xml:space="preserve">
-    <value>Zeilen mit Diagnosedetails: {0}.</value>
+    <value>Zeilen mit Diagnosedetails: {0}</value>
   </data>
   <data name="RunSummary" xml:space="preserve">
-    <value>Dauer: {0} · Dateisumme: {1:N0} Bytes.</value>
+    <value>Dauer: {0} · Dateisumme: {1:N0} Bytes</value>
   </data>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>Größe bei {0:N0} Datei(en) unbekannt.</value>

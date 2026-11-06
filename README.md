@@ -144,7 +144,7 @@ Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist
 
 #### Durchlaufstatistik
 
-Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen.
+Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen. Der Mittelpunkt ` · ` trennt sowohl die Durchlaufwerte als auch den optionalen Diagnosehinweis vom vorherigen Meldungsteil.
 
 Beim Hinzufügen weiterer Dateien zählt nur der neue Durchlauf; „Alle neu prüfen“ bildet die Statistik für sämtliche geladenen Zeilen neu, unabhängig von Tabellenfiltern. Ein Abbruch zeigt die bis dahin abgeschlossenen Dateiergebnisse einschließlich Fehlerergebnissen an. Noch nicht abgeschlossene Dateien gehen nicht in die Summe ein. Fehlt eine Dateigröße, nennt die Statusleiste zusätzlich die Anzahl dieser Dateien. „Leeren“ entfernt die Statistik.
 
@@ -362,13 +362,13 @@ Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- 
 
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
 
-Aktueller Prüfstand nach Ergänzung der Durchlaufstatistik; gezählt werden einzelne Prüfbedingungen (Assertions):
+Dokumentierter Prüfumfang einschließlich Durchlaufstatistik; gezählt werden einzelne Prüfbedingungen (Assertions). Die laufende Theme-Umstellung hat derzeit offene Anpassungen in den Test-Harnesses:
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
 | Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
-| Präsentation und Einstellungen | **147** bestanden. |
-| WPF / UI / MVVM | **255** erwartet; aktuelles Testprogramm fehlerfrei kompiliert, Windows-Ausführung noch offen. |
+| Präsentation und Einstellungen | **147** zuletzt bestanden, vor der Theme-Umstellung; aktueller Harness-Build noch blockiert. |
+| WPF / UI / MVVM | **255** erwartet; aktueller Harness-Build durch fehlende `IThemeService`-Argumente blockiert, Windows-Ausführung noch offen. |
 
 Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen und 32 seither ergänzten Prüfungen für Diagnoseanzeige und Durchlaufstatistik. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
