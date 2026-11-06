@@ -6,7 +6,7 @@
   <!-- Scale only the cross-axis: Fluent's 12-DIP bars occupy 24 DIPs,
        including the thumb and its hit area. Keep the native templates,
        colors, range, viewport and scrolling direction unchanged. -->
-  <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource DefaultScrollBarStyle}">
+  <Style x:Key="ScrollBarStyle" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource {x:Type ScrollBar}}">
     <Style.Triggers>
       <Trigger Property="Orientation" Value="Vertical">
         <Setter Property="LayoutTransform">
@@ -20,6 +20,7 @@
       </Trigger>
     </Style.Triggers>
   </Style>
+  <Style BasedOn="{StaticResource ScrollBarStyle}" TargetType="{x:Type ScrollBar}" />
   <Style x:Key="AppWindowStyle" TargetType="Window" BasedOn="{StaticResource {x:Type Window}}">
     <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Microsoft YaHei" />
     <Setter Property="FontSize" Value="13" />
@@ -41,11 +42,6 @@
     <Setter Property="MinHeight" Value="34" />
     <Setter Property="Margin" Value="0,0,8,6" />
     <Setter Property="Cursor" Value="Hand" />
-  </Style>
-  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource BandButton}">
-    <Setter Property="Background" Value="{DynamicResource SystemFillColorAttentionBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorAttentionBrush}" />
   </Style>
   <Style x:Key="GridText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
     <Setter Property="Margin" Value="9,7" />
