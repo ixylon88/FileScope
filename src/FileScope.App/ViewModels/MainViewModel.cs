@@ -285,8 +285,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var preview = string.Join(Environment.NewLine, folders.Take(previewCount));
         if (folders.Count > previewCount)
             preview += Environment.NewLine + _strings.Format("DropFoldersMore", folders.Count - previewCount);
-        if (!_confirmation.Confirm(_strings.Format("DropFoldersMessage", folders.Count, preview),
-            _strings["DropFoldersTitle"])) return;
+        if (!_confirmation.Confirm(_strings.Format("DropFoldersMessage", folders.Count, preview), _strings["DropFoldersTitle"]))
+            return;
+
         await AddFoldersAsync(folders.ToArray(), files);
     }
 
