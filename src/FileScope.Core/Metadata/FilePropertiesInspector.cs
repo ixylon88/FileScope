@@ -8,6 +8,11 @@ using FileScope.Core.Models;
 
 namespace FileScope.Core.Metadata;
 
+/// <summary>Combines the extension's registered type with VERSIONINFO from the borrowed file.</summary>
+/// <remarks>
+/// Shell type lookup and resource decoding are independent: a type name does not validate file content.
+/// Expected metadata errors preserve the type information and return a diagnostic; cancellation propagates.
+/// </remarks>
 public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
 {
     public FilePropertiesResult Inspect(FileStream file, string fullPath, CancellationToken cancellationToken = default)
@@ -49,6 +54,9 @@ public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
         }
     }
 
+    /// <summary>Queries the Shell association for an extension without opening the target file.</summary>
+    /// <remarks>COM initialization and cleanup must both occur on this calling thread.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shgetfileinfow"/>
     [SupportedOSPlatform("windows")]
     private static string ReadWindowsType(string extension)
     {
@@ -61,10 +69,13 @@ public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
         // icon extraction, shell preview handler, or target program execution.
         try
         {
+            // FILE_ATTRIBUTE_NORMAL (0x80), SHGFI_TYPENAME (0x400), SHGFI_USEFILEATTRIBUTES (0x10).
+            // These flags request no icon handle that the caller would have to destroy.
             var result = Native.SHGetFileInfoW(extension.Length == 0 ? "file" : extension,
                 0x80, out var info, (uint)Marshal.SizeOf<Native.ShellFileInfo>(), 0x400 | 0x10);
             return result != IntPtr.Zero && !string.IsNullOrWhiteSpace(info.TypeName) ? info.TypeName : extension;
         }
+        // S_OK and S_FALSE both acquire a COM initialization reference; RPC_E_CHANGED_MODE does not.
         finally { if (initialized >= 0) Native.CoUninitialize(); }
     }
 
@@ -79,6 +90,8 @@ public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial void CoUninitialize();
 
+        // SHFILEINFOW contains inline WCHAR arrays, not pointers to separately allocated strings.
+        // Preserve their capacities and platform-default alignment when calculating cbFileInfo.
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal struct ShellFileInfo
         {

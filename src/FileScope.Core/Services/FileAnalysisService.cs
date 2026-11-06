@@ -7,6 +7,11 @@ using FileScope.Core.Metadata;
 
 namespace FileScope.Core.Services;
 
+/// <summary>Owns one file stream and lends it to the checksum, metadata and signature strategies.</summary>
+/// <remarks>
+/// The strategies run sequentially so managed reads and native file-pointer changes cannot race.
+/// Only checksum algorithms share one content pass; native inspection can perform additional reads.
+/// </remarks>
 public sealed class FileAnalysisService(IChecksumService checksums, ISignatureInspector signatures,
     IFilePropertiesInspector properties, IPeHeaderInspector peHeaders)
     : IFileAnalysisService
@@ -57,6 +62,8 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             cancellationToken.ThrowIfCancellationRequested();
             if (options.InspectPeHeader)
             {
+                // Hashing ends at EOF. Header inspection and Windows trust verification
+                // each receive a defined starting position on the same borrowed stream.
                 stream.Position = 0;
                 peHeader = ReadOptional(() => peHeaders.Inspect(stream, cancellationToken),
                     message => new PeHeaderResult(null, message));
@@ -87,6 +94,8 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             FileAnalysisResult.Failure(fullPath, error, ex.Message);
     }
 
+    // Optional metadata failures become diagnostics without discarding completed hashes.
+    // Cancellation is deliberately outside this filter and reaches the caller unchanged.
     private static T ReadOptional<T>(Func<T> read, Func<string, T> failure)
     {
         try { return read(); }

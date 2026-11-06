@@ -8,12 +8,21 @@ using Microsoft.Win32.SafeHandles;
 namespace FileScope.Core.Metadata;
 
 // Windows owns PE/NE resource decoding and MUI lookup. No executable is loaded as code.
+/// <summary>Adapts the optional Windows version-by-handle API to managed file-property values.</summary>
+/// <remarks>Native buffers are copied into managed values before their owning allocation is released.</remarks>
+/// <seealso href="https://learn.microsoft.com/en-us/windows/win32/menurc/getfileversioninfobyhandle"/>
 [SupportedOSPlatform("windows")]
 internal static partial class WindowsFileVersionReader
 {
     private static readonly Lazy<GetVersionByHandle?> ReadFunction = new(LoadReadFunction);
     internal static bool IsAvailable => ReadFunction.Value is not null;
 
+    /// <summary>Reads VERSIONINFO while leaving the borrowed stream open at its managed position.</summary>
+    /// <returns>
+    /// False only when the handle API is unavailable, allowing a path-based compatibility fallback.
+    /// True also covers files without version resources, which return empty fields.
+    /// </returns>
+    /// <remarks>Native read errors propagate; they must not silently trigger a second path-based read.</remarks>
     internal static bool TryRead(FileStream file, out FilePropertiesInfo fields, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -33,6 +42,7 @@ internal static partial class WindowsFileVersionReader
             cancellationToken.ThrowIfCancellationRequested();
             // Match FileVersionInfo's localized/neutral resource policy (flags 1 | 2).
             var success = read(3, handle, ref buffer, out var size);
+            // Capture the thread's native error before any other interop call can overwrite it.
             var error = Marshal.GetLastWin32Error();
             cancellationToken.ThrowIfCancellationRequested();
             if (success)
@@ -63,6 +73,8 @@ internal static partial class WindowsFileVersionReader
         return true;
     }
 
+    // VerQueryValue returns borrowed pointers into buffer. None may escape this method;
+    // the caller releases the entire allocation with LocalFree after all strings are copied.
     private static FilePropertiesInfo ReadFields(IntPtr buffer, uint size)
     {
         uint translation = 0x040904e4;
@@ -90,6 +102,8 @@ internal static partial class WindowsFileVersionReader
             {
                 if (!Native.VerQueryValue(buffer, prefix + field, out var text, out var characters)
                     || text == IntPtr.Zero || characters == 0) return "";
+                // String lengths are UTF-16 characters; Translation lengths above are bytes.
+                // Bound the copy before looking for the first NUL, matching FileVersionInfo text semantics.
                 ValidateRange(buffer, size, text, (ulong)characters * 2);
                 var value = Marshal.PtrToStringUni(text, checked((int)characters)) ?? "";
                 var terminator = value.IndexOf('\0');
@@ -121,6 +135,8 @@ internal static partial class WindowsFileVersionReader
         return new string(text, 0, (int)count);
     }
 
+    // Resolve the optional export once from the system DLL. An unavailable entry point is a
+    // capability result, not a per-file failure; never load the inspected image as a library.
     private static GetVersionByHandle? LoadReadFunction()
     {
         if (!NativeLibrary.TryLoad("version.dll", typeof(WindowsFileVersionReader).Assembly,
@@ -137,6 +153,8 @@ internal static partial class WindowsFileVersionReader
         finally { if (!retained) NativeLibrary.Free(module); }
     }
 
+    // DWORD/BOOL retain 32-bit width on all targets; HANDLE and LPVOID are pointer-sized.
+    // SafeFileHandle marshalling keeps the handle alive for this call without transferring ownership.
     [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private delegate bool GetVersionByHandle(uint flags, SafeFileHandle file, ref IntPtr data, out uint size);

@@ -5,6 +5,11 @@ namespace FileScope.Core.Signatures;
 
 // Decoding metadata is deliberately separate from deciding whether Windows
 // trusted it. Never substitute certificate NotBefore or the current clock.
+/// <summary>Decodes timestamp attributes already copied out of the Windows provider state.</summary>
+/// <remarks>
+/// This managed ASN.1 parser performs no signature or certificate-chain verification.
+/// Confirmation requires the separate Windows policy/countersigner result and a matching verification time.
+/// </remarks>
 internal static class AuthenticodeTimestampReader
 {
     internal const string CounterSignatureOid = "1.2.840.113549.1.9.6";

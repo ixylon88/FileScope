@@ -11,6 +11,11 @@ namespace FileScope.Core.Signatures;
 /// Inspects embedded Authenticode signatures independently using Windows trust policy.
 /// No catalog lookup, private-key import, certificate installation or file execution.
 /// </summary>
+/// <remarks>
+/// The file handle is borrowed. Provider state and marshalled input allocations have different owners
+/// and are released separately; all returned models contain managed copies rather than native pointers.
+/// </remarks>
+/// <seealso href="https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust"/>
 public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
 {
     public SignatureResult Inspect(FileStream file, string fullPath, RevocationMode revocationMode,
@@ -40,6 +45,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
     private static SignatureResult InspectWindows(FileStream stream, string path, RevocationMode mode,
         CancellationToken cancellationToken)
     {
+        // WINTRUST_FILE_INFO embeds a raw HANDLE, so the caller must keep the stream open.
+        // GC.KeepAlive below prevents premature finalization; it cannot prevent a concurrent Dispose.
         var fileInfo = new Native.WinTrustFileInfo
         {
             Size = (uint)Marshal.SizeOf<Native.WinTrustFileInfo>(),
@@ -49,7 +56,10 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         var filePointer = Marshal.AllocHGlobal(Marshal.SizeOf<Native.WinTrustFileInfo>());
         var settingsPointer = IntPtr.Zero;
         var marshaled = false;
+        // WINTRUST_ACTION_GENERIC_VERIFY_V2 selects Windows Authenticode policy.
         var action = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+        // Revocation remains enabled in both modes. CACHE_ONLY_URL_RETRIEVAL (0x1000)
+        // forbids network retrieval offline; omitting it permits networking but does not force a refresh.
         var data = new Native.WinTrustData
         {
             Size = (uint)Marshal.SizeOf<Native.WinTrustData>(),
@@ -71,6 +81,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             var signatures = new List<EmbeddedSignature>();
             uint secondaryCount = 0;
             var foundSigner = false;
+            // Query the secondary count with index 0, then verify each reported index independently.
+            // Each iteration needs a fresh provider state, even when the previous signature failed.
             for (uint index = 0; ; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -85,6 +97,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
                 data.StateData = IntPtr.Zero;
                 try
                 {
+                    // WinVerifyTrust returns its status directly as LONG: only zero means success.
+                    // This is neither a BOOL/GetLastError contract nor an HRESULT success-range check.
                     var status = Native.WinVerifyTrust(new IntPtr(-1), ref action, ref data);
                     settings = Marshal.PtrToStructure<Native.WinTrustSignatureSettings>(settingsPointer);
                     if (index == 0) secondaryCount = settings.SecondarySignatures;
@@ -135,6 +149,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             }
             finally
             {
+                // DestroyStructure releases the marshalled UTF-16 path, then FreeHGlobal releases
+                // our input blocks. The borrowed file handle and provider-owned pointers are not ours to free.
                 if (marshaled) Marshal.DestroyStructure<Native.WinTrustFileInfo>(filePointer);
                 Marshal.FreeHGlobal(filePointer);
                 if (settingsPointer != IntPtr.Zero) Marshal.FreeHGlobal(settingsPointer);
@@ -143,6 +159,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         }
     }
 
+    // StateData owns the provider's signer/certificate graph. Close it via WinVerifyTrust,
+    // never FreeHGlobal; every pointer obtained through WTHelper becomes invalid after CLOSE.
     [SupportedOSPlatform("windows")]
     private static void CloseState(ref Guid action, ref Native.WinTrustData data)
     {
@@ -155,6 +173,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
     private sealed record SignerMetadata(bool FoundSigner, CertificateInfo? Certificate,
         string DigestAlgorithm, SignatureTimestamp Timestamp);
 
+    // A populated provider state can expose metadata even for an untrusted signature.
+    // Extracting those values does not override the policy status returned by WinVerifyTrust.
     [SupportedOSPlatform("windows")]
     private static SignerMetadata ReadSigner(IntPtr state, bool trusted)
     {
@@ -233,6 +253,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         if (context.Encoded == IntPtr.Zero || context.EncodedLength == 0 || context.EncodedLength > 16 * 1024 * 1024)
             return null;
         var der = new byte[checked((int)context.EncodedLength)];
+        // Detach the DER bytes from the provider lifetime before creating a managed certificate.
+        // Do not release the borrowed CERT_CONTEXT; closing StateData releases its owner's resources.
         Marshal.Copy(context.Encoded, der, 0, der.Length);
         using var certificate = X509CertificateLoader.LoadCertificate(der);
         return new CertificateInfo(
@@ -244,6 +266,7 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             certificate.SignatureAlgorithm.FriendlyName ?? certificate.SignatureAlgorithm.Value ?? "");
     }
 
+    // Preserve the original 32-bit status bits when matching Windows trust error constants.
     private static SignatureStatus MapStatus(int status) => unchecked((uint)status) switch
     {
         0 => SignatureStatus.Valid,
@@ -271,6 +294,7 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             public IntPtr KnownSubject;
         }
 
+        // WINTRUST_DATA's union is represented by its pFile member because UnionChoice is WTD_CHOICE_FILE.
         [StructLayout(LayoutKind.Sequential)]
         internal struct WinTrustData
         {
@@ -301,6 +325,7 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         }
 
         // Only the first two fields are needed; native code owns the full struct.
+        // This is a read-only prefix of CRYPT_PROVIDER_CERT, never an allocation passed back to Windows.
         [StructLayout(LayoutKind.Sequential)]
         internal struct ProviderCertificatePrefix
         {
@@ -321,6 +346,7 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         [StructLayout(LayoutKind.Sequential)]
         internal struct NativeFileTime { public uint Low; public uint High; }
 
+        // CRYPT_PROVIDER_SGNR; SignerInfo points to the CMSG_SIGNER_INFO layout below.
         [StructLayout(LayoutKind.Sequential)]
         internal struct ProviderSigner
         {
@@ -336,6 +362,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             public IntPtr ChainContext;
         }
 
+        // DATA_BLOB and counted attribute arrays share this count/pointer layout.
+        // Count means bytes for an encoded blob and elements for an attribute/value array.
         [StructLayout(LayoutKind.Sequential)]
         internal struct Blob { public uint Count; public IntPtr Data; }
 
