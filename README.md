@@ -206,6 +206,16 @@ Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offe
 
 ## Architektur
 
+### KISS: einfache Infrastruktur
+
+FileScope orientiert sich am KISS-Prinzip („Keep It Simple“): Die Infrastruktur bleibt dem überschaubaren Aufgabenbereich der Anwendung angemessen. Schnittstellen und Entwurfsmuster erfüllen konkrete Aufgaben, etwa austauschbare Analyseverfahren, die Trennung von WPF und Geschäftslogik oder gezielte Tests.
+
+- **Abhängigkeiten:** Konstruktor-Injektion und die direkte Zusammenstellung in `App.OnStartup` machen die Abhängigkeiten sichtbar. Dafür werden weder ein DI-Container noch ein Generic Host benötigt.
+- **Einstellungen:** `UserPreferences`, `AnalysisPreferences` und `WindowPreferences` sind bereits die Datenmodelle. `PreferencesStore` übernimmt über `IPreferencesStore` das Laden und Speichern dieser Daten als JSON mit `System.Text.Json`; `OptionsViewModel` koordiniert die Bedienung und Speicherung. Für die lokale Einstellungsdatei genügt diese Aufteilung. Eine zusätzliche Konfigurationsschicht mit `Microsoft.Extensions.Configuration` oder weitere Vermittler im Composition Root bringen für den aktuellen Funktionsumfang keinen erkennbaren Nutzen.
+- **Fehlerdiagnose:** Ein Logging-Framework wird derzeit nicht verwendet. Analysefehler und optionale Metadatenprobleme erscheinen in den Ergebniszeilen und Diagnosedetails; Einstellungsfehler werden im Optionsfenster gemeldet. So bleiben diese Fehler unmittelbar bei der betreffenden Aktion sichtbar.
+
+Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prüfen bekannte Fälle und schützen vor Regressionen. Ein Laufzeitprotokoll kann zusätzlich helfen, zeitabhängige oder rechnerspezifische Fehler nachzuvollziehen, die sich in der Testumgebung nicht reproduzieren lassen. Auch umfangreiche Tests ersetzen diese Beobachtungsmöglichkeit nicht. Gezieltes Logging lässt sich ergänzen, sobald ein konkreter Diagnosebedarf dies rechtfertigt.
+
 ### Projekte und Entwurfsmuster
 
 | Projekt / Komponente | Aufgabe |
