@@ -1,8 +1,20 @@
 # FileScope
 
-WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen oder ganze Ordner hinzufügen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Versionsinformationen und PE-Plattform lesen, Ergebnisse filtern, kopieren und als CSV/JSON speichern.
+FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technische Dateieigenschaften in einer gemeinsamen Übersicht zusammenführt.
 
-Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
+## Auf einen Blick
+
+- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien per Drag-and-drop hinzufügen oder Ordner einschließlich Unterordner einlesen.
+- **Prüfsummen berechnen:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 frei auswählen und gemeinsam berechnen.
+- **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
+- **Programmdateien einordnen:** Versions- und Herstellerangaben, Architektur und .NET-Plattform auslesen; auch ältere NE-/Win16-EXE und -DLL erkennen.
+- **Ergebnisse gezielt auswerten:** Über alle Angaben suchen, nach Analyse- und Signaturstatus filtern, sortieren und Details kopieren.
+- **Ergebnisse weiterverwenden:** Vorhandene Analysewerte mit frei wählbaren Feldern als CSV oder JSON exportieren, ohne die Quelldateien erneut zu analysieren.
+- **Ansicht anpassen:** Spalten und Hashdarstellung konfigurieren; Deutsch, Englisch oder vereinfachtes Chinesisch wählen.
+
+Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt.
+
+Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
 
 ## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
 
