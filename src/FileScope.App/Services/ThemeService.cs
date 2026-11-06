@@ -2,23 +2,19 @@ using System.Windows;
 
 namespace FileScope.App.Services;
 
-public enum AppTheme { Light, Dark }
-
-public interface IThemeService
-{
-    AppTheme CurrentTheme { get; }
-    void Apply(AppTheme theme);
-}
-
 public sealed class ThemeService : IThemeService
 {
     private readonly Application _application;
+    private bool _initialized;
     public AppTheme CurrentTheme { get; private set; } = AppTheme.Light;
 
     public ThemeService(Application application)
     {
+        ArgumentNullException.ThrowIfNull(application);
         _application = application;
+        _application.Dispatcher.VerifyAccess();
         CurrentTheme = GetApplicationThemeMode();
+        // Even an unchanged native mode needs a matching application palette on first use.
         Apply(CurrentTheme);
     }
 
@@ -32,10 +28,9 @@ public sealed class ThemeService : IThemeService
     /// <exception cref="ArgumentOutOfRangeException">An unsupported theme value is provided.</exception>
     public void Apply(AppTheme theme)
     {
-        if (CurrentTheme == theme) return;
-
         _application.Dispatcher.VerifyAccess();
         if (!Enum.IsDefined(theme)) throw new ArgumentOutOfRangeException(nameof(theme));
+        if (_initialized && CurrentTheme == theme) return;
 
         // Load before replacing: a failed resource load must keep the old palette.
         var palette = new ResourceDictionary
@@ -48,19 +43,21 @@ public sealed class ThemeService : IThemeService
         if (paletteHost == null)
         {
             _application.Resources.MergedDictionaries.Add(palette);
-            CurrentTheme = theme;
-            return;
         }
-        var index = _application.Resources.MergedDictionaries.IndexOf(paletteHost);
-        _application.Resources.MergedDictionaries[index] = palette;
+        else
+        {
+            var index = _application.Resources.MergedDictionaries.IndexOf(paletteHost);
+            _application.Resources.MergedDictionaries[index] = palette;
+        }
 
         SetApplicationThemeMode(theme);
 
         CurrentTheme = theme;
+        _initialized = true;
     }
 
-// ThemeMode updates native Fluent controls and window chrome as well.
-// WPF still marks the code API experimental in .NET 10; keep suppression local.
+    // ThemeMode updates native Fluent controls and window chrome as well.
+    // WPF still marks the code API experimental in .NET 10; keep suppression local.
 #pragma warning disable WPF0001
     private void SetApplicationThemeMode(AppTheme theme) => _application.ThemeMode = theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light;
     private AppTheme GetApplicationThemeMode() => _application.ThemeMode == ThemeMode.Dark ? AppTheme.Dark : AppTheme.Light;

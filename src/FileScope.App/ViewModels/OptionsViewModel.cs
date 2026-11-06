@@ -99,10 +99,9 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             new FilterOption<AppTheme>(AppTheme.Light, "Theme_Light", strings),
             new FilterOption<AppTheme>(AppTheme.Dark, "Theme_Dark", strings)
         });
-        AppTheme savedTheme = default;
-        if (Enum.TryParse<AppTheme>(saved.Theme, out var value)) { savedTheme = value; }
-        _selectedTheme = Themes.FirstOrDefault(theme => theme.Value == savedTheme)
-            ?? Themes.Single(option => option.Value == themes.CurrentTheme);
+        var savedTheme = Enum.TryParse<AppTheme>(saved.Theme, out var value) && Enum.IsDefined(value)
+            ? value : themes.CurrentTheme;
+        _selectedTheme = Themes.Single(theme => theme.Value == savedTheme);
         _themeService.Apply(_selectedTheme.Value);
     }
 
@@ -141,9 +140,10 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         get => _selectedTheme;
         set
         {
-            if (value is null || value == _selectedTheme) return;
+            if (value is null || !Themes.Contains(value) || value == _selectedTheme) return;
             _themeService.Apply(value.Value);
             SetProperty(ref _selectedTheme, value);
+            Save();
         }
     }
     public ColumnOption? SelectedColumn

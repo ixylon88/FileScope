@@ -117,9 +117,13 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 | Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Filter, sobald kein Vorgang mehr läuft. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
-| Design | Festes Fluent-Dark-Theme über `App.xaml`. Kein Theme-Umschalter und keine eigenen Vorlagen für Zeilen/Zellen. |
+| Design | Hell/Dunkel unter **Optionen → Design** umschalten; die Auswahl wird gespeichert. Native Fluent-Controls ohne eigene Vorlagen für Zeilen/Zellen. |
 
 ## Funktionen im Detail
+
+### Helles und dunkles Design
+
+Unter **Optionen → Design** lässt sich während der Sitzung zwischen Hell und Dunkel wechseln. Die geöffneten Fenster, Hinweisfarben und Status-Badges passen sich an. Die Auswahl wird sofort gespeichert und beim nächsten Start wiederhergestellt; Analyseergebnisse, Filter und Spaltenreihenfolge bleiben erhalten. Fehlt in älteren Einstellungen ein gültiger Designwert, bleibt das aktuelle Anwendungsdesign erhalten, beim regulären Start standardmäßig Hell.
 
 ### Ordnersuche und Export
 
@@ -217,6 +221,7 @@ Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offe
 | `RelayCommand` / `AsyncRelayCommand` | Command Pattern; asynchrone Ausführung mit Fehlerbehandlung und Schutz vor Mehrfachstart. |
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
 | `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
+| `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
 | `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
 | `DigestFormatter` | Formatiert die vorhandenen Digest-Bytes; `FileRowViewModel` hält die dargestellten Werte im Cache. Die Core-Ergebnisse bleiben unverändert. |
@@ -239,7 +244,7 @@ Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung d
 
 ### Prüfoptionen und Einstellungen
 
-Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, Signaturprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header werden bei jeder Änderung zusammen mit Sprache, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, Signaturprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header werden bei jeder Änderung zusammen mit Sprache, Design, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
 
 Auch eine vollständig abgewählte Prüfauswahl wird gespeichert. Die Online-Sperrprüfung behält ihren gewählten Wert, wenn sie durch abgeschaltete Signaturprüfung ausgegraut ist; sie wird erst bei aktivierter Signaturprüfung verwendet. „Leeren“ setzt die Prüf-Häkchen nicht zurück.
 
@@ -248,6 +253,12 @@ Im Code liegen die Bindungswerte in `MainViewModel`: `ChecksumOptions[*].IsSelec
 #### Fenstergröße der Optionen
 
 Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
+
+#### Theme-Umschaltung
+
+`IThemeService` und `AppTheme` liegen getrennt von der WPF-Implementierung. Dadurch können die Präsentationstests `OptionsViewModel` mit einem kontrollierten Testdienst ausführen, ohne WPF einzubinden. `ThemeService` ersetzt auf dem UI-Dispatcher ausschließlich die eigene Palette und aktualisiert zugleich `Application.ThemeMode`; die übrigen Ressourcen bleiben erhalten. Auch beim ersten Einsatz ohne Palette werden beide Teile synchronisiert. Ein erneuter Aufruf mit demselben bereits initialisierten Design erzeugt keine neuen Ressourcen.
+
+Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `DynamicResource` aktualisiert bestehende Text- und Badge-Farben beim Austausch. `OptionsViewModel` wendet eine neue Auswahl zuerst an und speichert sie danach gemeinsam mit den übrigen Einstellungen. Scheitert das Anwenden, bleiben Auswahl und gespeicherter Wert erhalten. Scheitert nur das Speichern, bleibt das neue Design in der Sitzung aktiv und das Optionsfenster zeigt den Speicherfehler.
 
 ### Tabellendarstellung
 
@@ -362,15 +373,15 @@ Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- 
 
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
 
-Dokumentierter Prüfumfang einschließlich Durchlaufstatistik; gezählt werden einzelne Prüfbedingungen (Assertions). Die laufende Theme-Umstellung hat derzeit offene Anpassungen in den Test-Harnesses:
+Dokumentierter Prüfumfang einschließlich Durchlaufstatistik und Theme-Umschaltung; gezählt werden einzelne Prüfbedingungen (Assertions):
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
 | Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
-| Präsentation und Einstellungen | **147** zuletzt bestanden, vor der Theme-Umstellung; aktueller Harness-Build noch blockiert. |
-| WPF / UI / MVVM | **255** erwartet; aktueller Harness-Build durch fehlende `IThemeService`-Argumente blockiert, Windows-Ausführung noch offen. |
+| Präsentation und Einstellungen | **165** bestanden, einschließlich 18 neuer Theme-Prüfungen. |
+| WPF / UI / MVVM | **285** erwartet; aktuelles Testprogramm fehlerfrei kompiliert, Windows-Ausführung noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen und 32 seither ergänzten Prüfungen für Diagnoseanzeige und Durchlaufstatistik. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik sowie 30 neuen Theme-Prüfungen. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und den tatsächlichen Design-Auswahlschalter. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 **Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
 

@@ -103,8 +103,26 @@ check('NotImplementedException' not in sources and 'TODO' not in sources, 'Unimp
 xaml = (ROOT / 'src/FileScope.App/MainWindow.xaml').read_text(encoding='utf-8')
 check('AlternationCount="0"' in xaml and 'AlternatingRowBackground=' not in xaml,
       'Row striping must remain disabled.')
-check('ThemeSelector' not in xaml and not (ROOT / 'src/FileScope.App/Services/ThemeService.cs').exists(),
-      'The removed runtime theme must not return.')
+options_xaml = ET.parse(ROOT / 'src/FileScope.App/OptionsWindow.xaml').getroot()
+xaml_name = '{http://schemas.microsoft.com/winfx/2006/xaml}Name'
+theme_selectors = [node for node in options_xaml.iter() if node.attrib.get(xaml_name) == 'ThemeSelector']
+check(len(theme_selectors) == 1 and theme_selectors[0].attrib.get('ItemsSource') == '{Binding Themes}'
+      and theme_selectors[0].attrib.get('SelectedItem') == '{Binding SelectedTheme}',
+      'The theme selector must bind to the options view model.')
+palettes = [ET.parse(ROOT / f'src/FileScope.App/Styles/Themes/{theme}ThemePalette.xaml').getroot()
+            for theme in ['Light', 'Dark']]
+palette_keys = [{node.attrib['{http://schemas.microsoft.com/winfx/2006/xaml}Key'] for node in palette}
+                for palette in palettes]
+check(palette_keys[0] == palette_keys[1], 'Both palettes must expose the same resource keys.')
+dynamic_keys = set(re.findall(r'\{DynamicResource ([A-Za-z_]\w*)\}', sources))
+# These two keys belong to WPF's native Fluent dictionary, not our palettes.
+fluent_keys = {'SystemFillColorAttentionBrush', 'TextOnAccentFillColorSelectedTextBrush'}
+check(dynamic_keys - fluent_keys <= palette_keys[0], 'Every custom dynamic resource must exist in both palettes.')
+theme_contract = (ROOT / 'src/FileScope.App/Services/IThemeService.cs').read_text(encoding='utf-8')
+verify_script = (ROOT / 'Verify.ps1').read_text(encoding='utf-8-sig')
+check('System.Windows' not in theme_contract and "'Services/IThemeService.cs'" in verify_script
+      and "'Services/ThemeService.cs'" not in verify_script,
+      'Presentation checks must compile the theme contract without the WPF implementation.')
 controls = (ROOT / 'src/FileScope.App/Styles/Controls.xaml').read_text(encoding='utf-8')
 check('ControlTemplate' not in controls, 'Use native control templates for the application theme.')
 app_theme = ET.parse(ROOT / 'src/FileScope.App/App.xaml').getroot().attrib.get('ThemeMode')

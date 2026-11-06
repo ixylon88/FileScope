@@ -1,5 +1,27 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Theme-Umschaltung und Test-Harnesses
+
+Stand: 6. November 2026. Patchbasis: `7fd5020` (`status label`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
+| Core-Prüfungen | 183 bestanden; native Windows-Prüfungen übersprungen. Prüfumfang unverändert, zuletzt unter Windows dokumentiert: 472. |
+| Präsentation und Einstellungen | 165 bestanden, davon 18 neue Theme-Prüfungen |
+| Statische Struktur- und Ressourcenprüfung | 1066 Prüfungen bestanden; 179 Schlüssel je Sprache |
+| Erweitertes WPF-Testprogramm | Kompiliert, 0 Warnungen / 0 Fehler; hier nicht ausgeführt. 285 Assertions erwartet, davon 30 neue Theme-Prüfungen. |
+
+`Verify.ps1` bindet für Präsentationstests nur den WPF-unabhängigen Theme-Vertrag ein. Alle bestehenden Options-Tests erhalten einen injizierten Testdienst. Der WPF-Testhost verwendet wie `App.xaml` Hell einschließlich der passenden Palette. Der Strukturcheck unterstützt beide Paletten und kontrolliert gleiche Schlüssel, vollständige eigene dynamische Ressourcen und die Bindung des Design-Auswahlschalters. Die bisherigen Formatierungstests wurden an die im Basis-Commit entfernten Abschlusspunkte der Statusmeldungen angepasst.
+
+Die neuen Präsentationsprüfungen decken beide gespeicherten Designs, alte und ungültige Einstellungen, sofortiges Speichern, unveränderte andere Einstellungsbereiche, wiederholte/ungültige Auswahl, Fehler beim Anwenden und Speichern, anschließende Erholung, drei Sprachen und einen echten JSON-Neustart ab. Dabei behoben: Der reine Designwechsel speichert nun sofort; fehlende oder ungültige Designwerte verwenden konsistent das aktuelle Anwendungsdesign.
+
+Die acht neuen Prüfungen des WPF-Theme-Dienstes kontrollieren Initialisierung ohne Palette, Synchronisierung einer unpassenden Palette, Wechsel in beide Richtungen, Einfügen ohne vorhandene Palette, wiederholte Anwendung ohne neue Ressourcen, ungültige Werte, Dispatcher-Bindung und Erhalt anderer Ressourcen. Die Initialisierung und der Einfügepfad synchronisieren nun auch tatsächlich Palette und nativen `ThemeMode`.
+
+Weitere 22 UI-Prüfungen bedienen die reale ComboBox in geöffneten Haupt- und Optionsfenstern: drei Wechsel, aktualisierte Text- und Badge-Farben, realisierte Listeneinträge, Spaltenreihenfolge und Virtualisierung, unveränderte Analyseergebnisse/Filter/Auswahl, lokalisierte Anzeige und zugänglicher Name, Wiederherstellung in einem neuen Optionsfenster sowie keine WPF-Bindungsfehler. Die erwartete Gesamtzahl von 285 ergibt sich aus dem bisherigen erwarteten Umfang von 255 plus diesen 30 Prüfungen; sie bezeichnet keinen hier ausgeführten Windows-Lauf.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Danach Hell/Dunkel mehrfach mit geöffnetem Optionsfenster wechseln, die App schließen und erneut starten. Die zuletzt gewählte Darstellung muss erhalten bleiben, auch wenn vor dem Schließen keine andere Option geändert wurde. Eine visuelle Prüfung der nativen Fluent-Controls und Fensterdarstellung bleibt erforderlich.
+
 ## Ergänzung: Statustrenner und Diagnose-Testdatei
 
 Stand: 6. November 2026. Patchbasis: `9271c44` (`wip: presentation test`), einschließlich Durchlaufstatistik und Theme-Umschalter.

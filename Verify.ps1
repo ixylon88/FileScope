@@ -27,7 +27,7 @@ function Invoke-Checks {
         $sources = @('Infrastructure/ObservableObject.cs', 'Infrastructure/Commands.cs',
             'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs', 'Presentation/WindowSize.cs', 'Presentation/ResultExportProjection.cs',
             'Presentation/AnalysisRunSummary.cs',
-            'Services/PreferencesStore.cs', 'Services/ThemeService.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
+            'Services/PreferencesStore.cs', 'Services/IThemeService.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
             'ViewModels/SignatureOption.cs', 'ViewModels/OptionsViewModel.cs', 'ViewModels/FileRowViewModel.cs')
         foreach ($relative in $sources) {
             $item = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot "src/FileScope.App/$relative"))

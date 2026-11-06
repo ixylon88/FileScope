@@ -9,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using FileScope.App.Behaviors;
+using FileScope.App.Controls;
 using FileScope.App.Presentation;
 using System.Windows.Threading;
 using FileScope.App;
@@ -38,12 +39,16 @@ internal static class UiChecks
             app = new Application
             {
                 ShutdownMode = ShutdownMode.OnExplicitShutdown,
-                ThemeMode = ThemeMode.Dark
+                ThemeMode = ThemeMode.Light
             };
 #pragma warning restore WPF0001
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
                 Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
+            });
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("/FileScope.App;component/Styles/Themes/LightThemePalette.xaml", UriKind.Relative)
             });
             app.Resources.Add("BoolToVisibility", new BooleanToVisibilityConverter());
             // Commands are invoked before PumpUntil enters its dispatcher frame.
@@ -51,6 +56,8 @@ internal static class UiChecks
             SynchronizationContext.SetSynchronizationContext(
                 new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var strings = LocalizationService.Instance;
+            CheckThemeService(app);
+            CheckThemeSwitching(app, strings);
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
@@ -172,6 +179,176 @@ internal static class UiChecks
         }
     }
 
+    private static ResourceDictionary[] ThemePalettes(Application app) => app.Resources.MergedDictionaries
+        .Where(dictionary => dictionary.Source?.OriginalString.EndsWith("ThemePalette.xaml", StringComparison.Ordinal) == true)
+        .ToArray();
+
+#pragma warning disable WPF0001 // Exercise the native Fluent API used by ThemeService.
+    private static bool HasNativeTheme(Application app, AppTheme theme) =>
+        app.ThemeMode == (theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light);
+    private static void SetNativeTheme(Application app, AppTheme theme) =>
+        app.ThemeMode = theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light;
+#pragma warning restore WPF0001
+
+    private static void CheckThemeService(Application app)
+    {
+        var controls = app.Resources.MergedDictionaries.Single(dictionary =>
+            dictionary.Source?.OriginalString.EndsWith("Controls.xaml", StringComparison.Ordinal) == true);
+        var converter = app.Resources["BoolToVisibility"];
+        foreach (var palette in ThemePalettes(app)) app.Resources.MergedDictionaries.Remove(palette);
+        var service = new ThemeService(app);
+        Check(service.CurrentTheme == AppTheme.Light && HasNativeTheme(app, AppTheme.Light)
+            && ThemePalettes(app).Length == 1 && ((SolidColorBrush)app.FindResource("MutedBrush")).Color == Color.FromRgb(0x59, 0x65, 0x79),
+            "constructing the theme service installs a missing palette even when the native mode is unchanged");
+        try
+        {
+            service.Apply(AppTheme.Dark);
+            Check(service.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark)
+                && ThemePalettes(app).Length == 1 && ((SolidColorBrush)app.FindResource("MutedBrush")).Color == Color.FromRgb(0xB1, 0xB1, 0xBA),
+                "applying dark changes both the custom palette and native Fluent mode");
+            var palette = ThemePalettes(app).Single();
+            var brush = app.FindResource("MutedBrush");
+            service.Apply(AppTheme.Dark);
+            Check(ReferenceEquals(palette, ThemePalettes(app).Single()) && ReferenceEquals(brush, app.FindResource("MutedBrush")),
+                "reapplying an initialized theme retains the existing resource objects");
+            app.Resources.MergedDictionaries.Remove(palette);
+            service.Apply(AppTheme.Light);
+            Check(service.CurrentTheme == AppTheme.Light && HasNativeTheme(app, AppTheme.Light)
+                && ThemePalettes(app).Length == 1 && ((SolidColorBrush)app.FindResource("MutedBrush")).Color == Color.FromRgb(0x59, 0x65, 0x79),
+                "inserting a palette also synchronizes native mode when no earlier palette exists");
+            SetNativeTheme(app, AppTheme.Dark);
+            service = new ThemeService(app);
+            Check(service.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark)
+                && ThemePalettes(app).Length == 1 && ((SolidColorBrush)app.FindResource("MutedBrush")).Color == Color.FromRgb(0xB1, 0xB1, 0xBA),
+                "construction repairs a palette that does not match the native application mode");
+            palette = ThemePalettes(app).Single();
+            var rejected = false;
+            try { service.Apply((AppTheme)999); }
+            catch (ArgumentOutOfRangeException) { rejected = true; }
+            Check(rejected && service.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark)
+                && ReferenceEquals(palette, ThemePalettes(app).Single()), "invalid themes leave native mode and resources intact");
+            var wrongThread = Task.Run(() =>
+            {
+                try { service.Apply(AppTheme.Dark); return false; }
+                catch (InvalidOperationException) { return true; }
+            }).GetAwaiter().GetResult();
+            Check(wrongThread && ReferenceEquals(palette, ThemePalettes(app).Single()),
+                "even an unchanged theme must be applied on the owning WPF dispatcher");
+            Check(app.Resources.MergedDictionaries.Contains(controls) && ReferenceEquals(converter, app.Resources["BoolToVisibility"]),
+                "theme changes preserve unrelated application styles and converters");
+        }
+        finally { service.Apply(AppTheme.Light); }
+    }
+
+    private static void CheckThemeSwitching(Application app, LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var themes = new ThemeService(app);
+        var store = new MemoryPreferences();
+        var options = new OptionsViewModel(strings, store, themes);
+        var analysis = new ImmediateAnalysis();
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, options);
+        var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var settings = new OptionsWindow(options) { ShowActivated = false, ShowInTaskbar = false };
+        var errors = new StringWriter();
+        using var listener = new TextWriterTraceListener(errors);
+        var bindingSource = PresentationTraceSources.DataBindingSource;
+        var previousLevel = bindingSource.Switch.Level;
+        bindingSource.Switch.Level = SourceLevels.Error;
+        bindingSource.Listeners.Add(listener);
+        try
+        {
+            main.Show();
+            settings.Show();
+            var input = Path.Combine(Path.GetTempPath(), "FileScope-theme-row.bin");
+            vm.DropFilesCommand.Execute(new[] { input });
+            PumpUntil(() => !vm.IsBusy);
+            vm.SearchText = Path.GetFileName(input);
+            vm.SelectedRow = vm.Rows.Single();
+            options.SelectedColumn = options.Columns.Single(column => column.Id == "SHA256");
+            options.MoveLastCommand.Execute(null);
+            main.UpdateLayout();
+            settings.UpdateLayout();
+            DrainDispatcher();
+            var grid = (DataGrid)main.FindName("ResultsGrid");
+            var selector = (ComboBox)settings.FindName("ThemeSelector");
+            var columns = (ListBox)settings.FindName("ColumnList");
+            var row = vm.Rows.Single();
+            var result = row.Result;
+            var digest = row.SHA256;
+            var calls = analysis.Calls;
+            var order = grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId).ToArray();
+            var subtitle = VisualChildren(main).OfType<TextBlock>().Single(text => text.Text == strings["Subtitle"]);
+            var hint = VisualChildren(settings).OfType<TextBlock>().Single(text => text.Text == strings["HashFormatHint"]);
+            var badge = VisualChildren(main).OfType<StatusBadge>().First(control => control.Tone == StatusTone.Success);
+            Check(selector.Items.Count == 2 && ReferenceEquals(selector.SelectedItem, options.SelectedTheme)
+                && options.SelectedTheme.Value == AppTheme.Light, "the real theme selector reflects the initial application appearance");
+            foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light, AppTheme.Dark })
+            {
+                var saves = store.SaveCount;
+                selector.SelectedItem = options.Themes.Single(option => option.Value == theme);
+                DrainDispatcher();
+                columns.ScrollIntoView(options.SelectedColumn);
+                main.UpdateLayout();
+                settings.UpdateLayout();
+                var expectedMuted = theme == AppTheme.Dark ? Color.FromRgb(0xB1, 0xB1, 0xBA) : Color.FromRgb(0x59, 0x65, 0x79);
+                var expectedBadge = theme == AppTheme.Dark ? Color.FromRgb(0xAD, 0xFE, 0xC8) : Color.FromRgb(0xDD, 0xEF, 0xE3);
+                Check(options.SelectedTheme.Value == theme && themes.CurrentTheme == theme && HasNativeTheme(app, theme)
+                    && store.Saved.Theme == theme.ToString() && store.SaveCount == saves + 1,
+                    "selecting a theme in the real ComboBox applies and saves it immediately / " + theme);
+                Check(((SolidColorBrush)subtitle.Foreground).Color == expectedMuted
+                    && ((SolidColorBrush)hint.Foreground).Color == expectedMuted,
+                    "existing main and options window text updates through DynamicResource / " + theme);
+                Check(((SolidColorBrush)((Border)badge.Content).Background).Color == expectedBadge,
+                    "an existing success badge follows the current palette / " + theme);
+                Check(columns.ItemContainerGenerator.ContainerFromItem(options.SelectedColumn) is ListBoxItem item
+                    && item.HorizontalContentAlignment == HorizontalAlignment.Left
+                    && item.VerticalContentAlignment == VerticalAlignment.Center,
+                    "realized options list items keep valid alignment after switching / " + theme);
+                Check(ThemePalettes(app).Length == 1
+                    && grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId).SequenceEqual(order)
+                    && grid.FrozenColumnCount == 2 && grid.EnableRowVirtualization && grid.EnableColumnVirtualization,
+                    "repeated switches retain one palette, column order and grid virtualization / " + theme);
+            }
+            Check(analysis.Calls == calls && ReferenceEquals(row.Result, result) && row.SHA256 == digest
+                && ReferenceEquals(vm.SelectedRow, row) && vm.SearchText == Path.GetFileName(input) && vm.RowsView.Count == 1,
+                "theme changes preserve existing analysis results, selection and filters without another analysis");
+            foreach (var language in options.Languages)
+            {
+                options.SelectedLanguage = language;
+                DrainDispatcher();
+                var expected = language.CultureName switch { "de" => "Dunkel", "zh-Hans" => "深色", _ => "Dark" };
+                Check(VisualChildren(selector).OfType<TextBlock>().Any(text => text.Text == expected)
+                    && System.Windows.Automation.AutomationProperties.GetName(selector) == strings["Group_Theme"]
+                    && themes.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
+                    "the displayed theme label and accessible name follow the language / " + language.CultureName);
+            }
+            using var reopened = new OptionsViewModel(strings, store, new ThemeService(app));
+            var restoredWindow = new OptionsWindow(reopened);
+            try
+            {
+                restoredWindow.Measure(new Size(730, 740));
+                restoredWindow.Arrange(new Rect(0, 0, 730, 740));
+                DrainDispatcher();
+                Check(ReferenceEquals(((ComboBox)restoredWindow.FindName("ThemeSelector")).SelectedItem, reopened.SelectedTheme)
+                    && reopened.SelectedTheme.Value == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
+                    "a newly created options view and view model restore the saved theme");
+            }
+            finally { restoredWindow.Close(); }
+            listener.Flush();
+            Check(errors.ToString().Length == 0, "theme and language switches produce no WPF binding errors in existing views");
+        }
+        finally
+        {
+            settings.Close();
+            main.Close();
+            bindingSource.Listeners.Remove(listener);
+            bindingSource.Switch.Level = previousLevel;
+            themes.Apply(AppTheme.Light);
+            strings.SetCulture("en");
+        }
+    }
+
     private static void CheckCheckboxPersistence(LocalizationService strings)
     {
         var store = new MemoryPreferences();
@@ -184,7 +361,7 @@ internal static class UiChecks
             }
         });
         var saves = store.SaveCount;
-        using (var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, new OptionsViewModel(strings, store)))
+        using (var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, new OptionsViewModel(strings, store, new RecordingThemeService())))
         {
             Check(store.SaveCount == saves, "restoring checkbox state performs no writes");
             Check(vm.ChecksumOptions.Where(o => o.IsSelected).Select(o => o.Algorithm)
@@ -203,7 +380,7 @@ internal static class UiChecks
                 "unchecking options persists immediately before closing the window");
         }
         var analysis = new ImmediateAnalysis();
-        using var reopened = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        using var reopened = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store, new RecordingThemeService()));
         Check(reopened.ChecksumOptions.All(o => !o.IsSelected) && !reopened.InspectCertificates && !reopened.OnlineRevocation && !reopened.InspectFileProperties && !reopened.InspectPeHeader,
             "restart preserves all nine checkboxes off");
         reopened.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "restored-options.bin") });
@@ -228,7 +405,7 @@ internal static class UiChecks
     {
         var store = new MemoryPreferences();
         var analysis = new ImmediateAnalysis();
-        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store));
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, new OptionsViewModel(strings, store, new RecordingThemeService()));
         var window = new MainWindow(vm);
         try
         {
@@ -894,7 +1071,7 @@ internal static class UiChecks
         foreach (var maximize in new[] { false, true })
         {
             var store = new MemoryPreferences();
-            var options = new OptionsViewModel(strings, store);
+            var options = new OptionsViewModel(strings, store, new RecordingThemeService());
             using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
             var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
             var closed = false;
@@ -921,7 +1098,7 @@ internal static class UiChecks
                     && Math.Abs(saved.Width - width) < 2 && Math.Abs(saved.Height - height) < 2,
                     "closing minimized preserves normal bounds and last non-minimized state / " + maximize);
                 using var nextVm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
-                    new OptionsViewModel(strings, store));
+                    new OptionsViewModel(strings, store, new RecordingThemeService()));
                 var next = new MainWindow(nextVm);
                 try
                 {
@@ -941,7 +1118,7 @@ internal static class UiChecks
         foreach (var minimize in new[] { false, true })
         {
             var store = new MemoryPreferences();
-            using var options = new OptionsViewModel(strings, store);
+            using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
             var main = new WindowPreferences(1200, 800, false);
             options.SaveWindowPreferences(main);
             var window = new OptionsWindow(options) { ShowActivated = false };
@@ -966,7 +1143,7 @@ internal static class UiChecks
                     && Math.Abs(saved.Width - width) < 2 && Math.Abs(saved.Height - height) < 2
                     && store.Saved.Window == main,
                     "options close preserves normal dimensions and independent state / " + maximize + "/" + minimize);
-                using var reopened = new OptionsViewModel(strings, store);
+                using var reopened = new OptionsViewModel(strings, store, new RecordingThemeService());
                 // WPF requires activation when the initial window state is maximized.
                 var next = new OptionsWindow(reopened);
                 try
@@ -1236,6 +1413,19 @@ internal static class UiChecks
             "visible columns respect minimum and maximum widths");
     }
 
+    private sealed class RecordingThemeService(AppTheme initialTheme = AppTheme.Light) : IThemeService
+    {
+        public AppTheme CurrentTheme { get; private set; } = initialTheme;
+        public int ApplyCount { get; private set; }
+        public bool FailApply { get; set; }
+        public void Apply(AppTheme theme)
+        {
+            if (FailApply) throw new InvalidOperationException("Test theme failure");
+            CurrentTheme = theme;
+            ApplyCount++;
+        }
+    }
+
     private static void Check(bool condition, string label)
     {
         if (!condition) throw new Exception("FAIL: " + label);
@@ -1303,7 +1493,7 @@ internal static class UiChecks
         }
     }
 
-    private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
+    private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences(), new RecordingThemeService());
     private sealed class MemoryPreferences : IPreferencesStore
     {
         public UserPreferences Saved { get; private set; } = new();

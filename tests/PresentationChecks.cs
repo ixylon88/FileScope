@@ -22,6 +22,7 @@ internal static class PresentationChecks
             CheckOptions();
             CheckExportProjection();
             CheckRunSummaries();
+            CheckThemePreferences();
             Console.WriteLine();
             ConsoleColor backgroundBackup = Console.BackgroundColor;
             ConsoleColor foregroundBackup = Console.ForegroundColor;
@@ -61,15 +62,15 @@ internal static class PresentationChecks
                 strings.SetCulture(language.CultureName);
                 var expected = language.CultureName switch
                 {
-                    "de" => "Dauer: 00:00:01.234 · Dateisumme: 1.024 Bytes. Größe bei 1 Datei(en) unbekannt.",
-                    "zh-Hans" => "耗时：00:00:01.234 · 文件总大小：1,024 字节。 1 个文件的大小未知。",
-                    _ => "Elapsed: 00:00:01.234 · Total file size: 1,024 bytes. Unknown size for 1 file(s)."
+                    "de" => "Dauer: 00:00:01.234 · Dateisumme: 1.024 Bytes Größe bei 1 Datei(en) unbekannt.",
+                    "zh-Hans" => "耗时：00:00:01.234 · 文件总大小：1,024 字节 1 个文件的大小未知。",
+                    _ => "Elapsed: 00:00:01.234 · Total file size: 1,024 bytes Unknown size for 1 file(s)."
                 };
                 Check(summary.Format(strings) == expected,
                     "duration, grouped bytes and unknown sizes are localized / " + language.CultureName);
             }
             strings.SetCulture("en");
-            Check(huge.Format(strings) == "Elapsed: 1.02:00:00.000 · Total file size: 18,446,744,073,709,551,614 bytes.",
+            Check(huge.Format(strings) == "Elapsed: 1.02:00:00.000 · Total file size: 18,446,744,073,709,551,614 bytes",
                 "durations retain days and known byte totals have no unknown-size warning");
         }
         finally { strings.SetCulture("en"); }
@@ -262,7 +263,7 @@ internal static class PresentationChecks
         try
         {
             store.Save(new UserPreferences { Window = main });
-            using var options = new OptionsViewModel(strings, store);
+            using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
             Check(options.OptionsWindowPreferences is null && options.WindowPreferences == main,
                 "old settings retain independent options window defaults");
             options.SaveOptionsWindowPreferences(settings);
@@ -272,7 +273,7 @@ internal static class PresentationChecks
                 "options size/state survives other saves without changing main window geometry");
             foreach (var invalid in new[] { new WindowPreferences(double.NaN, 800, false), new(-1, 800, false), new(800, double.PositiveInfinity, false), new(800, 0, false) })
                 options.SaveOptionsWindowPreferences(invalid);
-            using var reopened = new OptionsViewModel(strings, store);
+            using var reopened = new OptionsViewModel(strings, store, new RecordingThemeService());
             Check(reopened.OptionsWindowPreferences == settings && reopened.WindowPreferences == main,
                 "options window geometry survives JSON save/reload and invalid dimensions are ignored");
             var restored = WindowSize.Restore(settings, 730, 740, 640, 600, 800, 700);
@@ -304,14 +305,14 @@ internal static class PresentationChecks
         var store = new PreferencesStore(path);
         try
         {
-            using var options = new OptionsViewModel(strings, store);
+            using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
             Check(options.AnalysisPreferences == new AnalysisPreferences(), "missing checkbox settings retain first-run defaults");
             Check(options.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon, "old settings default to semicolon CSV");
             options.SelectedCsvDelimiter = options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
             Check(options.Columns.All(column => column.IsExportSelected), "older preferences select all export columns initially");
             options.ClearExportColumnsCommand.Execute(null);
             Check(!options.HasExportColumns && store.Load().ExportColumns is { Length: 0 }, "explicit empty export selection is saved");
-            using (var emptyExport = new OptionsViewModel(strings, store))
+            using (var emptyExport = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(!emptyExport.HasExportColumns, "an empty export selection survives a restart");
             foreach (var column in options.Columns) column.IsExportSelected = column.Id is "Name" or "SHA256" or "PeMachine";
             var selection = new AnalysisPreferences
@@ -362,7 +363,7 @@ internal static class PresentationChecks
             options.SaveWindowPreferences(new(double.NaN, 0, false));
             Check(store.Load().Window == window, "invalid geometry never replaces usable saved settings");
             var savedOrder = options.Columns.Select(column => column.Id).ToArray();
-            using (var reopened = new OptionsViewModel(strings, store))
+            using (var reopened = new OptionsViewModel(strings, store, new RecordingThemeService()))
             {
                 Check(reopened.SelectedCsvDelimiter.Value == CsvDelimiter.Comma,
                     "CSV delimiter survives JSON save/load and all other preference changes");
@@ -383,25 +384,25 @@ internal static class PresentationChecks
             Check(!Directory.EnumerateFiles(directory, "*.tmp").Any(), "settings save leaves no temporary files");
             var none = new AnalysisPreferences { SHA256 = false, InspectCertificates = false };
             options.SaveAnalysisPreferences(none);
-            using (var reopened = new OptionsViewModel(strings, store))
+            using (var reopened = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(reopened.AnalysisPreferences == none && reopened.WindowPreferences == window
                     && reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
                     "all checkboxes off is retained without overwriting window/language/format settings");
             File.WriteAllText(path, "{\"Analysis\":{\"MD5\":true,\"SHA256\":false}}");
-            using (var partial = new OptionsViewModel(strings, store))
+            using (var partial = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(partial.AnalysisPreferences is { MD5: true, SHA256: false, InspectCertificates: true, OnlineRevocation: false, InspectFileProperties: false, InspectPeHeader: false },
                     "missing individual fields get defaults while explicit false is respected");
             File.WriteAllText(path, "{ invalid JSON");
-            using (var fallback = new OptionsViewModel(strings, store))
+            using (var fallback = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(fallback.HasSettingsError && fallback.Columns.Count == 39, "corrupt settings fall back without blocking the app");
             store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", CsvDelimiter = "999", ColumnOrder = ["SHA256", "SHA256"] });
-            using (var normalized = new OptionsViewModel(strings, store))
+            using (var normalized = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 39
                     && normalized.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon
                     && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
             store.Save(new UserPreferences { ExportColumns = ["Name", "Name", "future-column"] });
-            using (var normalized = new OptionsViewModel(strings, store))
+            using (var normalized = new OptionsViewModel(strings, store, new RecordingThemeService()))
             {
                 Check(normalized.Columns.Single(column => column.IsExportSelected).Id == "Name",
                     "unknown/duplicate export IDs do not enable unintended fields");
@@ -411,7 +412,7 @@ internal static class PresentationChecks
             var previousOrder = ColumnOption.CreateDefaults(strings).Select(column => column.Id)
                 .Where(id => id != "Diagnostic").Append("Diagnostic").ToArray();
             store.Save(new UserPreferences { ColumnOrder = previousOrder });
-            using (var previous = new OptionsViewModel(strings, store))
+            using (var previous = new OptionsViewModel(strings, store, new RecordingThemeService()))
             {
                 Check(previous.Columns.Select(column => column.Id).SequenceEqual(previousOrder),
                     "a saved column order is retained when the defaults change");
@@ -420,7 +421,7 @@ internal static class PresentationChecks
                     && store.Load().ColumnOrder?.Take(3).SequenceEqual(["Name", "Status", "Diagnostic"]) == true,
                     "resetting an older column order applies and saves the new diagnostic position");
             }
-            using (var failing = new OptionsViewModel(strings, new FailingStore()))
+            using (var failing = new OptionsViewModel(strings, new FailingStore(), new RecordingThemeService()))
             {
                 var moved = failing.Columns[^1];
                 failing.SelectedColumn = moved;
@@ -476,11 +477,146 @@ internal static class PresentationChecks
         strings.SetCulture("en");
     }
 
+    private static void CheckThemePreferences()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        var selection = new AnalysisPreferences { MD5 = true, OnlineRevocation = true, InspectPeHeader = true };
+        var original = new UserPreferences
+        {
+            Language = "en", HashFormat = nameof(HashFormat.Base64Url), CsvDelimiter = nameof(CsvDelimiter.Comma),
+            ColumnOrder = ColumnOption.CreateDefaults(strings).Select(column => column.Id).Reverse().ToArray(),
+            ExportColumns = ["Name", "SHA256"], Window = new(1100, 720, true),
+            OptionsWindow = new(800, 750, false), Analysis = selection
+        };
+        var store = new ThemePreferencesStore(original);
+        var service = new RecordingThemeService(AppTheme.Dark);
+        using var options = new OptionsViewModel(strings, store, service);
+        Check(options.SelectedTheme.Value == AppTheme.Dark && service.ApplyCount == 1 && store.SaveCount == 0
+            && options.Themes.Select(theme => theme.Value).SequenceEqual([AppTheme.Light, AppTheme.Dark]),
+            "older settings retain the current application theme without writing preferences");
+        foreach (var theme in new[] { AppTheme.Light, AppTheme.Dark })
+        {
+            var restoredStore = new ThemePreferencesStore(original with { Theme = theme.ToString() });
+            var restoredService = new RecordingThemeService(theme == AppTheme.Light ? AppTheme.Dark : AppTheme.Light);
+            using var restored = new OptionsViewModel(strings, restoredStore, restoredService);
+            Check(restored.SelectedTheme.Value == theme && restoredService.CurrentTheme == theme
+                && restoredService.ApplyCount == 1 && restoredStore.SaveCount == 0,
+                "saved theme is applied during construction without a settings write / " + theme);
+        }
+        foreach (var invalid in new string?[] { null, "", "unknown-theme", "999" })
+        {
+            var fallbackStore = new ThemePreferencesStore(original with { Theme = invalid });
+            var fallbackService = new RecordingThemeService(AppTheme.Dark);
+            using var fallback = new OptionsViewModel(strings, fallbackStore, fallbackService);
+            Check(fallback.SelectedTheme.Value == AppTheme.Dark && fallbackService.CurrentTheme == AppTheme.Dark
+                && fallbackStore.SaveCount == 0, "missing or invalid saved themes use the current appearance / " + invalid);
+        }
+        options.SelectedTheme = options.Themes.Single(theme => theme.Value == AppTheme.Light);
+        Check(service.CurrentTheme == AppTheme.Light && store.Saved.Theme == "Light" && store.SaveCount == 1,
+            "changing only the theme applies and saves it immediately");
+        Check(store.Saved.Language == original.Language && store.Saved.HashFormat == original.HashFormat
+            && store.Saved.CsvDelimiter == original.CsvDelimiter
+            && store.Saved.ColumnOrder!.SequenceEqual(original.ColumnOrder!)
+            && store.Saved.ExportColumns!.ToHashSet().SetEquals(original.ExportColumns!)
+            && store.Saved.Window == original.Window && store.Saved.OptionsWindow == original.OptionsWindow
+            && store.Saved.Analysis == selection, "theme saves preserve all unrelated preference sections");
+        var applyCount = service.ApplyCount;
+        var saveCount = store.SaveCount;
+        var notifications = 0;
+        options.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(options.SelectedTheme)) notifications++; };
+        options.SelectedTheme = options.SelectedTheme;
+        Check(service.ApplyCount == applyCount && store.SaveCount == saveCount && notifications == 0,
+            "selecting the current theme does not apply, save or notify again");
+        options.SelectedTheme = null!;
+        options.SelectedTheme = new FilterOption<AppTheme>(AppTheme.Dark, "Theme_Dark", strings);
+        options.SelectedTheme = new FilterOption<AppTheme>((AppTheme)999, "Theme_Dark", strings);
+        Check(service.ApplyCount == applyCount && store.SaveCount == saveCount && options.SelectedTheme.Value == AppTheme.Light,
+            "null and foreign theme choices cannot bypass the registered options");
+        service.FailApply = true;
+        var rejected = false;
+        try { options.SelectedTheme = options.Themes.Single(theme => theme.Value == AppTheme.Dark); }
+        catch (InvalidOperationException) { rejected = true; }
+        finally { service.FailApply = false; }
+        Check(rejected && options.SelectedTheme.Value == AppTheme.Light && store.Saved.Theme == "Light"
+            && service.ApplyCount == applyCount && store.SaveCount == saveCount && notifications == 0,
+            "a failed application does not publish or persist a theme that was not applied");
+        store.FailWrites = true;
+        options.SelectedTheme = options.Themes.Single(theme => theme.Value == AppTheme.Dark);
+        Check(service.CurrentTheme == AppTheme.Dark && options.SelectedTheme.Value == AppTheme.Dark
+            && options.HasSettingsError && store.Saved.Theme == "Light",
+            "a settings write failure retains the live theme and reports the unsaved preference");
+        store.FailWrites = false;
+        options.SelectedTheme = options.Themes.Single(theme => theme.Value == AppTheme.Light);
+        Check(!options.HasSettingsError && store.Saved.Theme == "Light" && service.CurrentTheme == AppTheme.Light,
+            "a later successful theme save clears the settings error");
+        applyCount = service.ApplyCount;
+        try
+        {
+            foreach (var language in strings.Languages)
+            {
+                options.SelectedLanguage = language;
+                var expected = language.CultureName switch
+                {
+                    "de" => new[] { "Hell", "Dunkel" },
+                    "zh-Hans" => new[] { "浅色", "深色" },
+                    _ => new[] { "Light", "Dark" }
+                };
+                Check(options.Themes.Select(theme => theme.Label).SequenceEqual(expected)
+                    && service.ApplyCount == applyCount && options.SelectedTheme.Value == AppTheme.Light,
+                    "theme labels follow the language without changing appearance / " + language.CultureName);
+            }
+            var directory = Path.Combine(Path.GetTempPath(), "FileScope-theme-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var disk = new PreferencesStore(Path.Combine(directory, "settings.json"));
+                disk.Save(store.Saved);
+                using (var first = new OptionsViewModel(strings, disk, new RecordingThemeService()))
+                    first.SelectedTheme = first.Themes.Single(theme => theme.Value == AppTheme.Dark);
+                var restartService = new RecordingThemeService();
+                using var restarted = new OptionsViewModel(strings, disk, restartService);
+                Check(restarted.SelectedTheme.Value == AppTheme.Dark && restartService.CurrentTheme == AppTheme.Dark
+                    && restarted.AnalysisPreferences == selection && restarted.WindowPreferences == original.Window
+                    && restarted.OptionsWindowPreferences == original.OptionsWindow,
+                    "a theme-only change survives a real JSON round trip together with other settings");
+            }
+            finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+        }
+        finally { strings.SetCulture("en"); }
+    }
+
+    private sealed class ThemePreferencesStore(UserPreferences initial) : IPreferencesStore
+    {
+        public UserPreferences Saved { get; private set; } = initial;
+        public int SaveCount { get; private set; }
+        public bool FailWrites { get; set; }
+        public UserPreferences Load() => Saved;
+        public void Save(UserPreferences preferences)
+        {
+            if (FailWrites) throw new UnauthorizedAccessException("Test theme settings failure");
+            Saved = preferences;
+            SaveCount++;
+        }
+    }
+
     private sealed class FailingStore : IPreferencesStore
     {
         public UserPreferences Load() => new();
         public void Save(UserPreferences preferences) => throw new UnauthorizedAccessException("Test write failure");
     }
+    private sealed class RecordingThemeService(AppTheme initialTheme = AppTheme.Light) : IThemeService
+    {
+        public AppTheme CurrentTheme { get; private set; } = initialTheme;
+        public int ApplyCount { get; private set; }
+        public bool FailApply { get; set; }
+        public void Apply(AppTheme theme)
+        {
+            if (FailApply) throw new InvalidOperationException("Test theme failure");
+            CurrentTheme = theme;
+            ApplyCount++;
+        }
+    }
+
     private static void Check(bool condition, string label)
     {
         if (!condition) throw new Exception("FAIL: " + label);
