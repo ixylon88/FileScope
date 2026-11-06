@@ -1,11 +1,13 @@
 <Window x:Class="FileScope.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:loc="clr-namespace:FileScope.App.Localization"
         xmlns:behaviors="clr-namespace:FileScope.App.Behaviors"
         xmlns:controls="clr-namespace:FileScope.App.Controls"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
-        Title="{loc:Loc WindowTitle}" Width="1440" Height="900" MinWidth="1080" MinHeight="680"
+        Title="{loc:Loc WindowTitle}" Width="1440" Height="900" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
         WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
@@ -26,7 +28,7 @@
 
     <Grid Margin="24,20,24,18">
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-      <Border Width="44" Height="44" Background="{DynamicResource SystemFillColorAttentionBrush}" CornerRadius="12" Margin="0,0,14,0">
+      <Border Width="44" Height="44" Background="{DynamicResource SystemFillColorAttentionBrush}" d:Background="SkyBlue" CornerRadius="12" Margin="0,0,14,0">
         <TextBlock Text="FS" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
       <StackPanel Grid.Column="1">
@@ -48,7 +50,7 @@
                   <Label Content="{loc:Loc AddFiles}" VerticalAlignment="Center" Padding="0" />
                 </StackPanel>
               </Button>
-              <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource PrimaryButton}" ToolTip="{loc:Loc AddFolderTip}" >
+              <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource BandButton}" BorderBrush="{DynamicResource SystemFillColorAttentionBrush}" Background="{DynamicResource SystemFillColorAttentionBrush}" Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" d:BorderBrush="SkyBlue" d:Background="SkyBlue" ToolTip="{loc:Loc AddFolderTip}" >
                 <StackPanel Orientation="Horizontal">
                   <Label FontFamily="Segoe MDL2 Assets" Content="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
                   <Label Content="{loc:Loc AddFolder}" VerticalAlignment="Center" Padding="0" />
@@ -255,7 +257,7 @@
           </DataGrid.Columns>
         </DataGrid>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}" Margin="30">
-          <TextBlock Text="↓" FontSize="48" Foreground="{DynamicResource SystemFillColorAttentionBrush}" HorizontalAlignment="Center" Margin="0,0,0,12" />
+          <TextBlock Text="↓" FontSize="48" Foreground="{DynamicResource SystemFillColorAttentionBrush}" d:Foreground="SkyBlue" HorizontalAlignment="Center" Margin="0,0,0,12" />
           <TextBlock Text="{loc:Loc DropTitle}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" />
           <TextBlock Text="{loc:Loc DropHint}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,0" TextAlignment="Center" />
           <TextBlock Text="{loc:Loc DropOptionsHint}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,7,0,0" TextAlignment="Center" />
