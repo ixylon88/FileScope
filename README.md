@@ -138,6 +138,10 @@ Beim Ablegen von Ordnern zeigt eine MessageBox vor Beginn der Suche deren Anzahl
 
 Unter Windows können Hardlinks keine Verzeichnisse referenzieren und daher keine rekursiven Verzeichnisschleifen erzeugen. Der Windows-Komponentenspeicher `WinSxS` verwendet viele solcher Dateiverknüpfungen. Beim Einlesen verschiedener Hardlink-Pfade kann FileScope denselben Dateiinhalt mehrfach lesen; die Größen dieser Zeilen dürfen deshalb nicht als tatsächlich zusätzlich belegter Speicherplatz interpretiert werden. Siehe [Microsoft: Hardlinks und Junctions](https://learn.microsoft.com/en-us/windows/win32/fileio/hard-links-and-junctions) und [Windows-Komponentenspeicher](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/manage-the-component-store).
 
+#### Diagnosedetails
+
+Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist ausgeblendet, solange keine geladene Zeile Diagnosedetails enthält, und erscheint bei der ersten Diagnose automatisch. Maßgeblich sind die Diagnosen aller geladenen Zeilen, einschließlich ausgefilterter Zeilen und der jeweils ausgewählten Signatur. Die Statusleiste ergänzt die Anzahl betroffener Zeilen und bricht längere Meldungen um, damit der Hinweis sichtbar bleibt. Eine erneute Prüfung ohne Diagnosen oder „Leeren“ entfernt Spalte und Hinweis wieder. Gespeicherte Spaltenpositionen bleiben erhalten; **Optionen → Spaltenreihenfolge → Reihenfolge zurücksetzen** übernimmt die neue Standardposition. CSV-/JSON-Exportauswahl und Diagnosewerte bleiben von der automatischen Sichtbarkeit unabhängig.
+
 #### Exportformate
 
 Der Exportdialog bietet CSV (`*.csv`, Standard) und JSON (`*.json`) als Dateitypen an. Ohne eingegebene Endung ergänzt der Dialog die Endung des gewählten Dateityps. Eine explizite Endung `.csv` oder `.json` bestimmt das Format, unabhängig von Groß-/Kleinschreibung. Andere Endungen werden mit einem Hinweis abgewiesen. Die Überschreibabfrage gilt für den tatsächlich zurückgegebenen Dateinamen; danach wird nichts umbenannt. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene Exportdatei.
@@ -167,10 +171,6 @@ Die zusätzlichen Spalten zeigen `PE32`/`PE32+` und bei vorhandenen CLR-Headern 
 **Windows-16-Bit-Dateien** verwenden NE (New Executable), nicht „PE16“. EXE und DLL werden als `NE (Win16)` mit `x86 (16-bit)` erkannt. NE enthält keinen COFF-Maschinentyp; deshalb wird kein PE-Hexcode erfunden. OS/2-, DOS-4.x- und Windows/386-Ziele bleiben unterscheidbar; bei Windows/386 und unbekannten Zielwerten wird keine 16-Bit-Codebreite unterstellt. Ein bloßes `MZ` am Dateianfang reicht nicht zur Win16-Erkennung, da auch PE, LE und LX einen DOS-Stub besitzen. Reine DOS-MZ-, LE- und LX-Dateien liefern weiterhin keine PE-/NE-Metadaten; ihre Prüfsummen sind davon unabhängig.
 
 Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktivierte Prüfungen gelten für den nächsten Durchlauf; für vorhandene Zeilen „Alle neu prüfen“ verwenden. Ein erwarteter Lesefehler einer optionalen Metadatenprüfung wird in der Diagnosespalte ergänzt; bereits berechnete Hashes und die übrigen Prüfungen bleiben erhalten. Die Verarbeitungsanzeige kann deshalb „Fertig“ zeigen, während eine optionale Auswertung eine Diagnose enthält.
-
-### Diagnosedetails
-
-Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist ausgeblendet, solange keine geladene Zeile Diagnosedetails enthält, und erscheint bei der ersten Diagnose automatisch. Maßgeblich sind die Diagnosen aller geladenen Zeilen, einschließlich ausgefilterter Zeilen und der jeweils ausgewählten Signatur. Die Statusleiste ergänzt die Anzahl betroffener Zeilen und bricht längere Meldungen um, damit der Hinweis sichtbar bleibt. Eine erneute Prüfung ohne Diagnosen oder „Leeren“ entfernt Spalte und Hinweis wieder. Gespeicherte Spaltenpositionen bleiben erhalten; **Optionen → Spaltenreihenfolge → Reihenfolge zurücksetzen** übernimmt die neue Standardposition. CSV-/JSON-Exportauswahl und Diagnosewerte bleiben von der automatischen Sichtbarkeit unabhängig.
 
 ### Zertifikatsprüfung: genaue Bedeutung
 
