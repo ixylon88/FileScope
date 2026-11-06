@@ -282,6 +282,8 @@ internal static class PresentationChecks
             options.SaveAnalysisPreferences(selection);
             Check(options.Columns.Count == 39 && options.Columns.Select(column => column.Id).Distinct().Count() == 39,
                 "all columns have unique persistent IDs");
+            Check(options.Columns.Take(3).Select(column => column.Id).SequenceEqual(["Name", "Status", "Diagnostic"]),
+                "default column order puts diagnostics immediately after analysis status");
             Check(!options.MoveUpCommand.CanExecute(null), "cannot move the first column above the start");
             var selected = options.Columns.Single(column => column.Id == "SHA512");
             options.SelectedColumn = selected;
@@ -366,11 +368,24 @@ internal static class PresentationChecks
                 normalized.SelectAllExportColumnsCommand.Execute(null);
                 Check(store.Load().ExportColumns?.Length == 39, "select all saves every supported export field");
             }
+            var previousOrder = ColumnOption.CreateDefaults(strings).Select(column => column.Id)
+                .Where(id => id != "Diagnostic").Append("Diagnostic").ToArray();
+            store.Save(new UserPreferences { ColumnOrder = previousOrder });
+            using (var previous = new OptionsViewModel(strings, store))
+            {
+                Check(previous.Columns.Select(column => column.Id).SequenceEqual(previousOrder),
+                    "a saved column order is retained when the defaults change");
+                previous.ResetOrderCommand.Execute(null);
+                Check(previous.Columns.Take(3).Select(column => column.Id).SequenceEqual(["Name", "Status", "Diagnostic"])
+                    && store.Load().ColumnOrder?.Take(3).SequenceEqual(["Name", "Status", "Diagnostic"]) == true,
+                    "resetting an older column order applies and saves the new diagnostic position");
+            }
             using (var failing = new OptionsViewModel(strings, new FailingStore()))
             {
-                failing.SelectedColumn = failing.Columns[^1];
+                var moved = failing.Columns[^1];
+                failing.SelectedColumn = moved;
                 failing.MoveFirstCommand.Execute(null);
-                Check(failing.HasSettingsError && failing.Columns[0].Id == "Diagnostic", "save failures keep options usable in memory");
+                Check(failing.HasSettingsError && failing.Columns[0] == moved, "save failures keep options usable in memory");
             }
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); strings.SetCulture("en"); }

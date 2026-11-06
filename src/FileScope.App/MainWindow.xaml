@@ -149,6 +149,9 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
+            <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}"
+                                Visibility="{Binding Data.ShowDiagnosticColumn, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="Diagnostic" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" behaviors:ColumnLayoutBehavior.Id="Size" Width="Auto" MinWidth="100" MaxWidth="170" ElementStyle="{StaticResource GridText}" />
             <DataGridTemplateColumn Header="{loc:Loc Column_SignatureChoice}" behaviors:ColumnLayoutBehavior.Id="SignatureChoice"
                                     Width="Auto" MinWidth="180" MaxWidth="480" SortMemberPath="SignatureChoiceText"
@@ -253,7 +256,6 @@
             <DataGridTextColumn Header="{loc:Loc Column_ManagedPlatform}" Binding="{Binding ManagedPlatformText}"
                                 Visibility="{Binding Data.InspectPeHeader, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                 behaviors:ColumnLayoutBehavior.Id="ManagedPlatform" Width="Auto" MinWidth="180" MaxWidth="340" ElementStyle="{StaticResource GridText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}" behaviors:ColumnLayoutBehavior.Id="Diagnostic" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
           </DataGrid.Columns>
         </DataGrid>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}" Margin="30">
@@ -278,7 +280,7 @@
       <StackPanel>
         <Grid Margin="0,0,0,8">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
+          <TextBlock x:Name="OperationStatusText" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,12,0" ToolTip="{Binding StatusText}" />
           <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
         </Grid>
         <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate}" Height="4" Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />

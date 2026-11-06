@@ -24,6 +24,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
+    private readonly HashSet<FileRowViewModel> _diagnosticRows = [];
     private CancellationTokenSource? _cancellation;
     private bool _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
     private bool _inspectFileProperties, _inspectPeHeader;
@@ -140,6 +141,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
     public bool ShowSignatureSelectorColumn => InspectCertificates && _multipleSignatures.Count > 0;
+    public int DiagnosticRowCount => _diagnosticRows.Count;
+    public bool ShowDiagnosticColumn => DiagnosticRowCount > 0;
     public bool OnlineRevocation
     {
         get => _onlineRevocation;
@@ -176,7 +179,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
     public string LastError { get; private set => SetProperty(ref field, value); } = "";
     public bool HasError => LastError.Length != 0;
-    public string StatusText { get => _strings.Format(field, _processed, _batchTotal, _skipped); private set; } = "Ready";
+    public string StatusText
+    {
+        get
+        {
+            var status = _strings.Format(field, _processed, _batchTotal, _skipped);
+            return ShowDiagnosticColumn ? $"{status} {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
+        }
+        private set;
+    } = "Ready";
     public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
     public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
     public FileRowViewModel? SelectedRow { get; set => SetProperty(ref field, value); }
@@ -411,6 +422,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 { normalized = path; } // The core service reports the invalid path as a row.
                 if (!_paths.Add(normalized)) { _skipped++; continue; }
                 var row = new FileRowViewModel(normalized, _strings, Options.SelectedHashFormat.Value);
+                row.PropertyChanged += OnRowPropertyChanged;
                 row.SignaturesChanged += OnSignaturesChanged;
                 row.SignatureSelectionChanged += OnSignatureSelectionChanged;
                 Rows.Add(row);
@@ -537,6 +549,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var row in Rows) UnsubscribeRow(row);
         _multipleSignatures.Clear();
         OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
+        _diagnosticRows.Clear();
+        NotifyDiagnosticsChanged();
         Rows.Clear();
         _paths.Clear();
         SelectedRow = null;
@@ -562,8 +576,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void OnSignatureSelectionChanged(object? sender, EventArgs args) => RefreshAfterStateChange();
 
+    private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (sender is not FileRowViewModel row || (args.PropertyName is not (null or "" or nameof(FileRowViewModel.Diagnostic)))) return;
+        // Diagnostic or all-property notifications cover result, reset and signature changes.
+        // Track all loaded rows, independent of filters, without rescanning a large table.
+        var changed = string.IsNullOrWhiteSpace(row.Diagnostic)
+            ? _diagnosticRows.Remove(row) : _diagnosticRows.Add(row);
+        if (changed) NotifyDiagnosticsChanged();
+    }
+
+    private void NotifyDiagnosticsChanged()
+    {
+        OnPropertyChanged(nameof(DiagnosticRowCount));
+        OnPropertyChanged(nameof(ShowDiagnosticColumn));
+        OnPropertyChanged(nameof(StatusText));
+    }
+
     private void UnsubscribeRow(FileRowViewModel row)
     {
+        row.PropertyChanged -= OnRowPropertyChanged;
         row.SignaturesChanged -= OnSignaturesChanged;
         row.SignatureSelectionChanged -= OnSignatureSelectionChanged;
     }

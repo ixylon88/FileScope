@@ -58,6 +58,7 @@ internal static class UiChecks
             CheckDroppedFolders(strings);
             CheckFileOperationCancellation(strings);
             CheckMultipleSignatures(strings);
+            CheckDiagnostics(strings);
             CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
@@ -641,6 +642,107 @@ internal static class UiChecks
         finally { viewNotifications.CollectionChanged -= readView; }
     }
 
+    private static void CheckDiagnostics(LocalizationService strings)
+    {
+        var analysis = new DiagnosticAnalysis();
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
+        var window = new MainWindow(vm);
+        try
+        {
+            window.Measure(new Size(1080, 680));
+            window.Arrange(new Rect(0, 0, 1080, 680));
+            DrainDispatcher();
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var columns = grid.Columns.ToDictionary(ColumnLayoutBehavior.GetId);
+            var diagnostic = columns["Diagnostic"];
+            var status = (TextBlock)window.FindName("OperationStatusText");
+            Check(diagnostic.DisplayIndex == columns["Status"].DisplayIndex + 1,
+                "default diagnostic position follows analysis status in the real grid");
+            Check(!vm.ShowDiagnosticColumn && vm.DiagnosticRowCount == 0 && diagnostic.Visibility == Visibility.Collapsed,
+                "an empty table has no diagnostic column or count");
+            var directory = Path.Combine(Path.GetTempPath(), "FileScope-diagnostics-" + Guid.NewGuid().ToString("N"));
+            string Input(string name) => Path.Combine(directory, name + ".bin");
+            vm.DropFilesCommand.Execute(new[] { Input("clean") });
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Collapsed
+                && vm.StatusText == strings.Format("CompletedSummary", 1, 1, 0),
+                "completed results without diagnostics keep the column hidden and status unchanged");
+
+            vm.DropFilesCommand.Execute(new[] { Input("properties"), Input("header"), Input("failed"), Input("multi") });
+            PumpUntil(() => !vm.IsBusy);
+            var metadataRow = vm.Rows.Single(row => row.FullPath == Input("properties"));
+            Check(vm.DiagnosticRowCount == 3 && vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Visible
+                && metadataRow.State == RowStatus.Completed,
+                "optional metadata diagnostics and file failures reveal the column and count affected rows");
+            Check(vm.StatusText == strings.Format("CompletedSummary", 4, 4, 0) + " " + strings.Format("DiagnosticSummary", 3)
+                && status.Text == vm.StatusText && status.TextWrapping == TextWrapping.Wrap
+                && status.TextTrimming == TextTrimming.None,
+                "the bound completion status appends diagnostic details and wraps instead of truncating them");
+
+            var multi = vm.Rows.Single(row => row.HasMultipleSignatures);
+            multi.SelectedSignature = multi.Signatures[1];
+            DrainDispatcher();
+            Check(vm.DiagnosticRowCount == 4 && multi.Diagnostic.Contains("secondary signature detail", StringComparison.Ordinal),
+                "selecting a signature with diagnostic details updates the row count");
+            multi.SelectedSignature = multi.Signatures[0];
+            DrainDispatcher();
+            Check(vm.DiagnosticRowCount == 3, "selecting a clean signature removes only that row from the diagnostic count");
+            vm.SearchText = Input("clean");
+            DrainDispatcher();
+            Check(vm.RowsView.Count == 1 && vm.DiagnosticRowCount == 3 && diagnostic.Visibility == Visibility.Visible,
+                "filtering diagnostic rows out does not hide their column or status hint");
+            vm.ResetFiltersCommand.Execute(null);
+            vm.InspectCertificates = false;
+            DrainDispatcher();
+            Check(diagnostic.Visibility == Visibility.Visible, "diagnostic visibility is independent of enabled analysis options");
+            vm.InspectCertificates = true;
+
+            foreach (var language in vm.Options.Languages)
+            {
+                vm.Options.SelectedLanguage = language;
+                DrainDispatcher();
+                Check(status.Text == vm.StatusText && status.Text.EndsWith(strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
+                    && !status.Text.Contains("[DiagnosticSummary]", StringComparison.Ordinal),
+                    "diagnostic status follows the selected language / " + language.CultureName);
+            }
+            vm.Options.SelectedColumn = vm.Options.Columns.Single(column => column.Id == "Diagnostic");
+            vm.Options.MoveLastCommand.Execute(null);
+            DrainDispatcher();
+            var selectedPosition = diagnostic.DisplayIndex;
+            Check(selectedPosition == grid.Columns.Count - 1, "diagnostics can still be moved to a custom position");
+            analysis.IncludeDiagnostics = false;
+            vm.ReanalyseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.DiagnosticRowCount == 0 && !vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Collapsed
+                && vm.StatusText == strings.Format("CompletedSummary", 5, 5, 0),
+                "a clean reanalysis removes stale diagnostics, hides the column and removes the status hint");
+            analysis.IncludeDiagnostics = true;
+            vm.ReanalyseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.DiagnosticRowCount == 3 && diagnostic.Visibility == Visibility.Visible
+                && diagnostic.DisplayIndex == selectedPosition,
+                "new diagnostics restore visibility without overwriting a custom column position");
+            vm.Options.ResetOrderCommand.Execute(null);
+            DrainDispatcher();
+            Check(diagnostic.DisplayIndex == columns["Status"].DisplayIndex + 1,
+                "reset restores the new default diagnostic position");
+            vm.ClearCommand.Execute(null);
+            DrainDispatcher();
+            Check(vm.DiagnosticRowCount == 0 && diagnostic.Visibility == Visibility.Collapsed
+                && vm.StatusText == strings["Cleared"], "clear removes both diagnostics and the status hint");
+            metadataRow.Complete(Result(metadataRow.FullPath, new AnalysisOptions([ChecksumAlgorithm.SHA256], false)) with
+            {
+                Properties = new(null, "late metadata diagnostic")
+            });
+            Check(vm.DiagnosticRowCount == 0, "cleared rows no longer contribute diagnostic notifications");
+            vm.DropFilesCommand.Execute(new[] { Input("failed") });
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.DiagnosticRowCount == 1 && diagnostic.Visibility == Visibility.Visible,
+                "a new failed row after clear makes diagnostics visible again");
+        }
+        finally { window.Close(); strings.SetCulture("en"); }
+    }
+
     private static void CheckMultipleSignatures(LocalizationService strings)
     {
         var analysis = new MultipleSignatureAnalysis();
@@ -997,8 +1099,10 @@ internal static class UiChecks
             Check(certificateColumns.All(path => columns[path].Visibility ==
                 (enabled ? Visibility.Visible : Visibility.Collapsed)), "certificate columns toggle together");
             Check(vm.CanChooseOnlineRevocation == enabled, "revocation enablement follows certificate option");
-            string[] stringArray = ["Name", "Size", "Modified", "Path", "Diagnostic"];
-            Check(stringArray.All(path => columns[path].Visibility == Visibility.Visible), "file metadata and diagnostics stay visible");
+            string[] stringArray = ["Name", "Size", "Modified", "Path"];
+            Check(stringArray.All(path => columns[path].Visibility == Visibility.Visible), "file metadata stays visible");
+            Check(columns["Diagnostic"].Visibility == (vm.ShowDiagnosticColumn ? Visibility.Visible : Visibility.Collapsed),
+                "diagnostic visibility depends on row content, independently of certificate options");
         }
         foreach (var option in vm.ChecksumOptions) option.IsSelected = option.Algorithm == ChecksumAlgorithm.SHA256;
         vm.InspectCertificates = true;
@@ -1177,6 +1281,39 @@ internal static class UiChecks
             return Task.FromResult(Result(path, options));
         }
     }
+    private sealed class DiagnosticAnalysis : IFileAnalysisService
+    {
+        public bool IncludeDiagnostics { get; set; } = true;
+        public Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
+            IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = Result(path, options);
+            if (IncludeDiagnostics)
+            {
+                result = Path.GetFileNameWithoutExtension(path) switch
+                {
+                    "properties" => result with { Properties = new(null, "Version read failed") },
+                    "header" => result with { PeHeader = new(null, "Header read failed") },
+                    "failed" => FileAnalysisResult.Failure(path, AnalysisError.ReadFailure, "File read failed"),
+                    "multi" => result with
+                    {
+                        Signature = new(SignatureStatus.Valid, options.RevocationMode)
+                        {
+                            Signatures =
+                            [
+                                new(0, SignatureStatus.Valid, null, 0, null, "SHA-256", SignatureTimestamp.NotPresent),
+                                new(1, SignatureStatus.Untrusted, null, 1, "secondary signature detail", "SHA-256", SignatureTimestamp.NotPresent)
+                            ]
+                        }
+                    },
+                    _ => result
+                };
+            }
+            return Task.FromResult(result);
+        }
+    }
+
     private sealed class MultipleSignatureAnalysis : IFileAnalysisService
     {
         public int Calls;

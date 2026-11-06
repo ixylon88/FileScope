@@ -1,5 +1,21 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Diagnoseanzeige und Entwurfsmuster
+
+Stand: 6. November 2026. Patchbasis: `2ccf6ca` (`readme`).
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build der Projektmappe einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
+| Core-Prüfungen unter Linux | 183 bestanden; native Windows-Prüfungen übersprungen |
+| Präsentation und Einstellungen | 139 bestanden, einschließlich neuer Standardposition, Erhalt gespeicherter Reihenfolgen und Zurücksetzen |
+| Statische Struktur- und Ressourcenprüfung | 1039 Prüfungen bestanden; 174 Schlüssel je Sprache |
+| Erweitertes WPF-Testprogramm | Kompiliert, 0 Warnungen / 0 Fehler; hier nicht ausgeführt |
+
+Die neuen UI-Prüfungen decken leere und saubere Ergebnisse, optionale Metadatendiagnosen, Dateifehler, Signaturwechsel, Filter, Sprachwechsel, erneute Prüfung, manuelle Spaltenpositionen und Leeren ab. Der Statustext wird einschließlich Diagnoseanzahl am echten TextBlock geprüft; längere Meldungen dürfen umbrechen. Ein bisheriger Präsentationstest setzte fälschlich voraus, dass die letzte Standardspalte immer `Diagnostic` sei; er prüft nun die tatsächlich verschobene Spalte. Die bisherigen Sichtbarkeitstests wurden an die automatische Diagnoseanzeige angepasst.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Anschließend eine Datei mit Diagnosedetails und eine ohne auswerten, die betroffene Zeile ausfiltern sowie „Alle neu prüfen“ und „Leeren“ verwenden. Auch bei minimaler Fensterbreite muss der Statushinweis lesbar bleiben. Eine gespeicherte Spaltenreihenfolge wird bewusst beibehalten; „Reihenfolge zurücksetzen“ muss Diagnose direkt hinter Analyse einordnen. WPF-Laufzeit und visuelle Darstellung konnten hier nicht ausgeführt werden.
+
 ## Ergänzung: Ordner per Drag-and-drop
 
 Stand: 6. November 2026. Patchbasis: `080a4ac` (`documentation`).

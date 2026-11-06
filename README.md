@@ -168,6 +168,10 @@ Die zusätzlichen Spalten zeigen `PE32`/`PE32+` und bei vorhandenen CLR-Headern 
 
 Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktivierte Prüfungen gelten für den nächsten Durchlauf; für vorhandene Zeilen „Alle neu prüfen“ verwenden. Ein erwarteter Lesefehler einer optionalen Metadatenprüfung wird in der Diagnosespalte ergänzt; bereits berechnete Hashes und die übrigen Prüfungen bleiben erhalten. Die Verarbeitungsanzeige kann deshalb „Fertig“ zeigen, während eine optionale Auswertung eine Diagnose enthält.
 
+### Diagnosedetails
+
+Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist ausgeblendet, solange keine geladene Zeile Diagnosedetails enthält, und erscheint bei der ersten Diagnose automatisch. Maßgeblich sind die Diagnosen aller geladenen Zeilen, einschließlich ausgefilterter Zeilen und der jeweils ausgewählten Signatur. Die Statusleiste ergänzt die Anzahl betroffener Zeilen und bricht längere Meldungen um, damit der Hinweis sichtbar bleibt. Eine erneute Prüfung ohne Diagnosen oder „Leeren“ entfernt Spalte und Hinweis wieder. Gespeicherte Spaltenpositionen bleiben erhalten; **Optionen → Spaltenreihenfolge → Reihenfolge zurücksetzen** übernimmt die neue Standardposition. CSV-/JSON-Exportauswahl und Diagnosewerte bleiben von der automatischen Sichtbarkeit unabhängig.
+
 ### Zertifikatsprüfung: genaue Bedeutung
 
 Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch werden Dateiintegrität und Vertrauenskette durch Windows beurteilt; ein auslesbares Zertifikat allein wird nie als gültige Signatur gewertet. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
@@ -236,6 +240,8 @@ Im Code liegen die Bindungswerte in `MainViewModel`: `ChecksumOptions[*].IsSelec
 Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
 
 ### Tabellendarstellung
+
+`MainViewModel` hält die Zeilen mit Diagnosedetails in einer eigenen Menge. Änderungen am Analyseergebnis und an der Signaturauswahl aktualisieren diese Menge, ohne für jede Änderung die ganze Tabelle zu durchsuchen. `ShowDiagnosticColumn` steuert die Spaltensichtbarkeit über den vorhandenen `BindingProxy`; `DiagnosticRowCount` liefert die Anzahl für den lokalisierten Statustext. Die Filteransicht verändert diese Menge nicht.
 
 Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
 
@@ -313,6 +319,19 @@ Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 `LocExtension` bindet XAML-Texte an den `LocalizationService`. Status- und Fehlercodes bleiben in der Kernbibliothek sprachneutral. Vorhandene Zeilen und Filterauswahlen werden beim Umschalten aktualisiert. Technische Ausnahmebeschreibungen von Betriebssystem/.NET und originale Zertifikatsfelder bleiben unverändert. Der Start verwendet die Windows-UI-Sprache, sofern unterstützt, sonst Englisch.
 
+### Verwendete Entwurfsmuster
+
+| Entwurfsmuster | Umsetzung in FileScope | Zweck |
+| --- | --- | --- |
+| **Strategy** | `IChecksumStrategy`, `ISignatureInspector`, `IFilePropertiesInspector`, `IPeHeaderInspector` sowie `IResultExportStrategy` mit `CsvExportStrategy` und `JsonExportStrategy` | Analyse- und Exportverfahren lassen sich hinter gemeinsamen Verträgen austauschen. Die Orchestrierung muss ihre Einzelheiten nicht kennen. |
+| **Factory (einfache Fabrik)** | `IChecksumStrategyFactory` / `ChecksumStrategyFactory.Create` | Erzeugt für den gewählten Hashalgorithmus eine neue, passend konfigurierte Strategie. Der zustandsbehaftete Hash wird nicht zwischen Dateien geteilt. |
+| **Command** | `RelayCommand` und `AsyncRelayCommand` implementieren `ICommand` | Buttons, Tastenkürzel und Drag-and-drop lösen ViewModel-Aktionen aus. Ausführbarkeit und Schutz vor parallelem Mehrfachstart liegen im Command. |
+| **Observer** | `INotifyPropertyChanged`, `ObservableCollection` und Ereignisse wie `CultureChanged`, `ColumnOrderChanged` und `SignatureSelectionChanged` | Oberfläche und abhängige Komponenten reagieren auf Zustandsänderungen. Auch die Diagnoseanzeige wird aus den Zeilenereignissen aktualisiert. |
+| **Adapter** | `WindowsAuthenticodeInspector`, `FilePropertiesInspector`, `FilePickerService` und `ConfirmationService` | Übersetzen Windows-/WPF-Aufrufe und deren Ergebnisse in die von der Anwendung verwendeten Schnittstellen und Modelle. |
+| **Fassade** | `IFileAnalysisService` / `FileAnalysisService.AnalyzeAsync` | Bietet einen gemeinsamen Einstieg für Dateizugriff, Hashberechnung, Metadaten und Signaturprüfung und führt deren Ergebnisse zusammen. |
+
+Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injection über Konstruktoren** die Anwendung. `App.OnStartup` bildet den **Composition Root**, an dem die konkreten Komponenten zusammengestellt werden; die Tests können dort eingesetzte Dienste durch Testimplementierungen ersetzen.
+
 ## Erweitern
 
 ### Code
@@ -330,7 +349,8 @@ Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 ```
 
 Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
-Derzeit gibt es
+Der zuletzt unter Windows dokumentierte Prüfstand vor dieser Erweiterung umfasst:
+
 - 472 core tests
 - 136 presentation/setting tests
 - 223 UI/MVVM tests

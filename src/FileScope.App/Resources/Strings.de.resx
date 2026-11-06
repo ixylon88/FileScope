@@ -642,4 +642,7 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="DropFoldersMore" xml:space="preserve">
     <value>… und {0} weitere Ordner.</value>
   </data>
+  <data name="DiagnosticSummary" xml:space="preserve">
+    <value>Zeilen mit Diagnosedetails: {0}.</value>
+  </data>
 </root>

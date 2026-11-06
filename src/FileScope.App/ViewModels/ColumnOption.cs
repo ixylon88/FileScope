@@ -17,6 +17,7 @@ public sealed class ColumnOption(string id, string label, LocalizationService st
     public static IReadOnlyList<ColumnOption> CreateDefaults(LocalizationService strings) =>
     [
         new("Name", "Column_Name", strings, static row => row.FileName), new("Status", "Column_Status", strings, static row => row.StateText),
+        new("Diagnostic", "Column_Diagnostic", strings, static row => row.Diagnostic),
         new("Size", "Column_Size", strings, static row => row.SizeText), new("Modified", "Column_Modified", strings, static row => row.ModifiedText),
         new("MD5", "MD5", strings, static row => row.MD5, false), new("SHA1", "SHA-1", strings, static row => row.SHA1, false),
         new("SHA256", "SHA-256", strings, static row => row.SHA256, false), new("SHA384", "SHA-384", strings, static row => row.SHA384, false),
@@ -44,7 +45,6 @@ public sealed class ColumnOption(string id, string label, LocalizationService st
         new("PeMachine", "Column_PeMachine", strings, static row => row.PeMachine),
         new("PeFormat", "Column_PeFormat", strings, static row => row.PeFormat),
         new("ManagedPlatform", "Column_ManagedPlatform", strings, static row => row.ManagedPlatformText),
-        new("Path", "Column_Path", strings, static row => row.FullPath),
-        new("Diagnostic", "Column_Diagnostic", strings, static row => row.Diagnostic)
+        new("Path", "Column_Path", strings, static row => row.FullPath)
     ];
 }

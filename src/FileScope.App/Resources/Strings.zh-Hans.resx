@@ -485,4 +485,7 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="DropFoldersMore" xml:space="preserve">
     <value>… 以及另外 {0} 个文件夹。</value>
   </data>
+  <data name="DiagnosticSummary" xml:space="preserve">
+    <value>含诊断详情的行数：{0}。</value>
+  </data>
 </root>
