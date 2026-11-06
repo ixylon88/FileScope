@@ -10,16 +10,20 @@ namespace FileScope.Core.Metadata;
 
 public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
 {
-    public FilePropertiesResult Inspect(string fullPath, CancellationToken cancellationToken = default)
+    public FilePropertiesResult Inspect(FileStream file, string fullPath, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(file);
         cancellationToken.ThrowIfCancellationRequested();
         var info = new FilePropertiesInfo();
         try
         {
             var extension = Path.GetExtension(fullPath);
             info = info with { FileType = OperatingSystem.IsWindows() ? ReadWindowsType(extension) : extension };
-            // Reads VERSIONINFO resources, never loads the file as executable code.
-            // The analysis service keeps its read lock open throughout this call.
+            if (OperatingSystem.IsWindows()
+                && WindowsFileVersionReader.TryRead(file, out var fields, cancellationToken))
+                return new(fields with { FileType = info.FileType });
+            // Compatibility fallback for other platforms or a missing Windows export.
+            // Actual handle-API errors do not trigger a second, path-based attempt.
             var version = FileVersionInfo.GetVersionInfo(fullPath);
             cancellationToken.ThrowIfCancellationRequested();
             return new(info with

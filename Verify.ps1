@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$SignedFile,
+    [string[]]$VersionFile = @(),
     [switch]$SkipBuild,
     [switch]$SkipUi
 )
@@ -57,6 +58,7 @@ try {
     }
     $coreArguments = @()
     if ($SignedFile) { $coreArguments = @('--signed-file', (Resolve-Path -LiteralPath $SignedFile).Path) }
+    foreach ($file in $VersionFile) { $coreArguments += @('--version-file', (Resolve-Path -LiteralPath $file).Path) }
     Invoke-Checks -Name 'CoreChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments $coreArguments
     Invoke-Checks -Name 'PresentationChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments @()
     if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {

@@ -146,6 +146,7 @@ internal static class CoreChecks
 
             if (OperatingSystem.IsWindows())
             {
+                CheckWindowsVersionHandles(temp, path, args);
                 using (var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     Equal(AnalysisError.ReadFailure, (await analyzer.AnalyzeAsync(path, snapshot)).Error,
@@ -157,9 +158,10 @@ internal static class CoreChecks
                 Equal(SignatureStatus.NoEmbeddedSignature, unsigned.Signature.Status, "unsigned PE / native WinVerifyTrust");
                 Check(unsigned.Signature.Certificate is null, "unsigned PE has no signer metadata");
                 Equal(0, unsigned.Signature.Signatures.Count, "unsigned PE has no selectable signature");
-                if (args.Length == 2 && args[0] == "--signed-file")
+                var signedIndex = Array.IndexOf(args, "--signed-file");
+                if (signedIndex >= 0 && signedIndex + 1 < args.Length)
                 {
-                    var signed = await nativeAnalyzer.AnalyzeAsync(args[1], new AnalysisOptions([], true));
+                    var signed = await nativeAnalyzer.AnalyzeAsync(args[signedIndex + 1], new AnalysisOptions([], true));
                     Check(signed.Succeeded, "signed fixture can be read");
                     Check(signed.Signature.Certificate is not null, "embedded signer metadata extracted");
                     Check(signed.Signature.NativeStatusCode.HasValue, "native trust result retained");
@@ -578,17 +580,133 @@ internal static class CoreChecks
         var shellInfo = native.GetNestedType("ShellFileInfo", BindingFlags.NonPublic)!;
         Equal(IntPtr.Size == 8 ? 696 : 692, Marshal.SizeOf(shellInfo), "SHFILEINFOW ABI size");
         var inspector = new FilePropertiesInspector();
-        var plain = inspector.Inspect(plainFile);
+        using var plainStream = File.OpenRead(plainFile);
+        var plain = inspector.Inspect(plainStream, plainFile);
         Check(plain is { Diagnostic: null, Info: not null } && string.IsNullOrEmpty(plain.Info.FileVersion)
             && string.IsNullOrEmpty(plain.Info.ProductName), "ordinary file has no fabricated version information");
-        var assembly = inspector.Inspect(typeof(FileAnalysisService).Assembly.Location);
+        var assemblyPath = typeof(FileAnalysisService).Assembly.Location;
+        using var assemblyStream = File.OpenRead(assemblyPath);
+        assemblyStream.Position = 7;
+        var assembly = inspector.Inspect(assemblyStream, assemblyPath);
         Check(assembly is { Diagnostic: null, Info: not null } && !string.IsNullOrWhiteSpace(assembly.Info.FileVersion)
             && assembly.Info.OriginalFilename == "FileScope.Core.dll", "read VERSIONINFO from the built core assembly");
         Check(!string.IsNullOrWhiteSpace(assembly.Info?.FileType), "file type is available independently of version fields");
+        Check(assemblyStream.CanRead && assemblyStream.Position == 7, "properties leave the supplied stream open at its original position");
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
-        try { inspector.Inspect(plainFile, cancelled.Token); throw new Exception("Expected properties cancellation."); }
+        try { inspector.Inspect(plainStream, plainFile, cancelled.Token); throw new Exception("Expected properties cancellation."); }
         catch (OperationCanceledException) { Check(true, "cancelled properties inspection propagates cancellation"); }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void CheckWindowsVersionHandles(string directory, string plainFile, string[] args)
+    {
+        if (!WindowsFileVersionReader.IsAvailable)
+        {
+            Console.WriteLine("SKIP native version-handle checks: Windows export unavailable; path fallback remains covered.");
+            return;
+        }
+        var nePath = Path.Combine(directory, "version-fixture.exe");
+        File.WriteAllBytes(nePath, NeVersionFixture());
+        var baselineNe = System.Diagnostics.FileVersionInfo.GetVersionInfo(nePath);
+        Equal("1.2.3.4", baselineNe.FileVersion, "generated NE fixture contains readable VERSIONINFO");
+        var paths = new List<string> { plainFile, nePath, typeof(FileAnalysisService).Assembly.Location,
+            typeof(object).Assembly.Location, Path.Combine(Environment.SystemDirectory, "kernel32.dll") };
+        for (var i = 0; i + 1 < args.Length; i++)
+            if (args[i] == "--version-file") paths.Add(Path.GetFullPath(args[++i]));
+        foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var reference = System.Diagnostics.FileVersionInfo.GetVersionInfo(path);
+            var bytes = File.ReadAllBytes(path);
+            foreach (var position in new long[] { 0, 7, bytes.Length })
+            foreach (var buffered in new[] { false, true })
+            {
+                if (buffered && position >= bytes.Length) continue;
+                using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    128 * 1024, FileOptions.SequentialScan);
+                var handle = file.SafeFileHandle;
+                file.Position = position;
+                var context = $"{Path.GetFileName(path)}, position {position}, buffered {buffered}";
+                if (buffered)
+                {
+                    Equal((int)bytes[(int)position], file.ReadByte(), "prime version-test read buffer / " + context);
+                    file.Position = position;
+                }
+                // Deliberately diverge the raw pointer. The inspector's SafeFileHandle getter
+                // synchronizes it to FileStream.Position before the version API is called.
+                var nativeBeforeBorrow = position == 7 ? Math.Min(19, bytes.Length) : position;
+                Check(VersionTestNative.SetFilePointerEx(handle, nativeBeforeBorrow, out _, 0),
+                    "set native version-test position / " + context);
+                var missingPath = Path.Combine(directory, "does-not-exist" + Path.GetExtension(path));
+                var actual = new FilePropertiesInspector().Inspect(file, missingPath);
+                Check(actual.Diagnostic is null && actual.Info is not null,
+                    "version metadata uses the supplied handle without reopening the supplied path");
+                var expected = new FilePropertiesInfo
+                {
+                    FileType = actual.Info?.FileType, FileDescription = reference.FileDescription, Language = reference.Language,
+                    FileVersion = reference.FileVersion, ProductName = reference.ProductName, ProductVersion = reference.ProductVersion,
+                    CompanyName = reference.CompanyName, OriginalFilename = reference.OriginalFilename, InternalName = reference.InternalName,
+                    Copyright = reference.LegalCopyright, Trademarks = reference.LegalTrademarks, Comments = reference.Comments
+                };
+                Check(actual.Info == expected, "handle version fields match FileVersionInfo / " + context);
+                // Query the cached handle: accessing file.SafeFileHandle here would normalize
+                // the pointer again and could hide a broken restoration in the inspector.
+                Check(VersionTestNative.SetFilePointerEx(handle, 0, out var after, 1),
+                    "query native version-test position / " + context);
+                Equal(position, after, "version inspection restores the synchronized native file pointer / " + context);
+                Check(file.CanRead && file.Position == position,
+                    "version inspection preserves the managed stream position and ownership / " + context);
+                Equal(position < bytes.Length ? (int)bytes[(int)position] : -1, file.ReadByte(),
+                    "the next managed read still reads from the original position / " + context);
+            }
+        }
+    }
+
+    private static byte[] NeVersionFixture()
+    {
+        // Synthetic, self-contained ANSI Win16 resources; no third-party executable bytes.
+        static byte[] Block(string key, byte[] value, params byte[][] children)
+        {
+            using var buffer = new MemoryStream();
+            using var writer = new BinaryWriter(buffer, Encoding.ASCII, leaveOpen: true);
+            writer.Write((ushort)0); writer.Write(checked((ushort)value.Length));
+            writer.Write(Encoding.ASCII.GetBytes(key)); writer.Write((byte)0);
+            void Align() { while (buffer.Length % 4 != 0) writer.Write((byte)0); }
+            Align(); writer.Write(value); Align();
+            foreach (var child in children) { writer.Write(child); Align(); }
+            var bytes = buffer.ToArray();
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes, checked((ushort)bytes.Length));
+            return bytes;
+        }
+        var fixedInfo = new byte[52];
+        uint[] words = [0xfeef04bd, 0x00010000, 0x00010002, 0x00030004, 0x00010002, 0x00030004,
+            0x3f, 0, 0x00010001, 1, 0, 0, 0];
+        for (var i = 0; i < words.Length; i++) BinaryPrimitives.WriteUInt32LittleEndian(fixedInfo.AsSpan(i * 4), words[i]);
+        var table = Block("040904E4", [], Block("FileVersion", "1.2.3.4\0"u8.ToArray()),
+            Block("ProductVersion", "1.2.3.4\0"u8.ToArray()), Block("ProductName", "FileScope test\0"u8.ToArray()));
+        var resource = Block("VS_VERSION_INFO", fixedInfo, Block("StringFileInfo", [], table),
+            Block("VarFileInfo", [], Block("Translation", [0x09, 0x04, 0xe4, 0x04])));
+        var image = NeFixture(false);
+        Array.Resize(ref image, 2048);
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset), value);
+        U16(128 + 0x24, 74); U16(128 + 0x26, 98); U16(128 + 0x34, 1);
+        const int resources = 128 + 74;
+        U16(resources, 0); U16(resources + 2, 0x8010); U16(resources + 4, 1);
+        U16(resources + 10, 1024); U16(resources + 12, checked((ushort)resource.Length));
+        U16(resources + 14, 0x0030); U16(resources + 16, 0x8001);
+        resource.CopyTo(image, 1024);
+        return image;
+    }
+
+    private static class VersionTestNative
+    {
+#pragma warning disable SYSLIB1054 // Test harness has no unsafe source-generated interop configuration.
+        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetFilePointerEx(Microsoft.Win32.SafeHandles.SafeFileHandle file,
+            long distance, out long position, uint method);
+#pragma warning restore SYSLIB1054
     }
 
     private static async Task CheckMetadataPipeline(string path, IChecksumService checksums)
@@ -605,6 +723,8 @@ internal static class CoreChecks
                 && (result.PeHeader is not null) == flags.Item2, "metadata options independently control inspection and results / " + flags);
             Check(signatures.SawReadableHandle && result.Checksums.Count == 1,
                 "metadata inspection retains hashes and resets the stream for signature verification / " + flags);
+            Check(!flags.Item1 || ReferenceEquals(metadata.File, signatures.File),
+                "properties and signature strategies receive exactly the same FileStream / " + flags);
         }
         var throwing = new StubMetadata { ThrowProperties = true, ThrowPe = true };
         var service = new FileAnalysisService(checksums, new StubSignatures(), throwing, throwing);
@@ -646,8 +766,10 @@ internal static class CoreChecks
         public int PropertyCalls, PeCalls;
         public bool ThrowProperties, ThrowPe;
         public CancellationTokenSource? Cancel;
-        public FilePropertiesResult Inspect(string path, CancellationToken cancellationToken = default)
+        public FileStream? File;
+        public FilePropertiesResult Inspect(FileStream file, string path, CancellationToken cancellationToken = default)
         {
+            File = file;
             PropertyCalls++;
             Cancel?.Cancel(); cancellationToken.ThrowIfCancellationRequested();
             if (ThrowProperties) throw new IOException("Properties unavailable");
@@ -780,8 +902,10 @@ internal static class CoreChecks
     {
         public int Calls { get; private set; }
         public bool SawReadableHandle { get; private set; }
+        public FileStream? File { get; private set; }
         public SignatureResult Inspect(FileStream file, string fullPath, RevocationMode mode, CancellationToken cancellationToken = default)
         {
+            File = file;
             Calls++;
             SawReadableHandle = file.CanRead && !file.SafeFileHandle.IsInvalid && file.Position == 0;
             return new SignatureResult(SignatureStatus.NoEmbeddedSignature, mode);

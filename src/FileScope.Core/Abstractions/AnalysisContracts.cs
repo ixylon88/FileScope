@@ -36,8 +36,9 @@ public interface ISignatureInspector
 
 public interface IFilePropertiesInspector
 {
-    // The caller keeps its read lock open while the platform version API reads the path.
-    FilePropertiesResult Inspect(string fullPath, CancellationToken cancellationToken = default);
+    // Borrows the original file, leaves it open and preserves its position.
+    // The path supplies the extension and the compatibility fallback only.
+    FilePropertiesResult Inspect(FileStream file, string fullPath, CancellationToken cancellationToken = default);
 }
 
 public interface IPeHeaderInspector
