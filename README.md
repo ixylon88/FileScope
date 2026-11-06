@@ -6,7 +6,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 - **Einzelne Dateien oder ganze Ordner analysieren:** Dateien per Drag-and-drop hinzufügen oder Ordner einschließlich Unterordner einlesen.
 - **Prüfsummen berechnen:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 frei auswählen und gemeinsam berechnen.
-- **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
+- **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen, optional mit <u>Online-Sperrprüfung</u> der Zertifikate; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
 - **Programmdateien einordnen:** Versions- und Herstellerangaben, Architektur und .NET-Plattform auslesen; auch ältere NE-/Win16-EXE und -DLL erkennen.
 - **Ergebnisse gezielt auswerten:** Über alle Angaben suchen, nach Analyse- und Signaturstatus filtern, sortieren und Details kopieren.
 - **Ergebnisse weiterverwenden:** Vorhandene Analysewerte mit frei wählbaren Feldern als CSV oder JSON exportieren, ohne die Quelldateien erneut zu analysieren.
