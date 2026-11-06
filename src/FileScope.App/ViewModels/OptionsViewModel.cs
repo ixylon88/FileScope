@@ -13,11 +13,13 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
 {
     private readonly LocalizationService _strings;
     private readonly IPreferencesStore _store;
+    private readonly IThemeService _themeService;
     private readonly IReadOnlyList<ColumnOption> _defaults;
     private readonly ObservableCollection<ColumnOption> _columns;
     private LanguageOption _selectedLanguage;
     private FilterOption<HashFormat> _selectedHashFormat;
     private FilterOption<CsvDelimiter> _selectedCsvDelimiter;
+    private FilterOption<AppTheme> _selectedTheme;
     private ColumnOption? _selectedColumn;
     private string? _settingsErrorKey;
     private bool _updatingExportSelection;
@@ -28,6 +30,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public IReadOnlyList<LanguageOption> Languages => _strings.Languages;
     public IReadOnlyList<FilterOption<HashFormat>> HashFormats { get; }
     public IReadOnlyList<FilterOption<CsvDelimiter>> CsvDelimiters { get; }
+    public IReadOnlyList<FilterOption<AppTheme>> Themes { get; }
     public string UiLanguage => _strings.Culture.IetfLanguageTag;
     public string SettingsError => _settingsErrorKey is null ? "" : _strings[_settingsErrorKey];
     public bool HasSettingsError => _settingsErrorKey is not null;
@@ -45,7 +48,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public RelayCommand SelectAllExportColumnsCommand { get; }
     public RelayCommand ClearExportColumnsCommand { get; }
 
-    public OptionsViewModel(LocalizationService strings, IPreferencesStore store)
+    public OptionsViewModel(LocalizationService strings, IPreferencesStore store, IThemeService themes)
     {
         _strings = strings;
         _store = store;
@@ -90,6 +93,17 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         SelectAllExportColumnsCommand = new RelayCommand(() => SetExportSelection(true));
         ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(false));
         strings.CultureChanged += OnCultureChanged;
+        _themeService = themes;
+        Themes = Array.AsReadOnly(new[]
+        {
+            new FilterOption<AppTheme>(AppTheme.Light, "Theme_Light", strings),
+            new FilterOption<AppTheme>(AppTheme.Dark, "Theme_Dark", strings)
+        });
+        AppTheme savedTheme = default;
+        if (Enum.TryParse<AppTheme>(saved.Theme, out var value)) { savedTheme = value; }
+        _selectedTheme = Themes.FirstOrDefault(theme => theme.Value == savedTheme)
+            ?? Themes.Single(option => option.Value == themes.CurrentTheme);
+        _themeService.Apply(_selectedTheme.Value);
     }
 
     public LanguageOption SelectedLanguage
@@ -120,6 +134,16 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         {
             if (value is null || !CsvDelimiters.Contains(value) || !SetProperty(ref _selectedCsvDelimiter, value)) return;
             Save();
+        }
+    }
+    public FilterOption<AppTheme> SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            if (value is null || value == _selectedTheme) return;
+            _themeService.Apply(value.Value);
+            SetProperty(ref _selectedTheme, value);
         }
     }
     public ColumnOption? SelectedColumn
@@ -229,6 +253,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         {
             _store.Save(new UserPreferences
             {
+                Theme = SelectedTheme.Value.ToString(),
                 Language = SelectedLanguage.CultureName,
                 HashFormat = SelectedHashFormat.Value.ToString(),
                 ColumnOrder = Columns.Select(column => column.Id).ToArray(),
@@ -253,6 +278,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         foreach (var column in Columns) column.RefreshLanguage();
         foreach (var option in HashFormats) option.RefreshLanguage();
         foreach (var option in CsvDelimiters) option.RefreshLanguage();
+        foreach (var option in Themes) option.RefreshLanguage();
         OnPropertyChanged(nameof(SettingsError));
         OnPropertyChanged(nameof(UiLanguage));
         RequestColumnSizing();

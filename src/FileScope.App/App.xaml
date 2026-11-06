@@ -1,11 +1,12 @@
 <Application x:Class="FileScope.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             ThemeMode="Dark">
+             ThemeMode="Light">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Styles/Controls.xaml" />
+        <ResourceDictionary Source="Styles/Themes/LightThemePalette.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </ResourceDictionary>

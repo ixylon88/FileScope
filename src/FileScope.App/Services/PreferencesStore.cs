@@ -4,6 +4,7 @@ namespace FileScope.App.Services;
 
 public sealed record UserPreferences
 {
+    public string? Theme { get; init; }
     public string? Language { get; init; }
     public string? HashFormat { get; init; }
     public string[]? ColumnOrder { get; init; }

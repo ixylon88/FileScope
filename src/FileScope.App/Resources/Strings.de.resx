@@ -651,4 +651,13 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>Größe bei {0:N0} Datei(en) unbekannt.</value>
   </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Hell</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dunkel</value>
+  </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>Design</value>
+  </data>
 </root>

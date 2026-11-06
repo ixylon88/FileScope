@@ -1,5 +1,110 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -7,10 +112,10 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="WindowTitle" xml:space="preserve">
     <value>FileScope · 文件分析</value>
@@ -438,32 +543,84 @@
   <data name="Column_ManagedPlatform" xml:space="preserve">
     <value>.NET 平台</value>
   </data>
-  <data name="AddFolder" xml:space="preserve"><value>添加文件夹</value></data>
-  <data name="AddFolderTitle" xml:space="preserve"><value>选择要分析的文件夹</value></data>
-  <data name="AddFolderTip" xml:space="preserve"><value>分析所有文件（包括子文件夹）。跳过已添加的路径。</value></data>
-  <data name="ScanningFolder" xml:space="preserve"><value>正在扫描文件夹…</value></data>
-  <data name="FolderScanCancelled" xml:space="preserve"><value>文件夹扫描已取消，未添加任何文件。</value></data>
-  <data name="FolderEmpty" xml:space="preserve"><value>此文件夹中未找到文件。</value></data>
-  <data name="FolderScanWarning" xml:space="preserve"><value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value></data>
-  <data name="ExportResults" xml:space="preserve"><value>导出</value></data>
-  <data name="ExportTitle" xml:space="preserve"><value>导出结果</value></data>
-  <data name="CsvFiles" xml:space="preserve"><value>CSV 文件</value></data>
-  <data name="ExportTip" xml:space="preserve"><value>将所有已加载文件导出为 CSV 或 JSON，无需重新分析。</value></data>
-  <data name="ExportSourceConflict" xml:space="preserve"><value>请选择其他文件名：导出文件不能覆盖已分析的源文件。</value></data>
-  <data name="ExportingResults" xml:space="preserve"><value>正在导出结果…</value></data>
-  <data name="ResultsExported" xml:space="preserve"><value>已导出结果（{0} 个文件）。</value></data>
-  <data name="ExportCancelled" xml:space="preserve"><value>已取消导出。</value></data>
-  <data name="ExportColumnsTitle" xml:space="preserve"><value>CSV 导出列</value></data>
-  <data name="ExportColumnsHint" xml:space="preserve"><value>选择 CSV 和 JSON 导出的字段。导出所有已加载文件，包括被筛选器隐藏的行。</value></data>
-  <data name="SelectAllExportColumns" xml:space="preserve"><value>全选</value></data>
-  <data name="ClearExportColumns" xml:space="preserve"><value>全部取消</value></data>
-  <data name="PreparingFiles" xml:space="preserve"><value>正在添加文件…</value></data>
-  <data name="IntakeCancelled" xml:space="preserve"><value>已取消添加文件。已添加的行可重新分析。</value></data>
-  <data name="Filter_ExceptValid" xml:space="preserve"><value>除有效签名外的全部</value></data>
-  <data name="CsvDelimiterLabel" xml:space="preserve"><value>CSV 分隔符</value></data>
-  <data name="CsvDelimiter_Semicolon" xml:space="preserve"><value>分号（;）</value></data>
-  <data name="CsvDelimiter_Comma" xml:space="preserve"><value>逗号（,）</value></data>
-  <data name="CsvDelimiterHint" xml:space="preserve"><value>仅适用于 CSV。德语 Excel 通常使用分号；其他程序可选择逗号。</value></data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>添加文件夹</value>
+  </data>
+  <data name="AddFolderTitle" xml:space="preserve">
+    <value>选择要分析的文件夹</value>
+  </data>
+  <data name="AddFolderTip" xml:space="preserve">
+    <value>分析所有文件（包括子文件夹）。跳过已添加的路径。</value>
+  </data>
+  <data name="ScanningFolder" xml:space="preserve">
+    <value>正在扫描文件夹…</value>
+  </data>
+  <data name="FolderScanCancelled" xml:space="preserve">
+    <value>文件夹扫描已取消，未添加任何文件。</value>
+  </data>
+  <data name="FolderEmpty" xml:space="preserve">
+    <value>此文件夹中未找到文件。</value>
+  </data>
+  <data name="FolderScanWarning" xml:space="preserve">
+    <value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value>
+  </data>
+  <data name="ExportResults" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>导出结果</value>
+  </data>
+  <data name="CsvFiles" xml:space="preserve">
+    <value>CSV 文件</value>
+  </data>
+  <data name="ExportTip" xml:space="preserve">
+    <value>将所有已加载文件导出为 CSV 或 JSON，无需重新分析。</value>
+  </data>
+  <data name="ExportSourceConflict" xml:space="preserve">
+    <value>请选择其他文件名：导出文件不能覆盖已分析的源文件。</value>
+  </data>
+  <data name="ExportingResults" xml:space="preserve">
+    <value>正在导出结果…</value>
+  </data>
+  <data name="ResultsExported" xml:space="preserve">
+    <value>已导出结果（{0} 个文件）。</value>
+  </data>
+  <data name="ExportCancelled" xml:space="preserve">
+    <value>已取消导出。</value>
+  </data>
+  <data name="ExportColumnsTitle" xml:space="preserve">
+    <value>CSV 导出列</value>
+  </data>
+  <data name="ExportColumnsHint" xml:space="preserve">
+    <value>选择 CSV 和 JSON 导出的字段。导出所有已加载文件，包括被筛选器隐藏的行。</value>
+  </data>
+  <data name="SelectAllExportColumns" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="ClearExportColumns" xml:space="preserve">
+    <value>全部取消</value>
+  </data>
+  <data name="PreparingFiles" xml:space="preserve">
+    <value>正在添加文件…</value>
+  </data>
+  <data name="IntakeCancelled" xml:space="preserve">
+    <value>已取消添加文件。已添加的行可重新分析。</value>
+  </data>
+  <data name="Filter_ExceptValid" xml:space="preserve">
+    <value>除有效签名外的全部</value>
+  </data>
+  <data name="CsvDelimiterLabel" xml:space="preserve">
+    <value>CSV 分隔符</value>
+  </data>
+  <data name="CsvDelimiter_Semicolon" xml:space="preserve">
+    <value>分号（;）</value>
+  </data>
+  <data name="CsvDelimiter_Comma" xml:space="preserve">
+    <value>逗号（,）</value>
+  </data>
+  <data name="CsvDelimiterHint" xml:space="preserve">
+    <value>仅适用于 CSV。德语 Excel 通常使用分号；其他程序可选择逗号。</value>
+  </data>
   <data name="JsonFiles" xml:space="preserve">
     <value>JSON 文件</value>
   </data>
@@ -493,5 +650,14 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>{0:N0} 个文件的大小未知。</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>主题</value>
   </data>
 </root>

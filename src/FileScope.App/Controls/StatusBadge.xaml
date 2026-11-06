@@ -15,16 +15,16 @@
         <Setter Property="Background" Value="#E8ECF3" />
         <Style.Triggers>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Success}">
-            <Setter Property="Background" Value="#FFADFEC8" />
+            <Setter Property="Background" Value="{DynamicResource OnSuccessBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Information}">
-            <Setter Property="Background" Value="#DEE7FF" />
+            <Setter Property="Background" Value="{DynamicResource OnInformationBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Warning}">
-            <Setter Property="Background" Value="#FFF8DFA3" />
+            <Setter Property="Background" Value="{DynamicResource OnWarningBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Error}">
-            <Setter Property="Background" Value="#FFFFC0C0" />
+            <Setter Property="Background" Value="{DynamicResource OnErrorBrush}" />
           </DataTrigger>
         </Style.Triggers>
       </Style>

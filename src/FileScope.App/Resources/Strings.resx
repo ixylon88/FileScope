@@ -651,4 +651,13 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>Unknown size for {0:N0} file(s).</value>
   </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
 </root>

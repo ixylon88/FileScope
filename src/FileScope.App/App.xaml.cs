@@ -21,7 +21,7 @@ public partial class App : Application
         var analysis = new FileAnalysisService(checksumService, new WindowsAuthenticodeInspector(),
             new FilePropertiesInspector(), new PeHeaderInspector());
         var strings = LocalizationService.Instance;
-        var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath));
+        var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath), new ThemeService(this));
         var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options,
             new FolderScanner(), new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]),
             new ConfirmationService());
