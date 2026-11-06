@@ -124,7 +124,7 @@ internal static class CoreChecks
             Equal(AnalysisError.NotFound, (await analyzer.AnalyzeAsync(Path.Combine(temp, "missing.bin"), snapshot)).Error,
                 "missing file becomes a per-file failure");
             Equal(AnalysisError.DirectoryNotSupported, (await analyzer.AnalyzeAsync(temp, snapshot)).Error,
-                "directory drop is reported, never traversed");
+                "file analysis rejects directories; traversal belongs to the folder scanner");
 
             var native = typeof(WindowsAuthenticodeInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
             var nativeData = native.GetNestedType("WinTrustData", BindingFlags.NonPublic)!;
@@ -233,9 +233,68 @@ internal static class CoreChecks
                 found = scanner.Scan(root);
                 Check(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3,
                     "directory link to an ancestor is counted and never traversed");
+                found = scanner.Scan(link);
+                Check(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3
+                    && found.Files.All(path => path.StartsWith(link + Path.DirectorySeparatorChar, StringComparison.Ordinal)),
+                    "an explicitly selected directory link is a root, but links below it still cannot form a cycle");
             }
             finally { Directory.Delete(link); }
         }
+
+        var fileLink = Path.Combine(root, "file-link.bin");
+        var missingLink = Path.Combine(root, "missing-link.bin");
+        try
+        {
+            var fileLinksCreated = false;
+            try
+            {
+                File.CreateSymbolicLink(fileLink, first);
+                File.CreateSymbolicLink(missingLink, Path.Combine(temp, "missing-target.bin"));
+                fileLinksCreated = true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            { Console.WriteLine("SKIP file-symlink fixture: " + ex.Message); }
+            if (fileLinksCreated)
+            {
+                found = scanner.Scan(root);
+                Check(found.Files.ToHashSet().SetEquals([first, second, hidden, fileLink, missingLink])
+                    && found.SkippedDirectoryLinks == 0,
+                    "file symlinks, including broken ones, remain file paths for per-row analysis");
+            }
+        }
+        finally { File.Delete(fileLink); File.Delete(missingLink); }
+
+        var hardLink = Path.Combine(root, "hard-link.bin");
+        var hardLinkCreated = OperatingSystem.IsWindows()
+            ? LinkTestNative.CreateHardLinkW(hardLink, first, IntPtr.Zero)
+            : OperatingSystem.IsLinux() && LinkTestNative.Link(Encoding.UTF8.GetBytes(first + '\0'),
+                Encoding.UTF8.GetBytes(hardLink + '\0')) == 0;
+        if (hardLinkCreated)
+        {
+            try
+            {
+                found = scanner.Scan(root);
+                Check(found.Files.ToHashSet().SetEquals([first, second, hidden, hardLink])
+                    && found.SkippedDirectoryLinks == 0,
+                    "hard links remain separate file paths and do not cause directory traversal");
+            }
+            finally { File.Delete(hardLink); }
+        }
+        else Console.WriteLine("SKIP hard-link fixture: " + Marshal.GetLastWin32Error());
+    }
+
+    private static class LinkTestNative
+    {
+#pragma warning disable SYSLIB1054 // Test harness has no unsafe source-generated interop configuration.
+        [DllImport("kernel32.dll", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CreateHardLinkW(string name, string existing, IntPtr securityAttributes);
+
+        [DllImport("libc", EntryPoint = "link", ExactSpelling = true, SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+        internal static extern int Link(byte[] existing, byte[] name); // NUL-terminated UTF-8 paths for libc.
+#pragma warning restore SYSLIB1054
     }
 
     private static async Task CheckCsvExport(string temp)

@@ -23,7 +23,8 @@ public partial class App : Application
         var strings = LocalizationService.Instance;
         var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath));
         var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options,
-            new FolderScanner(), new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]));
+            new FolderScanner(), new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]),
+            new ConfirmationService());
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();

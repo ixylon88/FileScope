@@ -55,6 +55,7 @@ internal static class UiChecks
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
             CheckFolderAndExport(strings);
+            CheckDroppedFolders(strings);
             CheckFileOperationCancellation(strings);
             CheckMultipleSignatures(strings);
             CheckExceptValidFilter(strings);
@@ -363,6 +364,112 @@ internal static class UiChecks
         finally { optionsWindow.Close(); window.Close(); Directory.Delete(directory, recursive: true); }
     }
 
+    private static void CheckDroppedFolders(LocalizationService strings)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "FileScope-drop-ui-" + Guid.NewGuid().ToString("N"));
+        var firstRoot = Path.Combine(directory, "first");
+        var nested = Path.Combine(firstRoot, "nested");
+        var secondRoot = Path.Combine(directory, "second");
+        var empty = Path.Combine(directory, "empty");
+        Directory.CreateDirectory(nested);
+        Directory.CreateDirectory(secondRoot);
+        Directory.CreateDirectory(empty);
+        var existing = Path.Combine(directory, "existing.bin");
+        var direct = Path.Combine(directory, "direct.bin");
+        var first = Path.Combine(firstRoot, "one.bin");
+        var second = Path.Combine(nested, "two.bin");
+        var third = Path.Combine(secondRoot, "three.bin");
+        foreach (var path in new[] { existing, direct, first, second, third }) File.WriteAllText(path, "sample");
+        try
+        {
+            var scanner = new RecordingFolderScanner();
+            var confirmation = new TestConfirmation();
+            var analysis = new ImmediateAnalysis();
+            var picker = new TestPicker { Files = [existing] };
+            using var vm = CreateMainViewModel(analysis, picker, strings, CreateOptions(strings), scanner,
+                confirmation: confirmation);
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            var existingRow = vm.Rows.Single();
+            confirmation.OnConfirm = () => Check(scanner.Roots.Count == 0 && analysis.Calls == 1
+                && vm.Rows.Single() == existingRow, "folder confirmation precedes all scan, row and analysis work");
+            vm.DropFilesCommand.Execute(new[] { firstRoot, direct });
+            Check(confirmation.Calls == 1 && !vm.IsBusy && scanner.Roots.Count == 0
+                && vm.Rows.Single() == existingRow && analysis.Calls == 1,
+                "declining a mixed drop leaves existing rows untouched and adds neither files nor folders");
+            confirmation.OnConfirm = null;
+            vm.DropFilesCommand.Execute(new[] { direct });
+            PumpUntil(() => !vm.IsBusy);
+            Check(confirmation.Calls == 1 && analysis.Calls == 2 && vm.Rows.Count == 2,
+                "file-only drops do not require confirmation");
+
+            confirmation.Answer = true;
+            vm.DropFilesCommand.Execute(new[] { firstRoot, firstRoot + Path.DirectorySeparatorChar, nested,
+                secondRoot, first, direct });
+            PumpUntil(() => !vm.IsBusy);
+            Check(confirmation.Calls == 2 && scanner.Roots.Count == 3
+                && scanner.Roots.ToHashSet().SetEquals([firstRoot, nested, secondRoot]),
+                "one confirmation covers all normalized distinct folder roots");
+            Check(vm.Rows.Select(row => row.FullPath).ToHashSet().SetEquals([existing, direct, first, second, third])
+                && analysis.Calls == 5 && vm.Rows.All(row => row.State == RowStatus.Completed) && !vm.HasError,
+                "mixed and overlapping drops recurse, deduplicate paths and create no directory error rows");
+            vm.DropFilesCommand.Execute(new[] { empty });
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == 5 && analysis.Calls == 5 && vm.StatusText == strings["FolderEmpty"],
+                "an empty dropped folder adds no rows and reports an empty result");
+
+            var remaining = Path.Combine(directory, "remaining.bin");
+            File.WriteAllText(remaining, "remaining");
+            confirmation.OnConfirm = () => Directory.Delete(empty);
+            vm.DropFilesCommand.Execute(new[] { empty, firstRoot, remaining });
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.HasError && vm.LastError.Contains(empty, StringComparison.Ordinal)
+                && vm.Rows.Count == 6 && analysis.Calls == 6 && vm.Rows.Any(row => row.FullPath == remaining),
+                "a root lost after confirmation is reported without discarding other roots or directly dropped files");
+
+            var blocked = new BlockingFolderScanner(observeCancellation: false);
+            var cancelledAnalysis = new ImmediateAnalysis();
+            using var cancelled = CreateMainViewModel(cancelledAnalysis, picker, strings, CreateOptions(strings), blocked,
+                confirmation: new TestConfirmation { Answer = true });
+            cancelled.BrowseCommand.Execute(null);
+            PumpUntil(() => !cancelled.IsBusy);
+            var retainedRow = cancelled.Rows.Single();
+            cancelled.DropFilesCommand.Execute(new[] { firstRoot, direct });
+            try
+            {
+                PumpUntil(() => blocked.Started.Task.IsCompleted);
+                Check(cancelled.IsBusy && cancelled.CancelCommand.CanExecute(null)
+                    && !cancelled.ClearCommand.CanExecute(null) && !cancelled.DropFilesCommand.CanExecute(new[] { third }),
+                    "a confirmed folder drop participates in the busy and cancellation workflow");
+                cancelled.CancelCommand.Execute(null);
+            }
+            finally { blocked.Release.TrySetResult(); }
+            PumpUntil(() => !cancelled.IsBusy);
+            Check(cancelled.Rows.Single() == retainedRow && cancelledAnalysis.Calls == 1 && !cancelled.HasError,
+                "scan cancellation discards the whole mixed drop even if the scanner returns late results");
+
+            var previewRoots = Enumerable.Range(0, 6).Select(index => Path.Combine(directory, "preview-" + index)).ToArray();
+            foreach (var root in previewRoots) Directory.CreateDirectory(root);
+            var localizedConfirmation = new TestConfirmation();
+            using var localized = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings),
+                confirmation: localizedConfirmation);
+            foreach (var language in localized.Options.Languages)
+            {
+                localized.Options.SelectedLanguage = language;
+                localized.DropFilesCommand.Execute(previewRoots);
+                Check(localizedConfirmation.Title == strings["DropFoldersTitle"]
+                    && !localizedConfirmation.Title.StartsWith('[')
+                    && localizedConfirmation.Message.Contains(previewRoots[0], StringComparison.Ordinal)
+                    && !localizedConfirmation.Message.Contains(previewRoots[5], StringComparison.Ordinal)
+                    && localizedConfirmation.Message.Contains(strings.Format("DropFoldersMore", 1), StringComparison.Ordinal)
+                    && !localizedConfirmation.Message.Contains("{0}", StringComparison.Ordinal)
+                    && localized.Rows.Count == 0,
+                    "folder confirmation is localized and bounds the path preview / " + language.CultureName);
+            }
+        }
+        finally { strings.SetCulture("en"); Directory.Delete(directory, recursive: true); }
+    }
+
     private static void CheckFileOperationCancellation(LocalizationService strings)
     {
         var source = Path.Combine(Path.GetTempPath(), "FileScope-operation-source.bin");
@@ -434,7 +541,7 @@ internal static class UiChecks
         Check(intake.Rows.Count == 0 && !intake.HasError, "clear after intake cancellation leaves no queued rows");
     }
 
-    private sealed class BlockingFolderScanner : IFolderScanner
+    private sealed class BlockingFolderScanner(bool observeCancellation = true) : IFolderScanner
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -442,7 +549,7 @@ internal static class UiChecks
         {
             Started.TrySetResult();
             Release.Task.GetAwaiter().GetResult();
-            cancellationToken.ThrowIfCancellationRequested();
+            if (observeCancellation) cancellationToken.ThrowIfCancellationRequested();
             return new FolderScanResult([Path.Combine(folderPath, "new.bin")], [], 0);
         }
     }
@@ -999,8 +1106,37 @@ internal static class UiChecks
     }
 
     private static MainViewModel CreateMainViewModel(IFileAnalysisService analysis, IFilePickerService picker,
-        LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null) =>
-        new(analysis, picker, strings, options, scanner ?? new FolderScanner(), exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]));
+        LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null,
+        IConfirmationService? confirmation = null) =>
+        new(analysis, picker, strings, options, scanner ?? new FolderScanner(),
+            exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]), confirmation ?? new TestConfirmation());
+
+    private sealed class TestConfirmation : IConfirmationService
+    {
+        public bool Answer { get; set; }
+        public int Calls { get; private set; }
+        public string Message { get; private set; } = "";
+        public string Title { get; private set; } = "";
+        public Action? OnConfirm { get; set; }
+        public bool Confirm(string message, string title)
+        {
+            Calls++;
+            Message = message;
+            Title = title;
+            OnConfirm?.Invoke();
+            return Answer;
+        }
+    }
+
+    private sealed class RecordingFolderScanner : IFolderScanner
+    {
+        public List<string> Roots { get; } = [];
+        public FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default)
+        {
+            Roots.Add(folderPath);
+            return new FolderScanner().Scan(folderPath, cancellationToken);
+        }
+    }
 
     private static OptionsViewModel CreateOptions(LocalizationService strings) => new(strings, new MemoryPreferences());
     private sealed class MemoryPreferences : IPreferencesStore

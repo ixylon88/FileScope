@@ -1,5 +1,23 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Ordner per Drag-and-drop
+
+Stand: 6. November 2026. Patchbasis: `080a4ac` (`documentation`).
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build der Projektmappe mit .NET SDK 10.0.100 unter Linux, einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
+| Core-Prüfungen | 183 bestanden, darunter Verzeichnislink zurück zum Startordner, ausdrücklich ausgewählter Link als Startordner, Datei-Symlinks mit gültigem/fehlendem Ziel und zwei Hardlink-Pfade derselben Datei |
+| Präsentation und Einstellungen | 136 Prüfungen bestanden |
+| Statische Struktur- und Ressourcenprüfung | 1035 Prüfungen bestanden; 173 Schlüssel je Sprache |
+| Erweitertes WPF-Testprogramm | Kompiliert, 0 Warnungen / 0 Fehler; hier nicht ausgeführt |
+
+Die neuen WPF-Prüfungen verwenden einen injizierten Bestätigungsdienst: Zusage/Ablehnung, keine Rückfrage bei reinen Datei-Drops, gemischte Drops, normalisierte und überlappende Ordnerpfade, leere Ordner, ein nach der Rückfrage verschwundener Startordner, Abbruch mit verspätetem Scan-Ergebnis sowie alle drei Dialogsprachen. Die produktive MessageBox bleibt außerhalb des ViewModels. Link-Testdateien werden nur in einem temporären Testordner erzeugt und anschließend entfernt; nicht unterstützte oder nicht erlaubte Link-Erstellung wird ausdrücklich als übersprungen gemeldet.
+
+Unter Windows noch ausführen: `.\Verify.ps1` und einen echten Explorer-Drop auf freie Fläche, Tabelle und Suchfeld prüfen. Bei Ordnern erscheint genau eine MessageBox mit Pfadvorschau; „Nein“ verwirft den gesamten Drop, „Ja“ startet die rekursive Auswertung. Dabei auch gemischte Datei-/Ordnerauswahl, Junctions sowie Abbruch während der Suche prüfen. Der native Windows-Dialog, Explorer-Drag-and-drop und Windows-spezifische Link-Erstellung konnten in dieser Linux-Umgebung nicht ausgeführt werden.
+
+## Voriger Prüfstand
+
 Stand: 5. November 2026. Patchbasis: `5dd59b8ca7bf1524ee9423945bbfdfd549687d80` (`csv export, open folder`).
 
 Aktuelle Erweiterung: Filter „Alles außer gültigen Signaturen“, doppelte Scrollbalkendicke und gespeicherte Auswahl des CSV-Trennzeichens (Semikolon als Standard, Komma wählbar). Core (139) und Präsentation/Einstellungen (127) wurden ausgeführt; das erweiterte WPF-Testprogramm wurde kompiliert. Der [vorige Review der Analyzer-/Dark-Commits](docs/REVIEW-2026-11-04.md) bleibt erhalten. Windows-Laufzeittests stehen weiterhin aus.

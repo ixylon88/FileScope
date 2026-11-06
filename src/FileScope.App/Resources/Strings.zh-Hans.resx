@@ -100,10 +100,10 @@
     <value>文件分析结果</value>
   </data>
   <data name="DropTitle" xml:space="preserve">
-    <value>将文件拖放到此处</value>
+    <value>将文件或文件夹拖放到此处</value>
   </data>
   <data name="DropHint" xml:space="preserve">
-    <value>将一个或多个文件拖放到窗口任意位置，或点击“添加文件”。</value>
+    <value>将文件或文件夹拖放到窗口任意位置。确认后将扫描文件夹及其子文件夹。</value>
   </data>
   <data name="DropOptionsHint" xml:space="preserve">
     <value>先在上方选择检查项目。每个文件完成后，其结果将立即显示。</value>
@@ -469,5 +469,20 @@
   </data>
   <data name="ExportUnsupportedExtension" xml:space="preserve">
     <value>请选择以 .csv 或 .json 结尾的文件名。</value>
+  </data>
+  <data name="DropFoldersTitle" xml:space="preserve">
+    <value>递归分析文件夹</value>
+  </data>
+  <data name="DropFoldersMessage" xml:space="preserve">
+    <value>您拖放了 {0} 个文件夹。
+
+{1}
+
+FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件夹内的目录链接将被跳过。
+
+是否继续？选择“否”将取消整个拖放操作。</value>
+  </data>
+  <data name="DropFoldersMore" xml:space="preserve">
+    <value>… 以及另外 {0} 个文件夹。</value>
   </data>
 </root>

@@ -205,10 +205,10 @@
     <value>File analysis results</value>
   </data>
   <data name="DropTitle" xml:space="preserve">
-    <value>Drop files here</value>
+    <value>Drop files or folders here</value>
   </data>
   <data name="DropHint" xml:space="preserve">
-    <value>Drop one or more files anywhere onto the window, or choose “Add files”.</value>
+    <value>Drop files or folders anywhere onto the window. Folders are scanned recursively after confirmation.</value>
   </data>
   <data name="DropOptionsHint" xml:space="preserve">
     <value>Choose your checks above. Results appear here as each file finishes.</value>
@@ -626,5 +626,20 @@
   </data>
   <data name="ExportUnsupportedExtension" xml:space="preserve">
     <value>Choose a file name ending in .csv or .json.</value>
+  </data>
+  <data name="DropFoldersTitle" xml:space="preserve">
+    <value>Analyze folders recursively</value>
+  </data>
+  <data name="DropFoldersMessage" xml:space="preserve">
+    <value>You dropped {0} folder(s).
+
+{1}
+
+FileScope will analyze all files in these folders, including subfolders. Directory links inside the folders will be skipped.
+
+Continue? Choosing “No” cancels the entire drop.</value>
+  </data>
+  <data name="DropFoldersMore" xml:space="preserve">
+    <value>… and {0} more folder(s).</value>
   </data>
 </root>

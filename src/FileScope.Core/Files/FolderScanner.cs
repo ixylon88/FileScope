@@ -12,6 +12,9 @@ public interface IFolderScanner
 
 public sealed class FolderScanner : IFolderScanner
 {
+    // An explicitly selected root may itself be a directory link. Within that root,
+    // directory reparse points are never traversed. File links remain individual paths:
+    // hard links cannot create directory cycles, and file symlinks are resolved on opening.
     public FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);

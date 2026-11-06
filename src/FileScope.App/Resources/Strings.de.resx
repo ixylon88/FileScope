@@ -205,10 +205,10 @@
     <value>Ergebnisse der Dateianalyse</value>
   </data>
   <data name="DropTitle" xml:space="preserve">
-    <value>Dateien hier ablegen</value>
+    <value>Dateien oder Ordner hier ablegen</value>
   </data>
   <data name="DropHint" xml:space="preserve">
-    <value>Eine oder mehrere Dateien auf das Fenster ziehen oder „Dateien öffnen“ wählen.</value>
+    <value>Dateien oder Ordner auf das Fenster ziehen. Ordner werden nach Bestätigung einschließlich Unterordnern durchsucht.</value>
   </data>
   <data name="DropOptionsHint" xml:space="preserve">
     <value>Oben die Prüfungen auswählen. Fertige Ergebnisse erscheinen sofort hier.</value>
@@ -626,5 +626,20 @@
   </data>
   <data name="ExportUnsupportedExtension" xml:space="preserve">
     <value>Bitte einen Dateinamen mit der Endung .csv oder .json wählen.</value>
+  </data>
+  <data name="DropFoldersTitle" xml:space="preserve">
+    <value>Ordner rekursiv auswerten</value>
+  </data>
+  <data name="DropFoldersMessage" xml:space="preserve">
+    <value>Sie haben {0} Ordner abgelegt.
+
+{1}
+
+FileScope wird alle Dateien in diesen Ordnern einschließlich Unterordnern auswerten. Verzeichnisverknüpfungen innerhalb der Ordner werden übersprungen.
+
+Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
+  </data>
+  <data name="DropFoldersMore" xml:space="preserve">
+    <value>… und {0} weitere Ordner.</value>
   </data>
 </root>

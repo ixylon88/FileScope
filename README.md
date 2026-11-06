@@ -4,7 +4,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 ## Auf einen Blick
 
-- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien per Drag-and-drop hinzufügen oder Ordner einschließlich Unterordner einlesen.
+- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien und Ordner per Drag-and-drop hinzufügen oder auswählen; Ordner werden einschließlich Unterordnern eingelesen.
 - **Prüfsummen berechnen:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 frei auswählen und gemeinsam berechnen.
 - **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen, optional mit <u>Online-Sperrprüfung</u> der Zertifikate; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
 - **Programmdateien einordnen:** Versions- und Herstellerangaben, Architektur und .NET-Plattform auslesen; auch ältere NE-/Win16-EXE und -DLL erkennen.
@@ -87,7 +87,7 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 
 | Funktion | Verhalten |
 | --- | --- |
-| Dateien ablegen | Eine oder mehrere Dateien auf einen beliebigen Bereich des Fensters ziehen. Alternativ „Dateien öffnen“ / Ctrl+O. |
+| Dateien oder Ordner ablegen | Eine oder mehrere Dateien und/oder Ordner auf einen beliebigen Bereich des Fensters ziehen. Für Ordner bestätigt eine gemeinsame Rückfrage die Auswertung einschließlich Unterordnern; „Nein“ verwirft den gesamten Drop. Alternativ „Dateien öffnen“ / Ctrl+O oder „Ordner hinzufügen“. |
 | Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
 | Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
 | Exportfelder | Unter Zahnrad → Optionen → Exportieren die gewünschten Felder anhaken. Die Auswahl wird gespeichert und ist unabhängig von der Sichtbarkeit der Tabellenspalten. |
@@ -123,6 +123,21 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 ### Ordnersuche und Export
 
 Die Ordnersuche berücksichtigt auch versteckte Dateien. Verzeichnisverknüpfungen (Junctions und symbolische Links) innerhalb des ausgewählten Ordners werden übersprungen, damit keine Schleifen entstehen. Nicht lesbare Unterordner werden gemeldet; lesbare Geschwisterordner werden weiter durchsucht. Bereits vorhandene Pfade werden nicht erneut analysiert. „Abbrechen“ beendet die Suche ohne neue Zeilen; beim späteren Hinzufügen oder Analysieren bleiben bereits hinzugefügte Zeilen erhalten und können mit „Alle neu prüfen“ verarbeitet werden. „Leeren“ ist erst nach Abschluss oder beendetem Abbruch verfügbar und entfernt dann alle Zeilen.
+
+Beim Ablegen von Ordnern zeigt eine MessageBox vor Beginn der Suche deren Anzahl und bis zu fünf Pfade an. „Ja“ bestätigt die rekursive Auswertung aller abgelegten Ordner, „Nein“ verwirft den gesamten Drop einschließlich direkt mit abgelegter Dateien. Reine Datei-Drops benötigen keine Rückfrage. Mehrfach abgelegte oder überlappende Pfade erzeugen keine doppelten Ergebniszeilen.
+
+#### Symbolische Links, Junctions und Hardlinks
+
+| Linkart | Verhalten bei der Ordnersuche |
+| --- | --- |
+| Verzeichnis-Symlink, Junction oder anderer Verzeichnis-Reparse-Point innerhalb eines Startordners | Wird gezählt und übersprungen. Damit werden auch Links zurück auf übergeordnete Ordner nicht rekursiv verfolgt. |
+| Ein ausdrücklich ausgewählter oder abgelegter Startordner ist selbst ein Verzeichnislink | Sein Ziel wird als Startordner durchsucht; Verzeichnislinks innerhalb dieses Baums werden weiterhin übersprungen. |
+| Symbolischer Link auf eine Datei | Bleibt ein eigener Dateipfad. Beim Analysieren wird sein Ziel geöffnet; ein nicht erreichbares oder zyklisch verlinktes Ziel erhält die übliche Fehlerdiagnose in seiner Zeile. |
+| Hardlink auf eine Datei | Jeder unterschiedliche Pfad bleibt eine eigene Zeile und wird separat analysiert. Eine Zusammenfassung anhand der physischen Datei-ID findet nicht statt. |
+
+Unter Windows können Hardlinks keine Verzeichnisse referenzieren und daher keine rekursiven Verzeichnisschleifen erzeugen. Der Windows-Komponentenspeicher `WinSxS` verwendet viele solcher Dateiverknüpfungen. Beim Einlesen verschiedener Hardlink-Pfade kann FileScope denselben Dateiinhalt mehrfach lesen; die Größen dieser Zeilen dürfen deshalb nicht als tatsächlich zusätzlich belegter Speicherplatz interpretiert werden. Siehe [Microsoft: Hardlinks und Junctions](https://learn.microsoft.com/en-us/windows/win32/fileio/hard-links-and-junctions) und [Windows-Komponentenspeicher](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/manage-the-component-store).
+
+#### Exportformate
 
 Der Exportdialog bietet CSV (`*.csv`, Standard) und JSON (`*.json`) als Dateitypen an. Ohne eingegebene Endung ergänzt der Dialog die Endung des gewählten Dateityps. Eine explizite Endung `.csv` oder `.json` bestimmt das Format, unabhängig von Groß-/Kleinschreibung. Andere Endungen werden mit einem Hinweis abgewiesen. Die Überschreibabfrage gilt für den tatsächlich zurückgegebenen Dateinamen; danach wird nichts umbenannt. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene Exportdatei.
 
@@ -205,7 +220,7 @@ Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik läs
 
 Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
 
-Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Zum rekursiven Einlesen von Ordnern „Ordner hinzufügen“ verwenden; per Drag-and-drop abgelegte Ordner werden weiterhin als eigene Fehlerzeilen gemeldet. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
+Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden über „Ordner hinzufügen“ oder nach Bestätigung per Drag-and-drop mit derselben `IFolderScanner`-Strategie rekursiv eingelesen. `IConfirmationService` kapselt die MessageBox außerhalb des ViewModels und wird im Composition Root injiziert. Bei einem gemischten Drop werden erst nach abgeschlossener Suche Dateien hinzugefügt; ein Suchabbruch verwirft auch die direkt mit abgelegten Dateien. Ein nicht mehr zugänglicher Startordner wird gemeldet, während die übrigen Startordner weiter durchsucht werden. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
 
 ### Prüfoptionen und Einstellungen
 

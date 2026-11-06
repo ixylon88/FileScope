@@ -20,6 +20,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFilePickerService _picker;
     private readonly IFolderScanner _folderScanner;
     private readonly IResultExporter _exporter;
+    private readonly IConfirmationService _confirmation;
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
@@ -48,12 +49,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand ResetFiltersCommand { get; }
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
-        OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter)
+        OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter, IConfirmationService confirmation)
     {
         _analysis = analysis;
         _picker = picker;
         _folderScanner = folderScanner;
         _exporter = exporter;
+        _confirmation = confirmation;
         _strings = strings;
         Options = options;
         // Restore before attaching change handlers: initialization must not save
@@ -98,7 +100,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => IsIdle);
         ExportCommand = new AsyncRelayCommand(_ => ExportAsync(), OnCommandError,
             _ => IsIdle && HasRows && Options.HasExportColumns);
-        DropFilesCommand = new AsyncRelayCommand(p => AddFilesAsync((string[])p!), OnCommandError,
+        DropFilesCommand = new AsyncRelayCommand(p => AddDroppedPathsAsync((string[])p!), OnCommandError,
             p => IsIdle && p is string[] { Length: > 0 });
         ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
             _ => IsIdle && HasRows);
@@ -236,12 +238,45 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!IsIdle) return;
         var folder = _picker.PickFolder(_strings["AddFolderTitle"]);
         if (folder is null) return;
+        await AddFoldersAsync([folder], []);
+    }
+
+    private async Task AddDroppedPathsAsync(string[] paths)
+    {
+        if (!IsIdle) return;
+        var files = new List<string>();
+        var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in paths)
+        {
+            if (Directory.Exists(path)) folders.Add(Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)));
+            else files.Add(path); // Missing/invalid files still receive the usual per-row diagnostic.
+        }
+        if (folders.Count == 0)
+        {
+            await AddFilesAsync(files);
+            return;
+        }
+
+        // Confirm the whole drop once, before scanning or adding any rows.
+        // Bound the preview so a large Explorer selection still fits in a MessageBox.
+        const int previewCount = 5;
+        var preview = string.Join(Environment.NewLine, folders.Take(previewCount));
+        if (folders.Count > previewCount)
+            preview += Environment.NewLine + _strings.Format("DropFoldersMore", folders.Count - previewCount);
+        if (!_confirmation.Confirm(_strings.Format("DropFoldersMessage", folders.Count, preview),
+            _strings["DropFoldersTitle"])) return;
+        await AddFoldersAsync(folders.ToArray(), files);
+    }
+
+    private async Task AddFoldersAsync(string[] folders, IReadOnlyList<string> directFiles)
+    {
+        if (!IsIdle) return;
         var token = BeginFileOperation("ScanningFolder");
-        CurrentFile = folder;
+        CurrentFile = folders[0];
         FolderScanResult? result = null;
         try
         {
-            result = await Task.Run(() => _folderScanner.Scan(folder, token), token);
+            result = await Task.Run(() => ScanFolders(folders, directFiles, token), token);
             token.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -255,7 +290,34 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : _strings.Format("FolderScanWarning", result.Issues.Count, result.SkippedDirectoryLinks);
         if (result.Issues.Count > 0) warning += $"\n{result.Issues[0].Path}: {result.Issues[0].Message}";
         await AddFilesAsync(result.Files, warning);
-        if (result.Files.Count == 0) SetStatus("FolderEmpty");
+        if (result.Files.Count == 0 && result.Issues.Count == 0) SetStatus("FolderEmpty");
+    }
+
+    private FolderScanResult ScanFolders(string[] folders, IReadOnlyList<string> directFiles,
+        CancellationToken token)
+    {
+        var files = new List<string>(directFiles);
+        var issues = new List<FolderScanIssue>();
+        var skippedLinks = 0;
+        foreach (var folder in folders)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                var result = _folderScanner.Scan(folder, token);
+                files.AddRange(result.Files);
+                issues.AddRange(result.Issues);
+                skippedLinks += result.SkippedDirectoryLinks;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                // A dropped folder may disappear or become inaccessible after confirmation.
+                // Retain other roots and directly dropped files, while reporting the omission.
+                issues.Add(new FolderScanIssue(folder, ex.Message));
+            }
+        }
+        token.ThrowIfCancellationRequested();
+        return new FolderScanResult(files.AsReadOnly(), issues.AsReadOnly(), skippedLinks);
     }
 
     private async Task ExportAsync()
