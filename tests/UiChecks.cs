@@ -59,6 +59,7 @@ internal static class UiChecks
             CheckFileOperationCancellation(strings);
             CheckMultipleSignatures(strings);
             CheckDiagnostics(strings);
+            CheckRunSummaries(strings);
             CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
@@ -642,6 +643,56 @@ internal static class UiChecks
         finally { viewNotifications.CollectionChanged -= readView; }
     }
 
+    private static void CheckRunSummaries(LocalizationService strings)
+    {
+        using var vm = CreateMainViewModel(new DiagnosticAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        var root = Path.Combine(Path.GetTempPath(), "FileScope-summary-" + Guid.NewGuid().ToString("N"));
+        string Input(string name) => Path.Combine(root, name + ".bin");
+        Check(vm.LastRunSummary is null, "no run summary is shown before analysis");
+        vm.DropFilesCommand.Execute(new[] { Input("clean"), Input("properties"), Input("failed") });
+        PumpUntil(() => !vm.IsBusy);
+        Check(vm.LastRunSummary is { ProcessedFiles: 3, TotalBytes: 6, UnknownSizeFiles: 1 }
+            && vm.LastRunSummary.Elapsed >= TimeSpan.Zero, "finished runs count their results and known sizes, including metadata warnings");
+        Check(vm.StatusText.StartsWith(strings.Format("CompletedSummary", 3, 3, 0), StringComparison.Ordinal)
+            && vm.StatusText.Contains(vm.LastRunSummary!.Format(strings), StringComparison.Ordinal)
+            && vm.StatusText.EndsWith(strings.Format("DiagnosticSummary", 2), StringComparison.Ordinal),
+            "completion status combines file count, duration, byte total and diagnostic details");
+        vm.DropFilesCommand.Execute(new[] { Input("clean"), Input("another") });
+        PumpUntil(() => !vm.IsBusy);
+        Check(vm.LastRunSummary is { ProcessedFiles: 1, TotalBytes: 3, UnknownSizeFiles: 0 } && vm.Rows.Count == 4,
+            "a later batch counts only newly analyzed files and excludes duplicate paths");
+        vm.SearchText = Input("clean");
+        vm.ReanalyseCommand.Execute(null);
+        PumpUntil(() => !vm.IsBusy);
+        Check(vm.LastRunSummary is { ProcessedFiles: 4, TotalBytes: 9, UnknownSizeFiles: 1 },
+            "reanalysis summarizes all loaded rows, ignores the view filter and resets earlier totals");
+        var previous = vm.LastRunSummary;
+        vm.DropFilesCommand.Execute(new[] { Input("clean") });
+        PumpUntil(() => !vm.IsBusy);
+        Check(ReferenceEquals(vm.LastRunSummary, previous) && vm.StatusText.StartsWith(strings.Format("DuplicatesSkipped", 4, 4, 1), StringComparison.Ordinal),
+            "a duplicate-only intake does not manufacture another analysis run");
+        vm.ClearCommand.Execute(null);
+        Check(vm.LastRunSummary is null && vm.StatusText == strings["Cleared"], "clear removes the previous run summary");
+
+        var analysis = new SummaryCancellationAnalysis();
+        using var cancelled = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
+        cancelled.DropFilesCommand.Execute(new[] { Input("first"), Input("blocked"), Input("not-started") });
+        try
+        {
+            PumpUntil(() => analysis.Started.Task.IsCompleted);
+            Check(cancelled.LastRunSummary is null && cancelled.IsBusy, "running analysis has no finalized summary");
+            cancelled.CancelCommand.Execute(null);
+        }
+        finally { analysis.Release.TrySetResult(); }
+        PumpUntil(() => !cancelled.IsBusy);
+        Check(cancelled.LastRunSummary is { ProcessedFiles: 1, TotalBytes: 3, UnknownSizeFiles: 0 }
+            && cancelled.Rows.Count(row => row.State == RowStatus.Cancelled) == 2,
+            "cancellation summarizes completed results and excludes unfinished files and their bytes");
+        Check(cancelled.StatusText.StartsWith(strings.Format("CancelledSummary", 1, 3, 0), StringComparison.Ordinal)
+            && cancelled.StatusText.Contains(cancelled.LastRunSummary!.Format(strings), StringComparison.Ordinal),
+            "cancelled status also reports elapsed time and the partial byte total");
+    }
+
     private static void CheckDiagnostics(LocalizationService strings)
     {
         var analysis = new DiagnosticAnalysis();
@@ -665,8 +716,8 @@ internal static class UiChecks
             vm.DropFilesCommand.Execute(new[] { Input("clean") });
             PumpUntil(() => !vm.IsBusy);
             Check(!vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Collapsed
-                && vm.StatusText == strings.Format("CompletedSummary", 1, 1, 0),
-                "completed results without diagnostics keep the column hidden and status unchanged");
+                && vm.StatusText.StartsWith(strings.Format("CompletedSummary", 1, 1, 0), StringComparison.Ordinal),
+                "completed results without diagnostics keep the column hidden and show completion status");
 
             vm.DropFilesCommand.Execute(new[] { Input("properties"), Input("header"), Input("failed"), Input("multi") });
             PumpUntil(() => !vm.IsBusy);
@@ -674,7 +725,8 @@ internal static class UiChecks
             Check(vm.DiagnosticRowCount == 3 && vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Visible
                 && metadataRow.State == RowStatus.Completed,
                 "optional metadata diagnostics and file failures reveal the column and count affected rows");
-            Check(vm.StatusText == strings.Format("CompletedSummary", 4, 4, 0) + " " + strings.Format("DiagnosticSummary", 3)
+            Check(vm.StatusText.StartsWith(strings.Format("CompletedSummary", 4, 4, 0), StringComparison.Ordinal)
+                && vm.StatusText.EndsWith(strings.Format("DiagnosticSummary", 3), StringComparison.Ordinal)
                 && status.Text == vm.StatusText && status.TextWrapping == TextWrapping.Wrap
                 && status.TextTrimming == TextTrimming.None,
                 "the bound completion status appends diagnostic details and wraps instead of truncating them");
@@ -714,7 +766,7 @@ internal static class UiChecks
             vm.ReanalyseCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy);
             Check(vm.DiagnosticRowCount == 0 && !vm.ShowDiagnosticColumn && diagnostic.Visibility == Visibility.Collapsed
-                && vm.StatusText == strings.Format("CompletedSummary", 5, 5, 0),
+                && vm.StatusText.StartsWith(strings.Format("CompletedSummary", 5, 5, 0), StringComparison.Ordinal),
                 "a clean reanalysis removes stale diagnostics, hides the column and removes the status hint");
             analysis.IncludeDiagnostics = true;
             vm.ReanalyseCommand.Execute(null);
@@ -1281,6 +1333,23 @@ internal static class UiChecks
             return Task.FromResult(Result(path, options));
         }
     }
+    private sealed class SummaryCancellationAnalysis : IFileAnalysisService
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
+            IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            if (Path.GetFileNameWithoutExtension(path) == "blocked")
+            {
+                Started.TrySetResult();
+                await Release.Task;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return Result(path, options);
+        }
+    }
+
     private sealed class DiagnosticAnalysis : IFileAnalysisService
     {
         public bool IncludeDiagnostics { get; set; } = true;

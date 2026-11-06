@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Threading;
@@ -179,11 +180,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
     public string LastError { get; private set => SetProperty(ref field, value); } = "";
     public bool HasError => LastError.Length != 0;
+    public AnalysisRunSummary? LastRunSummary
+    {
+        get;
+        private set
+        {
+            if (SetProperty(ref field, value)) OnPropertyChanged(nameof(StatusText));
+        }
+    }
     public string StatusText
     {
         get
         {
             var status = _strings.Format(field, _processed, _batchTotal, _skipped);
+            if (LastRunSummary is { } summary && field is "CompletedSummary" or "CancelledSummary")
+                status += " " + summary.Format(_strings);
             return ShowDiagnosticColumn ? $"{status} {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
         }
         private set;
@@ -445,6 +456,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "")
     {
         if (!IsIdle || batch.Count == 0) return;
+        // Time this analysis batch only; folder discovery, file intake and exports are separate operations.
+        var timer = Stopwatch.StartNew();
+        LastRunSummary = null;
         var options = new AnalysisOptions(ChecksumOptions.Where(x => x.IsSelected).Select(x => x.Algorithm),
             InspectCertificates, OnlineRevocation ? RevocationMode.Online : RevocationMode.OfflineCache,
             InspectFileProperties, InspectPeHeader);
@@ -509,6 +523,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            timer.Stop();
+            LastRunSummary = AnalysisRunSummary.Capture(timer.Elapsed,
+                batch.Where(row => row.State is RowStatus.Completed or RowStatus.Failed)
+                    .Select(row => row.Result).OfType<FileAnalysisResult>());
             ++_epoch;
             _cancellation.Dispose();
             _cancellation = null;
@@ -546,6 +564,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void ClearRows()
     {
         ++_epoch;
+        LastRunSummary = null;
         foreach (var row in Rows) UnsubscribeRow(row);
         _multipleSignatures.Clear();
         OnPropertyChanged(nameof(ShowSignatureSelectorColumn));

@@ -1,5 +1,23 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Durchlaufstatistik
+
+Stand: 6. November 2026. Patchbasis: `dda03f7` (`readme`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build der Projektmappe einschließlich WPF-XAML | Bestanden, 0 Warnungen / 0 Fehler |
+| Core-Prüfungen | 183 bestanden; native Windows-Prüfungen übersprungen. Prüfumfang unverändert, letzter dokumentierter Windows-Lauf: 472. |
+| Präsentation und Einstellungen | 147 bestanden, davon 8 neue Prüfungen für Durchlaufwerte und Formatierung |
+| Statische Struktur- und Ressourcenprüfung | 1046 Prüfungen bestanden; 176 Schlüssel je Sprache |
+| Erweitertes WPF-Testprogramm | Kompiliert, 0 Warnungen / 0 Fehler; hier nicht ausgeführt. 255 Assertions erwartet. |
+
+Die Präsentationsprüfungen decken leere Dateien, unbekannte Größen, eine leere Ergebnisliste, unveränderliche Abschlusswerte, ganzzahlige Summen oberhalb von `Int64`, Laufzeiten über einen Tag und alle drei Sprachen ab. Zehn neue UI-Prüfungen prüfen Abschlussmeldung und Diagnosehinweis gemeinsam, ausschließlich neue Dateien bei einer weiteren Aufnahme, erneute Analyse trotz Filter, doppelte Pfade ohne neuen Durchlauf, Leeren sowie Abbruch nach einem abgeschlossenen und vor zwei weiteren Dateiergebnissen.
+
+Die erwartete UI-Anzahl setzt sich aus dem zuletzt dokumentierten Windows-Lauf mit 223 Assertions, 22 Ergänzungen für die Diagnoseanzeige und 10 Ergänzungen für die Durchlaufstatistik zusammen. Sie ist keine Behauptung eines hier ausgeführten Windows-Laufs. Die README nennt für alle drei Gruppen Anzahl und Ausführungsstand.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Anschließend einen gemischten Durchlauf mit lesbaren und nicht lesbaren Dateien, einen Abbruch und „Alle neu prüfen“ testen. Die Statusleiste muss Dateianzahl, Dauer, bekannte Bytesumme und gegebenenfalls unbekannte Größen sowie Diagnosedetails zeigen. Ein Sprachwechsel darf die Werte nur neu formatieren; „Leeren“ entfernt sie. Die Dauer umfasst die Analyse, nicht die vorgelagerte Suche und Aufnahme oder den Export. Auch bei kleiner Fensterbreite muss die Abschlussmeldung durch Zeilenumbruch lesbar bleiben.
+
 ## Ergänzung: Diagnoseanzeige und Entwurfsmuster
 
 Stand: 6. November 2026. Patchbasis: `2ccf6ca` (`readme`).

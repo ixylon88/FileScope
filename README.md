@@ -142,6 +142,14 @@ Unter Windows können Hardlinks keine Verzeichnisse referenzieren und daher kein
 
 Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist ausgeblendet, solange keine geladene Zeile Diagnosedetails enthält, und erscheint bei der ersten Diagnose automatisch. Maßgeblich sind die Diagnosen aller geladenen Zeilen, einschließlich ausgefilterter Zeilen und der jeweils ausgewählten Signatur. Die Statusleiste ergänzt die Anzahl betroffener Zeilen und bricht längere Meldungen um, damit der Hinweis sichtbar bleibt. Eine erneute Prüfung ohne Diagnosen oder „Leeren“ entfernt Spalte und Hinweis wieder. Gespeicherte Spaltenpositionen bleiben erhalten; **Optionen → Spaltenreihenfolge → Reihenfolge zurücksetzen** übernimmt die neue Standardposition. CSV-/JSON-Exportauswahl und Diagnosewerte bleiben von der automatischen Sichtbarkeit unabhängig.
 
+#### Durchlaufstatistik
+
+Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen.
+
+Beim Hinzufügen weiterer Dateien zählt nur der neue Durchlauf; „Alle neu prüfen“ bildet die Statistik für sämtliche geladenen Zeilen neu, unabhängig von Tabellenfiltern. Ein Abbruch zeigt die bis dahin abgeschlossenen Dateiergebnisse einschließlich Fehlerergebnissen an. Noch nicht abgeschlossene Dateien gehen nicht in die Summe ein. Fehlt eine Dateigröße, nennt die Statusleiste zusätzlich die Anzahl dieser Dateien. „Leeren“ entfernt die Statistik.
+
+Die Größen stammen aus den bereits ermittelten Ergebnissen; die Dateien werden dafür nicht erneut geöffnet. Die Summe zählt pro analysiertem Pfad und beschreibt weder den tatsächlich belegten Speicherplatz noch die insgesamt gelesenen I/O-Bytes. Unterschiedliche Hardlink-Pfade zählen daher jeweils mit ihrer Dateigröße.
+
 #### Exportformate
 
 Der Exportdialog bietet CSV (`*.csv`, Standard) und JSON (`*.json`) als Dateitypen an. Ohne eingegebene Endung ergänzt der Dialog die Endung des gewählten Dateityps. Eine explizite Endung `.csv` oder `.json` bestimmt das Format, unabhängig von Groß-/Kleinschreibung. Andere Endungen werden mit einem Hinweis abgewiesen. Die Überschreibabfrage gilt für den tatsächlich zurückgegebenen Dateinamen; danach wird nichts umbenannt. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene Exportdatei.
@@ -226,6 +234,8 @@ Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik läs
 Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
 
 Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden über „Ordner hinzufügen“ oder nach Bestätigung per Drag-and-drop mit derselben `IFolderScanner`-Strategie rekursiv eingelesen. `IConfirmationService` kapselt die MessageBox außerhalb des ViewModels und wird im Composition Root injiziert. Bei einem gemischten Drop werden erst nach abgeschlossener Suche Dateien hinzugefügt; ein Suchabbruch verwirft auch die direkt mit abgelegten Dateien. Ein nicht mehr zugänglicher Startordner wird gemeldet, während die übrigen Startordner weiter durchsucht werden. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
+
+`MainViewModel` misst jeden Analysedurchlauf mit `Stopwatch` und hält dessen Abschlusswerte als unveränderliche `AnalysisRunSummary` fest. Die UI-unabhängige Präsentationsklasse summiert vorhandene Ergebnisse, unterscheidet unbekannte Größen von leeren Dateien und formatiert den Abschluss in der gewählten Sprache. `decimal` erhält ganzzahlige Bytesummen auch oberhalb der `Int64`-Grenze exakt. Ein Sprachwechsel formatiert denselben Schnappschuss neu, ohne Zeit oder Größen erneut zu ermitteln.
 
 ### Prüfoptionen und Einstellungen
 
@@ -349,11 +359,18 @@ Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injecti
 ```
 
 Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
-Der zuletzt unter Windows dokumentierte Prüfstand vor dieser Erweiterung umfasst:
 
-- 472 core tests
-- 136 presentation/setting tests
-- 223 UI/MVVM tests
+Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
+
+Aktueller Prüfstand nach Ergänzung der Durchlaufstatistik; gezählt werden einzelne Prüfbedingungen (Assertions):
+
+| Gruppe | Anzahl und Ausführungsstand |
+| --- | --- |
+| Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
+| Präsentation und Einstellungen | **147** bestanden. |
+| WPF / UI / MVVM | **255** erwartet; aktuelles Testprogramm fehlerfrei kompiliert, Windows-Ausführung noch offen. |
+
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen und 32 seither ergänzten Prüfungen für Diagnoseanzeige und Durchlaufstatistik. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 **Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
 

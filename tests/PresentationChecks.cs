@@ -21,6 +21,7 @@ internal static class PresentationChecks
             CheckOptionsWindowPreferences();
             CheckOptions();
             CheckExportProjection();
+            CheckRunSummaries();
             Console.WriteLine();
             ConsoleColor backgroundBackup = Console.BackgroundColor;
             ConsoleColor foregroundBackup = Console.ForegroundColor;
@@ -35,6 +36,45 @@ internal static class PresentationChecks
         }
         catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }
     }
+    private static void CheckRunSummaries()
+    {
+        var strings = LocalizationService.Instance;
+        var known = new FileAnalysisResult("known.bin", 1024, null,
+            new Dictionary<ChecksumAlgorithm, string>(), SignatureResult.NotChecked);
+        var failed = FileAnalysisResult.Failure("missing.bin", AnalysisError.NotFound, "missing fixture");
+        var results = new List<FileAnalysisResult> { known, known with { Length = 0 }, failed };
+        var summary = AnalysisRunSummary.Capture(TimeSpan.FromMilliseconds(1234), results);
+        Check(summary is { ProcessedFiles: 3, TotalBytes: 1024, UnknownSizeFiles: 1 },
+            "run totals count zero-length files and distinguish unknown sizes from zero");
+        results.Clear();
+        Check(summary is { ProcessedFiles: 3, TotalBytes: 1024, UnknownSizeFiles: 1 }
+            && summary.Elapsed == TimeSpan.FromMilliseconds(1234), "run summary is a frozen value after results change");
+        var empty = AnalysisRunSummary.Capture(TimeSpan.Zero, []);
+        Check(empty is { ProcessedFiles: 0, TotalBytes: 0, UnknownSizeFiles: 0 }, "an early cancellation can have an empty summary");
+        var huge = AnalysisRunSummary.Capture(TimeSpan.FromDays(1) + TimeSpan.FromHours(2),
+            [known with { Length = long.MaxValue }, known with { Length = long.MaxValue }]);
+        Check(huge.TotalBytes == 2m * long.MaxValue, "file-size totals remain exact beyond the Int64 limit");
+        try
+        {
+            foreach (var language in strings.Languages)
+            {
+                strings.SetCulture(language.CultureName);
+                var expected = language.CultureName switch
+                {
+                    "de" => "Dauer: 00:00:01.234 · Dateisumme: 1.024 Bytes. Größe bei 1 Datei(en) unbekannt.",
+                    "zh-Hans" => "耗时：00:00:01.234 · 文件总大小：1,024 字节。 1 个文件的大小未知。",
+                    _ => "Elapsed: 00:00:01.234 · Total file size: 1,024 bytes. Unknown size for 1 file(s)."
+                };
+                Check(summary.Format(strings) == expected,
+                    "duration, grouped bytes and unknown sizes are localized / " + language.CultureName);
+            }
+            strings.SetCulture("en");
+            Check(huge.Format(strings) == "Elapsed: 1.02:00:00.000 · Total file size: 18,446,744,073,709,551,614 bytes.",
+                "durations retain days and known byte totals have no unknown-size warning");
+        }
+        finally { strings.SetCulture("en"); }
+    }
+
     private static void CheckFormats()
     {
         (string Hex, string Lower, string Colon, string Base64, string Url)[] vectors =

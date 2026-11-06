@@ -241,7 +241,7 @@
     <value>Analysing · {0:N0} of {1:N0} finished</value>
   </data>
   <data name="CompletedSummary" xml:space="preserve">
-    <value>Finished · {0:N0} of {1:N0} processed. See each row for its result.</value>
+    <value>Finished · {0:N0} of {1:N0} files processed. See each row for its result.</value>
   </data>
   <data name="CancelledSummary" xml:space="preserve">
     <value>Cancelled · {0:N0} of {1:N0} finished. Remaining rows are marked cancelled.</value>
@@ -644,5 +644,11 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="DiagnosticSummary" xml:space="preserve">
     <value>Rows with diagnostic details: {0}.</value>
+  </data>
+  <data name="RunSummary" xml:space="preserve">
+    <value>Elapsed: {0} · Total file size: {1:N0} bytes.</value>
+  </data>
+  <data name="RunSummaryUnknownSizes" xml:space="preserve">
+    <value>Unknown size for {0:N0} file(s).</value>
   </data>
 </root>

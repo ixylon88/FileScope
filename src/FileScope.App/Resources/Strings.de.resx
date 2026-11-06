@@ -241,7 +241,7 @@
     <value>Analyse läuft · {0:N0} von {1:N0} fertig</value>
   </data>
   <data name="CompletedSummary" xml:space="preserve">
-    <value>Fertig · {0:N0} von {1:N0} verarbeitet. Ergebnisse stehen in den jeweiligen Zeilen.</value>
+    <value>Fertig · {0:N0} von {1:N0} Dateien verarbeitet. Ergebnisse stehen in den jeweiligen Zeilen.</value>
   </data>
   <data name="CancelledSummary" xml:space="preserve">
     <value>Abgebrochen · {0:N0} von {1:N0} fertig. Übrige Zeilen sind als abgebrochen markiert.</value>
@@ -644,5 +644,11 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="DiagnosticSummary" xml:space="preserve">
     <value>Zeilen mit Diagnosedetails: {0}.</value>
+  </data>
+  <data name="RunSummary" xml:space="preserve">
+    <value>Dauer: {0} · Dateisumme: {1:N0} Bytes.</value>
+  </data>
+  <data name="RunSummaryUnknownSizes" xml:space="preserve">
+    <value>Größe bei {0:N0} Datei(en) unbekannt.</value>
   </data>
 </root>
