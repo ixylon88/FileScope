@@ -20,7 +20,7 @@
       </Trigger>
     </Style.Triggers>
   </Style>
-  <Style BasedOn="{StaticResource ScrollBarStyle}" TargetType="{x:Type ScrollBar}" />
+  <Style BasedOn="{StaticResource ScrollBarStyle}" TargetType="{x:Type ScrollBar}" /> <!-- reference previously introduced key; intentionally, to prevent infinite ref loop for the case without key and without this line -->
   <Style x:Key="AppWindowStyle" TargetType="Window" BasedOn="{StaticResource {x:Type Window}}">
     <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Microsoft YaHei" />
     <Setter Property="FontSize" Value="13" />
