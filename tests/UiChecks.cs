@@ -149,7 +149,16 @@ internal static class UiChecks
             Check(cancelVm.Rows.Count == 2, "cancel keeps rows");
             Check(cancelVm.Rows.Any(r => r.State == RowStatus.Cancelled), "unprocessed rows are marked cancelled");
             Check(cancelVm.ReanalyseCommand.CanExecute(null), "cancelled batch can be retried");
+            Console.WriteLine();
+            ConsoleColor backgroundBackup = Console.BackgroundColor;
+            ConsoleColor foregroundBackup = Console.ForegroundColor;
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine($"PASS: {_passed} UI / MVVM assertions.");
+            Console.BackgroundColor = backgroundBackup;
+            Console.ForegroundColor = foregroundBackup;
+            Console.WriteLine("=======================");
+            Console.WriteLine();
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

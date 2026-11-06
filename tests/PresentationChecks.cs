@@ -21,7 +21,16 @@ internal static class PresentationChecks
             CheckOptionsWindowPreferences();
             CheckOptions();
             CheckExportProjection();
+            Console.WriteLine();
+            ConsoleColor backgroundBackup = Console.BackgroundColor;
+            ConsoleColor foregroundBackup = Console.ForegroundColor;
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine($"PASS: {_passed} presentation / settings assertions.");
+            Console.BackgroundColor = backgroundBackup;
+            Console.ForegroundColor = foregroundBackup;
+            Console.WriteLine("=======================");
+            Console.WriteLine();
             return 0;
         }
         catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }

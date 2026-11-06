@@ -18,7 +18,7 @@ Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Proj
 
 ## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
 
-**FileScope ist darauf ausgelegt, vollständige Lesedurchläufe durch Dateien auf ein Minimum zu reduzieren.** Unabhängig davon, wie viele Prüfsummenalgorithmen aktiviert sind, liest FileScope den Dateiinhalt für die Hashberechnung nur **ein einziges Mal vollständig**.
+**FileScope ist darauf ausgelegt, vollständige Lesedurchläufe durch Dateien auf ein Minimum zu reduzieren.** Unabhängig davon, wie viele Prüfsummenalgorithmen aktiviert sind, liest FileScope den Dateiinhalt für die Analyse nur **ein einziges Mal vollständig**. Auf Windows verhindert die gewählte Freigabeart paralleles Schreiben/Löschen während der Analyse. 
 
 - **Ein gemeinsamer Lesedurchlauf:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 werden gleichzeitig aus denselben eingelesenen Datenblöcken berechnet. Auch bei fünf aktivierten Algorithmen ist nur ein vollständiger Lesedurchlauf erforderlich.
 - **Ein zentral verwalteter Datei-Handle:** Jede Datei wird für die Analyse einmal durch FileScope geöffnet. Der Stream bleibt während der Analyse geöffnet und wird für die Prüfsummenberechnung, die PE-/NE-Header-Analyse, die Windows-Versionsabfrage und die Windows-Signaturprüfung wiederverwendet. Für Versionsinformationen greift nur bei fehlender Handle-API die bisherige Pfad-Abfrage als Kompatibilitätslösung.
@@ -26,7 +26,7 @@ Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Proj
 - **Gezielte zusätzliche Lesezugriffe:** Die optionale PE-/NE-Header-Analyse liest benötigte Headerbereiche erneut. `GetFileVersionInfoByHandle` erhält für Versionsinformationen denselben offenen Handle. Windows kann dabei zusätzliche Ressourcen und gegebenenfalls MUI-Sprachdateien lesen; Handle-Wiederverwendung bedeutet keine Garantie für nur einen Lesezugriff.
 - **Native Signaturprüfung:** Für Authenticode erhält `WinVerifyTrust` den bereits geöffneten Datei-Handle. Windows kann für die kryptografische Prüfung zusätzliche Leseoperationen ausführen, gegebenenfalls auch über den gesamten Dateiinhalt.
 
-**Wichtig:** Die Aussage über den einmaligen vollständigen Lesedurchlauf bezieht sich auf die von FileScope selbst implementierte Prüfsummenberechnung. Optionale Metadaten- und Signaturprüfungen können weitere Lesezugriffe verursachen. Insbesondere lässt sich nicht garantieren, dass Windows intern jede Datei nur einmal liest.
+**Wichtig:** Die Aussage über den einmaligen vollständigen Lesedurchlauf bezieht sich auf die von FileScope selbst implementierte Prüfsummenberechnung. Optionale Metadaten- und Signaturprüfungen können weitere Lesezugriffe verursachen. Insbesondere lässt sich nicht garantieren, dass Windows intern jede Datei nur einmal liest. Weiterhin kann FileScope beim Einlesen verschiedener Hardlink-Pfade denselben Dateiinhalt mehrfach lesen.
 
 Durch die gemeinsame Verarbeitung eignet sich FileScope besonders für die Prüfsummenberechnung großer Dateien und umfangreicher Dateisammlungen.
 
@@ -36,15 +36,16 @@ Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio
 
 Visual Studio:
 
-1. Klonen oder herunterladen, und das ZIP vollständig entpacken.
+1. Klonen, oder herunterladen und das ZIP vollständig entpacken.
 2. `FileScope.sln` öffnen und `FileScope.App` als Startprojekt festlegen.
 3. Mit F5 starten.
 
 Visual Studio Code:
 
+1. Klonen, oder herunterladen und das ZIP vollständig entpacken.
 1. `FileScope.code-workspace` öffnen
-2. Strg + Umschalt + B startet den vordefinierten Build task (Release); es gibt noch weitere Tasks.
-3. Der Ausgabeordner erscheint in der Konsole, dort die Exe ausführen.
+1. Strg + Umschalt + B startet den vordefinierten Build task (Release); es gibt noch weitere Tasks.
+1. Der Ausgabeordner erscheint in der Konsole, dort die Exe ausführen.
 
 Alternativ im entpackten Hauptordner:
 
@@ -179,7 +180,7 @@ Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch
 
 Der Umfang sind **die primäre und alle zusätzlichen eingebetteten Authenticode-Signaturen, die Windows über `WINTRUST_SIGNATURE_SETTINGS` meldet**. Jede wird separat geprüft, auch wenn die primäre Prüfung fehlschlägt. Text und Farbe des Signaturstatus folgen der ausgewählten Signatur. Die Tabelle zeigt deren Prüfstatus, kein pauschales „alle Signaturen gültig“. Zertifikate aus der Vertrauenskette und Zeitstempel-Unterzeichner werden nicht als zusätzliche Dateisignaturen angeboten. Separate `.cat`-Zuordnungen, Signaturen innerhalb von Archiven, PDF-/Office-Signaturen sowie der Import eigenständiger CER/PFX-Zertifikate sind nicht implementiert. Hashwerte können unabhängig davon für beliebige lesbare Dateien berechnet werden. „Keine eingebettete Signatur“ bedeutet deshalb nicht, dass eine Datei niemals anderweitig signiert ist.
 
-**Zum Datum:** „Gültig ab“ ist der Gültigkeitsbeginn des Zertifikats. Ein X.509-Zertifikat enthält kein allgemeines separates Feld für das Datum seiner eigenen Unterzeichnung. Die neue Spalte zeigt stattdessen die Zeit aus dem Zeitstempel der Dateisignatur: ältere PKCS#9-Gegensignaturen oder RFC-3161-Token. Ein Zeitstempel bestätigt bei erfolgreicher Prüfung, dass die Signatur zu dieser Zeit bereits vorlag; er ist nicht zwingend der exakte Moment der ursprünglichen Unterzeichnung. Selbst angegebene `signingTime`-Attribute des Dateisignierers, die aktuelle Uhrzeit und der Gültigkeitsbeginn werden nicht als Ersatz verwendet.
+**Zum Datum:** „Gültig ab“ ist der Gültigkeitsbeginn des Zertifikats. Ein X.509-Zertifikat enthält kein allgemeines separates Feld für das Datum seiner eigenen Unterzeichnung. Die Spalte zeigt stattdessen die Zeit aus dem Zeitstempel der Dateisignatur: ältere PKCS#9-Gegensignaturen oder RFC-3161-Token. Ein Zeitstempel bestätigt bei erfolgreicher Prüfung, dass die Signatur zu dieser Zeit bereits vorlag; er ist nicht zwingend der exakte Moment der ursprünglichen Unterzeichnung. Selbst angegebene `signingTime`-Attribute des Dateisignierers, die aktuelle Uhrzeit und der Gültigkeitsbeginn werden nicht als Ersatz verwendet.
 
 Die Beschriftung „bestätigt“ verlangt einen erfolgreichen Windows-Prüfstatus, einen fehlerfrei geprüften Gegensignierer und einen ausgelesenen Zeitstempel, der zur von Windows verwendeten Prüfzeit passt. Andernfalls bleibt ein lesbares Datum „nicht bestätigt“; das ist keine Behauptung, dass der Zeitstempel ungültig sei. Offline fehlende Vertrauens-/Sperrinformationen können eine Bestätigung verhindern.
 
@@ -312,7 +313,9 @@ Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 `LocExtension` bindet XAML-Texte an den `LocalizationService`. Status- und Fehlercodes bleiben in der Kernbibliothek sprachneutral. Vorhandene Zeilen und Filterauswahlen werden beim Umschalten aktualisiert. Technische Ausnahmebeschreibungen von Betriebssystem/.NET und originale Zertifikatsfelder bleiben unverändert. Der Start verwendet die Windows-UI-Sprache, sofern unterstützt, sonst Englisch.
 
-### Erweitern
+## Erweitern
+
+### Code
 
 **Weiterer Hash:** `ChecksumAlgorithm` erweitern, die Factory um eine passende `IChecksumStrategy` ergänzen und eine Option/Spalte im App-Projekt hinzufügen. `StreamChecksumService` muss dabei nicht geändert werden.
 
@@ -327,14 +330,22 @@ Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 ```
 
 Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
+Derzeit gibt es
+- 472 core tests
+- 136 presentation/setting tests
+- 223 UI/MVVM tests
 
-Optional mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
+**Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
+
+#### Signatur
 
 ```powershell
 .\Verify.ps1 -SignedFile 'C:\Pfad\zur\signierten-datei.exe'
 ```
 
 Der optionale Test liest diese Datei und prüft, dass Unterzeichnerdaten sowie der native Prüfrückgabecode ermittelt werden. Er verändert und startet sie nicht. Vertrauenswürdigkeit wird nicht pauschal angenommen, weil sie vom Rechner, den Stammzertifikaten und Sperrinformationen abhängt.
+
+#### Version
 
 `Verify.ps1` vergleicht unter Windows die neue Abfrage mit `FileVersionInfo`, einschließlich Sprache, PE-/NE-Ressourcen und fehlenden Versionsdaten. Die Prüfungen verwenden absichtlich einen nicht existierenden Dateinamen, um einen unbemerkten Rückgriff auf diesen Pfad auszuschließen, und kontrollieren beide Dateipositionen sowie den nächsten Lesezugriff. Eigene Dateien können zusätzlich angegeben werden:
 

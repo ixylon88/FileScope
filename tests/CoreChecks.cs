@@ -185,7 +185,16 @@ internal static class CoreChecks
                     "non-Windows signature inspection is explicit");
                 Console.WriteLine("SKIP native Windows checks on this operating system.");
             }
+            Console.WriteLine();
+            ConsoleColor backgroundBackup = Console.BackgroundColor;
+            ConsoleColor foregroundBackup = Console.ForegroundColor;
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine($"PASS: {_passed} core assertions.");
+            Console.BackgroundColor = backgroundBackup;
+            Console.ForegroundColor = foregroundBackup;
+            Console.WriteLine("=======================");
+            Console.WriteLine();
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
