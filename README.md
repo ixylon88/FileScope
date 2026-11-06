@@ -1,6 +1,6 @@
 # FileScope
 
-WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen oder ganze Ordner hinzufügen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Versionsinformationen und PE-Plattform lesen, Ergebnisse filtern, kopieren und als CSV speichern.
+WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen oder ganze Ordner hinzufügen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Versionsinformationen und PE-Plattform lesen, Ergebnisse filtern, kopieren und als CSV/JSON speichern.
 
 Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
 
