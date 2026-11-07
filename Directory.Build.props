@@ -5,11 +5,11 @@
     <Deterministic>true</Deterministic>
     <AnalysisLevel>latest</AnalysisLevel>
 	  <LangVersion>Latest</LangVersion>
+    <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU;x64;Arm64</Platforms>
     <TargetLatestRuntimePatch>false</TargetLatestRuntimePatch>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
-    <Configurations>Debug;Release</Configurations>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -20,24 +20,13 @@
     <Owners>ixylon88</Owners>
     <Authors>ixylon88</Authors>
     <Copyright>Copyright © $([System.DateTime]::UtcNow.Year) ixylon88</Copyright>
-	<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	  <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
-    <Version>1.0.0.0</Version>
+    <Version>1.0.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PackageProjectUrl>https://github.com/ixylon88/FileScope</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ixylon88/FileScope.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <DebugType>None</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <!--<DefineConstants>TRACE</DefineConstants>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -64,7 +53,7 @@
     <!--<DefineConstants>TRACE</DefineConstants>-->
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Label="Packages">
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
