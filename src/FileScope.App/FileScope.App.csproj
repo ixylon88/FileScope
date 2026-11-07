@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -6,6 +6,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <NeutralLanguage>en</NeutralLanguage>
+    <Product>FileScope ($(TargetFramework))</Product>
     <Description>FileScope desktop file analysis.</Description>
   </PropertyGroup>
   <ItemGroup>

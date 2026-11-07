@@ -16,12 +16,15 @@ public sealed class AsyncRelayCommand(
     private bool _executing;
     public event EventHandler? CanExecuteChanged;
     public bool CanExecute(object? parameter) => !_executing && (canExecute?.Invoke(parameter) ?? true);
+
+#pragma warning disable VSTHRD100 // Avoid async void methods: a problem of ICommand
     public async void Execute(object? parameter)
+#pragma warning restore VSTHRD100 // Avoid async void methods
     {
         if (!CanExecute(parameter)) return;
         _executing = true;
         NotifyCanExecuteChanged();
-        try { await execute(parameter); }
+        try { await execute(parameter).ConfigureAwait(true); }
         catch (Exception ex) { onError(ex); }
         finally { _executing = false; NotifyCanExecuteChanged(); }
     }

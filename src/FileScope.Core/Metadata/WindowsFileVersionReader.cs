@@ -53,7 +53,9 @@ internal static partial class WindowsFileVersionReader
             }
             // Missing resources are normal for DOS images and ordinary data files.
             else if (error is not (1812 or 1813 or 1814 or 1815 or 193))
+            {
                 throw new Win32Exception(error);
+            }
         }
         finally
         {
@@ -101,7 +103,10 @@ internal static partial class WindowsFileVersionReader
             string Read(string field)
             {
                 if (!Native.VerQueryValue(buffer, prefix + field, out var text, out var characters)
-                    || text == IntPtr.Zero || characters == 0) return "";
+                    || text == IntPtr.Zero || characters == 0)
+                {
+                    return "";
+                }
                 // String lengths are UTF-16 characters; Translation lengths above are bytes.
                 // Bound the copy before looking for the first NUL, matching FileVersionInfo text semantics.
                 ValidateRange(buffer, size, text, (ulong)characters * 2);
@@ -111,10 +116,17 @@ internal static partial class WindowsFileVersionReader
             }
             return new()
             {
-                Language = language, FileDescription = Read("FileDescription"), FileVersion = Read("FileVersion"),
-                ProductName = Read("ProductName"), ProductVersion = Read("ProductVersion"), CompanyName = Read("CompanyName"),
-                OriginalFilename = Read("OriginalFilename"), InternalName = Read("InternalName"),
-                Copyright = Read("LegalCopyright"), Trademarks = Read("LegalTrademarks"), Comments = Read("Comments")
+                Language = language,
+                FileDescription = Read("FileDescription"),
+                FileVersion = Read("FileVersion"),
+                ProductName = Read("ProductName"),
+                ProductVersion = Read("ProductVersion"),
+                CompanyName = Read("CompanyName"),
+                OriginalFilename = Read("OriginalFilename"),
+                InternalName = Read("InternalName"),
+                Copyright = Read("LegalCopyright"),
+                Trademarks = Read("LegalTrademarks"),
+                Comments = Read("Comments")
             };
         }
     }
@@ -140,7 +152,11 @@ internal static partial class WindowsFileVersionReader
     private static GetVersionByHandle? LoadReadFunction()
     {
         if (!NativeLibrary.TryLoad("version.dll", typeof(WindowsFileVersionReader).Assembly,
-            DllImportSearchPath.System32, out var module)) return null;
+            DllImportSearchPath.System32, out var module))
+        {
+            return null;
+        }
+
         var retained = false;
         try
         {

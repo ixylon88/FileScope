@@ -59,7 +59,8 @@ public sealed class ThemeService : IThemeService
     // ThemeMode updates native Fluent controls and window chrome as well.
     // WPF still marks the code API experimental in .NET 10; keep suppression local.
 #pragma warning disable WPF0001
-    private void SetApplicationThemeMode(AppTheme theme) {
+    private void SetApplicationThemeMode(AppTheme theme)
+    {
         var newTheme = theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light;
         if (newTheme != _application.ThemeMode)
             _application.ThemeMode = newTheme;

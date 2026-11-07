@@ -57,8 +57,11 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             if (options.InspectFileProperties || options.InspectPeHeader)
                 progress?.Report(new AnalysisProgress(AnalysisStage.ReadingMetadata, length, length));
             if (options.InspectFileProperties)
+            {
                 fileProperties = ReadOptional(() => properties.Inspect(stream, fullPath, cancellationToken),
                     message => new FilePropertiesResult(null, message));
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             if (options.InspectPeHeader)
             {

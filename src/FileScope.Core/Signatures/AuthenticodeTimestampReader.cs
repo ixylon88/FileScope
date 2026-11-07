@@ -36,10 +36,15 @@ internal static class AuthenticodeTimestampReader
         bool hasTimestamp, DateTimeOffset? verifiedAsOf, bool trustedCounterSigner)
     {
         if (trustedCounterSigner && verifiedAsOf.HasValue)
+        {
             foreach (var time in times)
+            {
                 // WinVerifyTrust may reduce FILETIME precision to whole seconds.
                 if (time.ToUnixTimeSeconds() == verifiedAsOf.Value.ToUnixTimeSeconds())
                     return new(time, TimestampStatus.Verified);
+            }
+        }
+
         return times.Count > 0 ? new(times[0], TimestampStatus.Unverified)
             : hasTimestamp ? SignatureTimestamp.Unreadable : SignatureTimestamp.NotPresent;
     }

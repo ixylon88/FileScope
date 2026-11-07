@@ -24,8 +24,7 @@ public sealed partial class FilePropertiesInspector : IFilePropertiesInspector
         {
             var extension = Path.GetExtension(fullPath);
             info = info with { FileType = OperatingSystem.IsWindows() ? ReadWindowsType(extension) : extension };
-            if (OperatingSystem.IsWindows()
-                && WindowsFileVersionReader.TryRead(file, out var fields, cancellationToken))
+            if (OperatingSystem.IsWindows() && WindowsFileVersionReader.TryRead(file, out var fields, cancellationToken))
                 return new(fields with { FileType = info.FileType });
             // Compatibility fallback for other platforms or a missing Windows export.
             // Actual handle-API errors do not trigger a second, path-based attempt.
