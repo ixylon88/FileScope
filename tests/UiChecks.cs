@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -1418,7 +1417,7 @@ internal static class UiChecks
                 Check(thickness >= 8, "native thumb has a doubled visible and clickable cross-section / " + bar.Orientation);
                 var point = thumb.TranslatePoint(new Point(thumb.ActualWidth / 2, thumb.ActualHeight / 2), viewer);
                 var hit = viewer.InputHitTest(point) as DependencyObject;
-                while (hit is not null && hit is not Thumb) hit = VisualTreeHelper.GetParent(hit);
+                while (hit is not null and not Thumb) { hit = VisualTreeHelper.GetParent(hit); }
                 Check(ReferenceEquals(hit, thumb), "scaled thumb remains reachable by mouse hit-testing / " + bar.Orientation);
             }
             ScrollBar.LineDownCommand.Execute(null, vertical);

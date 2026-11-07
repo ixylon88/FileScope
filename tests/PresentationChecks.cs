@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
@@ -84,13 +83,13 @@ internal static class PresentationChecks
             ("FF", "ff", "FF", "/w==", "_w"), ("FBFFFF", "fbffff", "FB:FF:FF", "+///", "-___"),
             ("000102", "000102", "00:01:02", "AAEC", "AAEC")
         ];
-        foreach (var vector in vectors)
+        foreach (var (Hex, Lower, Colon, Base64, Url) in vectors)
         {
-            Check(DigestFormatter.Format(vector.Hex.ToLowerInvariant(), HashFormat.HexUpper) == vector.Hex, "uppercase hex vector");
-            Check(DigestFormatter.Format(vector.Hex, HashFormat.HexLower) == vector.Lower, "lowercase hex vector");
-            Check(DigestFormatter.Format(vector.Hex, HashFormat.HexColon) == vector.Colon, "colon hex vector");
-            Check(DigestFormatter.Format(vector.Hex, HashFormat.Base64) == vector.Base64, "Base64 byte vector / padding");
-            Check(DigestFormatter.Format(vector.Hex, HashFormat.Base64Url) == vector.Url, "Base64url byte vector / no padding");
+            Check(DigestFormatter.Format(Hex.ToLowerInvariant(), HashFormat.HexUpper) == Hex, "uppercase hex vector");
+            Check(DigestFormatter.Format(Hex, HashFormat.HexLower) == Lower, "lowercase hex vector");
+            Check(DigestFormatter.Format(Hex, HashFormat.HexColon) == Colon, "colon hex vector");
+            Check(DigestFormatter.Format(Hex, HashFormat.Base64) == Base64, "Base64 byte vector / padding");
+            Check(DigestFormatter.Format(Hex, HashFormat.Base64Url) == Url, "Base64url byte vector / no padding");
         }
         foreach (var size in new[] { 16, 20, 32, 48, 64 })
         {
@@ -284,7 +283,7 @@ internal static class PresentationChecks
 
     private static void CheckWindowSizes()
     {
-        WindowSize Restore(WindowPreferences? saved, double width = 1920, double height = 1040) =>
+        static WindowSize Restore(WindowPreferences? saved, double width = 1920, double height = 1040) =>
             WindowSize.Restore(saved, 1440, 900, 1080, 680, width, height);
         Check(Restore(null) is { Width: 1440, Height: 900 }, "old settings without window data use the default size");
         Check(Restore(new(1234, 789, true)) is { Width: 1234, Height: 789 }, "saved normal dimensions are preserved");
@@ -421,13 +420,11 @@ internal static class PresentationChecks
                     && store.Load().ColumnOrder?.Take(3).SequenceEqual(["Name", "Status", "Diagnostic"]) == true,
                     "resetting an older column order applies and saves the new diagnostic position");
             }
-            using (var failing = new OptionsViewModel(strings, new FailingStore(), new RecordingThemeService()))
-            {
-                var moved = failing.Columns[^1];
-                failing.SelectedColumn = moved;
-                failing.MoveFirstCommand.Execute(null);
-                Check(failing.HasSettingsError && failing.Columns[0] == moved, "save failures keep options usable in memory");
-            }
+            using var failing = new OptionsViewModel(strings, new FailingStore(), new RecordingThemeService());
+            var moved = failing.Columns[^1];
+            failing.SelectedColumn = moved;
+            failing.MoveFirstCommand.Execute(null);
+            Check(failing.HasSettingsError && failing.Columns[0] == moved, "save failures keep options usable in memory");
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); strings.SetCulture("en"); }
     }

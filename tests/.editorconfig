@@ -16,3 +16,5 @@ csharp_prefer_braces = when_multiline:suggestion
 dotnet_diagnostic.VSTHRD111.severity = none
 
 dotnet_diagnostic.CS0122.severity = none
+
+dotnet_diagnostic.IDE0370.severity = none

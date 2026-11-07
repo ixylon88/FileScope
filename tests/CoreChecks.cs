@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Collections.ObjectModel;
 using System.Formats.Asn1;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -27,8 +26,8 @@ internal static class CoreChecks
             CheckPeHeaders();
             CheckNeHeaders();
             CheckFolderScan(temp);
-            await CheckCsvExport(temp);
-            await CheckJsonExport(temp);
+            await CheckCsvExportAsync(temp);
+            await CheckJsonExportAsync(temp);
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
             var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
             var abcExpected = new Dictionary<ChecksumAlgorithm, string>
@@ -74,21 +73,21 @@ internal static class CoreChecks
                 // Independent whole-buffer API checks chunk boundaries and streaming composition.
                 Equal(Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(largeData)),
                     result[ChecksumAlgorithm.SHA512], "multi-buffer streaming hash");
-                Equal((long)largeData.Length, stream.BytesRead, "large file / one pass");
+                Equal(largeData.Length, stream.BytesRead, "large file / one pass");
                 Check(stream.ReadCalls > 2, "large file uses bounded chunks");
             }
             using (var cancelled = new CancellationTokenSource())
             using (var stream = new CountingStream(largeData))
             {
                 cancelled.Cancel();
-                await ExpectCancellation(() => checksumService.ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
+                await ExpectCancellationAsync(() => checksumService.ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
                 Equal(0L, stream.BytesRead, "pre-cancelled operation performs no reads");
             }
             var factory = new TrackingFactory();
             using (var cancelled = new CancellationTokenSource())
             using (var stream = new CountingStream(largeData, () => cancelled.Cancel()))
             {
-                await ExpectCancellation(() => new StreamChecksumService(factory).ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
+                await ExpectCancellationAsync(() => new StreamChecksumService(factory).ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
                 Equal(5, factory.Disposed, "all strategies disposed after cancellation");
             }
             var partialFactory = new TrackingFactory();
@@ -107,7 +106,7 @@ internal static class CoreChecks
             var path = Path.Combine(temp, "Prüfung 中文 ' sample.bin");
             await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
             CheckFileProperties(path);
-            await CheckMetadataPipeline(path, checksumService);
+            await CheckMetadataPipelineAsync(path, checksumService);
             var signatures = new StubSignatures();
             var analyzer = new FileAnalysisService(checksumService, signatures);
             var analyzed = await analyzer.AnalyzeAsync(path, new AnalysisOptions(algorithms, true));
@@ -306,7 +305,7 @@ internal static class CoreChecks
 #pragma warning restore SYSLIB1054
     }
 
-    private static async Task CheckCsvExport(string temp)
+    private static async Task CheckCsvExportAsync(string temp)
     {
         var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
         var path = Path.Combine(temp, "results.csv");
@@ -337,12 +336,12 @@ internal static class CoreChecks
         {
             cancelled.Cancel();
             var absent = Path.Combine(temp, "cancelled.csv");
-            await ExpectCancellation(() => exporter.ExportAsync(absent, table, cancellationToken: cancelled.Token));
+            await ExpectCancellationAsync(() => exporter.ExportAsync(absent, table, cancellationToken: cancelled.Token));
             Check(!File.Exists(absent), "pre-cancelled export creates no destination");
         }
         using (var cancelled = new CancellationTokenSource())
         {
-            await ExpectCancellation(() => exporter.ExportAsync(path,
+            await ExpectCancellationAsync(() => exporter.ExportAsync(path,
                 new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), cancellationToken: cancelled.Token));
             Equal(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
         }
@@ -379,7 +378,7 @@ internal static class CoreChecks
         }
     }
 
-    private static async Task CheckJsonExport(string temp)
+    private static async Task CheckJsonExportAsync(string temp)
     {
         var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
         var options = new ResultExportOptions(ResultExportFormat.Json);
@@ -417,7 +416,7 @@ internal static class CoreChecks
         {
             using var cancelled = new CancellationTokenSource();
             if (precancel) cancelled.Cancel();
-            await ExpectCancellation(() => exporter.ExportAsync(path,
+            await ExpectCancellationAsync(() => exporter.ExportAsync(path,
                 new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), options, cancelled.Token));
             Equal(sentinel, await File.ReadAllTextAsync(path), "cancelled JSON preserves the destination / " + precancel);
         }
@@ -697,7 +696,7 @@ internal static class CoreChecks
                 var context = $"{Path.GetFileName(path)}, position {position}, buffered {buffered}";
                 if (buffered)
                 {
-                    Equal((int)bytes[(int)position], file.ReadByte(), "prime version-test read buffer / " + context);
+                    Equal(bytes[(int)position], file.ReadByte(), "prime version-test read buffer / " + context);
                     file.Position = position;
                 }
                 // Deliberately diverge the raw pointer. The inspector's SafeFileHandle getter
@@ -724,7 +723,7 @@ internal static class CoreChecks
                 Equal(position, after, "version inspection restores the synchronized native file pointer / " + context);
                 Check(file.CanRead && file.Position == position,
                     "version inspection preserves the managed stream position and ownership / " + context);
-                Equal(position < bytes.Length ? (int)bytes[(int)position] : -1, file.ReadByte(),
+                Equal(position < bytes.Length ? bytes[(int)position] : -1, file.ReadByte(),
                     "the next managed read still reads from the original position / " + context);
             }
         }
@@ -777,7 +776,7 @@ internal static class CoreChecks
 #pragma warning restore SYSLIB1054
     }
 
-    private static async Task CheckMetadataPipeline(string path, IChecksumService checksums)
+    private static async Task CheckMetadataPipelineAsync(string path, IChecksumService checksums)
     {
         foreach (var flags in new[] { (false, false), (true, false), (false, true), (true, true) })
         {
@@ -805,7 +804,7 @@ internal static class CoreChecks
         {
             var metadata = new StubMetadata { Cancel = cancelled };
             service = new FileAnalysisService(checksums, new StubSignatures(), metadata, metadata);
-            await ExpectCancellation(() => service.AnalyzeAsync(path, new AnalysisOptions([], false,
+            await ExpectCancellationAsync(() => service.AnalyzeAsync(path, new AnalysisOptions([], false,
                 inspectFileProperties: true, inspectPeHeader: true), cancellationToken: cancelled.Token));
             Equal(0, metadata.PeCalls, "cancellation during properties does not become a diagnostic or run the next inspector");
         }
@@ -959,7 +958,7 @@ internal static class CoreChecks
     }
     private static void Equal<T>(T expected, T actual, string label) =>
         Check(EqualityComparer<T>.Default.Equals(expected, actual), $"{label} (expected {expected}; actual {actual})");
-    private static async Task ExpectCancellation(Func<Task> action)
+    private static async Task ExpectCancellationAsync(Func<Task> action)
     {
         try { await action(); }
         catch (OperationCanceledException) { Check(true, "operation cancels"); return; }

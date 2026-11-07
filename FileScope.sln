@@ -14,34 +14,24 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
 		Debug|Arm64 = Debug|Arm64
 		Debug|x64 = Debug|x64
-		Release|Any CPU = Release|Any CPU
 		Release|Arm64 = Release|Arm64
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|Arm64.ActiveCfg = Debug|Arm64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|Arm64.Build.0 = Debug|Arm64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|x64.ActiveCfg = Debug|x64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Debug|x64.Build.0 = Debug|x64
-		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|Any CPU.Build.0 = Release|Any CPU
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|Arm64.ActiveCfg = Release|Arm64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|Arm64.Build.0 = Release|Arm64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|x64.ActiveCfg = Release|x64
 		{44808917-8F9A-4B53-909A-A8BF5C9E8E01}.Release|x64.Build.0 = Release|x64
-		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|Arm64.ActiveCfg = Debug|Arm64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|Arm64.Build.0 = Debug|Arm64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|x64.ActiveCfg = Debug|x64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Debug|x64.Build.0 = Debug|x64
-		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|Arm64.ActiveCfg = Release|Arm64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|Arm64.Build.0 = Release|Arm64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|x64.ActiveCfg = Release|x64
