@@ -14,7 +14,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt.
 
-Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
+Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Bis auf einen Microsoft-Analyzer (Codeanalyse) werden keine Drittanbieter-NuGet-Pakete verwendet.
 
 ## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
 
