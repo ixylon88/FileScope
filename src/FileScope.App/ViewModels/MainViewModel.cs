@@ -98,7 +98,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
         RowsView.Filter = MatchesFilters;
         BrowseCommand = new AsyncRelayCommand(async _ =>
-            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])).ConfigureAwait(true), OnCommandError, _ => IsIdle);
+            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => IsIdle);
         AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => IsIdle);
         ExportCommand = new AsyncRelayCommand(_ => ExportAsync(), OnCommandError,
             _ => IsIdle && HasRows && Options.HasExportColumns);
@@ -275,7 +275,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         if (folders.Count == 0)
         {
-            await AddFilesAsync(files).ConfigureAwait(true);
+            await AddFilesAsync(files);
             return;
         }
 
@@ -288,7 +288,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!_confirmation.Confirm(_strings.Format("DropFoldersMessage", folders.Count, preview), _strings["DropFoldersTitle"]))
             return;
 
-        await AddFoldersAsync(folders.ToArray(), files).ConfigureAwait(true);
+        await AddFoldersAsync(folders.ToArray(), files);
     }
 
     private async Task AddFoldersAsync(string[] folders, IReadOnlyList<string> directFiles)
@@ -299,7 +299,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         FolderScanResult? result = null;
         try
         {
-            result = await Task.Run(() => ScanFolders(folders, directFiles, token), token).ConfigureAwait(true);
+            result = await Task.Run(() => ScanFolders(folders, directFiles, token), token);
             token.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -312,7 +312,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var warning = result.Issues.Count == 0 && result.SkippedDirectoryLinks == 0 ? ""
             : _strings.Format("FolderScanWarning", result.Issues.Count, result.SkippedDirectoryLinks);
         if (result.Issues.Count > 0) warning += $"\n{result.Issues[0].Path}: {result.Issues[0].Message}";
-        await AddFilesAsync(result.Files, warning).ConfigureAwait(true);
+        await AddFilesAsync(result.Files, warning);
         if (result.Files.Count == 0 && result.Issues.Count == 0) SetStatus("FolderEmpty");
     }
 
@@ -368,7 +368,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             // Rows, not RowsView: filters/selection never omit loaded files.
             var table = ResultExportProjection.Capture(Rows, Options.Columns);
             var options = new ResultExportOptions(format, Options.SelectedCsvDelimiter.Value);
-            await Task.Run(() => _exporter.ExportAsync(path, table, options, token), token).ConfigureAwait(true);
+            await Task.Run(() => _exporter.ExportAsync(path, table, options, token), token);
             _processed = table.Rows.Count;
             SetStatus("ResultsExported");
         }
@@ -451,7 +451,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         finally { EndFileOperation(); RefreshView(); }
         if (cancelled || _disposed) return;
         if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }
-        await RunBatchAsync(added, warning).ConfigureAwait(true);
+        await RunBatchAsync(added, warning);
     }
 
     private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "")
@@ -500,7 +500,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 try
                 {
                     // Offload both CPU hashing and synchronous WinVerifyTrust.
-                    var result = await Task.Run(() => _analysis.AnalyzeAsync(row.FullPath, options, progress, token), token).ConfigureAwait(true);
+                    var result = await Task.Run(() => _analysis.AnalyzeAsync(row.FullPath, options, progress, token), token);
                     row.Complete(result);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { row.Cancel(); throw; }

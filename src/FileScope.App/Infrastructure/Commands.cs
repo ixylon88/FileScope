@@ -24,7 +24,7 @@ public sealed class AsyncRelayCommand(
         if (!CanExecute(parameter)) return;
         _executing = true;
         NotifyCanExecuteChanged();
-        try { await execute(parameter).ConfigureAwait(true); }
+        try { await execute(parameter); }
         catch (Exception ex) { onError(ex); }
         finally { _executing = false; NotifyCanExecuteChanged(); }
     }
