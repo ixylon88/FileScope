@@ -46,14 +46,19 @@
           </StackPanel>
         </Border>
         <TextBlock Text="{loc:Loc AboutProject}" Style="{StaticResource GroupHeading}" />
-        <TextBlock TextWrapping="Wrap" Margin="0,0,0,8">
-          <Hyperlink x:Name="RepositoryLink" NavigateUri="https://github.com/ixylon88/FileScope" RequestNavigate="OpenProjectLink"
-                     AutomationProperties.Name="{loc:Loc AboutRepository}">github.com/ixylon88/FileScope</Hyperlink>
-        </TextBlock>
-        <TextBlock TextWrapping="Wrap" Margin="0,0,0,12">
-          <Hyperlink x:Name="LicenseLink" NavigateUri="https://github.com/ixylon88/FileScope/blob/dev/LICENSE" RequestNavigate="OpenProjectLink"
-                     AutomationProperties.Name="{loc:Loc AboutLicenseOnline}"><Run Text="{loc:Loc AboutLicenseOnline}" /></Hyperlink>
-        </TextBlock>
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,8">
+            <Hyperlink x:Name="RepositoryLink" NavigateUri="https://github.com/ixylon88/FileScope" RequestNavigate="OpenProjectLink"
+              AutomationProperties.Name="{loc:Loc AboutRepository}">github.com/ixylon88/FileScope</Hyperlink>
+          </TextBlock>
+          <TextBlock Grid.Row="1" TextWrapping="Wrap" Margin="0,0,0,12">
+            <Hyperlink x:Name="LicenseLink" NavigateUri="https://github.com/ixylon88/FileScope/blob/dev/LICENSE" RequestNavigate="OpenProjectLink"
+              AutomationProperties.Name="{loc:Loc AboutLicenseOnline}"><Run Text="{loc:Loc AboutLicenseOnline}" /></Hyperlink>
+          </TextBlock>
+          <TextBlock Grid.Column="1" Grid.RowSpan="2" TextWrapping="Wrap" Text="{loc:Loc AboutCredits}" Margin="0,0,0,8" />
+        </Grid>
         <TextBlock x:Name="LinkErrorText" Text="{loc:Loc AboutLinkError}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,12" />
         <Expander x:Name="LicenseExpander" Header="{loc:Loc AboutLicenseText}">
           <TextBox x:Name="LicenseText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"

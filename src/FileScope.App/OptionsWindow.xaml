@@ -20,7 +20,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
       <StackPanel Grid.Column="1" Margin="16,0,0,0">
         <TextBlock Text="{loc:Loc Group_Language}" Style="{StaticResource FieldLabel}" />
-        <ComboBox x:Name="LanguageSelector" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="NativeName"
+        <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="NativeName"
                   MinHeight="34" AutomationProperties.Name="{loc:Loc Group_Language}" />
       </StackPanel>
       <StackPanel Grid.Column="0">

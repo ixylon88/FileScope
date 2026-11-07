@@ -714,4 +714,7 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="AboutLinkError" xml:space="preserve">
     <value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value>
   </data>
+  <data name="AboutCredits" xml:space="preserve">
+    <value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value>
+  </data>
 </root>

@@ -714,4 +714,7 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="AboutLinkError" xml:space="preserve">
     <value>The link could not be opened in the default browser. The full license is also available below without an internet connection.</value>
   </data>
+  <data name="AboutCredits" xml:space="preserve">
+    <value>Developed jointly by ixylon88 and ChatGPT, with mutual code review.</value>
+  </data>
 </root>

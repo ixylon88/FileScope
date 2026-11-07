@@ -714,4 +714,7 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="AboutLinkError" xml:space="preserve">
     <value>Der Link konnte nicht im Standardbrowser geöffnet werden. Der vollständige Lizenztext ist unten auch ohne Internetverbindung verfügbar.</value>
   </data>
+  <data name="AboutCredits" xml:space="preserve">
+    <value>Gemeinsam entwickelt von ixylon88 und ChatGPT – mit gegenseitigem Code-Review.</value>
+  </data>
 </root>
