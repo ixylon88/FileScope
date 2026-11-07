@@ -271,6 +271,7 @@ internal static class UiChecks
             settings.UpdateLayout();
             DrainDispatcher();
             var grid = (DataGrid)main.FindName("ResultsGrid");
+            var statusColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Status");
             var selector = (ComboBox)settings.FindName("ThemeSelector");
             var columns = (ListBox)settings.FindName("ColumnList");
             var row = vm.Rows.Single();
@@ -280,7 +281,6 @@ internal static class UiChecks
             var order = grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId).ToArray();
             var subtitle = VisualChildren(main).OfType<TextBlock>().Single(text => text.Text == strings["Subtitle"]);
             var hint = VisualChildren(settings).OfType<TextBlock>().Single(text => text.Text == strings["HashFormatHint"]);
-            var badge = VisualChildren(main).OfType<StatusBadge>().First(control => control.Tone == StatusTone.Success);
             Check(selector.Items.Count == 2 && ReferenceEquals(selector.SelectedItem, options.SelectedTheme)
                 && options.SelectedTheme.Value == AppTheme.Light, "the real theme selector reflects the initial application appearance");
             foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light, AppTheme.Dark })
@@ -288,9 +288,11 @@ internal static class UiChecks
                 var saves = store.SaveCount;
                 selector.SelectedItem = options.Themes.Single(option => option.Value == theme);
                 DrainDispatcher();
+                grid.ScrollIntoView(row, statusColumn);
                 columns.ScrollIntoView(options.SelectedColumn);
                 main.UpdateLayout();
                 settings.UpdateLayout();
+                DrainDispatcher();
                 var expectedMuted = theme == AppTheme.Dark ? Color.FromRgb(0xB1, 0xB1, 0xBA) : Color.FromRgb(0x59, 0x65, 0x79);
                 var expectedBadge = theme == AppTheme.Dark ? Color.FromRgb(0xAD, 0xFE, 0xC8) : Color.FromRgb(0xDD, 0xEF, 0xE3);
                 Check(options.SelectedTheme.Value == theme && themes.CurrentTheme == theme && HasNativeTheme(app, theme)
@@ -299,8 +301,19 @@ internal static class UiChecks
                 Check(((SolidColorBrush)subtitle.Foreground).Color == expectedMuted
                     && ((SolidColorBrush)hint.Foreground).Color == expectedMuted,
                     "existing main and options window text updates through DynamicResource / " + theme);
-                Check(((SolidColorBrush)((Border)badge.Content).Background).Color == expectedBadge,
-                    "an existing success badge follows the current palette / " + theme);
+                // Native theme changes can rebuild DataGrid cell templates. Keep the
+                // result row, but reacquire its current visual instead of inspecting
+                // a detached badge whose bindings may already be disconnected.
+                var statusContent = statusColumn.GetCellContent(row);
+                var badge = statusContent == null ? null : VisualChildren(statusContent).OfType<StatusBadge>().SingleOrDefault();
+                var actualBadge = (badge?.Content as Border)?.Background as SolidColorBrush;
+                var attached = badge != null && ReferenceEquals(Window.GetWindow(badge), main);
+                Check(badge is { IsLoaded: true, IsVisible: true, Tone: StatusTone.Success }
+                    && attached && ReferenceEquals(badge.DataContext, row) && badge.Text == row.StateText
+                    && actualBadge?.Color == expectedBadge,
+                    $"the displayed success badge for the existing row follows the current palette / {theme} "
+                    + $"(expected: {expectedBadge}, actual: {actualBadge?.Color.ToString() ?? "missing"}, "
+                    + $"tone: {badge?.Tone.ToString() ?? "missing"}, attached: {attached})");
                 Check(columns.ItemContainerGenerator.ContainerFromItem(options.SelectedColumn) is ListBoxItem item
                     && item.HorizontalContentAlignment == HorizontalAlignment.Left
                     && item.VerticalContentAlignment == VerticalAlignment.Center,

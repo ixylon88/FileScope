@@ -1,5 +1,18 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Korrektur: Badge-Prüfung beim Themewechsel
+
+Stand: 7. November 2026. Patchbasis: `c172d27` (`readme update, test: wip`).
+
+Der gemeldete Windows-Lauf bricht beim ersten Dunkel-Wechsel mit `an existing success badge follows the current palette / Dark` ab. Die vorherigen Prüfungen für Auswahl, sofortiges Speichern und dynamische Textfarben bestehen. Der bisherige Test hält jedoch eine Badge-Instanz aus der Tabelle über den Themewechsel hinweg fest. WPF kann dabei Zellansichten neu aufbauen und alte Bindungen trennen; die zwischengespeicherte Instanz muss dann nicht mehr der angezeigten Zelle entsprechen. Diese Annahme ist im Test korrigiert; ob sie den gemeldeten Laufzeitfehler vollständig erklärt, ist hier ohne Windows nicht reproduzierbar.
+
+Nach jedem Wechsel wird die Statusspalte der unveränderten Ergebniszeile in den sichtbaren Bereich gebracht und nach Layout/Dispatcher-Verarbeitung erneut abgefragt. Geprüft werden der aktuell sichtbare, geladene Badge im Hauptfenster, sein Zeilenbezug, Text, Erfolgston und die weiterhin unabhängig vorgegebene Palettenfarbe. Die Meldung enthält zusätzlich Soll-/Istfarbe, Ton und Fensterzugehörigkeit. Produktionscode und Farbpaletten bleiben unverändert.
+
+- Release-Build des WPF-Testprogramms einschließlich App, Core und XAML mit .NET SDK 10.0.100 unter Linux: bestanden, 0 Warnungen / 0 Fehler.
+- Statische Struktur- und Ressourcenprüfung: 1066 bestanden, 179 Schlüssel je Sprache.
+- Unveränderte Prüfzahlen: Core zuletzt 472 unter Windows bzw. 183 unter Linux; Präsentation zuletzt 165. Diese beiden Testgruppen wurden für die reine UI-Testkorrektur nicht erneut ausgeführt. WPF/UI weiterhin 285 erwartet, keine Assertions hinzugefügt oder entfernt.
+- Erneuter Windows-Lauf mit `.\Verify.ps1` erforderlich; WPF-Laufzeittests sind hier nicht ausführbar.
+
 ## Ergänzung: Theme-Umschaltung und Test-Harnesses
 
 Stand: 6. November 2026. Patchbasis: `7fd5020` (`status label`). Ausführung mit .NET SDK 10.0.100 unter Linux.

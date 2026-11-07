@@ -44,7 +44,7 @@ public sealed class ThemeService : IThemeService
         {
             _application.Resources.MergedDictionaries.Add(palette);
         }
-        else
+        else if (!_application.Resources.MergedDictionaries.Any(dictionary => dictionary.Source?.OriginalString.EndsWith($"{theme}ThemePalette.xaml", StringComparison.Ordinal) == true))
         {
             var index = _application.Resources.MergedDictionaries.IndexOf(paletteHost);
             _application.Resources.MergedDictionaries[index] = palette;
@@ -59,7 +59,11 @@ public sealed class ThemeService : IThemeService
     // ThemeMode updates native Fluent controls and window chrome as well.
     // WPF still marks the code API experimental in .NET 10; keep suppression local.
 #pragma warning disable WPF0001
-    private void SetApplicationThemeMode(AppTheme theme) => _application.ThemeMode = theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light;
+    private void SetApplicationThemeMode(AppTheme theme) {
+        var newTheme = theme == AppTheme.Dark ? ThemeMode.Dark : ThemeMode.Light;
+        if (newTheme != _application.ThemeMode)
+            _application.ThemeMode = newTheme;
+    }
     private AppTheme GetApplicationThemeMode() => _application.ThemeMode == ThemeMode.Dark ? AppTheme.Dark : AppTheme.Light;
 #pragma warning restore WPF0001
 }

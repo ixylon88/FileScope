@@ -389,9 +389,11 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik und Theme-Umschalt
 | --- | --- |
 | Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
 | Präsentation und Einstellungen | **165** bestanden, einschließlich 18 neuer Theme-Prüfungen. |
-| WPF / UI / MVVM | **285** erwartet; aktuelles Testprogramm fehlerfrei kompiliert, Windows-Ausführung noch offen. |
+| WPF / UI / MVVM | **285** erwartet; Badge-Prüfung beim Themewechsel korrigiert, Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
 Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik sowie 30 neuen Theme-Prüfungen. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und den tatsächlichen Design-Auswahlschalter. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+
+Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 
 **Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
 
