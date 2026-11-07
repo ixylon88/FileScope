@@ -1,5 +1,24 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Über-Dialog
+
+Stand: 7. November 2026. Patchbasis: `faadfa3` (`test`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich App, Core, WPF-XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Core | 183 bestanden; native Windows-Prüfungen übersprungen. Unveränderter Prüfumfang, zuletzt unter Windows dokumentiert: 472. |
+| Präsentation und Einstellungen | 165 bestanden; Prüfumfang unverändert |
+| Statische Struktur- und Ressourcenprüfung | 1141 bestanden; 197 Ressourcenschlüssel je Sprache |
+| Lizenz und Versionsmetadaten der gebauten App-Assembly | Eingebettete Lizenz und Kopie im Build-Ordner bytegenau mit `LICENSE` verglichen; `AssemblyInformationalVersion` einschließlich Commit-Zusatz gelesen. |
+| WPF / UI / MVVM | 304 Assertions erwartet, davon 19 neue Prüfungen für den Über-Dialog. Kompiliert, hier nicht ausgeführt. |
+
+Der Dialog wird über den echten Info-Knopf geöffnet und als modales, dem Hauptfenster zugeordnetes Fenster geprüft. Weitere Prüfungen betreffen die Version aus der App-Assembly statt aus dem Testhost, Offline-Lizenz und Copyright, Schließen, beide Linkziele, Fehler und erneuten Erfolg beim Browseraufruf, alle drei Sprachen, beide Designs, Scrollen bei kleiner Fenstergröße, unveränderte Einstellungen und WPF-Bindungsfehler. Der Browserdienst wird durch einen kleinen Testdienst ersetzt; die Tests starten keinen Browser. Die 19 zusätzlichen Assertions ergeben sich aus 14 Prüfstellen, darunter zwei Prüfungen für jeweils drei Sprachen und eine Prüfung für beide Designs.
+
+Die `LICENSE` wird aus der einen Repository-Datei eingebettet und als Datei in die Build-/Publish-Ausgabe übernommen. Der Über-Dialog lädt keine Online-Inhalte; nur das ausdrückliche Anklicken eines Links ruft den Browserdienst auf. Die Aussage zum Dateizugriff unterscheidet bewusst einmaliges Öffnen, gemeinsamen Hash-Lesedurchlauf und zusätzliche Header-/Windows-Prüfungen.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Zusätzlich den Über-Dialog in beiden Designs und mit höherer Bildschirmskalierung ansehen, die Offline-Lizenz aufklappen und die beiden Links manuell öffnen. Die tatsächliche WPF-Darstellung und der Standardbrowseraufruf wurden hier nicht ausgeführt.
+
 ## Korrektur: Badge-Prüfung beim Themewechsel
 
 Stand: 7. November 2026. Patchbasis: `c172d27` (`readme update, test: wip`).

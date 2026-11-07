@@ -118,8 +118,15 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner wei
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
 | Design | Hell/Dunkel unter **Optionen → Design** umschalten; die Auswahl wird gespeichert. Native Fluent-Controls ohne eigene Vorlagen für Zeilen/Zellen. |
+| Über FileScope | Info-Knopf unter „Optionen“: Programmversion, Funktionsübersicht, Erklärung des gemeinsamen Lesedurchlaufs sowie Repository und MIT-Lizenz. |
 
 ## Funktionen im Detail
+
+### Über FileScope
+
+Der **Über**-Knopf mit Info-Symbol öffnet einen Dialog über dem Hauptfenster. Er zeigt die Version des laufenden Programms einschließlich vorhandener Versionszusätze, eine kurze Funktionsliste und die genaue Bedeutung des gemeinsamen Dateizugriffs: FileScope öffnet jede Datei pro Analyse einmal; alle ausgewählten Hashes teilen sich einen vollständigen Lesedurchlauf. Header-, Versions- und Signaturprüfungen können zusätzlich lesen, Windows gegebenenfalls auch ergänzende Ressourcen.
+
+Repository und Online-Lizenz werden erst beim Anklicken im Standardbrowser geöffnet. Der vollständige englische MIT-Lizenztext einschließlich Copyright ist außerdem aufklappbar und offline les- und kopierbar. Er stammt direkt aus der `LICENSE` im Repository, wird in die Anwendung eingebettet und zusätzlich in den Build-/Publish-Ordner kopiert. Kann der Browser nicht geöffnet werden, erscheint ein Hinweis im Dialog. Sprache und Design folgen der Anwendung; der Inhalt bleibt auch bei kleiner Fenstergröße scrollbar. **Schließen** oder Escape schließen den Dialog.
 
 ### Helles und dunkles Design
 
@@ -202,7 +209,7 @@ Die Beschriftung „bestätigt“ verlangt einen erfolgreichen Windows-Prüfstat
 
 Die angezeigten Zertifikatsfingerabdrücke beziehen sich auf das Zertifikat; die Hashspalten beziehen sich auf die Datei. Der Zertifikatssignaturalgorithmus ist ebenfalls der Algorithmus des Zertifikats und nicht automatisch der Dateisignatur. MD5/SHA-1 sind für den Vergleich vorhandener/älterer Prüfsummen enthalten; SHA-256 ist voreingestellt.
 
-Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offen; auf Windows verhindert die Freigabeart paralleles Schreiben/Löschen. Der native Prüfer erhält denselben Handle. Es werden keine Programme gestartet, keine Archive entpackt und keine Zertifikate installiert. Bei eingeschalteter Online-Sperrprüfung kann Windows Zertifizierungsstellen kontaktieren.
+Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offen; auf Windows verhindert die Freigabeart paralleles Schreiben/Löschen. Der native Prüfer erhält denselben Handle. Die untersuchten Programme werden nicht gestartet, Archive nicht entpackt und Zertifikate nicht installiert. Bei eingeschalteter Online-Sperrprüfung kann Windows Zertifizierungsstellen kontaktieren.
 
 ## Architektur
 
@@ -231,6 +238,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `RelayCommand` / `AsyncRelayCommand` | Command Pattern; asynchrone Ausführung mit Fehlerbehandlung und Schutz vor Mehrfachstart. |
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
 | `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
+| `AboutWindow` / `IExternalLinkService` | Reine Programminformationen, Version aus der App-Assembly und eingebetteter Lizenztext. Ein kleiner austauschbarer Dienst öffnet HTTPS-Projektlinks; UI-Prüfungen ersetzen ihn, ohne einen Browser zu starten. |
 | `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
 | `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
@@ -238,7 +246,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `IPreferencesStore` / `PreferencesStore` | Speichert kleine Benutzereinstellungen über eine temporäre Datei mit anschließendem Ersetzen der Zieldatei. |
 | `BindingProxy` | Liefert den Fenster-DataContext an DataGrid-Spalten, die selbst keinen DataContext erben. Damit bleibt die Sichtbarkeit per Binding an die Prüfoptionen gekoppelt. |
 
-MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Fensterlebenszyklus einschließlich Größenwiederherstellung, Öffnen des Optionsdialogs und Sichtbarhalten der ausgewählten Listenzeile. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
+MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Darstellungsaufgaben: Fensterlebenszyklus einschließlich Größenwiederherstellung, Öffnen der Options- und Infodialoge, Anzeige fester Programminformationen und Sichtbarhalten der ausgewählten Listenzeile. Der Infodialog benötigt dafür kein zusätzliches ViewModel; Browseraufrufe liegen hinter `IExternalLinkService`. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
 Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kein zusätzlicher Ribbon-Control-Anbieter**. Der WPF-Tabellentyp heißt `DataGrid`; `DataGridView` gehört zu Windows Forms.
 
@@ -383,15 +391,15 @@ Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- 
 
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
 
-Dokumentierter Prüfumfang einschließlich Durchlaufstatistik und Theme-Umschaltung; gezählt werden einzelne Prüfbedingungen (Assertions):
+Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung und Infodialog; gezählt werden einzelne Prüfbedingungen (Assertions):
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
 | Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
 | Präsentation und Einstellungen | **165** bestanden, einschließlich 18 neuer Theme-Prüfungen. |
-| WPF / UI / MVVM | **285** erwartet; Badge-Prüfung beim Themewechsel korrigiert, Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| WPF / UI / MVVM | **304** erwartet, einschließlich 19 neuer Prüfungen für den Infodialog; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik sowie 30 neuen Theme-Prüfungen. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und den tatsächlichen Design-Auswahlschalter. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 30 Theme-Prüfungen und 19 Prüfungen für den Infodialog. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 

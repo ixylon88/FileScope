@@ -62,4 +62,6 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel viewModel)
             new OptionsWindow(viewModel.Options) { Owner = this }.ShowDialog();
     }
+
+    private void OpenAbout(object sender, RoutedEventArgs args) => new AboutWindow { Owner = this }.ShowDialog();
 }

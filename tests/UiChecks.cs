@@ -2,12 +2,16 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using FileScope.App.Behaviors;
 using FileScope.App.Controls;
 using FileScope.App.Presentation;
@@ -58,6 +62,7 @@ internal static class UiChecks
             var strings = LocalizationService.Instance;
             CheckThemeService(app);
             CheckThemeSwitching(app, strings);
+            CheckAboutDialog(app, strings);
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
@@ -177,6 +182,135 @@ internal static class UiChecks
             app?.Shutdown();
             SynchronizationContext.SetSynchronizationContext(originalContext);
         }
+    }
+
+    private static void CheckAboutDialog(Application app, LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var themes = new ThemeService(app);
+        var store = new MemoryPreferences();
+        var options = new OptionsViewModel(strings, store, themes);
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
+        var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var links = new RecordingExternalLinks();
+        var about = new AboutWindow(links) { ShowActivated = false };
+        var errors = new StringWriter();
+        using var listener = new TextWriterTraceListener(errors);
+        var bindingSource = PresentationTraceSources.DataBindingSource;
+        var previousLevel = bindingSource.Switch.Level;
+        bindingSource.Switch.Level = SourceLevels.Error;
+        bindingSource.Listeners.Add(listener);
+        try
+        {
+            main.Show();
+            about.Owner = main;
+            var opened = false;
+            app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                // Exercise the real button and its modal event handler, then close
+                // the dialog without following a link or starting an external process.
+                var dialog = app.Windows.OfType<AboutWindow>().SingleOrDefault(window => window.IsVisible);
+                if (dialog == null) return;
+                opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
+                ((Button)dialog.FindName("CloseAboutButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }));
+            var button = (Button)main.FindName("AboutButton");
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(opened && !app.Windows.OfType<AboutWindow>().Any(window => window.IsVisible),
+                "the real About button opens an owned modal dialog and its Close button returns to the main window");
+
+            var saves = store.SaveCount;
+            about.Show();
+            DrainDispatcher();
+            var assembly = typeof(App).Assembly;
+            var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+            Check(((TextBlock)about.FindName("VersionValue")).Text == version,
+                "About shows the running application version, including release/build suffixes, instead of the test host version");
+            var license = (TextBox)about.FindName("LicenseText");
+            Check(license.IsReadOnly && license.Text.StartsWith("MIT License", StringComparison.Ordinal)
+                && license.Text.Contains("Copyright (c) 2026 ixylon88", StringComparison.Ordinal)
+                && license.Text.Contains("THE SOFTWARE IS PROVIDED", StringComparison.Ordinal) && links.Requests.Count == 0,
+                "the full MIT license and copyright are available offline without opening a browser");
+            var close = (Button)about.FindName("CloseAboutButton");
+            Check(close.IsCancel && close.IsDefault && !about.ShowInTaskbar,
+                "About supports Escape, the default close action and no separate taskbar entry");
+            var repository = (Hyperlink)about.FindName("RepositoryLink");
+            var licenseLink = (Hyperlink)about.FindName("LicenseLink");
+            repository.RaiseEvent(new RequestNavigateEventArgs(repository.NavigateUri, "") { RoutedEvent = Hyperlink.RequestNavigateEvent });
+            Check(links.Requests.Count == 1 && links.Requests[0].AbsoluteUri == "https://github.com/ixylon88/FileScope",
+                "the repository hyperlink delegates the correct HTTPS target to the replaceable link service");
+            licenseLink.RaiseEvent(new RequestNavigateEventArgs(licenseLink.NavigateUri, "") { RoutedEvent = Hyperlink.RequestNavigateEvent });
+            Check(links.Requests.Count == 2 && links.Requests[1].AbsoluteUri == "https://github.com/ixylon88/FileScope/blob/dev/LICENSE",
+                "the online license hyperlink points to this repository's license");
+            links.Succeed = false;
+            repository.RaiseEvent(new RequestNavigateEventArgs(repository.NavigateUri, "") { RoutedEvent = Hyperlink.RequestNavigateEvent });
+            var linkError = (TextBlock)about.FindName("LinkErrorText");
+            Check(linkError.Visibility == Visibility.Visible && linkError.Text == strings["AboutLinkError"] && about.IsVisible,
+                "a failed browser launch is explained inside About without closing the dialog");
+            foreach (var language in strings.Languages)
+            {
+                strings.SetCulture(language.CultureName);
+                DrainDispatcher();
+                var expectedTitle = language.CultureName switch { "de" => "Über FileScope", "zh-Hans" => "关于 FileScope", _ => "About FileScope" };
+                Check(about.Title == expectedTitle && string.Equals(about.Language.IetfLanguageTag, strings.Culture.IetfLanguageTag, StringComparison.OrdinalIgnoreCase)
+                    && ((TextBlock)about.FindName("AboutDescription")).Text == strings["AboutDescription"]
+                    && System.Windows.Automation.AutomationProperties.GetName(button) == expectedTitle,
+                    "About title, description, language and accessible button name are localized / " + language.CultureName);
+                var featureKeys = new[] { "AboutFeatureHashes", "AboutFeatureSignatures", "AboutFeatureMetadata", "AboutFeatureFiles", "AboutFeatureExport" };
+                var features = ((StackPanel)about.FindName("FeatureList")).Children.OfType<TextBlock>().ToArray();
+                Check(features.Length == featureKeys.Length && features.Zip(featureKeys).All(pair =>
+                        new TextRange(pair.First.ContentStart, pair.First.ContentEnd).Text.Trim() == "• " + strings[pair.Second])
+                    && ((TextBlock)about.FindName("EfficiencyText")).Text == strings["AboutEfficiency"]
+                    && ((TextBlock)about.FindName("AdditionalReadsText")).Text == strings["AboutAdditionalReads"]
+                    && linkError.Text == strings["AboutLinkError"],
+                    "About features, read-pass qualification and browser error follow the language / " + language.CultureName);
+            }
+            links.Succeed = true;
+            repository.RaiseEvent(new RequestNavigateEventArgs(repository.NavigateUri, "") { RoutedEvent = Hyperlink.RequestNavigateEvent });
+            Check(linkError.Visibility == Visibility.Collapsed, "a successful link retry clears the previous browser error");
+
+            foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
+            {
+                themes.Apply(theme);
+                DrainDispatcher();
+                about.UpdateLayout();
+                var expected = theme == AppTheme.Dark ? Color.FromRgb(0xB1, 0xB1, 0xBA) : Color.FromRgb(0x59, 0x65, 0x79);
+                Check(((SolidColorBrush)((TextBlock)about.FindName("VersionValue")).Foreground).Color == expected
+                    && ((SolidColorBrush)((TextBlock)about.FindName("AdditionalReadsText")).Foreground).Color == expected,
+                    "the existing About dialog follows the application palette / " + theme);
+            }
+            ((Expander)about.FindName("LicenseExpander")).IsExpanded = true;
+            about.Width = about.MinWidth;
+            about.Height = about.MinHeight;
+            DrainDispatcher();
+            about.UpdateLayout();
+            var scroll = (ScrollViewer)about.FindName("AboutScrollViewer");
+            Check(scroll.ScrollableHeight > 0 && close.IsVisible
+                && close.TranslatePoint(new Point(0, close.ActualHeight), about).Y <= about.ActualHeight,
+                "About content scrolls at the minimum size while Close stays in the window");
+            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            DrainDispatcher();
+            Check(!about.IsVisible && store.SaveCount == saves,
+                "closing About leaves saved preferences unchanged");
+            listener.Flush();
+            Check(errors.ToString().Length == 0, "About produces no WPF binding errors while opening, translating and switching themes");
+        }
+        finally
+        {
+            about.Close();
+            main.Close();
+            bindingSource.Listeners.Remove(listener);
+            bindingSource.Switch.Level = previousLevel;
+            themes.Apply(AppTheme.Light);
+            strings.SetCulture("en");
+        }
+    }
+
+    private sealed class RecordingExternalLinks : IExternalLinkService
+    {
+        public List<Uri> Requests { get; } = [];
+        public bool Succeed { get; set; } = true;
+        public bool TryOpen(Uri uri) { Requests.Add(uri); return Succeed; }
     }
 
     private static ResourceDictionary[] ThemePalettes(Application app) => app.Resources.MergedDictionaries

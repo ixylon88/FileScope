@@ -660,4 +660,58 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="Group_Theme" xml:space="preserve">
     <value>Design</value>
   </data>
+  <data name="AboutButton" xml:space="preserve">
+    <value>Über</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>Über FileScope</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Windows-Dateien untersuchen, ohne sie auszuführen.</value>
+  </data>
+  <data name="AboutFeatures" xml:space="preserve">
+    <value>Auf einen Blick</value>
+  </data>
+  <data name="AboutFeatureHashes" xml:space="preserve">
+    <value>MD5, SHA-1, SHA-256, SHA-384 und SHA-512 berechnen.</value>
+  </data>
+  <data name="AboutFeatureSignatures" xml:space="preserve">
+    <value>Eingebettete Authenticode-Signaturen prüfen, einschließlich Mehrfachsignaturen und optionaler Online-Sperrprüfung.</value>
+  </data>
+  <data name="AboutFeatureMetadata" xml:space="preserve">
+    <value>Dateigröße, Änderungsdatum, Versionsinformationen und PE-/Win16-NE-Header auslesen.</value>
+  </data>
+  <data name="AboutFeatureFiles" xml:space="preserve">
+    <value>Dateien oder Ordner hinzufügen, Drag-and-drop nutzen, Ergebnisse durchsuchen und filtern sowie Diagnosedetails anzeigen.</value>
+  </data>
+  <data name="AboutFeatureExport" xml:space="preserve">
+    <value>Analyseergebnisse als CSV oder JSON exportieren.</value>
+  </data>
+  <data name="AboutEfficiencyTitle" xml:space="preserve">
+    <value>Einmal öffnen, alle Hashes in einem Lesedurchlauf</value>
+  </data>
+  <data name="AboutEfficiency" xml:space="preserve">
+    <value>FileScope öffnet jede Datei pro Analyse einmal und verwendet denselben Lesehandle weiter. Alle ausgewählten Prüfsummen entstehen in einem gemeinsamen vollständigen Lesedurchlauf.</value>
+  </data>
+  <data name="AboutAdditionalReads" xml:space="preserve">
+    <value>Header-, Versions- und Signaturprüfungen können zusätzliche Lesezugriffe erfordern. Windows kann dabei auch ergänzende Ressourcen heranziehen.</value>
+  </data>
+  <data name="AboutProject" xml:space="preserve">
+    <value>Projekt und Lizenz</value>
+  </data>
+  <data name="AboutRepository" xml:space="preserve">
+    <value>FileScope-Repository öffnen</value>
+  </data>
+  <data name="AboutLicenseOnline" xml:space="preserve">
+    <value>MIT-Lizenz (online)</value>
+  </data>
+  <data name="AboutLicenseText" xml:space="preserve">
+    <value>MIT-Lizenz und Copyright (offline)</value>
+  </data>
+  <data name="AboutLinkError" xml:space="preserve">
+    <value>Der Link konnte nicht im Standardbrowser geöffnet werden. Der vollständige Lizenztext ist unten auch ohne Internetverbindung verfügbar.</value>
+  </data>
 </root>

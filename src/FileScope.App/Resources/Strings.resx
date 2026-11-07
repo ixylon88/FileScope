@@ -660,4 +660,58 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="Group_Theme" xml:space="preserve">
     <value>Theme</value>
   </data>
+  <data name="AboutButton" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About FileScope</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Inspect Windows files without running them.</value>
+  </data>
+  <data name="AboutFeatures" xml:space="preserve">
+    <value>At a glance</value>
+  </data>
+  <data name="AboutFeatureHashes" xml:space="preserve">
+    <value>Calculate MD5, SHA-1, SHA-256, SHA-384 and SHA-512 checksums.</value>
+  </data>
+  <data name="AboutFeatureSignatures" xml:space="preserve">
+    <value>Verify embedded Authenticode signatures, including multiple signatures and optional online revocation checks.</value>
+  </data>
+  <data name="AboutFeatureMetadata" xml:space="preserve">
+    <value>Inspect file size, modification time, version information and PE / Win16 NE headers.</value>
+  </data>
+  <data name="AboutFeatureFiles" xml:space="preserve">
+    <value>Add files or folders, use drag and drop, search and filter results, and inspect diagnostic details.</value>
+  </data>
+  <data name="AboutFeatureExport" xml:space="preserve">
+    <value>Export analysis results as CSV or JSON.</value>
+  </data>
+  <data name="AboutEfficiencyTitle" xml:space="preserve">
+    <value>One open file, one shared pass for all hashes</value>
+  </data>
+  <data name="AboutEfficiency" xml:space="preserve">
+    <value>FileScope opens each file once per analysis and reuses its read handle. All selected checksums share one complete read-through of the file.</value>
+  </data>
+  <data name="AboutAdditionalReads" xml:space="preserve">
+    <value>Header, version and signature inspections can require additional reads. Windows may also access supplementary resources.</value>
+  </data>
+  <data name="AboutProject" xml:space="preserve">
+    <value>Project and license</value>
+  </data>
+  <data name="AboutRepository" xml:space="preserve">
+    <value>Open the FileScope repository</value>
+  </data>
+  <data name="AboutLicenseOnline" xml:space="preserve">
+    <value>MIT license (online)</value>
+  </data>
+  <data name="AboutLicenseText" xml:space="preserve">
+    <value>MIT license and copyright (offline)</value>
+  </data>
+  <data name="AboutLinkError" xml:space="preserve">
+    <value>The link could not be opened in the default browser. The full license is also available below without an internet connection.</value>
+  </data>
 </root>

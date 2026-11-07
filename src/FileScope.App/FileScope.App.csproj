@@ -10,5 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\FileScope.Core\FileScope.Core.csproj" />
+    <!-- One canonical license: available offline in the dialog and beside published binaries. -->
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="FileScope.App.LICENSE" />
+    <None Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

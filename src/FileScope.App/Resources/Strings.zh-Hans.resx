@@ -660,4 +660,58 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="Group_Theme" xml:space="preserve">
     <value>主题</value>
   </data>
+  <data name="AboutButton" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>关于 FileScope</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>分析 Windows 文件，无需运行文件。</value>
+  </data>
+  <data name="AboutFeatures" xml:space="preserve">
+    <value>功能概览</value>
+  </data>
+  <data name="AboutFeatureHashes" xml:space="preserve">
+    <value>计算 MD5、SHA-1、SHA-256、SHA-384 和 SHA-512 校验和。</value>
+  </data>
+  <data name="AboutFeatureSignatures" xml:space="preserve">
+    <value>验证嵌入式 Authenticode 签名，支持多重签名和可选的在线吊销检查。</value>
+  </data>
+  <data name="AboutFeatureMetadata" xml:space="preserve">
+    <value>读取文件大小、修改时间、版本信息以及 PE / Win16 NE 文件头。</value>
+  </data>
+  <data name="AboutFeatureFiles" xml:space="preserve">
+    <value>添加文件或文件夹，支持拖放、搜索、筛选结果和查看诊断详情。</value>
+  </data>
+  <data name="AboutFeatureExport" xml:space="preserve">
+    <value>将分析结果导出为 CSV 或 JSON。</value>
+  </data>
+  <data name="AboutEfficiencyTitle" xml:space="preserve">
+    <value>打开一次，一次完整读取计算所有校验和</value>
+  </data>
+  <data name="AboutEfficiency" xml:space="preserve">
+    <value>每次分析时，FileScope 仅打开每个文件一次并复用其读取句柄。所有选定的校验和共享一次完整的文件读取。</value>
+  </data>
+  <data name="AboutAdditionalReads" xml:space="preserve">
+    <value>文件头、版本和签名检查可能需要额外读取。Windows 也可能访问其他相关资源。</value>
+  </data>
+  <data name="AboutProject" xml:space="preserve">
+    <value>项目与许可证</value>
+  </data>
+  <data name="AboutRepository" xml:space="preserve">
+    <value>打开 FileScope 代码仓库</value>
+  </data>
+  <data name="AboutLicenseOnline" xml:space="preserve">
+    <value>MIT 许可证（在线）</value>
+  </data>
+  <data name="AboutLicenseText" xml:space="preserve">
+    <value>MIT 许可证与版权声明（离线）</value>
+  </data>
+  <data name="AboutLinkError" xml:space="preserve">
+    <value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value>
+  </data>
 </root>
