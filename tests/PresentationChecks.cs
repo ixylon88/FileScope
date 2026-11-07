@@ -61,15 +61,15 @@ internal static class PresentationChecks
                 strings.SetCulture(language.CultureName);
                 var expected = language.CultureName switch
                 {
-                    "de" => "Dauer: 00:00:01.234 · Dateisumme: 1.024 Bytes Größe bei 1 Datei(en) unbekannt.",
-                    "zh-Hans" => "耗时：00:00:01.234 · 文件总大小：1,024 字节 1 个文件的大小未知。",
-                    _ => "Elapsed: 00:00:01.234 · Total file size: 1,024 bytes Unknown size for 1 file(s)."
+                    "de" => "Dauer: 00:00:01.234 · Dateisumme: 1.024 logische Bytes Größe bei 1 Datei(en) unbekannt.",
+                    "zh-Hans" => "耗时：00:00:01.234 · 文件总大小：1,024 逻辑字节 1 个文件的大小未知。",
+                    _ => "Elapsed: 00:00:01.234 · Total file size: 1,024 logical bytes Unknown size for 1 file(s)."
                 };
                 Check(summary.Format(strings) == expected,
                     "duration, grouped bytes and unknown sizes are localized / " + language.CultureName);
             }
             strings.SetCulture("en");
-            Check(huge.Format(strings) == "Elapsed: 1.02:00:00.000 · Total file size: 18,446,744,073,709,551,614 bytes",
+            Check(huge.Format(strings) == "Elapsed: 1.02:00:00.000 · Total file size: 18,446,744,073,709,551,614 logical bytes",
                 "durations retain days and known byte totals have no unknown-size warning");
         }
         finally { strings.SetCulture("en"); }
