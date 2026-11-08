@@ -3,6 +3,7 @@ param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [switch]$Run,
     [switch]$Publish,
+    [switch]$SelfContained,
     [ValidateSet('win-x64', 'win-arm64', 'win-x86')][string]$Runtime = 'win-x64'
 )
 $ErrorActionPreference = 'Stop'
@@ -17,7 +18,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)." }
     if ($Publish) {
         $outputPath = Join-Path $PSScriptRoot "artifacts/publish/$Runtime"
-        & dotnet publish $appProject --configuration $Configuration --runtime $Runtime --self-contained true --output $outputPath -p:PublishTrimmed=false
+        if ($SelfContained) {
+            $outputPath = $outputPath + "_self-contained"
+            & dotnet publish $appProject --configuration $Configuration --runtime $Runtime --self-contained true --output $outputPath -p:PublishTrimmed=false
+        }
+        else {
+            & dotnet publish $appProject --configuration $Configuration --runtime $Runtime --output $outputPath
+        }
         if ($LASTEXITCODE -ne 0) { throw "Publish failed (exit $LASTEXITCODE)." }
         Write-Host "Published to $outputPath"
     }
