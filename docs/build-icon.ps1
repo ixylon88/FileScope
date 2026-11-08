@@ -1,7 +1,7 @@
 param (
     [string]$InputPng = ".\icon.png",
-    [string]$OutputIco = ".\icon.ico",
-    [string]$OutputSplash
+    [string]$OutputIco = ".\icon.ico" #,
+    # [string]$OutputSplash
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -78,10 +78,11 @@ $sourceBitmap.Dispose()
 
 # Reuse the exact 256px PNG already generated for the icon. WPF displays a
 # SplashScreen resource at its image size, so the large source is unsuitable.
-if ($OutputSplash) {
-    [System.IO.File]::WriteAllBytes(
-        $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputSplash),
-        $imageDataList[[Array]::IndexOf($sizes, 256)])
-}
+# TODO: review this later (unclear); published exe only worked with cmd/PS, but not otherwise (Windows can't open this app)
+# if ($OutputSplash) {
+#     [System.IO.File]::WriteAllBytes(
+#         $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputSplash),
+#         $imageDataList[[Array]::IndexOf($sizes, 256)])
+# }
 
 Write-Host "Sauberes Icon erstellt unter: $OutputIco" -ForegroundColor Green
