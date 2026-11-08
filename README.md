@@ -11,6 +11,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 - **Ergebnisse gezielt auswerten:** Über alle Angaben suchen, nach Analyse- und Signaturstatus filtern, sortieren und Details kopieren.
 - **Ergebnisse weiterverwenden:** Vorhandene Analysewerte mit frei wählbaren Feldern als CSV oder JSON exportieren, ohne die Quelldateien erneut zu analysieren.
 - **Ansicht anpassen:** Spalten und Hashdarstellung konfigurieren; Deutsch, Englisch oder vereinfachtes Chinesisch wählen.
+- **Windows x64** und **Windows on ARM64** wird unterstützt (Letzteres wurde auf Parallels getestets)
 
 Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt.
 
@@ -78,11 +79,19 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 
 ### Eigenständige Windows-Ausgabe
 
+#### Windows (x64)
 ```powershell
 .\Build.ps1 -Publish -Runtime win-x64
 ```
 
-Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch `--self-contained true` ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
+#### Windows (ARM64)
+```powershell
+.\Build.ps1 -Publish -Runtime win-arm64
+```
+
+Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-arm64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch `--self-contained true` ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
+
+**Plattformunterstützung**: Windows x64 und Windows ARM64. Die ARM64-Version wurde unter Windows 11 in Parallels Desktop erfolgreich getestet. Weitere Zielarchitekturen können über den Runtime-Parameter gewählt werden.
 
 ## Bedienung
 

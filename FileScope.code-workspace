@@ -72,6 +72,37 @@
         }
       },
       {
+        "label": "FileScope: Publish (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Configuration",
+          "Release",
+          "-Publish",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
         "label": "FileScope: Verify",
         "type": "process",
         "command": "powershell.exe",
