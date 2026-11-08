@@ -5,6 +5,7 @@ from xml.etree import ElementTree as ET
 import hashlib
 import json
 import re
+import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +79,7 @@ for error in ['InvalidPath', 'DirectoryNotSupported', 'NotFound', 'AccessDenied'
 # actual WPF binding/type validation still requires Verify.ps1 on Windows.
 declared = set(re.findall(r'public\s+(?:[\w<>?\[\],.]+\s+)+([A-Za-z_]\w*)\s*(?:\{|=>)', sources))
 declared.update(['Text', 'AreRowDetailsFrozen', 'HeadersVisibility',
-                 'Padding', 'FontSize', 'Foreground'])  # Inherited WPF properties in view bindings.
+                 'Padding', 'FontSize', 'Foreground', 'PlacementTarget'])  # Inherited WPF properties in view bindings.
 for binding in re.findall(r'\{Binding\s+([A-Za-z_]\w*(?:\.\w+)*)', sources):
     check(binding.split('.')[0] in declared, f'Unknown simple binding root: {binding}')
 
@@ -115,8 +116,8 @@ palette_keys = [{node.attrib['{http://schemas.microsoft.com/winfx/2006/xaml}Key'
                 for palette in palettes]
 check(palette_keys[0] == palette_keys[1], 'Both palettes must expose the same resource keys.')
 dynamic_keys = set(re.findall(r'\{DynamicResource ([A-Za-z_]\w*)\}', sources))
-# These two keys belong to WPF's native Fluent dictionary, not our palettes.
-fluent_keys = {'SystemFillColorAttentionBrush', 'TextOnAccentFillColorSelectedTextBrush'}
+# These keys belong to WPF's native Fluent dictionary, not our palettes.
+fluent_keys = {'SystemFillColorAttentionBrush', 'SystemFillColorCriticalBrush', 'TextOnAccentFillColorSelectedTextBrush'}
 check(dynamic_keys - fluent_keys <= palette_keys[0], 'Every custom dynamic resource must exist in both palettes.')
 theme_contract = (ROOT / 'src/FileScope.App/Services/IThemeService.cs').read_text(encoding='utf-8')
 verify_script = (ROOT / 'Verify.ps1').read_text(encoding='utf-8-sig')
@@ -150,7 +151,7 @@ workspace = json.loads((ROOT / 'FileScope.code-workspace').read_text(encoding='u
 check(any(folder.get('name') == 'FileScope' and folder.get('path') == '.' for folder in workspace['folders']),
       'Task workspace folder must resolve to the repository root.')
 tasks = workspace['tasks']['tasks']
-check(len(tasks) == 3 and len({task['label'] for task in tasks}) == 3, 'Expected three distinct workspace tasks.')
+check(len(tasks) == 4 and len({task['label'] for task in tasks}) == 4, 'Expected four distinct workspace tasks.')
 for task in tasks:
     check(task['type'] == 'process' and task['command'] == 'powershell.exe', 'Use PowerShell process tasks.')
     args = task['args']
@@ -159,9 +160,19 @@ for task in tasks:
           'Task must invoke an existing script in this workspace: ' + task['label'])
     check(task['options']['cwd'] == '${workspaceFolder:FileScope}', 'Task working directory must be the repository root.')
 publish = [task for task in tasks if '-Publish' in task['args']]
-check(len(publish) == 1 and publish[0]['args'][publish[0]['args'].index('-Runtime') + 1] == 'win-x64',
-      'Publish task must target win-x64.')
+check(len(publish) == 2 and {task['args'][task['args'].index('-Runtime') + 1] for task in publish} == {'win-x64', 'win-arm64'},
+      'Publish tasks must cover win-x64 and win-arm64.')
 check(any(task['args'][-1].endswith('/Verify.ps1') for task in tasks), 'Verify task must invoke Verify.ps1.')
+
+# The generated WPF entry point needs an embedded splash, not a loose output file.
+app_project = ET.parse(ROOT / 'src/FileScope.App/FileScope.App.csproj').getroot()
+splashes = app_project.findall('.//SplashScreen')
+check(len(splashes) == 1 and splashes[0].get('Include') == r'Resources\FileScopeSplash.png',
+      'Embed the small startup image with WPF SplashScreen build action.')
+splash = ROOT / 'src/FileScope.App/Resources/FileScopeSplash.png'
+data = splash.read_bytes() if splash.is_file() else b''
+check(data.startswith(b'\x89PNG\r\n\x1a\n') and len(data) >= 24 and struct.unpack('>II', data[16:24]) == (256, 256),
+      'The splash must remain a small 256px PNG rather than the large source image.')
 
 # Independently check the known-answer constants shipped with the C# harness.
 tests = (ROOT / 'tests/CoreChecks.cs').read_text(encoding='utf-8')

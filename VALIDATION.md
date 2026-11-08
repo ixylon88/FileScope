@@ -1,5 +1,26 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Splashscreen und Dateikontextmenü
+
+Stand: 8. November 2026. Patchbasis: `972d0d6` (`app icon`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich App, Core, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Core | 183 bestanden; native Windows-Prüfungen übersprungen. Prüfumfang unverändert, zuletzt unter Windows dokumentiert: 472. |
+| Präsentation und Einstellungen | 165 bestanden; Prüfumfang unverändert |
+| Statische Struktur- und Ressourcenprüfung | 1172 bestanden; 202 Ressourcenschlüssel je Sprache |
+| Splash-Einbettung | Die PNG-Ressource aus der gebauten App-Assembly ist bytegenau identisch mit dem 74.472 Byte großen Quellbild. Generierter `Show(true)`-Aufruf vor `App.InitializeComponent()` geprüft. |
+| WPF / UI / MVVM | 332 Assertions erwartet: bisher 304, zusätzlich 27 zum Dateikontextmenü und eine zur Wiederverwendung der vorhandenen Theme-Palette. Kompiliert, hier nicht ausgeführt. |
+
+Die neuen UI-Prüfungen öffnen echte Zeilen-Kontextmenüs und rufen Menüeinträge über ihre Automation-Peers auf. Ein injizierter Shell-Testdienst zeichnet Aktion und Pfad auf, statt Explorer oder Eigenschaftsdialoge zu öffnen. Geprüft werden die angeklickte statt der vorher ausgewählten Zeile, Mehrfachauswahl, erneutes Öffnen für eine andere Zeile, Sonderzeichen und Unicode im Pfad, ungültige Command-Parameter, sichtbare Fehlermeldungen, unveränderte Analyseergebnisse und Durchlaufstatistik, drei Sprachen, beide Themes, erfolgreicher Wiederholungsversuch, Mehrfachstartschutz und eine späte Explorer-Antwort nach „Leeren“. Der reale Shell-Dienst wird nur mit einer inzwischen gelöschten Datei aufgerufen; dabei müssen seine Vorprüfungen ohne Shell-Fenster abbrechen. Die 27 Assertions entstehen aus 22 Prüfstellen, davon zwei für jeweils drei Sprachen und eine für beide Themes.
+
+Der Splash ist die unveränderte 256-Pixel-PNG-Variante des vorhandenen Icons. Es gibt keine Mindestanzeigedauer, kein eigenes Splash-Fenster und keine Änderung an den Publish-Optimierungen. `docs/build-icon.ps1` kann dieses PNG künftig zusammen mit dem Icon aus der ursprünglichen Vorlage speichern.
+
+Beim Review der vorhandenen Änderungen wurde die Palette-Erzeugung hinter die bereits vorhandene Übereinstimmungsprüfung verschoben; der normale Start mit der Palette aus `App.xaml` lädt dadurch keine unbenutzte Ersatzpalette mehr. Dokumentation und EditorConfig-Kommentar nennen jetzt die bereits eingebundenen Threading-Analyzer. Die statischen Prüfungen berücksichtigen den vorhandenen ARM64-Publish-Task. Eine bereits vorhandene Lambda in `CoreChecks` wurde für `IDE0200` durch die gleichwertige Methodengruppe ersetzt; der Core-Prüfumfang bleibt gleich.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Manuell in x64 und ARM64: Splash beim ersten und bei weiteren Starts ansehen, Rechtsklick sowie Menütaste / Umschalt+F10 auf Ergebniszeilen prüfen, tatsächliche Windows-Eigenschaften öffnen und eine tief verschachtelte Datei mit Leerzeichen/Unicode im Explorer markieren. Auch nach Themewechsel und bei höherer Bildschirmskalierung ansehen. Diese Windows-Laufzeit- und Darstellungsprüfungen sowie das PowerShell-Bildskript wurden hier nicht ausgeführt.
+
 ## Ergänzung: Über-Dialog
 
 Stand: 7. November 2026. Patchbasis: `faadfa3` (`test`). Ausführung mit .NET SDK 10.0.100 unter Linux.

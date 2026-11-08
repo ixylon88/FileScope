@@ -717,4 +717,16 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="AboutCredits" xml:space="preserve">
     <value>Developed jointly by ixylon88 and ChatGPT, with mutual code review.</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>Show in Explorer</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows could not open the properties of “{0}”. The file may have been moved or deleted, or access may be denied.</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows could not show “{0}” in Explorer. The file may have been moved or deleted, or access may be denied.</value>
+  </data>
 </root>

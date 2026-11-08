@@ -299,7 +299,7 @@ dotnet_diagnostic.SX1309.severity = error
 dotnet_diagnostic.SX1309S.severity = error
 
 # 11 | Async-/Threading-Analyzer (optional)
-# Nur wirksam mit AsyncFixer bzw. Microsoft.VisualStudio.Threading.Analyzers.
+# VSTHRD ist über Directory.Build.props eingebunden; AsyncFixer bleibt optional.
 # [AUS] AsyncFixer01: Überflüssiges async/await erkennen.
 dotnet_diagnostic.AsyncFixer01.severity = none
 # [AUS] AsyncFixer02: Blockierende Aufrufe in async-Methoden erkennen.

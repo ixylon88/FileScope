@@ -97,6 +97,7 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-
 
 | Funktion | Verhalten |
 | --- | --- |
+| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Das Menü gilt für die angeklickte Zeile, auch bei einer Mehrfachauswahl; über die Menütaste / Umschalt+F10 ist es ebenfalls erreichbar. |
 | Dateien oder Ordner ablegen | Eine oder mehrere Dateien und/oder Ordner auf einen beliebigen Bereich des Fensters ziehen. Für Ordner bestätigt eine gemeinsame Rückfrage die Auswertung einschließlich Unterordnern; „Nein“ verwirft den gesamten Drop. Alternativ „Dateien öffnen“ / Ctrl+O oder „Ordner hinzufügen“. |
 | Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
 | Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
@@ -130,6 +131,18 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-
 | Über FileScope | Info-Knopf unter „Optionen“: Programmversion, Funktionsübersicht, Erklärung des gemeinsamen Lesedurchlaufs sowie Repository und MIT-Lizenz. |
 
 ## Funktionen im Detail
+
+### Startanzeige
+
+Beim Start erscheint das orange FS-Symbol als kleiner Splashscreen. Sobald das Hauptfenster bereitsteht, blendet WPF ihn automatisch in etwa 300 ms aus. Es gibt keine künstliche Mindestanzeigedauer und keine zusätzliche Initialisierung für ein eigenes Splash-Fenster. Ein animiertes Einblenden ist beim eingebauten WPF-Splash nicht vorgesehen.
+
+Ein langsamer erster Start kann unter anderem vom Laden der Runtime und der Assemblies sowie von JIT-Kompilierung abhängen; daraus allein lässt sich die Ursache in einer ARM64-VM nicht ableiten. Erst mehrere Kalt- und Warmstarts vergleichen. Der Splash macht den Start sichtbar, verkürzt ihn aber nicht. `ReadyToRun` kann JIT-Arbeit beim Start reduzieren, vergrößert dafür die Programmdateien; die Publish-Einstellungen bleiben unverändert. Siehe [WPF-Splashscreen](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/app-development/how-to-add-a-splash-screen-to-a-wpf-application) und [ReadyToRun](https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run).
+
+### Dateien im Explorer untersuchen
+
+Das Kontextmenü einer Ergebniszeile verwendet die nativen Fluent-Menüs und folgt dem gewählten Design und der Sprache. „Eigenschaften“ zeigt die Windows-Eigenschaften; „Im Explorer anzeigen“ springt auch bei tief verschachtelten Dateien direkt zum richtigen Ordner und markiert die Datei. Die Aktion startet die untersuchte Datei nicht. Freie Tabellenflächen und Spaltenüberschriften haben kein Dateimenü.
+
+Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows die Aktion, erscheint ein eigener Hinweis mit dem Pfad unter dem Analysestatus. Analyseergebnisse und Durchlaufstatistik bleiben erhalten. Ein erfolgreicher erneuter Aufruf oder „Leeren“ entfernt diesen Hinweis. Die Explorer-Anfrage läuft im Hintergrund; eine noch laufende Anfrage kann nicht doppelt gestartet werden. Windows darf für diese ausdrücklich angeforderten Shell-Aktionen eigene zusätzliche Dateizugriffe durchführen.
 
 ### Über FileScope
 
@@ -249,6 +262,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
 | `AboutWindow` / `IExternalLinkService` | Reine Programminformationen, Version aus der App-Assembly und eingebetteter Lizenztext. Ein kleiner austauschbarer Dienst öffnet HTTPS-Projektlinks; UI-Prüfungen ersetzen ihn, ohne einen Browser zu starten. |
 | `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
+| `IFileShellService` / `FileShellService` | Öffnet auf ausdrücklichen Benutzerwunsch Windows-Dateieigenschaften oder markiert die Datei im Explorer. UI-Prüfungen ersetzen den Dienst, ohne Shell-Fenster zu starten. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
 | `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
 | `DigestFormatter` | Formatiert die vorhandenen Digest-Bytes; `FileRowViewModel` hält die dargestellten Werte im Cache. Die Core-Ergebnisse bleiben unverändert. |
@@ -289,6 +303,8 @@ Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `Dynamic
 
 ### Tabellendarstellung
 
+Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Da ein Popup außerhalb des visuellen Fensterbaums liegt, bezieht es seine Zeile über `PlacementTarget.DataContext`; der vorhandene `BindingProxy` liefert die Commands des Haupt-ViewModels. Die Aktion hängt damit weder an einer vorher ausgewählten Zeile noch an einem alten DataContext eines wiederverwendeten Zeilencontainers. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
+
 `MainViewModel` hält die Zeilen mit Diagnosedetails in einer eigenen Menge. Änderungen am Analyseergebnis und an der Signaturauswahl aktualisieren diese Menge, ohne für jede Änderung die ganze Tabelle zu durchsuchen. `ShowDiagnosticColumn` steuert die Spaltensichtbarkeit über den vorhandenen `BindingProxy`; `DiagnosticRowCount` liefert die Anzahl für den lokalisierten Statustext. Die Filteransicht verändert diese Menge nicht.
 
 Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
@@ -316,6 +332,7 @@ Die Windows-Anbindung besteht aus C#-Deklarationen und Aufrufen nativer Systemfu
 | Versionsressourcen vom offenen Handle lesen und Felder abfragen | `GetFileVersionInfoByHandle`, `VerQueryValueW` in `version.dll` | `WindowsFileVersionReader` |
 | Sprachname, Dateizeiger und Freigabe des Versionspuffers | `VerLanguageNameW`, `SetFilePointerEx`, `LocalFree` in `kernel32.dll` | `WindowsFileVersionReader` |
 | Registrierte Bezeichnung einer Dateiendung abfragen | `SHGetFileInfoW` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FilePropertiesInspector` |
+| Dateieigenschaften anzeigen und Datei im Explorer markieren | `SHObjectProperties`, `SHParseDisplayName`, `SHOpenFolderAndSelectItems` in `shell32.dll`; COM-Initialisierung in `ole32.dll` | `FileShellService` in der WPF-App |
 
 Die meisten Importe verwenden `LibraryImport` mit zur Übersetzungszeit erzeugtem Marshalling-Code. `SHGetFileInfoW` verwendet bewusst `DllImport`, weil `SHFILEINFOW` die beiden Zeichenfelder direkt in der Struktur enthält und deren `ByValTStr`-Marshalling hier nicht vom Quellcodegenerator unterstützt wird. `GetFileVersionInfoByHandle` wird einmalig mit `NativeLibrary.TryLoad` / `TryGetExport` aufgelöst und als Delegate zwischengespeichert; so bleibt ein fehlender Export als Kompatibilitätsfall behandelbar.
 
@@ -328,6 +345,7 @@ Die meisten Importe verwenden `LibraryImport` mit zur Übersetzungszeit erzeugte
 | WinTrust-Prüfzustand und daraus geliehene Zeiger | Windows besitzt die Unterzeichner- und Zertifikatsstrukturen. Nach jeder Signatur schließt `WTD_STATEACTION_CLOSE` den Prüfzustand, auch nach einer fehlgeschlagenen Prüfung. Bis dahin werden benötigte Werte in verwaltete Strings, Bytearrays und Modelle kopiert. |
 | Versionspuffer und Zeiger aus `VerQueryValueW` | Der von Windows gelieferte Puffer wird nach dem Kopieren mit `LocalFree` freigegeben, auch wenn ein fehlgeschlagener Aufruf Speicher geliefert hat. Zeiger auf einzelne Felder gehören zum Gesamtpuffer und werden nicht einzeln freigegeben. |
 | Geladene `version.dll` für den zwischengespeicherten Delegate | Eine Bibliotheksreferenz bleibt für die Prozesslebensdauer erhalten. Fehlt der Export oder scheitert die Einrichtung des Delegates, wird diese Referenz wieder freigegeben. |
+| Shell-Elementliste (PIDL) für den Explorer-Aufruf | `SHParseDisplayName` liefert den Speicher. `FileShellService` gibt ihn im `finally` mit `Marshal.FreeCoTaskMem` frei und gleicht erfolgreiche COM-Initialisierung auf demselben Thread mit `CoUninitialize` aus. |
 
 `WINTRUST_FILE_INFO` enthält einen rohen Handle-Wert. `GC.KeepAlive(stream)` hält deshalb den verwalteten Besitzer bis nach dem nativen Aufruf und dem Aufräumen erreichbar; gegen ein ausdrückliches, gleichzeitiges `Dispose` durch einen anderen Aufrufer schützt dies nicht. Die Lebensdauer des WinTrust-Prüfzustands und die des Datei-Handles sind getrennt. Siehe [WINTRUST_DATA: Prüfzustand schließen](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data) und [GetFileVersionInfoByHandle: Pufferfreigabe](https://learn.microsoft.com/en-us/windows/win32/menurc/getfileversioninfobyhandle).
 
@@ -354,6 +372,20 @@ Bei NE-Dateien kann Windows den nativen Dateizeiger verschieben, obwohl `FileStr
 #### Dateityp und COM-Initialisierung
 
 Für die Dateitypbezeichnung kombiniert `ReadWindowsType` `SHGFI_TYPENAME` mit `SHGFI_USEFILEATTRIBUTES` und übergibt nur die Endung sowie `FILE_ATTRIBUTE_NORMAL`. Damit wird die registrierte Zuordnung abgefragt; der Aufruf benötigt weder die Quelldatei noch ein Dateisymbol. Die COM-Initialisierung gilt für den aufrufenden Thread. Sowohl `S_OK` als auch `S_FALSE` werden durch `CoUninitialize` ausgeglichen. Bei `RPC_E_CHANGED_MODE` nutzt der Code den vorhandenen COM-Kontext, ohne eine eigene erfolgreiche Initialisierung zu behaupten oder diesen fremden Kontext herunterzufahren. Siehe [SHGetFileInfoW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shgetfileinfow) und [CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex).
+
+#### Dateikontextmenü und Explorer
+
+Die Dateieigenschaften werden mit `SHObjectProperties` (`SHOP_FILEPATH`) auf dem WPF-Thread und mit dem Hauptfenster als Besitzer geöffnet. Die Pfadauflösung für den Explorer läuft dagegen zusammen mit der Auswahl auf einem COM-initialisierten Hintergrundthread. Bei `SHOpenFolderAndSelectItems` bedeutet `cidl = 0`, dass die PIDL die auszuwählende Datei bezeichnet; Windows öffnet deren übergeordneten Ordner. Damit entfällt das Zusammensetzen einer Explorer-Befehlszeile. Die Importe verwenden `LibraryImport`, UTF-16-Pfade und `System32`-Suchpfade; `IntPtr` bleibt für x64 und ARM64 passend. Siehe [SHObjectProperties](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shobjectproperties), [SHParseDisplayName](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shparsedisplayname) und [SHOpenFolderAndSelectItems](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shopenfolderandselectitems).
+
+### Splashscreen und Bildressourcen
+
+`Resources/FileScopeSplash.png` ist die unveränderte 256-Pixel-PNG-Variante aus dem vorhandenen App-Icon; dessen Vorlage ist `docs/Oranges FS-App-Symbol.png`. Die Build-Aktion `SplashScreen` bettet das Bild ein und lässt WPF den frühen Aufruf `Show(true)` vor `App.InitializeComponent()` erzeugen. Es braucht weder eine lose PNG-Datei neben der EXE noch einen eigenen Startup-Thread. Die automatische Ausblendung übernimmt WPF; Verzögerungen vor dem verwalteten Programmeinstieg kann dieser Splash noch nicht überbrücken.
+
+Icon und Splash lassen sich aus derselben Vorlage erneuern:
+
+```powershell
+.\docs\build-icon.ps1 -InputPng '.\docs\Oranges FS-App-Symbol.png' -OutputIco '.\src\FileScope.App\Resources\FileScope.ico' -OutputSplash '.\src\FileScope.App\Resources\FileScopeSplash.png'
+```
 
 ### Sprachressourcen
 
@@ -400,15 +432,15 @@ Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- 
 
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
 
-Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung und Infodialog; gezählt werden einzelne Prüfbedingungen (Assertions):
+Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung, Infodialog und Dateikontextmenü; gezählt werden einzelne Prüfbedingungen (Assertions):
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
 | Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
 | Präsentation und Einstellungen | **165** bestanden, einschließlich 18 neuer Theme-Prüfungen. |
-| WPF / UI / MVVM | **304** erwartet, einschließlich 19 neuer Prüfungen für den Infodialog; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| WPF / UI / MVVM | **332** erwartet, einschließlich 27 neuer Prüfungen für das Dateikontextmenü und einer weiteren Theme-Prüfung; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 30 Theme-Prüfungen und 19 Prüfungen für den Infodialog. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog und 27 Prüfungen für das Dateikontextmenü. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 

@@ -85,7 +85,7 @@ internal static class CoreChecks
             }
             var factory = new TrackingFactory();
             using (var cancelled = new CancellationTokenSource())
-            using (var stream = new CountingStream(largeData, () => cancelled.Cancel()))
+            using (var stream = new CountingStream(largeData, cancelled.Cancel))
             {
                 await ExpectCancellationAsync(() => new StreamChecksumService(factory).ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
                 Equal(5, factory.Disposed, "all strategies disposed after cancellation");

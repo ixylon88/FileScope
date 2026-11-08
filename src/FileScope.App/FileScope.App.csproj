@@ -4,6 +4,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Resources\FileScope.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <NeutralLanguage>en</NeutralLanguage>
@@ -11,6 +12,9 @@
     <Description>FileScope desktop file analysis.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- WPF generates the early Show(true) call and the automatic fade-out. -->
+    <None Remove="Resources\FileScopeSplash.png" />
+    <SplashScreen Include="Resources\FileScopeSplash.png" />
     <ProjectReference Include="..\FileScope.Core\FileScope.Core.csproj" />
     <!-- One canonical license: available offline in the dialog and beside published binaries. -->
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="FileScope.App.LICENSE" />

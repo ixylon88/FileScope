@@ -717,4 +717,16 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="AboutCredits" xml:space="preserve">
     <value>Gemeinsam entwickelt von ixylon88 und ChatGPT – mit gegenseitigem Code-Review.</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>Eigenschaften</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>Im Explorer anzeigen</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows konnte die Eigenschaften von „{0}“ nicht öffnen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows konnte „{0}“ nicht im Explorer anzeigen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
+  </data>
 </root>

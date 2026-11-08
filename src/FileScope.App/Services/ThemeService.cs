@@ -14,7 +14,7 @@ public sealed class ThemeService : IThemeService
         _application = application;
         _application.Dispatcher.VerifyAccess();
         CurrentTheme = GetApplicationThemeMode();
-        // Even an unchanged native mode needs a matching application palette on first use.
+        // Reuse App.xaml's palette; install/repair it only if it is missing or mismatched.
         Apply(CurrentTheme);
     }
 
@@ -32,22 +32,24 @@ public sealed class ThemeService : IThemeService
         if (!Enum.IsDefined(theme)) throw new ArgumentOutOfRangeException(nameof(theme));
         if (_initialized && CurrentTheme == theme) return;
 
-        // Load before replacing: a failed resource load must keep the old palette.
-        var palette = new ResourceDictionary
-        {
-            Source = new Uri($"/FileScope.App;component/Styles/Themes/{theme}ThemePalette.xaml", UriKind.Relative)
-        };
-
         // Replace only our palette; retain control styles, converters and other resources.
         var paletteHost = _application.Resources.MergedDictionaries.SingleOrDefault(dictionary => dictionary.Source?.OriginalString.EndsWith("ThemePalette.xaml", StringComparison.Ordinal) == true);
-        if (paletteHost == null)
+        if (paletteHost?.Source?.OriginalString.EndsWith($"{theme}ThemePalette.xaml", StringComparison.Ordinal) != true)
         {
-            _application.Resources.MergedDictionaries.Add(palette);
-        }
-        else if (!_application.Resources.MergedDictionaries.Any(dictionary => dictionary.Source?.OriginalString.EndsWith($"{theme}ThemePalette.xaml", StringComparison.Ordinal) == true))
-        {
-            var index = _application.Resources.MergedDictionaries.IndexOf(paletteHost);
-            _application.Resources.MergedDictionaries[index] = palette;
+            // Load only when needed, and before replacing: failure keeps the old palette.
+            var palette = new ResourceDictionary
+            {
+                Source = new Uri($"/FileScope.App;component/Styles/Themes/{theme}ThemePalette.xaml", UriKind.Relative)
+            };
+            if (paletteHost == null)
+            {
+                _application.Resources.MergedDictionaries.Add(palette);
+            }
+            else
+            {
+                var index = _application.Resources.MergedDictionaries.IndexOf(paletteHost);
+                _application.Resources.MergedDictionaries[index] = palette;
+            }
         }
 
         SetApplicationThemeMode(theme);

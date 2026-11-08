@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -62,6 +64,7 @@ internal static class UiChecks
             CheckThemeService(app);
             CheckThemeSwitching(app, strings);
             CheckAboutDialog(app, strings);
+            CheckFileContextMenu(app, strings);
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
@@ -180,6 +183,176 @@ internal static class UiChecks
             window?.Close();
             app?.Shutdown();
             SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
+    }
+
+    private static void CheckFileContextMenu(Application app, LocalizationService strings)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "FileScope-shell-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "nested"));
+        var firstPath = Path.Combine(directory, "first.txt");
+        var secondPath = Path.Combine(directory, "nested", "second, 中文 & #.txt");
+        File.WriteAllText(firstPath, "abc");
+        File.WriteAllText(secondPath, "abc");
+        strings.SetCulture("en");
+        var shell = new RecordingFileShell();
+        var themes = new ThemeService(app);
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
+            CreateOptions(strings), fileShell: shell);
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var errors = new StringWriter();
+        using var listener = new TextWriterTraceListener(errors);
+        var bindingSource = PresentationTraceSources.DataBindingSource;
+        var previousLevel = bindingSource.Switch.Level;
+        bindingSource.Switch.Level = SourceLevels.Error;
+        bindingSource.Listeners.Add(listener);
+        ContextMenu? menu = null;
+        try
+        {
+            window.Show();
+            vm.DropFilesCommand.Execute(new[] { firstPath, secondPath });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            var first = vm.Rows[0];
+            var second = vm.Rows[1];
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var errorText = (TextBlock)window.FindName("FileActionErrorText");
+            var status = vm.StatusText;
+            var summary = vm.LastRunSummary;
+            Check(grid.ContextMenu == null, "empty grid space and column headers have no file context menu");
+            Check(!vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute("wrong type"),
+                "file commands reject missing and unrelated parameters");
+            vm.ShowFilePropertiesCommand.Execute(null);
+            vm.ShowInExplorerCommand.Execute("wrong type");
+            Check(shell.Requests.Count == 0, "invalid file commands do not call the shell service");
+
+            vm.SelectedRow = first;
+            menu = OpenMenu(second);
+            var properties = (MenuItem)menu.Items[0];
+            var explorer = (MenuItem)menu.Items[1];
+            Check(menu.Items.Count == 2 && ReferenceEquals(properties.Command, vm.ShowFilePropertiesCommand)
+                && ReferenceEquals(explorer.Command, vm.ShowInExplorerCommand), "row menu binds both file commands");
+            Check(ReferenceEquals(properties.CommandParameter, second) && ReferenceEquals(explorer.CommandParameter, second)
+                && ReferenceEquals(vm.SelectedRow, first), "context menu targets its row independently of the previous selection");
+            InvokeMenuItem(properties);
+            PumpUntil(() => shell.Requests.Count == 1);
+            Check(shell.Requests[0] == ("properties", secondPath), "Properties receives the exact nested Unicode file path");
+
+            menu = OpenMenu(second);
+            InvokeMenuItem((MenuItem)menu.Items[1]);
+            PumpUntil(() => shell.Requests.Count == 2);
+            Check(shell.Requests[1] == ("explorer", secondPath), "Explorer receives the file itself, including spaces, commas and Unicode");
+            Check(vm.StatusText == status && ReferenceEquals(vm.LastRunSummary, summary) && !vm.HasFileActionError,
+                "successful shell actions preserve analysis status and run statistics");
+
+            grid.SelectedItems.Add(second);
+            menu = OpenMenu(first);
+            InvokeMenuItem((MenuItem)menu.Items[1]);
+            PumpUntil(() => shell.Requests.Count == 3);
+            Check(shell.Requests[2] == ("explorer", firstPath), "reopening the shared menu targets the new row even with multiple rows selected");
+
+            shell.Succeed = false;
+            vm.ShowFilePropertiesCommand.Execute(second);
+            DrainDispatcher();
+            Check(vm.HasFileActionError && errorText.IsVisible && errorText.Text.Contains(secondPath, StringComparison.Ordinal),
+                "a failed Properties request displays a separate visible error with the file path");
+            Check(vm.StatusText == status && ReferenceEquals(vm.LastRunSummary, summary) && vm.LastError.Length == 0,
+                "shell failures do not replace the analysis result, timing or analysis error");
+            foreach (var culture in new[] { "de", "en", "zh-Hans" })
+            {
+                strings.SetCulture(culture);
+                menu = OpenMenu(second);
+                Check((string)((MenuItem)menu.Items[0]).Header == strings["FilePropertiesMenu"]
+                    && (string)((MenuItem)menu.Items[1]).Header == strings["ShowInExplorerMenu"],
+                    "both context menu labels follow the selected language / " + culture);
+                Check(errorText.Text == strings.Format("FilePropertiesError", secondPath),
+                    "an existing shell error follows the selected language / " + culture);
+                menu.IsOpen = false;
+            }
+
+            vm.ShowInExplorerCommand.Execute(second);
+            DrainDispatcher();
+            Check(errorText.Text == strings.Format("FileExplorerError", secondPath), "Explorer failures use their own localized explanation");
+            shell.Succeed = true;
+            vm.ShowInExplorerCommand.Execute(second);
+            DrainDispatcher();
+            Check(!vm.HasFileActionError && errorText.Visibility == Visibility.Collapsed, "a successful retry clears the shell error");
+
+            foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
+            {
+                themes.Apply(theme);
+                menu = OpenMenu(second);
+                Check(menu.Template != null && ((MenuItem)menu.Items[0]).Template != null
+                    && ReferenceEquals(((MenuItem)menu.Items[1]).CommandParameter, second)
+                    && ((MenuItem)menu.Items[1]).IsEnabled && HasNativeTheme(app, theme),
+                    "native context menu templates and row commands remain usable after a theme switch / " + theme);
+                menu.IsOpen = false;
+            }
+
+            shell.ExplorerCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var explorerFinished = false;
+            vm.ShowInExplorerCommand.CanExecuteChanged += (_, _) =>
+            {
+                if (shell.ExplorerCompletion.Task.IsCompleted) explorerFinished = true;
+            };
+            vm.ShowInExplorerCommand.Execute(second);
+            Check(!vm.ShowInExplorerCommand.CanExecute(first) && vm.ClearCommand.CanExecute(null),
+                "pending Explorer requests prevent duplicate launches without blocking the rest of the window");
+            vm.ClearCommand.Execute(null);
+            shell.ExplorerCompletion.SetResult(false);
+            PumpUntil(() => explorerFinished);
+            Check(vm.Rows.Count == 0 && !vm.HasFileActionError && vm.StatusText == strings["Cleared"],
+                "an Explorer completion after Clear cannot restore stale errors or rows");
+            Check(!vm.ShowFilePropertiesCommand.CanExecute(second) && !vm.ShowInExplorerCommand.CanExecute(second),
+                "commands reject a former row after Clear");
+
+            // Exercise only the guards of the real service: no Explorer or property sheet is opened.
+            File.Delete(secondPath);
+            var native = new FileShellService();
+            Check(!native.TryShowProperties(secondPath), "real Properties service rejects a file deleted since analysis");
+            var missing = native.TryShowInExplorerAsync(secondPath);
+            PumpUntil(() => missing.IsCompleted);
+            Check(!missing.GetAwaiter().GetResult(), "real Explorer service rejects a file deleted since analysis");
+            Check(errors.ToString().Length == 0, "row context menus, themes and localized errors produce no WPF binding errors: " + errors);
+
+            ContextMenu OpenMenu(FileRowViewModel row)
+            {
+                if (menu != null) menu.IsOpen = false;
+                grid.ScrollIntoView(row);
+                window.UpdateLayout();
+                DrainDispatcher();
+                var container = (DataGridRow)grid.ItemContainerGenerator.ContainerFromItem(row);
+                var contextMenu = container.ContextMenu;
+                contextMenu.PlacementTarget = container;
+                contextMenu.IsOpen = true;
+                DrainDispatcher();
+                return contextMenu;
+            }
+        }
+        finally
+        {
+            if (menu != null) menu.IsOpen = false;
+            window.Close();
+            themes.Apply(AppTheme.Light);
+            strings.SetCulture("en");
+            bindingSource.Listeners.Remove(listener);
+            bindingSource.Switch.Level = previousLevel;
+            Directory.Delete(directory, true);
+        }
+    }
+
+    private static void InvokeMenuItem(MenuItem item) =>
+        ((IInvokeProvider)new MenuItemAutomationPeer(item).GetPattern(PatternInterface.Invoke)).Invoke();
+
+    private sealed class RecordingFileShell : IFileShellService
+    {
+        public List<(string Action, string Path)> Requests { get; } = [];
+        public bool Succeed { get; set; } = true;
+        public TaskCompletionSource<bool>? ExplorerCompletion { get; set; }
+        public bool TryShowProperties(string fullPath) { Requests.Add(("properties", fullPath)); return Succeed; }
+        public Task<bool> TryShowInExplorerAsync(string fullPath)
+        {
+            Requests.Add(("explorer", fullPath));
+            return ExplorerCompletion?.Task ?? Task.FromResult(Succeed);
         }
     }
 
@@ -328,6 +501,11 @@ internal static class UiChecks
         var controls = app.Resources.MergedDictionaries.Single(dictionary =>
             dictionary.Source?.OriginalString.EndsWith("Controls.xaml", StringComparison.Ordinal) == true);
         var converter = app.Resources["BoolToVisibility"];
+        var originalPalette = ThemePalettes(app).Single();
+        var originalBrush = app.FindResource("MutedBrush");
+        _ = new ThemeService(app);
+        Check(ReferenceEquals(originalPalette, ThemePalettes(app).Single()) && ReferenceEquals(originalBrush, app.FindResource("MutedBrush")),
+            "constructing with the existing matching App.xaml palette preserves its resources");
         foreach (var palette in ThemePalettes(app)) app.Resources.MergedDictionaries.Remove(palette);
         var service = new ThemeService(app);
         Check(service.CurrentTheme == AppTheme.Light && HasNativeTheme(app, AppTheme.Light)
@@ -1608,9 +1786,10 @@ internal static class UiChecks
 
     private static MainViewModel CreateMainViewModel(IFileAnalysisService analysis, IFilePickerService picker,
         LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null,
-        IConfirmationService? confirmation = null) =>
+        IConfirmationService? confirmation = null, IFileShellService? fileShell = null) =>
         new(analysis, picker, strings, options, scanner ?? new FolderScanner(),
-            exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]), confirmation ?? new TestConfirmation());
+            exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]), confirmation ?? new TestConfirmation(),
+            fileShell ?? new RecordingFileShell());
 
     private sealed class TestConfirmation : IConfirmationService
     {

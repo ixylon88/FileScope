@@ -32,6 +32,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private long _epoch;
     private int _processed, _batchTotal, _skipped;
     private string _searchText = "";
+    private string? _fileActionErrorPath;
+    private string _fileActionErrorKey = "FilePropertiesError";
     private FilterOption<RowStatus?> _stateFilter;
     private FilterOption<SignatureFilter> _signatureFilter;
 
@@ -49,9 +51,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CancelCommand { get; }
     public RelayCommand ClearCommand { get; }
     public RelayCommand ResetFiltersCommand { get; }
+    public AsyncRelayCommand ShowFilePropertiesCommand { get; }
+    public AsyncRelayCommand ShowInExplorerCommand { get; }
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
-        OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter, IConfirmationService confirmation)
+        OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter, IConfirmationService confirmation,
+        IFileShellService fileShell)
     {
         _analysis = analysis;
         _picker = picker;
@@ -109,6 +114,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && HasRows && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters);
+        // The parameter is the context menu's row, independent of SelectedRow.
+        ShowFilePropertiesCommand = new AsyncRelayCommand(parameter =>
+        {
+            var path = ((FileRowViewModel)parameter!).FullPath;
+            SetFileActionError(fileShell.TryShowProperties(path) ? null : path, "FilePropertiesError");
+            return Task.CompletedTask;
+        }, OnCommandError, parameter => !_disposed && parameter is FileRowViewModel row && Rows.Contains(row));
+        ShowInExplorerCommand = new AsyncRelayCommand(async parameter =>
+        {
+            var row = (FileRowViewModel)parameter!;
+            var path = row.FullPath;
+            var success = await fileShell.TryShowInExplorerAsync(path);
+            if (!_disposed && Rows.Contains(row)) SetFileActionError(success ? null : path, "FileExplorerError");
+        }, OnCommandError, parameter => !_disposed && parameter is FileRowViewModel row && Rows.Contains(row));
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
         options.ExportSelectionChanged += OnExportSelectionChanged;
@@ -180,6 +199,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
     public string LastError { get; private set => SetProperty(ref field, value); } = "";
     public bool HasError => LastError.Length != 0;
+    public bool HasFileActionError => _fileActionErrorPath is not null;
+    public string FileActionError => _fileActionErrorPath is { } path ? _strings.Format(_fileActionErrorKey, path) : "";
+
+    private void SetFileActionError(string? path, string key)
+    {
+        _fileActionErrorPath = path;
+        _fileActionErrorKey = key;
+        OnPropertyChanged(nameof(FileActionError));
+        OnPropertyChanged(nameof(HasFileActionError));
+    }
     public AnalysisRunSummary? LastRunSummary
     {
         get;
@@ -564,6 +593,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void ClearRows()
     {
+        SetFileActionError(null, "FilePropertiesError");
         ++_epoch;
         LastRunSummary = null;
         foreach (var row in Rows) UnsubscribeRow(row);
@@ -682,6 +712,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ReanalyseCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
+        ShowFilePropertiesCommand.NotifyCanExecuteChanged();
+        ShowInExplorerCommand.NotifyCanExecuteChanged();
     }
     private void OnCommandError(Exception exception)
     {
@@ -691,6 +723,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
     private void OnCultureChanged(object? sender, EventArgs args)
     {
+        OnPropertyChanged(nameof(FileActionError));
         foreach (var row in Rows) row.RefreshLanguage();
         foreach (var option in StateFilters) option.RefreshLanguage();
         foreach (var option in SignatureFilters) option.RefreshLanguage();

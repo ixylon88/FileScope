@@ -146,6 +146,25 @@
                   EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
                   ClipboardCopyMode="IncludeHeader" AutomationProperties.Name="{loc:Loc ResultsLabel}">
+          <DataGrid.RowStyle>
+            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+              <Setter Property="Background" Value="Transparent"/>
+              <Setter Property="ContextMenu">
+                <Setter.Value>
+                  <!-- Popups have a separate visual tree. Resolve the row through
+                       PlacementTarget every time, including recycled containers. -->
+                  <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Header="{loc:Loc FilePropertiesMenu}"
+                              Command="{Binding Data.ShowFilePropertiesCommand, Source={StaticResource ViewModelProxy}}"
+                              CommandParameter="{Binding}" />
+                    <MenuItem Header="{loc:Loc ShowInExplorerMenu}"
+                              Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource ViewModelProxy}}"
+                              CommandParameter="{Binding}" />
+                  </ContextMenu>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </DataGrid.RowStyle>
           <DataGrid.Columns>
             <DataGridTextColumn Header="{loc:Loc Column_Name}" Binding="{Binding FileName}" behaviors:ColumnLayoutBehavior.Id="Name" Width="Auto" MinWidth="150" MaxWidth="340" ElementStyle="{StaticResource NameText}" />
             <DataGridTemplateColumn Header="{loc:Loc Column_Status}" behaviors:ColumnLayoutBehavior.Id="Status" Width="Auto" MinWidth="110" MaxWidth="250" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
@@ -292,6 +311,8 @@
         </Grid>
         <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate}" Height="4" Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
         <TextBlock Text="{Binding LastError}" Foreground="#B42318" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock x:Name="FileActionErrorText" Text="{Binding FileActionError}" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                   Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasFileActionError, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </Border>
   </Grid>

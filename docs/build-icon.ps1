@@ -1,6 +1,7 @@
 param (
     [string]$InputPng = ".\icon.png",
-    [string]$OutputIco = ".\icon.ico"
+    [string]$OutputIco = ".\icon.ico",
+    [string]$OutputSplash
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -74,5 +75,13 @@ foreach ($data in $imageDataList) {
 $bw.Close()
 $fs.Close()
 $sourceBitmap.Dispose()
+
+# Reuse the exact 256px PNG already generated for the icon. WPF displays a
+# SplashScreen resource at its image size, so the large source is unsuitable.
+if ($OutputSplash) {
+    [System.IO.File]::WriteAllBytes(
+        $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputSplash),
+        $imageDataList[[Array]::IndexOf($sizes, 256)])
+}
 
 Write-Host "Sauberes Icon erstellt unter: $OutputIco" -ForegroundColor Green

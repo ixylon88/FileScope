@@ -6,7 +6,9 @@ Die Werte entsprechen der sortierten `.editorconfig`. Innerhalb jeder Gruppe sin
 
 **Bereinigung:** Die identische PascalCase-Definition ist nur noch einmal vorhanden. `csharp_style_pattern_local_over_anonymous_function` war ein unbekannter Schlüssel und heißt jetzt korrekt `csharp_style_prefer_local_over_anonymous_function`. Der gewünschte Wert `false:suggestion` bleibt erhalten. Alle übrigen wirksamen Werte bleiben gleich.
 
-**Zusätzliche Analyzer:** StyleCop (`SA`/`SX`), AsyncFixer und VSTHRD sind in den Projektdateien nicht als Pakete eingebunden. Ihre Einträge bleiben als vorbereitete Regeln erhalten; im Projektbuild wirken sie erst, wenn die entsprechenden Analyzer verfügbar sind.
+**Zusätzliche Analyzer:** `Microsoft.VisualStudio.Threading.Analyzers` ist zentral in `Directory.Build.props` mit `PrivateAssets=all` eingebunden. Die VSTHRD-Regeln wirken damit im Build; das Paket wird nicht als Laufzeitabhängigkeit ausgeliefert. StyleCop (`SA`/`SX`) und AsyncFixer sind weiterhin nicht eingebunden; ihre Einträge bleiben vorbereitete Regeln.
+
+**Asynchroner Code:** Außerhalb der WPF-App verlangt die aktive Regel `VSTHRD111` eine ausdrückliche Entscheidung zu `ConfigureAwait`; die Core-Bibliothek verwendet bei ihren asynchronen Fortsetzungen `ConfigureAwait(false)`. In `src/FileScope.App/.editorconfig` sind `CA2007` und `VSTHRD111` ausgeschaltet: UI-Fortsetzungen sollen auf den Dispatcher zurückkehren. Die Ausnahmen für Testcode stehen separat in `tests/.editorconfig`.
 
 ## 01 | Vererbung
 

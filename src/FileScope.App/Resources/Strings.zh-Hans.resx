@@ -717,4 +717,16 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="AboutCredits" xml:space="preserve">
     <value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>在文件资源管理器中显示</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows 无法打开“{0}”的属性。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows 无法在文件资源管理器中显示“{0}”。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
 </root>
