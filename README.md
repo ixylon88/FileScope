@@ -11,7 +11,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 - **Ergebnisse gezielt auswerten:** Über alle Angaben suchen, nach Analyse- und Signaturstatus filtern, sortieren und Details kopieren.
 - **Ergebnisse weiterverwenden:** Vorhandene Analysewerte mit frei wählbaren Feldern als CSV oder JSON exportieren, ohne die Quelldateien erneut zu analysieren.
 - **Ansicht anpassen:** Spalten und Hashdarstellung konfigurieren; Deutsch, Englisch oder vereinfachtes Chinesisch wählen.
-- **Windows x64** und **Windows on ARM64** wird unterstützt (Letzteres wurde auf Parallels getestets)
+- **Windows x64** und **Windows on ARM64** wird unterstützt (Letzteres wurde auf Parallels getestet).
 
 Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt.
 
@@ -73,6 +73,9 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 | --- | --- |
 | `FileScope: Build (Release)` | `Build.ps1 -Configuration Release`; Standard-Build mit Ctrl+Shift+B |
 | `FileScope: Publish (win-x64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
+| `FileScope: Publish (win-arm64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
+| `FileScope: Publish self-contained (win-x64)` | `Build.ps1 -Configuration Release -Publish --self-contained true -Runtime win-x64` |
+| `FileScope: Publish self-contained (win-arm64)` | `Build.ps1 -Configuration Release -Publish --self-contained true -Runtime win-x64` |
 | `FileScope: Verify` | `Verify.ps1`; baut die Lösung und führt alle für Windows vorgesehenen Prüfungen aus |
 
 Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Workspace-Ordner als Arbeitsverzeichnis. Auch Pfade mit Leerzeichen funktionieren, da Argumente getrennt übergeben werden. Das .NET-10-SDK muss im `PATH` des VS-Code-Prozesses liegen. Publish erzeugt eine eigenständige Ausgabe unter `artifacts/publish/win-x64`.
@@ -89,7 +92,7 @@ Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Works
 .\Build.ps1 -Publish -Runtime win-arm64
 ```
 
-Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-arm64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch `--self-contained true` ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
+Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-arm64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch einen self-contained publish ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
 
 **Plattformunterstützung**: Windows x64 und Windows ARM64. Die ARM64-Version wurde unter Windows 11 in Parallels Desktop erfolgreich getestet. Weitere Zielarchitekturen können über den Runtime-Parameter gewählt werden.
 
@@ -97,7 +100,6 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-
 
 | Funktion | Verhalten |
 | --- | --- |
-| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Das Menü gilt für die angeklickte Zeile, auch bei einer Mehrfachauswahl; über die Menütaste / Umschalt+F10 ist es ebenfalls erreichbar. |
 | Dateien oder Ordner ablegen | Eine oder mehrere Dateien und/oder Ordner auf einen beliebigen Bereich des Fensters ziehen. Für Ordner bestätigt eine gemeinsame Rückfrage die Auswertung einschließlich Unterordnern; „Nein“ verwirft den gesamten Drop. Alternativ „Dateien öffnen“ / Ctrl+O oder „Ordner hinzufügen“. |
 | Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
 | Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
@@ -114,6 +116,7 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-
 | Alle neu prüfen | Alle geladenen Dateien mit der aktuellen Auswahl erneut verarbeiten, einschließlich ausgefilterter Dateien. Vorherige Ergebnisse dieser Dateien werden dabei ersetzt. |
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben, Dateieigenschaften, PE-Angaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
+| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Das Menü gilt für die angeklickte Zeile, auch bei einer Mehrfachauswahl; über die Menütaste / Umschalt+F10 ist es ebenfalls erreichbar. |
 | Alles außer gültigen Signaturen | Blendet ausschließlich den Status „gültig“ aus. Enthält auch unsignierte, ungeprüfte, nicht unterstützte und fehlgeschlagene Prüfungen. Bei mehreren Signaturen gilt die aktuelle Auswahl in der Zeile. „Prüfbedarf“ behält seine bisherige engere Bedeutung ohne unsignierte/ungeprüfte Dateien. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
 | Statusfelder | Verarbeitungs- und Signaturstatus verwenden dieselbe abgerundete `StatusBadge`-Komponente. Grün: fertig/gültig; Blau: Verarbeitung läuft; Gelb: abgebrochen oder Warnfall; Rot: Fehler/ungültige Prüfung; Grau: wartend, nicht geprüft oder keine eingebettete Signatur. Die übersetzte Beschriftung und der vollständige Tooltip bleiben maßgeblich. |
@@ -305,13 +308,13 @@ Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `Dynamic
 
 ### Tabellendarstellung
 
-Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Da ein Popup außerhalb des visuellen Fensterbaums liegt, bezieht es seine Zeile über `PlacementTarget.DataContext`; der vorhandene `BindingProxy` liefert die Commands des Haupt-ViewModels. Die Aktion hängt damit weder an einer vorher ausgewählten Zeile noch an einem alten DataContext eines wiederverwendeten Zeilencontainers. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
-
 `MainViewModel` hält die Zeilen mit Diagnosedetails in einer eigenen Menge. Änderungen am Analyseergebnis und an der Signaturauswahl aktualisieren diese Menge, ohne für jede Änderung die ganze Tabelle zu durchsuchen. `ShowDiagnosticColumn` steuert die Spaltensichtbarkeit über den vorhandenen `BindingProxy`; `DiagnosticRowCount` liefert die Anzahl für den lokalisierten Statustext. Die Filteransicht verändert diese Menge nicht.
 
 Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
 
 Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die Messung neu und erlaubt auch schmalere Spalten. Das Filtern allein setzt manuell gewählte Breiten nicht zurück.
+
+Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Da ein Popup außerhalb des visuellen Fensterbaums liegt, bezieht es seine Zeile über `PlacementTarget.DataContext`; der vorhandene `BindingProxy` liefert die Commands des Haupt-ViewModels. Die Aktion hängt damit weder an einer vorher ausgewählten Zeile noch an einem alten DataContext eines wiederverwendeten Zeilencontainers. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
 
 Beim horizontalen Scrollen kann WPF für `CellsPanelHorizontalOffset` einen geringfügig negativen Wert berechnen. Die Fluent-Vorlage bindet diesen Wert direkt an die Breite ihres internen „Alles auswählen“-Knopfs, auch bei ausgeblendeten Zeilenüberschriften. `DataGridScrollFix` ergänzt beim Laden der Tabelle ausschließlich für diese Bindung eine Begrenzung auf null. Positive Breiten bleiben erhalten; die native Vorlage, fixierte Spalten, Virtualisierung und automatische Spaltenbreiten bleiben bestehen. Die Binding-Fehlerausgabe wird nicht abgeschaltet.
 
