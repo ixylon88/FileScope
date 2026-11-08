@@ -1,5 +1,11 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: UTC-Zeitstempel im Exportdateinamen
+
+Stand: 8. November 2026. Patchbasis: `19ae3eb` (`publish self-contained or not`). Der Vorschlag im Speichern-Dialog verwendet `DateTime.UtcNow` mit kulturunabhängiger Formatierung und Windows-tauglichen Bindestrichen in der Uhrzeit. CSV und JSON verwenden denselben Namensstamm; die Endung ergänzt weiterhin der gewählte Dateityp.
+
+Release-Build von App und Core mit .NET SDK 10.0.100 unter Linux: bestanden, 0 Warnungen / 0 Fehler. Der Windows-Speichern-Dialog wurde hier nicht ausgeführt. Keine Prüfbedingungen hinzugefügt oder entfernt; die dokumentierten Testzahlen bleiben unverändert. Die drei Testgruppen wurden für diese Änderung des Namensvorschlags nicht erneut ausgeführt.
+
 ## Ergänzung: Splashscreen und Dateikontextmenü
 
 Stand: 8. November 2026. Patchbasis: `972d0d6` (`app icon`). Ausführung mit .NET SDK 10.0.100 unter Linux.

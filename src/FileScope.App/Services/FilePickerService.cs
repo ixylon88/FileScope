@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Win32;
 
 namespace FileScope.App.Services;
@@ -36,7 +37,8 @@ public sealed class FilePickerService : IFilePickerService
         {
             Title = title,
             Filter = $"{csvFilesLabel} (*.csv)|*.csv|{jsonFilesLabel} (*.json)|*.json",
-            FileName = "FileScope",
+            // UTC, independent of UI culture; colons are not valid in Windows file names.
+            FileName = "FileScope_" + DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH-mm-ss'Z'", CultureInfo.InvariantCulture),
             FilterIndex = 1,
             DefaultExt = ".csv",
             AddExtension = true,
