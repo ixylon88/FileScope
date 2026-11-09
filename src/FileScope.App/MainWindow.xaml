@@ -180,44 +180,44 @@
           </DataGrid.RowStyle>
           <DataGrid.Columns>
             <DataGridTextColumn Header="{loc:Loc Column_Name}" Binding="{Binding FileName}" behaviors:ColumnLayoutBehavior.Id="Name" Width="Auto" MinWidth="150" MaxWidth="340" ElementStyle="{StaticResource NameText}" />
-            <DataGridTemplateColumn Header="{loc:Loc Column_Status}" behaviors:ColumnLayoutBehavior.Id="Status" Width="Auto" MinWidth="110" MaxWidth="250" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
-              <DataGridTemplateColumn.CellTemplate>
+            <controls:CellBoundTemplateColumn Header="{loc:Loc Column_Status}" behaviors:ColumnLayoutBehavior.Id="Status" Width="Auto" MinWidth="110" MaxWidth="250" SortMemberPath="State" ClipboardContentBinding="{Binding StateText}">
+              <controls:CellBoundTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:StatusBadge Text="{Binding StateText}"
                                         Tone="{Binding State, Converter={StaticResource StatusToneConverter}}" />
                 </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
+              </controls:CellBoundTemplateColumn.CellTemplate>
+            </controls:CellBoundTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_Diagnostic}" Binding="{Binding Diagnostic}"
                                 Visibility="{Binding Data.ShowDiagnosticColumn, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                 behaviors:ColumnLayoutBehavior.Id="Diagnostic" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Size}" Binding="{Binding SizeText}" SortMemberPath="Length" behaviors:ColumnLayoutBehavior.Id="Size" Width="Auto" MinWidth="100" MaxWidth="170" ElementStyle="{StaticResource GridText}" />
-            <DataGridTemplateColumn Header="{loc:Loc Column_SignatureChoice}" behaviors:ColumnLayoutBehavior.Id="SignatureChoice"
+            <controls:CellBoundTemplateColumn Header="{loc:Loc Column_SignatureChoice}" behaviors:ColumnLayoutBehavior.Id="SignatureChoice"
                                     Width="Auto" MinWidth="180" MaxWidth="480" SortMemberPath="SignatureChoiceText"
                                     ClipboardContentBinding="{Binding SignatureChoiceText}"
                                     Visibility="{Binding Data.ShowSignatureSelectorColumn, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}">
-              <DataGridTemplateColumn.CellTemplate>
+              <controls:CellBoundTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <ComboBox ItemsSource="{Binding Signatures}" SelectedItem="{Binding SelectedSignature, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             DisplayMemberPath="Label" IsEnabled="{Binding HasMultipleSignatures}" Margin="5,3" MinWidth="160"
                             ToolTip="{loc:Loc SignatureChoiceHint}" AutomationProperties.Name="{loc:Loc Column_SignatureChoice}" />
                 </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
+              </controls:CellBoundTemplateColumn.CellTemplate>
+            </controls:CellBoundTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_SigningTime}" Binding="{Binding SigningTimeText}" SortMemberPath="SigningTime"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                 behaviors:ColumnLayoutBehavior.Id="SigningTime" Width="Auto" MinWidth="180" MaxWidth="380" ElementStyle="{StaticResource GridText}" />
-            <DataGridTemplateColumn Header="{loc:Loc Column_Signature}" SortMemberPath="SignatureText"
+            <controls:CellBoundTemplateColumn Header="{loc:Loc Column_Signature}" SortMemberPath="SignatureText"
                                     ClipboardContentBinding="{Binding SignatureText}"
                                     Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                     behaviors:ColumnLayoutBehavior.Id="Signature" Width="Auto" MinWidth="160" MaxWidth="360">
-              <DataGridTemplateColumn.CellTemplate>
+              <controls:CellBoundTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:StatusBadge Text="{Binding SignatureText}"
                                         Tone="{Binding SignatureState, Converter={StaticResource StatusToneConverter}}" />
                 </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
+              </controls:CellBoundTemplateColumn.CellTemplate>
+            </controls:CellBoundTemplateColumn>
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Publisher" Width="Auto" MinWidth="150" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}"

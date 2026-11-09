@@ -1,5 +1,28 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Explizite Datenquelle für Vorlagenzellen
+
+Stand: 9. November 2026. Folgepatch auf `FileScope-shortcuts-owner-fix.patch`; vorangegangene Änderungen sind nicht nochmals enthalten. .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Rebuild einschließlich Core, App, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Statische Struktur- und Ressourcenprüfung | 1431 bestanden; weiterhin 267 Schlüssel je Sprache |
+| Core / Präsentation | Quellen und Prüfungen unverändert; für diesen WPF-Patch nicht erneut ausgeführt |
+| WPF / UI / MVVM | 413 Assertions erwartet: bisher 396, zusätzlich 17. Testprogramm kompiliert, hier nicht ausgeführt. |
+
+Gemeldet wurde ein sporadisches `Cannot find element that provides DataContext` für `ContentPresenter.Content` mit `BindingExpression:(no path)`. Der konkrete Benutzerablauf ist weiterhin unbekannt. Die folgende Ursache passt zum Fehlertext, ist aber noch keine bestätigte Reproduktion des gemeldeten Vorfalls:
+
+- In [.NET 10 `DataGridTemplateColumn.LoadTemplateContent`](https://github.com/dotnet/wpf/blob/v10.0.0/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Controls/DataGridTemplateColumn.cs) erhält ein neu erzeugter Presenter eine leere Bindung auf `Content`.
+- Für genau diese Eigenschaft sucht [`BindingExpression`](https://github.com/dotnet/wpf/blob/v10.0.0/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Data/BindingExpression.cs) den Datenkontext beim übergeordneten Element. Fehlt dieses beim letzten Bindungsversuch, meldet WPF `NoDataContext`.
+- `CellBoundTemplateColumn` ersetzt diese Bindung unmittelbar nach der Erzeugung durch eine einseitige Bindung auf `DataContext` mit der jeweiligen Zelle als expliziter Quelle. Ein Zeilenobjekt wird nicht dauerhaft als Quelle festgehalten. Die Basisklasse wählt weiterhin Templates und Template-Selector; `DataGridCell` trennt verworfene Presenter wie bisher durch Ersetzen ihres Inhalts ab.
+
+Nur die drei Vorlagenspalten verwenden die Ableitung: Analysestatus, Signaturauswahl und Signaturstatus. Es werden keine Bindingmeldungen unterdrückt und weder Virtualisierung noch native Fluent-Templates abgeschaltet.
+
+Die 17 neuen Assertions entstehen aus neun Prüfstellen, davon vier für jeweils drei Produktionsspalten. Sie prüfen die Spaltenzuordnung, bewusst noch nicht eingebaute Presenter, einen geänderten und einen vorübergehend leeren Zellkontext, die tatsächliche Darstellung beider Badges und der Signaturauswahl, die Editing-Template-Rückfallregel sowie leere/gefilterte und wiederhergestellte Ansichten mit wechselnder Signaturspaltensichtbarkeit. Ein Binding-Trace prüft auch das Schließen des Fensters. Die vorhandenen Theme- und Signaturprüfungen laufen weiterhin mit den tatsächlichen Vorlagen.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Anschließend beim bisherigen Arbeitsablauf besonders Scrollen, Filterwechsel, Ein-/Ausblenden von Signaturspalten und Designwechsel beobachten. Ohne diesen Lauf wird die ursprüngliche sporadische Meldung ausdrücklich nicht als abschließend behoben gewertet.
+
 ## Ergänzung: Tastenkürzelübersicht und Owner-Testkorrektur
 
 Stand: 9. November 2026. Folgepatch auf `FileScope-ui-selection-path-fixes.patch` (Git-Ausgangspunkt `189fde4`). .NET SDK 10.0.100 unter Linux.

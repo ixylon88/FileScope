@@ -133,7 +133,9 @@ check(app_theme is not None and f'ThemeMode = ThemeMode.{app_theme}' in ui_check
 namespace = '{http://schemas.microsoft.com/winfx/2006/xaml/presentation}'
 behavior = '{clr-namespace:FileScope.App.Behaviors}ColumnLayoutBehavior.Id'
 view = ET.fromstring(xaml)
-columns = [node for node in view.iter() if node.tag in {namespace + 'DataGridTextColumn', namespace + 'DataGridTemplateColumn'}]
+columns = [node for node in view.iter() if node.tag in {
+    namespace + 'DataGridTextColumn', namespace + 'DataGridTemplateColumn',
+    '{clr-namespace:FileScope.App.Controls}CellBoundTemplateColumn'}]
 ids = [column.attrib.get(behavior) for column in columns]
 check(len(ids) == 39 and None not in ids and len(set(ids)) == len(ids), 'Missing or duplicate column IDs.')
 catalog = (ROOT / 'src/FileScope.App/ViewModels/ColumnOption.cs').read_text(encoding='utf-8')

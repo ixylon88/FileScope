@@ -83,6 +83,7 @@ internal static class UiChecks
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
             CheckHorizontalScrolling(strings);
+            CheckTemplateCellBindings(strings);
             CheckScrollBarSizing();
             var service = new ImmediateAnalysis();
             using var vm = CreateMainViewModel(service, new EmptyPicker(), strings, CreateOptions(strings));
@@ -2032,6 +2033,109 @@ internal static class UiChecks
             trace.Listeners.Remove(listener);
             trace.Switch.Level = previousLevel;
             window.Close();
+        }
+    }
+
+    private static void CheckTemplateCellBindings(LocalizationService strings)
+    {
+        using var vm = CreateMainViewModel(new MultipleSignatureAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
+        vm.InspectCertificates = true;
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var trace = PresentationTraceSources.DataBindingSource;
+        var previousLevel = trace.Switch.Level;
+        using var messages = new StringWriter();
+        using var listener = new TextWriterTraceListener(messages);
+        trace.Switch.Level = SourceLevels.Error;
+        trace.Listeners.Add(listener);
+        try
+        {
+            window.Show();
+            var root = Path.Combine(Path.GetTempPath(), "FileScope-template-bindings");
+            vm.DropFilesCommand.Execute(new[] { Path.Combine(root, "multi.exe"), Path.Combine(root, "single.exe") });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var first = vm.Rows.Single(row => row.FileName == "multi.exe");
+            var second = vm.Rows.Single(row => row.FileName == "single.exe");
+            var columns = grid.Columns.OfType<DataGridTemplateColumn>().ToArray();
+            Check(columns.Length == 3 && columns.All(column => column is CellBoundTemplateColumn),
+                "all three production template columns use cell-bound presenters");
+
+            // Call the framework's generation hook without attaching its result.
+            // This deliberately separates creation from attachment; a regular
+            // rendered-cell test would hide the missing-parent binding failure.
+            var generate = typeof(CellBoundTemplateColumn).GetMethod("GenerateElement", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            foreach (var column in columns)
+            {
+                var id = ColumnLayoutBehavior.GetId(column);
+                var cell = new DataGridCell { DataContext = first };
+                var presenter = (ContentPresenter)generate.Invoke(column, new object[] { cell, first })!;
+                DrainDispatcher();
+                var binding = BindingOperations.GetBindingExpression(presenter, ContentPresenter.ContentProperty)!;
+                Check(VisualTreeHelper.GetParent(presenter) is null && ReferenceEquals(presenter.Content, first) && !binding.HasError,
+                    "an unattached template presenter resolves its row without a parent / " + id);
+                cell.DataContext = second;
+                DrainDispatcher();
+                Check(ReferenceEquals(presenter.Content, second) && !binding.HasError,
+                    "the same presenter follows a recycled cell's new row / " + id);
+                cell.DataContext = null;
+                DrainDispatcher();
+                var cleared = presenter.Content is null && !binding.HasError;
+                cell.DataContext = first;
+                DrainDispatcher();
+                Check(cleared && ReferenceEquals(presenter.Content, first) && !binding.HasError,
+                    "a null cell context clears the presenter and later recovers / " + id);
+                Check(DisplaysRow(column, first), "the realized template displays the correct row / " + id);
+                BindingOperations.ClearBinding(presenter, ContentPresenter.ContentProperty);
+            }
+
+            var editing = typeof(CellBoundTemplateColumn).GetMethod("GenerateEditingElement", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var editingCell = new DataGridCell { DataContext = first };
+            var editingPresenter = (ContentPresenter)editing.Invoke(columns[0], new object[] { editingCell, first })!;
+            DrainDispatcher();
+            Check(ReferenceEquals(editingPresenter.Content, first)
+                && ReferenceEquals(editingPresenter.ContentTemplate, columns[0].CellTemplate),
+                "editing generation preserves the base column's fallback to the display template");
+            BindingOperations.ClearBinding(editingPresenter, ContentPresenter.ContentProperty);
+
+            vm.SearchText = "no-matching-template-row";
+            DrainDispatcher();
+            Check(grid.Items.Count == 0, "filtering can detach all template cells");
+            vm.InspectCertificates = false;
+            DrainDispatcher();
+            vm.SearchText = "";
+            vm.InspectCertificates = true;
+            DrainDispatcher();
+            Check(columns.All(column => DisplaysRow(column, second)) && columns.All(column => DisplaysRow(column, first)),
+                "restored rows and signature columns display the right data after filtering and visibility changes");
+            window.Close();
+            DrainDispatcher();
+            trace.Flush();
+            Check(messages.ToString().Length == 0,
+                "template creation, row reuse, filtering and window closure produce no binding errors: " + messages);
+
+            bool DisplaysRow(DataGridTemplateColumn column, FileRowViewModel row)
+            {
+                grid.ScrollIntoView(row, column);
+                grid.UpdateLayout();
+                DrainDispatcher();
+                if (column.GetCellContent(row) is not ContentPresenter content || !ReferenceEquals(content.Content, row)) return false;
+                return ColumnLayoutBehavior.GetId(column) switch
+                {
+                    "Status" => VisualChildren(content).OfType<StatusBadge>().Any(badge =>
+                        ReferenceEquals(badge.DataContext, row) && badge.Text == row.StateText),
+                    "Signature" => VisualChildren(content).OfType<StatusBadge>().Any(badge =>
+                        ReferenceEquals(badge.DataContext, row) && badge.Text == row.SignatureText),
+                    "SignatureChoice" => VisualChildren(content).OfType<ComboBox>().Any(box =>
+                        ReferenceEquals(box.ItemsSource, row.Signatures) && ReferenceEquals(box.SelectedItem, row.SelectedSignature)),
+                    _ => false
+                };
+            }
+        }
+        finally
+        {
+            window.Close();
+            trace.Listeners.Remove(listener);
+            trace.Switch.Level = previousLevel;
         }
     }
 
