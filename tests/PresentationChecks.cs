@@ -22,6 +22,7 @@ internal static class PresentationChecks
             CheckExportProjection();
             CheckRunSummaries();
             CheckThemePreferences();
+            CheckProgressBuffer();
             Console.WriteLine();
             ConsoleColor backgroundBackup = Console.BackgroundColor;
             ConsoleColor foregroundBackup = Console.ForegroundColor;
@@ -36,6 +37,68 @@ internal static class PresentationChecks
         }
         catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }
     }
+    private static void CheckProgressBuffer()
+    {
+        var previousContext = SynchronizationContext.Current;
+        var context = new CountingContext();
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            var buffer = new AnalysisProgressBuffer();
+            var first = buffer.Start(0);
+            Check(buffer.Drain().Current?.Progress.Stage == AnalysisStage.OpeningFile,
+                "a new file is visible as opening before its first progress report");
+            for (var i = 1; i <= 20000; i++) first.Report(new AnalysisProgress(AnalysisStage.Reading, i, 20000));
+            var update = buffer.Drain();
+            Check(context.Posts == 0 && update.Current?.Progress.BytesRead == 20000 && update.Completed.Count == 0,
+                "twenty thousand reports retain only the latest progress and enqueue no synchronization-context callbacks");
+            var result = FileAnalysisResult.Failure("first.bin", AnalysisError.NotFound, null);
+            buffer.Complete(0, result);
+            var second = buffer.Start(1);
+            second.Report(new AnalysisProgress(AnalysisStage.CheckingSignature, 3, 3));
+            first.Report(new AnalysisProgress(AnalysisStage.Reading, 1, 20000));
+            update = buffer.Drain();
+            Check(update.Current?.Index == 1 && update.Current.Progress.Stage == AnalysisStage.CheckingSignature,
+                "late reports from a previous file cannot replace the current phase");
+            Check(update.Completed.Count == 1 && ReferenceEquals(update.Completed[0].Result, result),
+                "completed results survive progress coalescing");
+            buffer.Complete(1, result with { FullPath = "second.bin" });
+            update = buffer.Drain();
+            Check(update.Current == null && update.Completed.Single().Index == 1 && buffer.Drain().Completed.Count == 0,
+                "completion removes transient progress and every result is delivered exactly once");
+            var third = buffer.Start(2);
+            Parallel.For(0, 10000, i => third.Report(new AnalysisProgress(AnalysisStage.Reading, i, 10000)));
+            Check(buffer.Drain().Current is { Index: 2, Progress.TotalBytes: 10000 },
+                "concurrent producers publish an intact progress snapshot");
+            buffer.Close();
+            third.Report(new AnalysisProgress(AnalysisStage.CheckingSignature, 1, 1));
+            buffer.Start(3).Report(new AnalysisProgress(AnalysisStage.Reading, 1, 1));
+            buffer.Complete(3, result);
+            update = buffer.Drain();
+            Check(update.Current == null && update.Completed.Count == 0, "closing a batch rejects all late progress and results");
+            var strings = LocalizationService.Instance;
+            foreach (var culture in new[] { "de", "en", "zh-Hans" })
+            {
+                strings.SetCulture(culture);
+                var phases = Enum.GetValues<AnalysisStage>().Select(stage => AnalysisStageText.Format(stage, RevocationMode.OfflineCache, strings)).ToArray();
+                Check(phases.Distinct().Count() == 5 && phases.All(value => value.Length > 0)
+                    && AnalysisStageText.Format(AnalysisStage.CheckingSignature, RevocationMode.Online, strings) != phases[(int)AnalysisStage.CheckingSignature],
+                    "all phases are distinct and online revocation has an explicit label / " + culture);
+            }
+        }
+        finally
+        {
+            LocalizationService.Instance.SetCulture("en");
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+    }
+
+    private sealed class CountingContext : SynchronizationContext
+    {
+        public int Posts { get; private set; }
+        public override void Post(SendOrPostCallback callback, object? state) => Posts++;
+    }
+
     private static void CheckRunSummaries()
     {
         var strings = LocalizationService.Instance;

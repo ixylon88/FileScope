@@ -116,7 +116,10 @@ internal static class CoreChecks
             Check(analyzed.LastWriteTime.HasValue, "modification timestamp");
             Equal(1, signatures.Calls, "signature strategy is invoked");
             Check(signatures.SawReadableHandle, "signature receives the open readable stream");
-            var metadataOnly = await analyzer.AnalyzeAsync(path, new AnalysisOptions([], false));
+            var metadataProgress = new RecordedAnalysisProgress();
+            var metadataOnly = await analyzer.AnalyzeAsync(path, new AnalysisOptions([], false), metadataProgress);
+            Check(metadataProgress.Values.Select(value => value.Stage).SequenceEqual([AnalysisStage.OpeningFile]),
+                "disabled inspections do not advertise checksum, metadata or signature work");
             Check(metadataOnly.Succeeded && metadataOnly.Checksums.Count == 0, "metadata-only analysis");
             Equal(1, signatures.Calls, "disabled signatures do not invoke native strategy");
             Equal(SignatureStatus.NotChecked, metadataOnly.Signature.Status, "not checked is explicit");
@@ -783,8 +786,15 @@ internal static class CoreChecks
             var metadata = new StubMetadata();
             var signatures = new StubSignatures();
             var analyzer = new FileAnalysisService(checksums, signatures, metadata, metadata);
+            var progress = new RecordedAnalysisProgress();
             var result = await analyzer.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], true,
-                inspectFileProperties: flags.Item1, inspectPeHeader: flags.Item2));
+                inspectFileProperties: flags.Item1, inspectPeHeader: flags.Item2), progress);
+            var expectedStages = new List<AnalysisStage> { AnalysisStage.OpeningFile, AnalysisStage.Reading };
+            if (flags.Item1) expectedStages.Add(AnalysisStage.ReadingMetadata);
+            if (flags.Item2) expectedStages.Add(AnalysisStage.ReadingPeHeader);
+            expectedStages.Add(AnalysisStage.CheckingSignature);
+            Check(progress.Values.Select(value => value.Stage).Distinct().SequenceEqual(expectedStages),
+                "progress reports each enabled inspection separately and in execution order / " + flags);
             Check(result.Succeeded && metadata.PropertyCalls == (flags.Item1 ? 1 : 0)
                 && metadata.PeCalls == (flags.Item2 ? 1 : 0) && (result.Properties is not null) == flags.Item1
                 && (result.PeHeader is not null) == flags.Item2, "metadata options independently control inspection and results / " + flags);
@@ -826,6 +836,12 @@ internal static class CoreChecks
                 "real pipeline hashes and recognizes Win16 EXE/DLL without execution / DLL=" + dll);
         }
         await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
+    }
+
+    private sealed class RecordedAnalysisProgress : IProgress<AnalysisProgress>
+    {
+        public List<AnalysisProgress> Values { get; } = [];
+        public void Report(AnalysisProgress value) => Values.Add(value);
     }
 
     private sealed class StubMetadata : IFilePropertiesInspector, IPeHeaderInspector

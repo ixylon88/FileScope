@@ -151,7 +151,7 @@ workspace = json.loads((ROOT / 'FileScope.code-workspace').read_text(encoding='u
 check(any(folder.get('name') == 'FileScope' and folder.get('path') == '.' for folder in workspace['folders']),
       'Task workspace folder must resolve to the repository root.')
 tasks = workspace['tasks']['tasks']
-check(len(tasks) == 4 and len({task['label'] for task in tasks}) == 4, 'Expected four distinct workspace tasks.')
+check(len(tasks) == 6 and len({task['label'] for task in tasks}) == 6, 'Expected six distinct workspace tasks.')
 for task in tasks:
     check(task['type'] == 'process' and task['command'] == 'powershell.exe', 'Use PowerShell process tasks.')
     args = task['args']
@@ -160,8 +160,9 @@ for task in tasks:
           'Task must invoke an existing script in this workspace: ' + task['label'])
     check(task['options']['cwd'] == '${workspaceFolder:FileScope}', 'Task working directory must be the repository root.')
 publish = [task for task in tasks if '-Publish' in task['args']]
-check(len(publish) == 2 and {task['args'][task['args'].index('-Runtime') + 1] for task in publish} == {'win-x64', 'win-arm64'},
-      'Publish tasks must cover win-x64 and win-arm64.')
+check(len(publish) == 4 and {(task['args'][task['args'].index('-Runtime') + 1], '-SelfContained' in task['args'])
+                           for task in publish} == {('win-x64', False), ('win-x64', True), ('win-arm64', False), ('win-arm64', True)},
+      'Publish tasks must cover both runtimes with and without self-contained deployment.')
 check(any(task['args'][-1].endswith('/Verify.ps1') for task in tasks), 'Verify task must invoke Verify.ps1.')
 
 # The generated WPF entry point needs an embedded splash, not a loose output file.

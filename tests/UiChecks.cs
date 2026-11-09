@@ -74,6 +74,7 @@ internal static class UiChecks
             CheckMultipleSignatures(strings);
             CheckDiagnostics(strings);
             CheckRunSummaries(strings);
+            CheckBufferedProgress(strings);
             CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
@@ -1142,6 +1143,95 @@ internal static class UiChecks
             Check(vm.RowsView.Count == 1, "the same file can be dropped again after clear");
         }
         finally { viewNotifications.CollectionChanged -= readView; }
+    }
+
+    private static void CheckBufferedProgress(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var analysis = new ControlledProgressAnalysis();
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
+        vm.OnlineRevocation = true;
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(option => option.Value == SignatureFilter.NoSignature);
+        vm.RowsView.SortDescriptions.Add(new SortDescription(nameof(FileRowViewModel.FileName), ListSortDirection.Ascending));
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var wrongThread = false;
+        var notifications = 0;
+        var ownerThread = Environment.CurrentManagedThreadId;
+        vm.PropertyChanged += (_, args) =>
+        {
+            wrongThread |= Environment.CurrentManagedThreadId != ownerThread;
+            if (args.PropertyName == nameof(MainViewModel.Progress)) notifications++;
+        };
+        try
+        {
+            window.Show();
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var filters = (Grid)window.FindName("FiltersPanel");
+            vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "buffer-b.bin"), Path.Combine(Path.GetTempPath(), "buffer-a.bin") });
+            PumpUntil(() => analysis.Started.Task.IsCompleted && vm.Rows[0].State == RowStatus.Running);
+            Check(!filters.IsEnabled && !grid.CanUserSortColumns && !vm.ResetFiltersCommand.CanExecute(null),
+                "filter controls and sorting pause during analysis");
+            Check(vm.StatusText.Contains(strings["OpeningFile"], StringComparison.Ordinal),
+                "status identifies file opening before any checksum or inspection begins");
+            var resets = 0;
+            ((INotifyCollectionChanged)vm.RowsView).CollectionChanged += (_, args) =>
+            {
+                if (args.Action == NotifyCollectionChangedAction.Reset) resets++;
+            };
+            vm.SearchText = "ignored while busy";
+            vm.StateFilter = vm.StateFilters.Single(option => option.Value == RowStatus.Failed);
+            Check(vm.SearchText.Length == 0 && vm.StateFilter.Value == null, "programmatic filter changes cannot force mid-batch refreshes");
+            for (var i = 1; i <= 20000; i++) analysis.Progress!.Report(new AnalysisProgress(AnalysisStage.Reading, i, 40000));
+            PumpUntil(() => vm.Progress > 0 && vm.Rows[0].Stage == AnalysisStage.Reading);
+            Check(notifications < 100 && !wrongThread && analysis.WorkerThread != ownerThread,
+                "progress bursts coalesce into UI-thread updates while analysis runs off the dispatcher");
+            Check(vm.StatusText.Contains(strings["Reading"], StringComparison.Ordinal) && resets == 0,
+                "checksum progress updates without repeatedly rebuilding the active filtered view");
+            analysis.Progress!.Report(new AnalysisProgress(AnalysisStage.ReadingMetadata, 40000, 40000));
+            PumpUntil(() => vm.Rows[0].Stage == AnalysisStage.ReadingMetadata);
+            Check(vm.StatusText.Contains(strings["ReadingMetadata"], StringComparison.Ordinal), "file properties have their own visible phase");
+            analysis.Progress.Report(new AnalysisProgress(AnalysisStage.ReadingPeHeader, 40000, 40000));
+            PumpUntil(() => vm.Rows[0].Stage == AnalysisStage.ReadingPeHeader);
+            Check(vm.StatusText.Contains(strings["ReadingPeHeader"], StringComparison.Ordinal), "EXE headers have their own visible phase");
+            analysis.Progress.Report(new AnalysisProgress(AnalysisStage.CheckingSignature, 40000, 40000));
+            PumpUntil(() => vm.IsCheckingSignature);
+            Check(vm.IsProgressIndeterminate && vm.StatusText.Contains(strings["CheckingSignatureOnline"], StringComparison.Ordinal)
+                && vm.Rows[0].StateText == strings["CheckingSignatureOnline"],
+                "native signature checking explicitly includes online revocation without inventing network percentage progress");
+            analysis.Release.SetResult();
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.All(row => row.State == RowStatus.Completed) && vm.Progress == 100 && vm.CurrentFile.Length == 0,
+                "batch completion flushes all results and final progress immediately");
+            Check(resets == 1 && vm.RowsView.Count == 2 && ReferenceEquals(vm.RowsView.GetItemAt(0), vm.Rows[1])
+                && filters.IsEnabled && grid.CanUserSortColumns,
+                "completion applies the existing filter and sort once and restores the controls");
+            var status = vm.StatusText;
+            analysis.Progress.Report(new AnalysisProgress(AnalysisStage.Reading, 1, 40000));
+            DrainDispatcher();
+            Check(vm.Progress == 100 && vm.StatusText == status && !vm.IsProgressIndeterminate,
+                "late reports cannot revive a finished batch or its indeterminate indicator");
+        }
+        finally { analysis.Release.TrySetResult(); window.Close(); }
+    }
+
+    private sealed class ControlledProgressAnalysis : IFileAnalysisService
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public IProgress<AnalysisProgress>? Progress { get; private set; }
+        public int WorkerThread { get; private set; }
+        public async Task<FileAnalysisResult> AnalyzeAsync(string path, AnalysisOptions options,
+            IProgress<AnalysisProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            if (Progress == null)
+            {
+                Progress = progress;
+                WorkerThread = Environment.CurrentManagedThreadId;
+                Started.SetResult();
+                await Release.Task.WaitAsync(cancellationToken);
+            }
+            return Result(path, options);
+        }
     }
 
     private static void CheckRunSummaries(LocalizationService strings)

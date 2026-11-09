@@ -29,11 +29,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellation;
     private bool _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
     private bool _inspectFileProperties, _inspectPeHeader;
-    private long _epoch;
     private int _processed, _batchTotal, _skipped;
     private string _searchText = "";
     private string? _fileActionErrorPath;
     private string _fileActionErrorKey = "FilePropertiesError";
+    private AnalysisProgressBuffer? _analysisDisplay;
+    private DispatcherTimer? _displayTimer;
+    private CurrentAnalysis? _displayedAnalysis;
+    private AnalysisOptions? _runningOptions;
+    private bool _diagnosticDisplayDirty;
+    // One place to tune display cadence. The worker never waits for this timer.
+    public static TimeSpan StatusUpdateInterval { get; } = TimeSpan.FromMilliseconds(100);
     private FilterOption<RowStatus?> _stateFilter;
     private FilterOption<SignatureFilter> _signatureFilter;
 
@@ -113,7 +119,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _ => IsIdle && HasRows);
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && HasRows && !_clearRequested);
-        ResetFiltersCommand = new RelayCommand(ResetFilters);
+        ResetFiltersCommand = new RelayCommand(ResetFilters, () => IsIdle);
         // The parameter is the context menu's row, independent of SelectedRow.
         ShowFilePropertiesCommand = new AsyncRelayCommand(parameter =>
         {
@@ -222,6 +228,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         get
         {
             var status = _strings.Format(field, _processed, _batchTotal, _skipped);
+            if (field is "Processing" or "Cancelling" && _displayedAnalysis is { } current && _runningOptions is { } options)
+                status += " · " + AnalysisStageText.Format(current.Progress.Stage, options.RevocationMode, _strings);
             if (LastRunSummary is { } summary && field is "CompletedSummary" or "CancelledSummary")
                 status += " · " + summary.Format(_strings);
             return ShowDiagnosticColumn ? $"{status} · {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
@@ -234,17 +242,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string SearchText
     {
         get => _searchText;
-        set { if (SetProperty(ref _searchText, value)) RefreshView(); }
+        set { if (IsIdle && SetProperty(ref _searchText, value)) RefreshView(); }
     }
     public FilterOption<RowStatus?> StateFilter
     {
         get => _stateFilter;
-        set { if (value is not null && SetProperty(ref _stateFilter, value)) RefreshView(); }
+        set { if (IsIdle && value is not null && SetProperty(ref _stateFilter, value)) RefreshView(); }
     }
     public FilterOption<SignatureFilter> SignatureFilterOption
     {
         get => _signatureFilter;
-        set { if (value is not null && SetProperty(ref _signatureFilter, value)) RefreshView(); }
+        set { if (IsIdle && value is not null && SetProperty(ref _signatureFilter, value)) RefreshView(); }
     }
     private void OnHashFormatChanged(object? sender, EventArgs args)
     {
@@ -407,7 +415,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private CancellationToken BeginFileOperation(string status)
     {
-        ++_epoch;
         _cancellation = new CancellationTokenSource();
         _clearRequested = false;
         LastError = "";
@@ -421,7 +428,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void EndFileOperation()
     {
-        ++_epoch;
         _cancellation?.Dispose();
         _cancellation = null;
         IsFileOperation = false;
@@ -494,7 +500,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             InspectFileProperties, InspectPeHeader);
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
-        var epoch = ++_epoch;
         _processed = 0;
         _batchTotal = batch.Count;
         _clearRequested = false;
@@ -502,70 +507,115 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasError));
         IsBusy = true;
         Progress = 0;
+        _runningOptions = options;
+        var paths = batch.Select(row => row.FullPath).ToArray();
+        var buffer = new AnalysisProgressBuffer();
+        _analysisDisplay = buffer;
         foreach (var row in batch) row.Reset();
-        RefreshView();
+        // Preserve filtered/sorted membership until the single final refresh.
         SetStatus("Processing");
+        _displayTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = StatusUpdateInterval };
+        _displayTimer.Tick += OnDisplayTick;
+        _displayTimer.Start();
         try
         {
-            foreach (var row in batch)
-            {
-                token.ThrowIfCancellationRequested();
-                CurrentFile = row.FileName;
-                IsCheckingSignature = false;
-                row.Start();
-                RefreshAfterStateChange();
-                var progress = new Progress<AnalysisProgress>(p =>
-                {
-                    // Queued Progress<T> callbacks may outlive a completed/cancelled file.
-                    if (_disposed || _epoch != epoch || row.State != RowStatus.Running) return;
-                    IsCheckingSignature = p.Stage == AnalysisStage.CheckingSignature;
-                    var fraction = p.TotalBytes == 0 ? 1.0 : Math.Clamp((double)p.BytesRead / p.TotalBytes, 0, 1);
-                    var percent = p.Stage is AnalysisStage.CheckingSignature or AnalysisStage.ReadingMetadata ? 95
-                        : fraction * (options.InspectSignature || options.InspectFileProperties || options.InspectPeHeader ? 90 : 100);
-                    row.SetProgress(p, percent);
-                    Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
-                });
-#pragma warning disable CA1031 // Do not catch general exception types // we report and display the job error
-                try
-                {
-                    // Offload both CPU hashing and synchronous WinVerifyTrust.
-                    var result = await Task.Run(() => _analysis.AnalyzeAsync(row.FullPath, options, progress, token), token);
-                    row.Complete(result);
-                }
-                catch (OperationCanceledException) when (token.IsCancellationRequested) { row.Cancel(); throw; }
-                catch (Exception ex)
-                {
-                    // An unexpected per-file failure must not discard the rest of the batch.
-                    row.Complete(FileAnalysisResult.Failure(row.FullPath, AnalysisError.AnalysisFailure, ex.Message));
-                }
-#pragma warning restore CA1031 // Do not catch general exception types
-                _processed++;
-                Progress = 100.0 * _processed / _batchTotal;
-                OnPropertyChanged(nameof(StatusText));
-                RefreshAfterStateChange();
-            }
+            // No per-file dispatcher round trips: the worker owns the whole loop.
+            await Task.Run(() => AnalyzeBatchAsync(paths, options, buffer, token), token);
+            PublishDisplay();
             SetStatus("CompletedSummary");
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
+            PublishDisplay(); // Retain results completed before cancellation.
             foreach (var row in batch.Where(r => r.State is RowStatus.Queued or RowStatus.Running)) row.Cancel();
             SetStatus("CancelledSummary");
         }
         finally
         {
+            _displayTimer.Stop();
+            _displayTimer.Tick -= OnDisplayTick;
+            _displayTimer = null;
+            buffer.Close();
+            _analysisDisplay = null;
+            _displayedAnalysis = null;
+            _runningOptions = null;
             timer.Stop();
             LastRunSummary = AnalysisRunSummary.Capture(timer.Elapsed,
                 batch.Where(row => row.State is RowStatus.Completed or RowStatus.Failed)
                     .Select(row => row.Result).OfType<FileAnalysisResult>());
-            ++_epoch;
             _cancellation.Dispose();
             _cancellation = null;
             IsBusy = false;
             IsCheckingSignature = false;
             CurrentFile = "";
             if (_clearRequested) ClearRows();
+            FlushDiagnosticDisplay();
             RefreshView();
             NotifyCommands();
+        }
+
+        void OnDisplayTick(object? sender, EventArgs args) => PublishDisplay();
+
+        void PublishDisplay()
+        {
+            if (_disposed) return;
+            var update = buffer.Drain();
+            foreach (var completed in update.Completed)
+            {
+                batch[completed.Index].Complete(completed.Result);
+                _processed++;
+            }
+            var current = update.Current;
+            var changed = _displayedAnalysis != current || update.Completed.Count > 0;
+            if (current is not null && changed)
+            {
+                var row = batch[current.Index];
+                if (row.State != RowStatus.Running) row.Start(options.RevocationMode);
+                var p = current.Progress;
+                var fraction = p.TotalBytes == 0 ? 1.0 : Math.Clamp((double)p.BytesRead / p.TotalBytes, 0, 1);
+                var percent = p.Stage switch
+                {
+                    AnalysisStage.OpeningFile => 0,
+                    AnalysisStage.Reading => fraction * (options.InspectSignature || options.InspectFileProperties || options.InspectPeHeader ? 90 : 100),
+                    AnalysisStage.ReadingMetadata or AnalysisStage.ReadingPeHeader or AnalysisStage.CheckingSignature => 95,
+                    _ => 0
+                };
+                row.SetProgress(p, percent);
+                CurrentFile = row.FileName;
+                IsCheckingSignature = p.Stage == AnalysisStage.CheckingSignature;
+                Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
+            }
+            else if (current is null && changed)
+            {
+                Progress = 100.0 * _processed / _batchTotal;
+                IsCheckingSignature = false;
+            }
+            _displayedAnalysis = current;
+            FlushDiagnosticDisplay();
+            if (changed) OnPropertyChanged(nameof(StatusText));
+        }
+    }
+
+    private async Task AnalyzeBatchAsync(string[] paths, AnalysisOptions options,
+        AnalysisProgressBuffer buffer, CancellationToken token)
+    {
+        for (var index = 0; index < paths.Length; index++)
+        {
+            token.ThrowIfCancellationRequested();
+            var progress = buffer.Start(index);
+            FileAnalysisResult result;
+#pragma warning disable CA1031 // A failed file must not discard the remaining batch.
+            try
+            {
+                result = await _analysis.AnalyzeAsync(paths[index], options, progress, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                result = FileAnalysisResult.Failure(paths[index], AnalysisError.AnalysisFailure, ex.Message);
+            }
+#pragma warning restore CA1031
+            buffer.Complete(index, result);
         }
     }
 
@@ -594,7 +644,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void ClearRows()
     {
         SetFileActionError(null, "FilePropertiesError");
-        ++_epoch;
         LastRunSummary = null;
         foreach (var row in Rows) UnsubscribeRow(row);
         _multipleSignatures.Clear();
@@ -638,6 +687,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void NotifyDiagnosticsChanged()
     {
+        _diagnosticDisplayDirty = true;
+        if (_analysisDisplay is null) FlushDiagnosticDisplay();
+    }
+
+    private void FlushDiagnosticDisplay()
+    {
+        if (!_diagnosticDisplayDirty) return;
+        _diagnosticDisplayDirty = false;
         OnPropertyChanged(nameof(DiagnosticRowCount));
         OnPropertyChanged(nameof(ShowDiagnosticColumn));
         OnPropertyChanged(nameof(StatusText));
@@ -670,6 +727,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshAfterStateChange()
     {
+        if (_analysisDisplay is not null) return;
         // Refresh sorted/filtered values after a result arrives. No refresh is
         // needed in the common unfiltered/unsorted view, avoiding repeated scans.
         if (StateFilter.Value is not null || SignatureFilterOption.Value != SignatureFilter.All
@@ -683,7 +741,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void RefreshView() { RowsView.Refresh(); NotifyRowsChanged(); }
+    private void RefreshView()
+    {
+        if (_analysisDisplay is not null) return;
+        RowsView.Refresh();
+        NotifyRowsChanged();
+    }
     private void ResetFilters()
     {
         _searchText = "";
@@ -712,6 +775,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ReanalyseCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
+        ResetFiltersCommand.NotifyCanExecuteChanged();
         ShowFilePropertiesCommand.NotifyCanExecuteChanged();
         ShowInExplorerCommand.NotifyCanExecuteChanged();
     }
@@ -735,7 +799,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        ++_epoch;
+        _displayTimer?.Stop();
+        _analysisDisplay?.Close();
         _strings.CultureChanged -= OnCultureChanged;
         Options.HashFormatChanged -= OnHashFormatChanged;
         Options.ExportSelectionChanged -= OnExportSelectionChanged;

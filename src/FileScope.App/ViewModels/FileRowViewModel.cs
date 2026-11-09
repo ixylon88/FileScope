@@ -12,6 +12,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     private HashFormat _hashFormat = format;
     private readonly Dictionary<ChecksumAlgorithm, string> _hashText = [];
     private SignatureOption? _selectedSignature;
+    private RevocationMode _runningRevocationMode;
     public IReadOnlyList<SignatureOption> Signatures { get; private set; } = [];
     public bool HasMultipleSignatures => Signatures.Count > 1;
     public event EventHandler? SignaturesChanged;
@@ -98,13 +99,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string CertificateAlgorithm => Certificate?.SignatureAlgorithm ?? "";
     public string NativeCode => (SelectedSignature is not null ? SelectedSignature.Value.NativeStatusCode : Result?.Signature.NativeStatusCode) is int code ? $"0x{unchecked((uint)code):X8}" : "";
     public string StateText => State == RowStatus.Running
-        ? strings[Stage switch
-        {
-            AnalysisStage.Reading => "Reading",
-            AnalysisStage.CheckingSignature => "CheckingSignature",
-            AnalysisStage.ReadingMetadata => "ReadingMetadata",
-            _ => "Reading"
-        }]
+        ? AnalysisStageText.Format(Stage, _runningRevocationMode, strings)
         : strings[$"Row_{State}"];
     public string SignatureText => SignatureState == SignatureStatus.Valid
         ? strings[Result?.Signature.RevocationMode == RevocationMode.Online ? "Signature_ValidOnline" : "Signature_ValidOffline"]
@@ -175,10 +170,11 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         RefreshLanguage();
     }
 
-    public void Start()
+    public void Start(RevocationMode revocationMode = RevocationMode.OfflineCache)
     {
         State = RowStatus.Running;
-        Stage = AnalysisStage.Reading;
+        Stage = AnalysisStage.OpeningFile;
+        _runningRevocationMode = revocationMode;
         RefreshLanguage();
     }
 
@@ -186,8 +182,11 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         var changedStage = Stage != progress.Stage;
         Stage = progress.Stage;
-        Progress = percent;
-        OnPropertyChanged(nameof(Progress));
+        if (Progress != percent)
+        {
+            Progress = percent;
+            OnPropertyChanged(nameof(Progress));
+        }
         if (changedStage) OnPropertyChanged(nameof(StateText));
     }
 

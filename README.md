@@ -180,6 +180,10 @@ Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist
 
 #### Durchlaufstatistik
 
+Die laufende Statusanzeige wird höchstens alle 100 ms aus einem Puffer aktualisiert. Sie nennt die aktuelle Datei und die Phase: Datei öffnen, gemeinsame Prüfsummenberechnung, Dateieigenschaften, EXE-Header oder Signaturprüfung. Bei aktivierter Online-Sperrprüfung nennt die Signaturphase diese ausdrücklich. Windows liefert innerhalb dieses nativen Aufrufs keinen zuverlässigen Prozentwert oder getrennte OCSP-/CRL-Fortschrittsmeldungen; der Balken ist dann unbestimmt. Sehr kurze Phasen dürfen zwischen zwei Anzeigezeitpunkten liegen und werden nicht nachträglich abgespielt.
+
+Filter und Sortierung pausieren während eines Jobs; die bestehende Auswahl bleibt erhalten und wird am Ende erneut angewendet. Abschluss und Abbruch übernehmen alle bis dahin fertigen Ergebnisse sofort, ohne auf den nächsten Anzeigetakt zu warten. Alle gewählten Hashes bleiben Teil desselben Lesedurchlaufs; pro Datenblock werden sie nacheinander berechnet, weshalb die Anzeige sie als eine Phase zusammenfasst.
+
 Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen. Der Mittelpunkt ` · ` trennt sowohl die Durchlaufwerte als auch den optionalen Diagnosehinweis vom vorherigen Meldungsteil.
 
 Beim Hinzufügen weiterer Dateien zählt nur der neue Durchlauf; „Alle neu prüfen“ bildet die Statistik für sämtliche geladenen Zeilen neu, unabhängig von Tabellenfiltern. Ein Abbruch zeigt die bis dahin abgeschlossenen Dateiergebnisse einschließlich Fehlerergebnissen an. Noch nicht abgeschlossene Dateien gehen nicht in die Summe ein. Fehlt eine Dateigröße, nennt die Statusleiste zusätzlich die Anzahl dieser Dateien. „Leeren“ entfernt die Statistik.
@@ -281,6 +285,8 @@ Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kei
 Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik lässt sich auch ohne Windows verwenden. Die WPF-App zielt auf `net10.0-windows`. Die native Authenticode-Strategie meldet außerhalb von Windows ausdrücklich „UnsupportedPlatform“.
 
 ### Dateiaufnahme und Verarbeitung
+
+Ein Hintergrund-Task verarbeitet den gesamten Analysedurchlauf. `AnalysisProgressBuffer` hält unter einer kurzen Sperre alle noch nicht übernommenen Resultate und nur den letzten Fortschrittsstand der aktuellen Datei. `Report` stellt keine Dispatcher-Aufträge ein. Ein `DispatcherTimer` mit Hintergrundpriorität leert den Puffer in `MainViewModel.StatusUpdateInterval` (100 ms); alle Änderungen an Zeilen, Bindungen und Status bleiben auf dem WPF-Thread. Die Taktzeit ist ein Mindestabstand, keine Echtzeitgarantie. Bei Abschluss oder Abbruch wird der Puffer unmittelbar übernommen; ein geschlossener Puffer verwirft verspätete Meldungen. Die gefilterte/sortierte Ansicht wird am Ende einmal erneuert, statt nach jeder Datei die gesamte Liste zu durchsuchen.
 
 Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
 
@@ -441,11 +447,11 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
-| Core | **472** im zuletzt dokumentierten Windows-Lauf; unveränderter Prüfumfang. Hier **183** unter Linux bestanden, native Windows-Prüfungen übersprungen. |
-| Präsentation und Einstellungen | **165** bestanden, einschließlich 18 neuer Theme-Prüfungen. |
-| WPF / UI / MVVM | **332** erwartet, einschließlich 27 neuer Prüfungen für das Dateikontextmenü und einer weiteren Theme-Prüfung; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| Core | **188** unter Linux bestanden, einschließlich 5 neuer Phasenprüfungen. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **477** erwartet. |
+| Präsentation und Einstellungen | **175** bestanden, einschließlich 10 neuer Prüfungen für Fortschrittspuffer und Phasentexte. |
+| WPF / UI / MVVM | **343** erwartet, einschließlich 11 neuer Prüfungen für gepufferten Fortschritt und pausierte Filter; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog und 27 Prüfungen für das Dateikontextmenü. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog 27 Prüfungen für das Dateikontextmenü und 11 Prüfungen für gepufferten Fortschritt und pausierte Filter. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 

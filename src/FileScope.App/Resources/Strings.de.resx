@@ -262,7 +262,7 @@
     <value>Der Vorgang konnte nicht abgeschlossen werden. Details stehen unten.</value>
   </data>
   <data name="Reading" xml:space="preserve">
-    <value>Wird gelesen…</value>
+    <value>Prüfsummen werden berechnet…</value>
   </data>
   <data name="CheckingSignature" xml:space="preserve">
     <value>Signaturprüfung…</value>
@@ -487,7 +487,7 @@
     <value>PE32/PE32+, NE (Win16), Architektur und .NET-Plattform lesen, ohne die Datei auszuführen. Aktivieren und erneut prüfen, um vorhandene Zeilen zu ergänzen.</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
-    <value>Metadaten werden gelesen…</value>
+    <value>Dateieigenschaften werden gelesen…</value>
   </data>
   <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
     <value>AnyCPU (32 Bit bevorzugt)</value>
@@ -728,5 +728,17 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="FileExplorerError" xml:space="preserve">
     <value>Windows konnte „{0}“ nicht im Explorer anzeigen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
+  </data>
+  <data name="OpeningFile" xml:space="preserve">
+    <value>Datei wird geöffnet…</value>
+  </data>
+  <data name="ReadingPeHeader" xml:space="preserve">
+    <value>EXE-Header wird gelesen…</value>
+  </data>
+  <data name="CheckingSignatureOnline" xml:space="preserve">
+    <value>Signaturprüfung (inkl. Online-Sperrprüfung)…</value>
+  </data>
+  <data name="FiltersPausedTip" xml:space="preserve">
+    <value>Filter und Sortierung pausieren während eines Jobs und werden danach erneut angewendet.</value>
   </data>
 </root>

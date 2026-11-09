@@ -4,7 +4,7 @@ namespace FileScope.Core.Models;
 
 public enum ChecksumAlgorithm { MD5, SHA1, SHA256, SHA384, SHA512 }
 public enum RevocationMode { OfflineCache, Online }
-public enum AnalysisStage { Reading, CheckingSignature, ReadingMetadata }
+public enum AnalysisStage { Reading, CheckingSignature, ReadingMetadata, OpeningFile, ReadingPeHeader }
 public enum AnalysisError { None, InvalidPath, DirectoryNotSupported, NotFound, AccessDenied, ReadFailure, AnalysisFailure }
 public enum SignatureStatus
 {

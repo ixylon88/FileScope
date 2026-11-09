@@ -33,6 +33,7 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
 
             // FileShare.Read prevents writers/deletion on Windows for the entire analysis.
             // WinVerifyTrust receives this very same handle, not a newly opened file.
+            progress?.Report(new AnalysisProgress(AnalysisStage.OpeningFile, 0, 0));
             await using var stream = new FileStream(fullPath, new FileStreamOptions
             {
                 Mode = FileMode.Open,
@@ -46,7 +47,7 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             });
             var length = stream.Length;
             var modified = new DateTimeOffset(File.GetLastWriteTimeUtc(stream.SafeFileHandle));
-            progress?.Report(new AnalysisProgress(AnalysisStage.Reading, 0, length));
+            if (options.Algorithms.Count > 0) progress?.Report(new AnalysisProgress(AnalysisStage.Reading, 0, length));
             var hashProgress = new ForwardProgress<long>(n =>
                 progress?.Report(new AnalysisProgress(AnalysisStage.Reading, n, length)));
             var hashes = await checksums.ComputeAsync(stream, options.Algorithms, hashProgress, cancellationToken)
@@ -54,10 +55,9 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             cancellationToken.ThrowIfCancellationRequested();
             FilePropertiesResult? fileProperties = null;
             PeHeaderResult? peHeader = null;
-            if (options.InspectFileProperties || options.InspectPeHeader)
-                progress?.Report(new AnalysisProgress(AnalysisStage.ReadingMetadata, length, length));
             if (options.InspectFileProperties)
             {
+                progress?.Report(new AnalysisProgress(AnalysisStage.ReadingMetadata, length, length));
                 fileProperties = ReadOptional(() => properties.Inspect(stream, fullPath, cancellationToken),
                     message => new FilePropertiesResult(null, message));
             }
@@ -65,6 +65,7 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             cancellationToken.ThrowIfCancellationRequested();
             if (options.InspectPeHeader)
             {
+                progress?.Report(new AnalysisProgress(AnalysisStage.ReadingPeHeader, length, length));
                 // Hashing ends at EOF. Header inspection and Windows trust verification
                 // each receive a defined starting position on the same borrowed stream.
                 stream.Position = 0;

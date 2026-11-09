@@ -262,7 +262,7 @@
     <value>操作未能完成，请查看下方详情。</value>
   </data>
   <data name="Reading" xml:space="preserve">
-    <value>正在读取…</value>
+    <value>正在计算校验和…</value>
   </data>
   <data name="CheckingSignature" xml:space="preserve">
     <value>正在检查签名…</value>
@@ -487,7 +487,7 @@
     <value>读取 PE32/PE32+、NE（Win16）、体系结构和 .NET 平台，不执行文件。启用后重新分析以更新已有结果。</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
-    <value>正在读取元数据…</value>
+    <value>正在读取文件属性…</value>
   </data>
   <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
     <value>AnyCPU（首选 32 位）</value>
@@ -728,5 +728,17 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="FileExplorerError" xml:space="preserve">
     <value>Windows 无法在文件资源管理器中显示“{0}”。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="OpeningFile" xml:space="preserve">
+    <value>正在打开文件…</value>
+  </data>
+  <data name="ReadingPeHeader" xml:space="preserve">
+    <value>正在读取 EXE 文件头…</value>
+  </data>
+  <data name="CheckingSignatureOnline" xml:space="preserve">
+    <value>正在检查签名（包括在线吊销检查）…</value>
+  </data>
+  <data name="FiltersPausedTip" xml:space="preserve">
+    <value>任务运行期间暂停筛选和排序，完成后重新应用。</value>
   </data>
 </root>

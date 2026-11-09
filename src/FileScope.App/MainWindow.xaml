@@ -118,7 +118,7 @@
       </ScrollViewer>
     </Border>
 
-    <Grid Grid.Row="2" Margin="24,0,24,14">
+    <Grid x:Name="FiltersPanel" Grid.Row="2" Margin="24,0,24,14" IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc FiltersPausedTip}">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="174" /><ColumnDefinition Width="244" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
       <StackPanel Margin="0,0,14,0">
         <TextBlock Text="{loc:Loc SearchLabel}" Style="{StaticResource FieldLabel}" />
@@ -140,7 +140,7 @@
         <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
                   behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True"
-                  CanUserSortColumns="True" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"
+                  CanUserSortColumns="{Binding IsIdle}" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"
                   HeadersVisibility="Column" AlternationCount="0"
                   GridLinesVisibility="Horizontal" BorderThickness="0"
                   EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True"

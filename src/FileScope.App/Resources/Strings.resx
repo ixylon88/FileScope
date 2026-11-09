@@ -262,7 +262,7 @@
     <value>The operation could not be completed. See the details below.</value>
   </data>
   <data name="Reading" xml:space="preserve">
-    <value>Reading…</value>
+    <value>Calculating checksums…</value>
   </data>
   <data name="CheckingSignature" xml:space="preserve">
     <value>Checking signature…</value>
@@ -487,7 +487,7 @@
     <value>Read PE32/PE32+, NE (Win16), architecture and .NET platform without executing the file. Enable and reanalyse to update existing rows.</value>
   </data>
   <data name="ReadingMetadata" xml:space="preserve">
-    <value>Reading metadata…</value>
+    <value>Reading file properties…</value>
   </data>
   <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
     <value>AnyCPU (32-bit preferred)</value>
@@ -728,5 +728,17 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="FileExplorerError" xml:space="preserve">
     <value>Windows could not show “{0}” in Explorer. The file may have been moved or deleted, or access may be denied.</value>
+  </data>
+  <data name="OpeningFile" xml:space="preserve">
+    <value>Opening file…</value>
+  </data>
+  <data name="ReadingPeHeader" xml:space="preserve">
+    <value>Reading EXE header…</value>
+  </data>
+  <data name="CheckingSignatureOnline" xml:space="preserve">
+    <value>Checking signature (including online revocation)…</value>
+  </data>
+  <data name="FiltersPausedTip" xml:space="preserve">
+    <value>Filters and sorting are paused during a job and reapplied when it finishes.</value>
   </data>
 </root>

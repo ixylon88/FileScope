@@ -1,5 +1,21 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Gepufferter Fortschritt und Analysephasen
+
+Stand: 9. November 2026. Patchbasis: `f3148e7` (`readme updated`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich Core, App, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Core | 188 bestanden; 5 neue Prüfungen für aktivierte Phasen und deren Reihenfolge. Native Windows-Prüfungen übersprungen; 477 statt zuletzt dokumentierter 472 unter Windows erwartet. |
+| Präsentation und Einstellungen | 175 bestanden; 10 neue Assertions für Puffer, konkurrierende Meldungen, verspätete Reporter und lokalisierte Phasen |
+| Statische Struktur- und Ressourcenprüfung | 1195 bestanden; 206 Schlüssel je Sprache |
+| WPF / UI / MVVM | 343 Assertions erwartet, davon 11 neue. Kompiliert, hier nicht ausgeführt. |
+
+Die Pufferprüfungen senden 20.000 Fortschrittsmeldungen, ohne Synchronisationskontext-Aufträge zu erzeugen; sie prüfen auch, dass Resultate erhalten bleiben, nur einmal abgeholt werden und ein alter Reporter die neue Datei nicht überschreibt. UI-Prüfungen verwenden einen kontrolliert wartenden Analysedienst, echte Fenster/Bindungen und den Dispatcher-Timer. Sie prüfen Phasentexte einschließlich Online-Sperrprüfung, UI-Thread-Zugehörigkeit, reduzierte Änderungsmeldungen, pausierte Filter, einmaliges abschließendes Filtern/Sortieren und sofortigen Endzustand. Die vorhandenen Abbruchprüfungen bleiben erhalten. Die statische Prüfung berücksichtigt zusätzlich die bereits vorhandenen sechs Workspace-Tasks für beide Architekturen mit/ohne eigene Runtime.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Anschließend einen großen Durchlauf mit und ohne gesetzten Filter vergleichen und eine größere Datei mit Online-Sperrprüfung beobachten. Konkrete Laufzeitgewinne und die sichtbare Verringerung des Flackerns wurden hier nicht auf Windows gemessen.
+
 ## Ergänzung: UTC-Zeitstempel im Exportdateinamen
 
 Stand: 8. November 2026. Patchbasis: `19ae3eb` (`publish self-contained or not`). Der Vorschlag im Speichern-Dialog verwendet `DateTime.UtcNow` mit kulturunabhängiger Formatierung und Windows-tauglichen Bindestrichen in der Uhrzeit. CSV und JSON verwenden denselben Namensstamm; die Endung ergänzt weiterhin der gewählte Dateityp.
