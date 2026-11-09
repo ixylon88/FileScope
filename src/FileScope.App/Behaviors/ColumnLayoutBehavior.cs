@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -59,18 +60,34 @@ public static class ColumnLayoutBehavior
             {
                 _connected = true;
                 _options.ColumnOrderChanged += OnOrderChanged;
+                _options.PropertyChanged += OnOptionChanged;
                 _grid.ColumnReordered += OnColumnReordered;
             }
             ApplyOrder();
+            ApplyPathWidth();
             RequestFit();
         }
         private void Disconnect()
         {
             _connected = false;
             _options.ColumnOrderChanged -= OnOrderChanged;
+            _options.PropertyChanged -= OnOptionChanged;
             _grid.ColumnReordered -= OnColumnReordered;
             _pendingFit?.Abort();
             _pendingFit = null;
+        }
+        private void OnOptionChanged(object? sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(OptionsViewModel.PathAutoWidth)) ApplyPathWidth();
+        }
+        private void ApplyPathWidth()
+        {
+            var column = _grid.Columns.FirstOrDefault(column => GetId(column) == "Path");
+            if (column is null) return;
+            // A long path can use its full width at the end of the table. When moved
+            // near the front, the optional bounded mode leaves room for other columns.
+            column.MaxWidth = _options.PathAutoWidth ? double.PositiveInfinity : 600;
+            column.Width = _options.PathAutoWidth ? DataGridLength.Auto : new DataGridLength(320);
         }
         private void OnOrderChanged(object? sender, EventArgs args) => ApplyOrder();
         private void ApplyOrder()
@@ -106,6 +123,7 @@ public static class ColumnLayoutBehavior
                 if (!_connected) return;
                 foreach (var column in _grid.Columns)
                 {
+                    if (GetId(column) == "Path" && !_options.PathAutoWidth) continue;
                     column.Width = DataGridLength.SizeToHeader;
                     column.Width = DataGridLength.Auto;
                 }

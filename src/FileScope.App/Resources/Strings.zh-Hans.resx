@@ -217,7 +217,7 @@
     <value>没有符合当前筛选条件的文件。</value>
   </data>
   <data name="DetailsTitle" xml:space="preserve">
-    <value>所选文件 · 完整详情 / 复制</value>
+    <value>所选文件 · 完整详情 / 复制：</value>
   </data>
   <data name="DetailsHint" xml:space="preserve">
     <value>选择表格中的一行。可选择详情文本并按 Ctrl+C 复制。</value>
@@ -818,5 +818,110 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="MoveFolder_CheckFailed" xml:space="preserve">
     <value>检查失败</value>
+  </data>
+  <data name="PathAutoWidth" xml:space="preserve">
+    <value>自动调整路径列宽度</value>
+  </data>
+  <data name="PathAutoWidthHint" xml:space="preserve">
+    <value>启用时允许显示完整路径宽度。关闭后列宽受限，可用鼠标调整。</value>
+  </data>
+  <data name="SingleFileActionHint" xml:space="preserve">
+    <value>此操作需要仅选中一个文件。</value>
+  </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="ShortcutsButton" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+  <data name="ShortcutsTip" xml:space="preserve">
+    <value>查看键盘快捷键（F1）</value>
+  </data>
+  <data name="ShortcutsHint" xml:space="preserve">
+    <value>表格快捷键在结果表格获得键盘焦点时生效。在文本框中使用常规文本快捷键。</value>
+  </data>
+  <data name="ShortcutsGroupActions" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="ShortcutsGroupNavigation" xml:space="preserve">
+    <value>表格导航</value>
+  </data>
+  <data name="ShortcutsGroupSelection" xml:space="preserve">
+    <value>选择与复制</value>
+  </data>
+  <data name="ShortcutsCloseHint" xml:space="preserve">
+    <value>按 Esc 或 Enter 关闭此窗口。</value>
+  </data>
+  <data name="ShortcutOpenKeys" xml:space="preserve">
+    <value>Ctrl+O</value>
+  </data>
+  <data name="ShortcutOpenAction" xml:space="preserve">
+    <value>打开文件</value>
+  </data>
+  <data name="ShortcutClearKeys" xml:space="preserve">
+    <value>Ctrl+L</value>
+  </data>
+  <data name="ShortcutClearAction" xml:space="preserve">
+    <value>在没有任务运行时清空结果与筛选条件</value>
+  </data>
+  <data name="ShortcutCancelKeys" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="ShortcutCancelAction" xml:space="preserve">
+    <value>取消当前操作</value>
+  </data>
+  <data name="ShortcutHelpKeys" xml:space="preserve">
+    <value>F1</value>
+  </data>
+  <data name="ShortcutHelpAction" xml:space="preserve">
+    <value>打开此快捷键列表</value>
+  </data>
+  <data name="ShortcutTableEndsKeys" xml:space="preserve">
+    <value>Ctrl+Home / Ctrl+End</value>
+  </data>
+  <data name="ShortcutTableEndsAction" xml:space="preserve">
+    <value>跳到表格的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutPageKeys" xml:space="preserve">
+    <value>Page Up / Page Down</value>
+  </data>
+  <data name="ShortcutPageAction" xml:space="preserve">
+    <value>向上/向下翻一页</value>
+  </data>
+  <data name="ShortcutRowEndsKeys" xml:space="preserve">
+    <value>Home / End</value>
+  </data>
+  <data name="ShortcutRowEndsAction" xml:space="preserve">
+    <value>跳到当前行的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutRowsKeys" xml:space="preserve">
+    <value>↑ / ↓</value>
+  </data>
+  <data name="ShortcutRowsAction" xml:space="preserve">
+    <value>上一行/下一行</value>
+  </data>
+  <data name="ShortcutSelectAllKeys" xml:space="preserve">
+    <value>Ctrl+A</value>
+  </data>
+  <data name="ShortcutSelectAllAction" xml:space="preserve">
+    <value>选中当前视图中的所有行</value>
+  </data>
+  <data name="ShortcutExtendKeys" xml:space="preserve">
+    <value>Shift+↑ / Shift+↓</value>
+  </data>
+  <data name="ShortcutExtendAction" xml:space="preserve">
+    <value>扩展行选择范围</value>
+  </data>
+  <data name="ShortcutCopyKeys" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+  <data name="ShortcutCopyAction" xml:space="preserve">
+    <value>复制选中的行及列标题</value>
+  </data>
+  <data name="ShortcutContextMenuKeys" xml:space="preserve">
+    <value>Shift+F10 / 菜单键</value>
+  </data>
+  <data name="ShortcutContextMenuAction" xml:space="preserve">
+    <value>打开当前行的快捷菜单</value>
   </data>
 </root>

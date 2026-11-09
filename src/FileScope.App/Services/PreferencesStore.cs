@@ -8,6 +8,7 @@ public sealed record UserPreferences
     public string? Language { get; init; }
     public string? HashFormat { get; init; }
     public string[]? ColumnOrder { get; init; }
+    public bool PathAutoWidth { get; init; } = true;
     public string[]? ExportColumns { get; init; }
     public string? CsvDelimiter { get; init; }
     public WindowPreferences? Window { get; init; }

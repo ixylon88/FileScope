@@ -23,6 +23,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     private ColumnOption? _selectedColumn;
     private string? _settingsErrorKey;
     private bool _updatingExportSelection;
+    private bool _pathAutoWidth;
     public event EventHandler? HashFormatChanged;
     public event EventHandler? ColumnOrderChanged;
     public event EventHandler? ExportSelectionChanged;
@@ -55,6 +56,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         var saved = new UserPreferences();
         try { saved = store.Load(); }
         catch (Exception ex) when (IsSettingsFailure(ex)) { _settingsErrorKey = "SettingsLoadError"; }
+        _pathAutoWidth = saved.PathAutoWidth;
         WindowPreferences = saved.Window;
         OptionsWindowPreferences = saved.OptionsWindow;
         AnalysisPreferences = saved.Analysis ?? new AnalysisPreferences();
@@ -103,6 +105,12 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             ? value : themes.CurrentTheme;
         _selectedTheme = Themes.Single(theme => theme.Value == savedTheme);
         _themeService.Apply(_selectedTheme.Value);
+    }
+
+    public bool PathAutoWidth
+    {
+        get => _pathAutoWidth;
+        set { if (SetProperty(ref _pathAutoWidth, value)) Save(); }
     }
 
     public LanguageOption SelectedLanguage
@@ -257,6 +265,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 Language = SelectedLanguage.CultureName,
                 HashFormat = SelectedHashFormat.Value.ToString(),
                 ColumnOrder = Columns.Select(column => column.Id).ToArray(),
+                PathAutoWidth = PathAutoWidth,
                 ExportColumns = Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(),
                 CsvDelimiter = SelectedCsvDelimiter.Value.ToString(),
                 Window = WindowPreferences,

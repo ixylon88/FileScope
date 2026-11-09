@@ -14,7 +14,11 @@
     <infra:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
     <infra:StatusToneConverter x:Key="StatusToneConverter" />
   </Window.Resources>
+  <Window.CommandBindings>
+    <CommandBinding Command="ApplicationCommands.Help" Executed="OpenShortcuts" />
+  </Window.CommandBindings>
   <Window.InputBindings>
+    <KeyBinding Key="F1" Command="ApplicationCommands.Help" />
     <KeyBinding Key="O" Modifiers="Control" Command="{Binding BrowseCommand}" />
     <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
     <KeyBinding Key="L" Modifiers="Control" Command="{Binding ClearCommand}" />
@@ -113,6 +117,13 @@
                 <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
+            <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
+                    ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
@@ -152,19 +163,16 @@
               <Setter Property="Background" Value="Transparent"/>
               <Setter Property="ContextMenu">
                 <Setter.Value>
-                  <!-- Popups have a separate visual tree. Resolve the row through
-                       PlacementTarget every time, including recycled containers. -->
-                  <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                    <MenuItem Header="{loc:Loc FilePropertiesMenu}"
-                              Command="{Binding Data.ShowFilePropertiesCommand, Source={StaticResource ViewModelProxy}}"
-                              CommandParameter="{Binding}" />
-                    <MenuItem Header="{loc:Loc ShowInExplorerMenu}"
-                              Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource ViewModelProxy}}"
-                              CommandParameter="{Binding}" />
-                    <MenuItem Header="{Binding Data.MoveSelectedMenu, Source={StaticResource ViewModelProxy}}"
-                              Command="{Binding Data.MoveSelectedCommand, Source={StaticResource ViewModelProxy}}"
-                              Visibility="{Binding Data.CanMoveSelected, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
-                              CommandParameter="{Binding}" />
+                  <!-- A popup must not keep a recycled row container as its command target.
+                       Selection is synchronized before opening; commands resolve it in the view model. -->
+                  <ContextMenu DataContext="{Binding Data, Source={StaticResource ViewModelProxy}}">
+                    <MenuItem Header="{Binding MoveSelectedMenu}" Command="{Binding MoveSelectedCommand}"
+                              Visibility="{Binding CanMoveSelected, Converter={StaticResource BoolToVisibility}}" />
+                    <Separator Visibility="{Binding CanMoveSelected, Converter={StaticResource BoolToVisibility}}" />
+                    <MenuItem Header="{loc:Loc FilePropertiesMenu}" Command="{Binding ShowFilePropertiesCommand}"
+                              ToolTip="{loc:Loc SingleFileActionHint}" ToolTipService.ShowOnDisabled="True" />
+                    <MenuItem Header="{loc:Loc ShowInExplorerMenu}" Command="{Binding ShowInExplorerCommand}"
+                              ToolTip="{loc:Loc SingleFileActionHint}" ToolTipService.ShowOnDisabled="True" />
                   </ContextMenu>
                 </Setter.Value>
               </Setter>
@@ -223,7 +231,6 @@
             <DataGridTextColumn Header="SHA-512" Binding="{Binding SHA512}"
                                 Visibility="{Binding Data.ShowSHA512Column, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="SHA512" Width="Auto" MinWidth="170" MaxWidth="720" ElementStyle="{StaticResource HashText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Modified}" Binding="{Binding ModifiedText}" SortMemberPath="Result.LastWriteTime" behaviors:ColumnLayoutBehavior.Id="Modified" Width="Auto" MinWidth="150" MaxWidth="240" ElementStyle="{StaticResource GridText}" />
-            <DataGridTextColumn Header="{loc:Loc Column_Path}" Binding="{Binding FullPath}" behaviors:ColumnLayoutBehavior.Id="Path" Width="Auto" MinWidth="220" MaxWidth="600" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Subject}" Binding="{Binding Subject}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Subject" Width="Auto" MinWidth="180" MaxWidth="500" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Issuer}" Binding="{Binding Issuer}"
@@ -287,6 +294,7 @@
             <DataGridTextColumn Header="{loc:Loc Column_ManagedPlatform}" Binding="{Binding ManagedPlatformText}"
                                 Visibility="{Binding Data.InspectPeHeader, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                                 behaviors:ColumnLayoutBehavior.Id="ManagedPlatform" Width="Auto" MinWidth="180" MaxWidth="340" ElementStyle="{StaticResource GridText}" />
+            <DataGridTextColumn Header="{loc:Loc Column_Path}" Binding="{Binding FullPath}" behaviors:ColumnLayoutBehavior.Id="Path" Width="Auto" MinWidth="220" ElementStyle="{StaticResource GridText}" />
           </DataGrid.Columns>
         </DataGrid>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}" Margin="30">
@@ -301,8 +309,17 @@
       </Grid>
     </Border>
 
-    <Expander Grid.Row="4" Header="{loc:Loc DetailsTitle}" Margin="24,0,24,12" IsExpanded="False">
-      <TextBox Text="{Binding SelectedRow.Details, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" MinHeight="90" MaxHeight="160"
+    <Expander Grid.Row="4" Margin="24,0,24,12" IsExpanded="False" HorizontalContentAlignment="Stretch">
+      <Expander.Header>
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+          <TextBlock x:Name="DetailsHeaderLabel" Text="{loc:Loc DetailsTitle}" VerticalAlignment="Center" />
+          <TextBlock x:Name="DetailsHeaderPath" Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center"
+                     Text="{Binding SingleSelectedRow.FullPath, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
+                     TextWrapping="Wrap" ToolTip="{Binding SingleSelectedRow.FullPath}" />
+        </Grid>
+      </Expander.Header>
+      <TextBox x:Name="SelectedFileDetails" Text="{Binding SingleSelectedRow.Details, Mode=OneWay, TargetNullValue='', FallbackValue=''}" IsReadOnly="True" TextWrapping="NoWrap" MinHeight="90" MaxHeight="160"
                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas, Microsoft YaHei UI"
                FontSize="12" Padding="12" ToolTip="{loc:Loc DetailsHint}" AutomationProperties.Name="{loc:Loc DetailsTitle}" />
     </Expander>

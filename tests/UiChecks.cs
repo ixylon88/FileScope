@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Interop;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using FileScope.App.Behaviors;
@@ -64,8 +65,10 @@ internal static class UiChecks
             CheckThemeService(app);
             CheckThemeSwitching(app, strings);
             CheckAboutDialog(app, strings);
+            CheckShortcutsDialog(app, strings);
             CheckFileContextMenu(app, strings);
             CheckFileMoves(app, strings);
+            CheckPathPresentation(strings);
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
@@ -188,6 +191,197 @@ internal static class UiChecks
         }
     }
 
+    private static void CheckShortcutsDialog(Application app, LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var themes = new ThemeService(app);
+        var store = new MemoryPreferences();
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
+            new OptionsViewModel(strings, store, themes));
+        var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var shortcuts = new ShortcutsWindow { ShowActivated = false };
+        var errors = new StringWriter();
+        using var listener = new TextWriterTraceListener(errors);
+        var bindingSource = PresentationTraceSources.DataBindingSource;
+        var previousLevel = bindingSource.Switch.Level;
+        bindingSource.Switch.Level = SourceLevels.Error;
+        bindingSource.Listeners.Add(listener);
+        try
+        {
+            main.Show();
+            shortcuts.Owner = main;
+            DrainDispatcher();
+            var button = (Button)main.FindName("ShortcutsButton");
+            var keys = main.InputBindings.OfType<KeyBinding>().ToArray();
+            var help = keys.Single(binding => binding.Key == Key.F1);
+            Check(help.Modifiers == ModifierKeys.None && ReferenceEquals(help.Command, ApplicationCommands.Help)
+                && ReferenceEquals(button.Command, help.Command) && button.IsEnabled,
+                "the shortcuts button and F1 use the same enabled help command");
+            Check(keys.Any(binding => binding.Key == Key.O && binding.Modifiers == ModifierKeys.Control && ReferenceEquals(binding.Command, vm.BrowseCommand))
+                && keys.Any(binding => binding.Key == Key.L && binding.Modifiers == ModifierKeys.Control && ReferenceEquals(binding.Command, vm.ClearCommand))
+                && keys.Any(binding => binding.Key == Key.Escape && ReferenceEquals(binding.Command, vm.CancelCommand)),
+                "the cheat sheet's file, clear and cancel actions match the actual application key bindings");
+
+            var opened = false;
+            void CloseNextModal()
+            {
+                app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    var dialog = app.Windows.OfType<ShortcutsWindow>().SingleOrDefault(window => window.IsVisible);
+                    if (dialog == null) return;
+                    opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
+                    ((Button)dialog.FindName("CloseShortcutsButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }));
+            }
+            CloseNextModal();
+            var peer = new ButtonAutomationPeer(button);
+            ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
+            PumpUntil(() => opened && !app.Windows.OfType<ShortcutsWindow>().Any(window => window.IsVisible));
+            Check(opened, "invoking the real shortcuts button opens an owned modal dialog and Close returns");
+            opened = false;
+            CloseNextModal();
+            ((RoutedCommand)help.Command).Execute(null, main);
+            Check(opened && !app.Windows.OfType<ShortcutsWindow>().Any(window => window.IsVisible),
+                "the F1-bound routed command opens and closes the same owned help dialog");
+
+            var saves = store.SaveCount;
+            shortcuts.Show();
+            DrainDispatcher();
+            var close = (Button)shortcuts.FindName("CloseShortcutsButton");
+            Check(close.IsCancel && close.IsDefault && !shortcuts.ShowInTaskbar && shortcuts.ResizeMode == ResizeMode.CanResizeWithGrip,
+                "shortcuts support Escape, Enter, resizing and no separate taskbar entry");
+            var entries = new[] { "Open", "Clear", "Cancel", "Help", "TableEnds", "Page", "RowEnds", "Rows", "SelectAll", "Extend", "Copy", "ContextMenu" };
+            var groups = new[] { "Actions", "Navigation", "Selection" };
+            foreach (var language in strings.Languages)
+            {
+                strings.SetCulture(language.CultureName);
+                DrainDispatcher();
+                Check(shortcuts.Title == strings["ShortcutsTitle"]
+                    && string.Equals(shortcuts.Language.IetfLanguageTag, strings.Culture.IetfLanguageTag, StringComparison.OrdinalIgnoreCase)
+                    && ((TextBlock)shortcuts.FindName("ShortcutsHintText")).Text == strings["ShortcutsHint"]
+                    && System.Windows.Automation.AutomationProperties.GetName(button) == strings["ShortcutsTitle"],
+                    "the existing shortcut window and accessible toolbar label follow the language / " + language.CultureName);
+                Check(entries.All(id => ((TextBlock)shortcuts.FindName("Shortcut" + id + "Keys")).Text == strings["Shortcut" + id + "Keys"]
+                        && ((TextBlock)shortcuts.FindName("Shortcut" + id + "Action")).Text == strings["Shortcut" + id + "Action"])
+                    && groups.All(group =>
+                        ((TextBlock)shortcuts.FindName("ShortcutsGroup" + group)).Text == strings["ShortcutsGroup" + group])
+                    && close.Content.ToString() == strings["Close"],
+                    "all twelve shortcut pairs, section headings and Close are translated in place / " + language.CultureName);
+            }
+            foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
+            {
+                themes.Apply(theme);
+                DrainDispatcher();
+                var expected = theme == AppTheme.Dark ? Color.FromRgb(0xB1, 0xB1, 0xBA) : Color.FromRgb(0x59, 0x65, 0x79);
+                Check(((SolidColorBrush)((TextBlock)shortcuts.FindName("ShortcutsHintText")).Foreground).Color == expected,
+                    "the existing shortcut window follows the current palette / " + theme);
+            }
+            shortcuts.Width = shortcuts.MinWidth;
+            shortcuts.Height = shortcuts.MinHeight;
+            DrainDispatcher();
+            shortcuts.UpdateLayout();
+            var scroll = (ScrollViewer)shortcuts.FindName("ShortcutsScrollViewer");
+            Check(scroll.ScrollableHeight > 0 && scroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled && close.IsVisible,
+                "a small shortcut window scrolls its list while keeping Close outside the scrolling area");
+            Check(store.SaveCount == saves, "viewing and translating the cheat sheet does not write preferences");
+            Check(errors.ToString().Length == 0, "shortcuts, themes and translations produce no WPF binding errors: " + errors);
+            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(!shortcuts.IsVisible, "the shortcut Close button also closes a modeless test window");
+        }
+        finally
+        {
+            shortcuts.Close();
+            main.Close();
+            themes.Apply(AppTheme.Light);
+            strings.SetCulture("en");
+            bindingSource.Listeners.Remove(listener);
+            bindingSource.Switch.Level = previousLevel;
+        }
+    }
+
+    private static void CheckPathPresentation(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var store = new MemoryPreferences();
+        var options = new OptionsViewModel(strings, store, new RecordingThemeService());
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var settings = new OptionsWindow(options) { ShowActivated = false, ShowInTaskbar = false };
+        try
+        {
+            window.Show();
+            // WPF requires the owner to have been shown before assigning Owner.
+            settings.Owner = window;
+            settings.Show();
+            var root = Path.Combine(Path.GetTempPath(), "FileScope-path-ui");
+            var firstPath = Path.Combine(root, new string('a', 100), new string('b', 100), "first.exe");
+            vm.DropFilesCommand.Execute(new[] { firstPath, Path.Combine(root, "second.exe") });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 2);
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var pathColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Path");
+            var nameColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Name");
+            var checkBox = (CheckBox)settings.FindName("PathAutoWidthCheckBox");
+            var header = (TextBlock)window.FindName("DetailsHeaderPath");
+            var label = (TextBlock)window.FindName("DetailsHeaderLabel");
+            var details = (TextBox)window.FindName("SelectedFileDetails");
+            DrainDispatcher();
+            Check(pathColumn == grid.Columns[^1] && pathColumn.DisplayIndex == grid.Columns.Count - 1
+                && checkBox.IsChecked == true && pathColumn.Width.IsAuto && double.IsPositiveInfinity(pathColumn.MaxWidth),
+                "path is the final default column with automatic content width enabled");
+            grid.SelectedItem = vm.Rows[0];
+            DrainDispatcher();
+            Check(header.Text == firstPath && label.Text.EndsWith(':') && header.Margin.Left >= 16 && details.Text.Contains(firstPath),
+                "one selected file displays its full path after the spaced details label and colon");
+            grid.SelectedItems.Add(vm.Rows[1]);
+            DrainDispatcher();
+            Check(header.Text.Length == 0 && details.Text.Length == 0 && vm.SingleSelectedRow is null,
+                "multiple selected files do not present one file as the complete selection");
+            grid.UnselectAll();
+            DrainDispatcher();
+            Check(header.Text.Length == 0 && !vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute(null),
+                "empty selection clears the details header and disables single-file shell actions");
+            grid.SelectedItem = vm.Rows[0];
+            var relocated = Path.Combine(root, "unsigned", "first.exe");
+            vm.Rows[0].Relocate(relocated);
+            DrainDispatcher();
+            Check(header.Text == relocated && details.Text.Contains(relocated), "relocation immediately updates the selected file's header and details");
+            nameColumn.Width = new DataGridLength(300);
+            checkBox.IsChecked = false;
+            DrainDispatcher();
+            Check(!options.PathAutoWidth && !store.Saved.PathAutoWidth && pathColumn.Width.IsAbsolute
+                && pathColumn.Width.Value == 320 && pathColumn.MaxWidth == 600 && nameColumn.Width.Value == 300,
+                "the real checkbox saves bounded path sizing without resetting another column's manual width");
+            pathColumn.Width = new DataGridLength(400);
+            foreach (var culture in new[] { "de", "en", "zh-Hans" })
+            {
+                strings.SetCulture(culture);
+                options.FitColumnsCommand.Execute(null);
+                DrainDispatcher();
+                Check(pathColumn.Width.IsAbsolute && pathColumn.Width.Value == 400 && checkBox.Content.ToString() == strings["PathAutoWidth"]
+                    && label.Text == strings["DetailsTitle"],
+                    "language and global fit preserve the opted-out path width and translate the new UI / " + culture);
+            }
+            options.SelectedColumn = options.Columns.Single(column => column.Id == "Path");
+            options.MoveFirstCommand.Execute(null);
+            DrainDispatcher();
+            Check(pathColumn.DisplayIndex == 0 && pathColumn.Width.Value == 400 && pathColumn.MaxWidth == 600,
+                "moving the path to the frozen front keeps its bounded manual width");
+            checkBox.IsChecked = true;
+            DrainDispatcher();
+            Check(options.PathAutoWidth && store.Saved.PathAutoWidth && pathColumn.Width.IsAuto
+                && double.IsPositiveInfinity(pathColumn.MaxWidth) && pathColumn.DisplayIndex == 0,
+                "re-enabling automatic path width preserves the chosen column position");
+            options.ResetOrderCommand.Execute(null);
+            DrainDispatcher();
+            Check(pathColumn.DisplayIndex == grid.Columns.Count - 1 && options.Columns[^1].Id == "Path",
+                "resetting a saved custom order returns the path to the end");
+            vm.ClearCommand.Execute(null);
+            DrainDispatcher();
+            Check(header.Text.Length == 0 && details.Text.Length == 0, "Clear removes the previously selected path and details");
+        }
+        finally { settings.Close(); window.Close(); strings.SetCulture("en"); }
+    }
+
     private static void CheckFileMoves(Application app, LocalizationService strings)
     {
         strings.SetCulture("en");
@@ -241,18 +435,21 @@ internal static class UiChecks
             menu.PlacementTarget = container;
             menu.IsOpen = true;
             DrainDispatcher();
-            var moveItem = (MenuItem)menu.Items[2];
+            var moveItem = MenuFor(menu, vm.MoveSelectedCommand);
             Check(vm.CanMoveSelected && moveItem.Visibility == Visibility.Visible && moveItem.IsEnabled
-                && ReferenceEquals(moveItem.Command, vm.MoveSelectedCommand) && ReferenceEquals(moveItem.CommandParameter, first),
+                && ReferenceEquals(moveItem.Command, vm.MoveSelectedCommand) && ReferenceEquals(menu.DataContext, vm),
                 "real grid multi-selection enables the row menu's move command for identical signature results");
-            Check(!vm.MoveSelectedCommand.CanExecute(null) && !vm.MoveSelectedCommand.CanExecute(third),
-                "the move command rejects missing parameters and unselected context rows");
+            Check(!vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute(null),
+                "single-file shell actions are disabled for a move group with multiple selected rows");
+            Check(ReferenceEquals(menu.Items[0], moveItem) && menu.Items[1] is Separator { Visibility: Visibility.Visible },
+                "the move action is first and separated from shell actions");
             third.Complete(third.Result! with { Signature = new SignatureResult(SignatureStatus.Revoked, RevocationMode.OfflineCache) });
             grid.SelectedItems.Add(third);
             DrainDispatcher();
-            Check(!vm.CanMoveSelected && moveItem.Visibility == Visibility.Collapsed,
-                "adding a row with a different signature result hides the move menu item");
-            vm.MoveSelectedCommand.Execute(first);
+            Check(!vm.CanMoveSelected && moveItem.Visibility == Visibility.Collapsed
+                && ((Separator)menu.Items[1]).Visibility == Visibility.Collapsed,
+                "mixed signatures hide both the move action and its separator");
+            vm.MoveSelectedCommand.Execute(null);
             Check(mover.Sources.Length == 0, "a hidden move action also refuses programmatic execution");
             third.Reset();
             DrainDispatcher();
@@ -261,8 +458,9 @@ internal static class UiChecks
             grid.SelectedItems.Remove(third);
             strings.SetCulture("de");
             DrainDispatcher();
-            Check(vm.CanMoveSelected && moveItem.Header.ToString() == strings.Format("MoveSelectedMenu", "ohnesig"),
-                "changing language updates the short destination folder in the live move menu");
+            Check(vm.CanMoveSelected && moveItem.IsEnabled && moveItem.Command.CanExecute(moveItem.CommandParameter)
+                && moveItem.Header.ToString() == strings.Format("MoveSelectedMenu", "ohnesig"),
+                "a live move menu remains enabled after language refresh and row recycling");
             var hash = first.SHA256;
             InvokeMenuItem(moveItem);
             PumpUntil(() => entered.IsSet);
@@ -293,7 +491,7 @@ internal static class UiChecks
             grid.UnselectAll();
             grid.SelectedItems.Add(second);
             grid.SelectedItems.Add(vm.Rows[3]);
-            vm.MoveSelectedCommand.Execute(second);
+            vm.MoveSelectedCommand.Execute(null);
             PumpUntil(() => entered.IsSet);
             vm.CancelCommand.Execute(null);
             PumpUntil(() => !vm.IsBusy && reports.Results!.Any(result => result.Outcome == FileMoveOutcome.Cancelled));
@@ -385,38 +583,46 @@ internal static class UiChecks
             var summary = vm.LastRunSummary;
             Check(grid.ContextMenu == null, "empty grid space and column headers have no file context menu");
             Check(!vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute("wrong type"),
-                "file commands reject missing and unrelated parameters");
+                "file commands are disabled without a selected file");
             vm.ShowFilePropertiesCommand.Execute(null);
-            vm.ShowInExplorerCommand.Execute("wrong type");
-            Check(shell.Requests.Count == 0, "invalid file commands do not call the shell service");
+            vm.ShowInExplorerCommand.Execute(null);
+            Check(shell.Requests.Count == 0, "an empty selection never calls the shell service");
 
             vm.SelectedRow = first;
             menu = OpenMenu(second);
-            var properties = (MenuItem)menu.Items[0];
-            var explorer = (MenuItem)menu.Items[1];
-            Check(menu.Items.Count == 3 && ReferenceEquals(properties.Command, vm.ShowFilePropertiesCommand)
+            var properties = MenuFor(menu, vm.ShowFilePropertiesCommand);
+            var explorer = MenuFor(menu, vm.ShowInExplorerCommand);
+            Check(menu.Items.Count == 4 && ReferenceEquals(properties.Command, vm.ShowFilePropertiesCommand)
                 && ReferenceEquals(explorer.Command, vm.ShowInExplorerCommand), "row menu binds both file commands");
-            Check(ReferenceEquals(properties.CommandParameter, second) && ReferenceEquals(explorer.CommandParameter, second)
-                && ReferenceEquals(vm.SelectedRow, first), "context menu targets its row independently of the previous selection");
+            Check(ReferenceEquals(vm.SingleSelectedRow, second) && ReferenceEquals(menu.DataContext, vm)
+                && properties.CommandParameter is null && explorer.CommandParameter is null,
+                "shell commands target the single selected file without retaining a row container");
             InvokeMenuItem(properties);
             PumpUntil(() => shell.Requests.Count == 1);
             Check(shell.Requests[0] == ("properties", secondPath), "Properties receives the exact nested Unicode file path");
 
             menu = OpenMenu(second);
-            InvokeMenuItem((MenuItem)menu.Items[1]);
+            InvokeMenuItem(MenuFor(menu, vm.ShowInExplorerCommand));
             PumpUntil(() => shell.Requests.Count == 2);
             Check(shell.Requests[1] == ("explorer", secondPath), "Explorer receives the file itself, including spaces, commas and Unicode");
             Check(vm.StatusText == status && ReferenceEquals(vm.LastRunSummary, summary) && !vm.HasFileActionError,
                 "successful shell actions preserve analysis status and run statistics");
 
-            grid.SelectedItems.Add(second);
+            grid.SelectedItems.Add(first);
+            menu = OpenMenu(first, preserveSelection: true);
+            Check(!MenuFor(menu, vm.ShowFilePropertiesCommand).IsEnabled && !MenuFor(menu, vm.ShowInExplorerCommand).IsEnabled,
+                "both shell menu items are disabled while multiple files are marked");
+            vm.ShowFilePropertiesCommand.Execute(null);
+            vm.ShowInExplorerCommand.Execute(null);
+            Check(shell.Requests.Count == 2, "multi-selection cannot invoke either shell action programmatically");
             menu = OpenMenu(first);
-            InvokeMenuItem((MenuItem)menu.Items[1]);
+            InvokeMenuItem(MenuFor(menu, vm.ShowInExplorerCommand));
             PumpUntil(() => shell.Requests.Count == 3);
-            Check(shell.Requests[2] == ("explorer", firstPath), "reopening the shared menu targets the new row even with multiple rows selected");
+            Check(shell.Requests[2] == ("explorer", firstPath), "selecting one different file re-enables Explorer with that file's path");
 
+            menu = OpenMenu(second);
             shell.Succeed = false;
-            vm.ShowFilePropertiesCommand.Execute(second);
+            vm.ShowFilePropertiesCommand.Execute(null);
             DrainDispatcher();
             Check(vm.HasFileActionError && errorText.IsVisible && errorText.Text.Contains(secondPath, StringComparison.Ordinal),
                 "a failed Properties request displays a separate visible error with the file path");
@@ -426,19 +632,19 @@ internal static class UiChecks
             {
                 strings.SetCulture(culture);
                 menu = OpenMenu(second);
-                Check((string)((MenuItem)menu.Items[0]).Header == strings["FilePropertiesMenu"]
-                    && (string)((MenuItem)menu.Items[1]).Header == strings["ShowInExplorerMenu"],
+                Check((string)MenuFor(menu, vm.ShowFilePropertiesCommand).Header == strings["FilePropertiesMenu"]
+                    && (string)MenuFor(menu, vm.ShowInExplorerCommand).Header == strings["ShowInExplorerMenu"],
                     "both context menu labels follow the selected language / " + culture);
                 Check(errorText.Text == strings.Format("FilePropertiesError", secondPath),
                     "an existing shell error follows the selected language / " + culture);
                 menu.IsOpen = false;
             }
 
-            vm.ShowInExplorerCommand.Execute(second);
+            vm.ShowInExplorerCommand.Execute(null);
             DrainDispatcher();
             Check(errorText.Text == strings.Format("FileExplorerError", secondPath), "Explorer failures use their own localized explanation");
             shell.Succeed = true;
-            vm.ShowInExplorerCommand.Execute(second);
+            vm.ShowInExplorerCommand.Execute(null);
             DrainDispatcher();
             Check(!vm.HasFileActionError && errorText.Visibility == Visibility.Collapsed, "a successful retry clears the shell error");
 
@@ -446,9 +652,9 @@ internal static class UiChecks
             {
                 themes.Apply(theme);
                 menu = OpenMenu(second);
-                Check(menu.Template != null && ((MenuItem)menu.Items[0]).Template != null
-                    && ReferenceEquals(((MenuItem)menu.Items[1]).CommandParameter, second)
-                    && ((MenuItem)menu.Items[1]).IsEnabled && HasNativeTheme(app, theme),
+                Check(menu.Template != null && MenuFor(menu, vm.ShowFilePropertiesCommand).Template != null
+                    && ReferenceEquals(vm.SingleSelectedRow, second)
+                    && MenuFor(menu, vm.ShowInExplorerCommand).IsEnabled && HasNativeTheme(app, theme),
                     "native context menu templates and row commands remain usable after a theme switch / " + theme);
                 menu.IsOpen = false;
             }
@@ -459,7 +665,7 @@ internal static class UiChecks
             {
                 if (shell.ExplorerCompletion.Task.IsCompleted) explorerFinished = true;
             };
-            vm.ShowInExplorerCommand.Execute(second);
+            vm.ShowInExplorerCommand.Execute(null);
             Check(!vm.ShowInExplorerCommand.CanExecute(first) && vm.ClearCommand.CanExecute(null),
                 "pending Explorer requests prevent duplicate launches without blocking the rest of the window");
             vm.ClearCommand.Execute(null);
@@ -479,9 +685,14 @@ internal static class UiChecks
             Check(!missing.GetAwaiter().GetResult(), "real Explorer service rejects a file deleted since analysis");
             Check(errors.ToString().Length == 0, "row context menus, themes and localized errors produce no WPF binding errors: " + errors);
 
-            ContextMenu OpenMenu(FileRowViewModel row)
+            ContextMenu OpenMenu(FileRowViewModel row, bool preserveSelection = false)
             {
                 if (menu != null) menu.IsOpen = false;
+                if (!preserveSelection)
+                {
+                    grid.UnselectAll();
+                    grid.SelectedItems.Add(row);
+                }
                 grid.ScrollIntoView(row);
                 window.UpdateLayout();
                 DrainDispatcher();
@@ -504,6 +715,9 @@ internal static class UiChecks
             Directory.Delete(directory, true);
         }
     }
+
+    private static MenuItem MenuFor(ContextMenu menu, System.Windows.Input.ICommand command) =>
+        menu.Items.OfType<MenuItem>().Single(item => ReferenceEquals(item.Command, command));
 
     private static void InvokeMenuItem(MenuItem item) =>
         ((IInvokeProvider)new MenuItemAutomationPeer(item).GetPattern(PatternInterface.Invoke)).Invoke();
@@ -1984,8 +2198,9 @@ internal static class UiChecks
         Check(grid.ReadLocalValue(Control.BackgroundProperty) == DependencyProperty.UnsetValue
             && grid.ReadLocalValue(Control.ForegroundProperty) == DependencyProperty.UnsetValue,
             "table uses the application theme instead of fixed light colors");
-        Check(grid.Columns.All(column => column.Width.IsAuto && column.MinWidth > 0 && column.MaxWidth < 1000),
-            "all columns use bounded automatic sizing");
+        Check(grid.Columns.All(column => column.Width.IsAuto && column.MinWidth > 0
+                && (ColumnLayoutBehavior.GetId(column) == "Path" ? double.IsPositiveInfinity(column.MaxWidth) : column.MaxWidth < 1000)),
+            "automatic sizing bounds regular columns and lets the final path column fit its content");
         Check(grid.Columns.Where(column => column.Visibility == Visibility.Visible)
             .All(column => column.ActualWidth >= column.MinWidth && column.ActualWidth <= column.MaxWidth),
             "visible columns respect minimum and maximum widths");

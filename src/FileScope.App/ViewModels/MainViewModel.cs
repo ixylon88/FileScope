@@ -24,7 +24,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IConfirmationService _confirmation;
     private readonly IFileMoveService _fileMover;
     private readonly IFileMoveReportService _moveReports;
-    private IReadOnlyList<FileRowViewModel> _selectedRows = [];
+    private FileRowViewModel[] _selectedRows = [];
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
@@ -126,22 +126,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && HasRows && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters, () => IsIdle);
-        // The parameter is the context menu's row, independent of SelectedRow.
-        ShowFilePropertiesCommand = new AsyncRelayCommand(parameter =>
+        // Commands use the actual selection, never a popup's recyclable row container.
+        ShowFilePropertiesCommand = new AsyncRelayCommand(_ =>
         {
-            var path = ((FileRowViewModel)parameter!).FullPath;
+            var path = SingleSelectedRow!.FullPath;
             SetFileActionError(fileShell.TryShowProperties(path) ? null : path, "FilePropertiesError");
             return Task.CompletedTask;
-        }, OnCommandError, parameter => !_disposed && parameter is FileRowViewModel row && Rows.Contains(row));
-        ShowInExplorerCommand = new AsyncRelayCommand(async parameter =>
+        }, OnCommandError, _ => IsIdle && SingleSelectedRow is not null);
+        ShowInExplorerCommand = new AsyncRelayCommand(async _ =>
         {
-            var row = (FileRowViewModel)parameter!;
+            var row = SingleSelectedRow!;
             var path = row.FullPath;
             var success = await fileShell.TryShowInExplorerAsync(path);
             if (!_disposed && Rows.Contains(row)) SetFileActionError(success ? null : path, "FileExplorerError");
-        }, OnCommandError, parameter => !_disposed && parameter is FileRowViewModel row && Rows.Contains(row));
-        MoveSelectedCommand = new AsyncRelayCommand(_ => MoveSelectedAsync(), OnCommandError,
-            parameter => CanMoveSelected && parameter is FileRowViewModel row && _selectedRows.Contains(row));
+        }, OnCommandError, _ => IsIdle && SingleSelectedRow is not null);
+        MoveSelectedCommand = new AsyncRelayCommand(_ => MoveSelectedAsync(), OnCommandError, _ => CanMoveSelected);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
         options.ExportSelectionChanged += OnExportSelectionChanged;
@@ -247,6 +246,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
     public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
     public FileRowViewModel? SelectedRow { get; set => SetProperty(ref field, value); }
+    public FileRowViewModel? SingleSelectedRow => _selectedRows.Length == 1 && Rows.Contains(_selectedRows[0]) ? _selectedRows[0] : null;
     public bool CanMoveSelected => IsIdle && _selectedRows.All(Rows.Contains)
         && SignatureMoveSelection.GetStatus(_selectedRows) is not null;
     public string MoveSelectedMenu => IsIdle && SignatureMoveSelection.GetStatus(_selectedRows) is { } status
@@ -260,8 +260,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void NotifyMoveSelectionChanged()
     {
+        OnPropertyChanged(nameof(SingleSelectedRow));
         OnPropertyChanged(nameof(CanMoveSelected));
         OnPropertyChanged(nameof(MoveSelectedMenu));
+        ShowFilePropertiesCommand.NotifyCanExecuteChanged();
+        ShowInExplorerCommand.NotifyCanExecuteChanged();
         MoveSelectedCommand.NotifyCanExecuteChanged();
     }
 
@@ -838,8 +841,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
         ResetFiltersCommand.NotifyCanExecuteChanged();
-        ShowFilePropertiesCommand.NotifyCanExecuteChanged();
-        ShowInExplorerCommand.NotifyCanExecuteChanged();
         NotifyMoveSelectionChanged();
     }
     private void OnCommandError(Exception exception)

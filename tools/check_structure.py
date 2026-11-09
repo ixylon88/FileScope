@@ -141,8 +141,12 @@ catalog_ids = re.findall(r'new\("(\w+)",', catalog)
 check(set(ids) == set(catalog_ids), 'Options must include every table column, including hidden columns.')
 for column in columns:
     check(column.attrib.get('Width') == 'Auto', 'Column must use content-driven sizing.')
-    check(0 < float(column.attrib['MinWidth']) <= float(column.attrib['MaxWidth']) < 1000,
-          'Invalid column width bounds: ' + column.attrib[behavior])
+    if column.attrib[behavior] == 'Path':
+        check(float(column.attrib['MinWidth']) > 0 and 'MaxWidth' not in column.attrib,
+              'Path width is controlled by the saved automatic-width option.')
+    else:
+        check(0 < float(column.attrib['MinWidth']) <= float(column.attrib['MaxWidth']) < 1000,
+              'Invalid column width bounds: ' + column.attrib[behavior])
 for format in ['HexUpper', 'HexLower', 'HexColon', 'Base64', 'Base64Url']:
     check('HashFormat_' + format in base, 'Missing hash format label: ' + format)
 

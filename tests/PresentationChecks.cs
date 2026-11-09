@@ -442,6 +442,9 @@ internal static class PresentationChecks
         {
             using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
             Check(options.AnalysisPreferences == new AnalysisPreferences(), "missing checkbox settings retain first-run defaults");
+            Check(options.PathAutoWidth && options.Columns[^1].Id == "Path", "old settings default to automatic width and a final path column");
+            options.PathAutoWidth = false;
+            Check(!store.Load().PathAutoWidth, "turning off automatic path width persists an explicit false");
             Check(options.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon, "old settings default to semicolon CSV");
             options.SelectedCsvDelimiter = options.CsvDelimiters.Single(option => option.Value == CsvDelimiter.Comma);
             Check(options.Columns.All(column => column.IsExportSelected), "older preferences select all export columns initially");
@@ -508,6 +511,9 @@ internal static class PresentationChecks
                     .SequenceEqual(["Name", "SHA256", "PeMachine"]),
                     "export field selection survives language, format, order, analysis and window saves");
                 Check(reopened.WindowPreferences == window, "normal size and maximized state survive a restart");
+                Check(!reopened.PathAutoWidth, "bounded path width survives restart and unrelated preference saves");
+                reopened.PathAutoWidth = true;
+                Check(store.Load().PathAutoWidth, "automatic path width can be re-enabled and saved");
                 Check(reopened.Columns.Select(column => column.Id).SequenceEqual(savedOrder), "column order survives a restart");
                 Check(reopened.SelectedLanguage.CultureName == "de" && reopened.SelectedHashFormat.Value == HashFormat.Base64Url,
                     "language and hash format survive a restart");
@@ -527,6 +533,8 @@ internal static class PresentationChecks
             using (var partial = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(partial.AnalysisPreferences is { MD5: true, SHA256: false, InspectCertificates: true, OnlineRevocation: false, InspectFileProperties: false, InspectPeHeader: false },
                     "missing individual fields get defaults while explicit false is respected");
+            using (var legacy = new OptionsViewModel(strings, store, new RecordingThemeService()))
+                Check(legacy.PathAutoWidth, "JSON without PathAutoWidth explicitly defaults to automatic sizing");
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store, new RecordingThemeService()))
                 Check(fallback.HasSettingsError && fallback.Columns.Count == 39, "corrupt settings fall back without blocking the app");

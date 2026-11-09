@@ -1,5 +1,44 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Tastenkürzelübersicht und Owner-Testkorrektur
+
+Stand: 9. November 2026. Folgepatch auf `FileScope-ui-selection-path-fixes.patch` (Git-Ausgangspunkt `189fde4`). .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Rebuild einschließlich Core, App, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Statische Struktur- und Ressourcenprüfung | 1430 bestanden; 267 Schlüssel je Sprache |
+| Core / Präsentation | Quelltext und zuletzt bestätigte 201 / 199 Assertions unverändert; für diesen Dialogpatch nicht erneut ausgeführt |
+| WPF / UI / MVVM | 396 Assertions erwartet: bisher 379, zusätzlich 17 zur Tastenkürzelübersicht. Testprogramm kompiliert, hier nicht ausgeführt. |
+
+`CheckPathPresentation` wies im vorherigen Patch `Owner` zu, bevor das Hauptfenster gezeigt wurde. Die korrigierte Reihenfolge lautet `window.Show()`, `settings.Owner = window`, `settings.Show()`. Die bestehenden Prüfbedingungen bleiben erhalten; der Fehler wird weder abgefangen noch durch Entfernen des Besitzers umgangen. Die übrigen Owner-Zuweisungen wurden auf dieselbe Voraussetzung geprüft.
+
+Die neue Übersicht verwendet vorhandene Lokalisierung und Fluent-Ressourcen. `ApplicationCommands.Help` verbindet den tatsächlichen Knopf und F1 mit demselben modalen Dialog. Die 17 zusätzlichen UI-Assertions entstehen aus zwölf Prüfstellen, davon zwei für jeweils drei Sprachen und eine für beide Designs. Geprüft werden Command-/Tastenzuordnung, die vorhandenen Strg+O-/Strg+L-/Esc-Bindungen, Button-Aufruf über den Automation-Peer, F1-Command-Routing, Besitzer und Modalität, Schließen, Übersetzungen aller zwölf Kürzelpaare, Themewechsel, Scrollbarkeit bei Mindestgröße, unveränderte Einstellungen und Bindingfehler. Die Fenster werden auch in diesen Tests erst nach Anzeige des Hauptfensters mit ihrem Besitzer verbunden.
+
+Ein erster inkrementeller Linux-Build meldete einen doppelten BAML-Ressourcenschlüssel; der anschließende vollständige Rebuild räumte die generierten Zwischenstände auf. Die Projektdateien und ihre Ressourcendefinitionen wurden dafür nicht verändert.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Anschließend Knopf und F1, Schließen mit Esc/Enter, BildAuf/BildAb und Strg+Pos1/Strg+Ende bei Tabellenfokus sowie die Übersicht in beiden Designs und bei höherer Bildschirmskalierung prüfen. Die tatsächliche WPF-Laufzeit und Darstellung sind hier weiterhin nicht ausführbar.
+
+## Ergänzung: Menüauswahl und Pfaddarstellung
+
+Stand: 9. November 2026. Patchbasis: `189fde4` (`move files by signature`). .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich Core, App, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Präsentation und Einstellungen | 199 bestanden; 5 zusätzliche Prüfungen zu Standardwert, explizitem Abschalten, Neustart und erneutem Einschalten der Pfadbreitenautomatik |
+| Statische Struktur- und Ressourcenprüfung | 1300 bestanden; 235 Schlüssel je Sprache |
+| Core | Quelltext und 201 unter Linux zuletzt bestätigte Assertions unverändert; für diesen UI-Patch nicht erneut ausgeführt |
+| WPF / UI / MVVM | 379 Assertions erwartet; Testprogramm kompiliert, hier nicht ausgeführt. Bisher 363, zusätzlich 16. |
+
+Der gemeldete `ElementNotEnabledException` trat beim Aufrufen eines nach Sprachwechsel weiterverwendeten Menüeintrags auf. Der bisherige Command-Parameter hing am `PlacementTarget.DataContext` eines recyclebaren DataGridRow. Der Popup-DataContext verweist nun auf das Haupt-ViewModel; alle Aktionen lösen ihre Ziele anhand der tatsächlichen Auswahl auf. Die bestehende Sprachwechselprüfung fordert zusätzlich `IsEnabled` und ausführbares Command, bevor sie weiterhin denselben echten Menüeintrag über den Automation-Peer aufruft. Der Test umgeht den fehlschlagenden Aufruf nicht.
+
+Die 16 zusätzlichen UI-Assertions bestehen aus einer Prüfung für Verschieben/Trennlinie an erster Stelle, zwei zur gesperrten bzw. wieder aktivierten Einzeldateiaktion und 13 zum Pfadkopf und zur Breitenoption (11 Prüfstellen, eine davon für drei Sprachen). Sie prüfen die echte Mehrfachauswahl, leeren Detailtext bei keiner/mehreren Dateien, Pfadaktualisierung nach Verschieben, das reale Options-Häkchen, Speicherung, das Beibehalten anderer manueller Breiten, Sprachwechsel und „Breiten neu anpassen“ bei ausgeschalteter Pfadautomatik sowie die Rückkehr des Pfads ans Ende nach Zurücksetzen der Spaltenreihenfolge. Bestehende Menütests wurden auf Auswahl als Befehlsziel umgestellt; die Sicherheitsprüfungen bleiben bestehen.
+
+Der Schutz vor wiederholten Status-Unterordnern ist bereits im unveränderten `FileMoveService` enthalten und durch den bestehenden Core-Test abgedeckt. POS1/ENDE behalten das native WPF-Verhalten innerhalb einer Zeile; STRG+POS1/STRG+ENDE springen an Anfang/Ende der Tabelle. Die README nennt diese Kombinationen und konkrete Haltepunkte zur Trennung von Dateiöffnung, Lesen, Hashberechnung und Metadaten-/Signaturprüfungen. An der Analyse oder ihren Dateizugriffen wurde nichts geändert.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Zusätzlich den offenen Menüeintrag nach Sprachwechsel, Mehrfachauswahl, eine weit nach vorne verschobene Pfadspalte und einen sehr langen Pfad im Detailkopf ansehen. Der nicht reproduzierbare zusätzliche XAML-Laufzeitfehler ist ohne Fehlermeldung/Stacktrace nicht zugeordnet und wird hier nicht als behoben behauptet.
+
 ## Ergänzung: Dateien nach Signaturstatus verschieben
 
 Stand: 9. November 2026. Zweiter Patch, anzuwenden nach dem Fortschrittspatch auf `f3148e7` (`readme updated`). Ausführung mit .NET SDK 10.0.100 unter Linux.
