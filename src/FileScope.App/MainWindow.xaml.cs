@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using FileScope.App.Behaviors;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
@@ -56,6 +57,29 @@ public partial class MainWindow : Window
     }
 
     private void OnResultsGridLoaded(object sender, RoutedEventArgs args) => DataGridScrollFix.Apply(ResultsGrid);
+
+    private void OnResultsSelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        // Ignore selection events bubbling from the signature ComboBoxes.
+        if (ReferenceEquals(args.OriginalSource, ResultsGrid)) UpdateSelectedRows();
+    }
+
+    private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs args)
+    {
+        if (args.OriginalSource is DependencyObject source
+            && ItemsControl.ContainerFromElement(ResultsGrid, source) is DataGridRow { IsSelected: false } row)
+        {
+            ResultsGrid.UnselectAll();
+            row.IsSelected = true;
+        }
+        UpdateSelectedRows();
+    }
+
+    private void UpdateSelectedRows()
+    {
+        if (DataContext is MainViewModel viewModel)
+            viewModel.SetSelectedRows(ResultsGrid.SelectedItems.Cast<FileRowViewModel>());
+    }
 
     private void OpenOptions(object sender, RoutedEventArgs args)
     {

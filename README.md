@@ -13,7 +13,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 - **Ansicht anpassen:** Spalten und Hashdarstellung konfigurieren; Deutsch, Englisch oder vereinfachtes Chinesisch wählen.
 - **Windows x64** und **Windows on ARM64** wird unterstützt (Letzteres wurde auf Parallels getestet).
 
-Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt.
+Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt. Nur die ausdrücklich gewählte Kontextmenü-Aktion zum Verschieben ändert Dateipfade.
 
 Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Bis auf einen Microsoft-Analyzer (Codeanalyse) werden keine Drittanbieter-NuGet-Pakete verwendet.
 
@@ -116,7 +116,8 @@ Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-
 | Alle neu prüfen | Alle geladenen Dateien mit der aktuellen Auswahl erneut verarbeiten, einschließlich ausgefilterter Dateien. Vorherige Ergebnisse dieser Dateien werden dabei ersetzt. |
 | Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben, Dateieigenschaften, PE-Angaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
-| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Das Menü gilt für die angeklickte Zeile, auch bei einer Mehrfachauswahl; über die Menütaste / Umschalt+F10 ist es ebenfalls erreichbar. |
+| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Diese beiden Aktionen gelten für die angeklickte Zeile, auch bei einer Mehrfachauswahl; über die Menütaste / Umschalt+F10 ist das Menü ebenfalls erreichbar. |
+| Dateien verschieben | Markierte Zeilen mit demselben abgeschlossenen Signatur-Prüfergebnis: Kontextmenü → „Markierte Dateien nach … verschieben“. Jede Datei wird in einen kurzen, lokalisierten Unterordner ihres eigenen übergeordneten Ordners verschoben. Vorhandene Ziele werden übersprungen. Ein Abschlussbericht nennt jedes Ergebnis. |
 | Alles außer gültigen Signaturen | Blendet ausschließlich den Status „gültig“ aus. Enthält auch unsignierte, ungeprüfte, nicht unterstützte und fehlgeschlagene Prüfungen. Bei mehreren Signaturen gilt die aktuelle Auswahl in der Zeile. „Prüfbedarf“ behält seine bisherige engere Bedeutung ohne unsignierte/ungeprüfte Dateien. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
 | Statusfelder | Verarbeitungs- und Signaturstatus verwenden dieselbe abgerundete `StatusBadge`-Komponente. Grün: fertig/gültig; Blau: Verarbeitung läuft; Gelb: abgebrochen oder Warnfall; Rot: Fehler/ungültige Prüfung; Grau: wartend, nicht geprüft oder keine eingebettete Signatur. Die übersetzte Beschriftung und der vollständige Tooltip bleiben maßgeblich. |
@@ -146,6 +147,29 @@ Ein langsamer erster Start kann unter anderem vom Laden der Runtime und der Asse
 Das Kontextmenü einer Ergebniszeile verwendet die nativen Fluent-Menüs und folgt dem gewählten Design und der Sprache. „Eigenschaften“ zeigt die Windows-Eigenschaften; „Im Explorer anzeigen“ springt auch bei tief verschachtelten Dateien direkt zum richtigen Ordner und markiert die Datei. Die Aktion startet die untersuchte Datei nicht. Freie Tabellenflächen und Spaltenüberschriften haben kein Dateimenü.
 
 Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows die Aktion, erscheint ein eigener Hinweis mit dem Pfad unter dem Analysestatus. Analyseergebnisse und Durchlaufstatistik bleiben erhalten. Ein erfolgreicher erneuter Aufruf oder „Leeren“ entfernt diesen Hinweis. Die Explorer-Anfrage läuft im Hintergrund; eine noch laufende Anfrage kann nicht doppelt gestartet werden. Windows darf für diese ausdrücklich angeforderten Shell-Aktionen eigene zusätzliche Dateizugriffe durchführen.
+
+### Dateien nach Signaturergebnis verschieben
+
+Eine oder mehrere Ergebniszeilen markieren und das Kontextmenü öffnen. Der zusätzliche Menüeintrag ist nur vorhanden, wenn alle markierten Zeilen eine abgeschlossene Analyse und **dasselbe angezeigte Signaturergebnis** besitzen. Bei mehreren Signaturen zählt die aktuelle Signaturauswahl jeder Zeile. „Gültig (online)“ und „Gültig (offline)“ bilden getrennte Gruppen. Gemischte, ungeprüfte, wartende, abgebrochene oder insgesamt fehlgeschlagene Analysen bieten die Aktion nicht an. Ein Rechtsklick auf eine noch nicht markierte Zeile wählt diese allein aus; innerhalb einer bestehenden Mehrfachauswahl bleibt die Auswahl erhalten.
+
+Jede Datei kommt in einen Unterordner **ihres bisherigen direkten Elternordners**, etwa `C:\Pruefung\Unterordner\datei.exe` → `C:\Pruefung\Unterordner\widerruf\datei.exe`. Gleichnamige Dateien aus verschiedenen Ordnern bleiben damit getrennt. Die App-Sprache beim Start der Aktion bestimmt den Namen; jeder Name umfasst höchstens acht Zeichen. Das ist eine Begrenzung der Ordnernamen, keine Zusage zum DOS-8.3-Format.
+
+| Signaturergebnis | Deutsch | Englisch | 简体中文 |
+| --- | --- | --- | --- |
+| Gültig | `gueltig` | `valid` | `有效` |
+| Keine eingebettete Signatur | `ohnesig` | `unsigned` | `未签名` |
+| Ungültig | `unguelt` | `invalid` | `无效` |
+| Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
+| Abgelaufen | `abgelauf` | `expired` | `已过期` |
+| Widerrufen | `widerruf` | `revoked` | `已吊销` |
+| Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
+| Format nicht unterstützt | `format` | `format` | `不支持格式` |
+| Plattform nicht unterstützt | `system` | `platform` | `不支持平台` |
+| Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
+
+**Vorhandene Ziele werden niemals überschrieben.** Auch ein Zielpfad, der bereits als andere Ergebniszeile geladen ist, bleibt reserviert. Dateien, die bereits unmittelbar im passenden Unterordner liegen, werden übersprungen; es entstehen keine wiederholten Status-Unterordner. Symbolische Dateilinks und andere Datei-Reparse-Points werden mit Hinweis übersprungen, ebenso verlinkte Zielordner. Ein gewöhnlicher Hardlink wird als einzelner Pfad verschoben; seine anderen Namen bleiben erhalten.
+
+Die Aktion läuft im Hintergrund und lässt sich zwischen Dateien abbrechen. Bereits ausgeführte Verschiebungen bleiben bestehen; es gibt kein automatisches Zurückverschieben. Erfolgreiche Zeilen erhalten sofort nach Abschluss des Vorgangs den neuen Pfad, behalten aber Analysewerte und ausgewählte Signatur. Explorer, Details, Suche und CSV/JSON-Export verwenden anschließend diesen Pfad. Zugriffsfehler betreffen nur die jeweilige Datei. Der skalierbare Abschlussdialog enthält Anzahl, Erfolge, übersprungene bzw. abgebrochene Einträge und Fehler mit Quell-/Zielpfaden; sein Text lässt sich markieren und kopieren. Dafür werden die Quelldateien nicht neu analysiert.
 
 ### Über FileScope
 
@@ -271,6 +295,9 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
 | `AboutWindow` / `IExternalLinkService` | Reine Programminformationen, Version aus der App-Assembly und eingebetteter Lizenztext. Ein kleiner austauschbarer Dienst öffnet HTTPS-Projektlinks; UI-Prüfungen ersetzen ihn, ohne einen Browser zu starten. |
 | `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
+| `IFileMoveService` / `FileMoveService` | Verschiebt Dateien ohne Überschreiben und liefert pro Datei ein sprachneutrales Ergebnis; keine WPF-Abhängigkeit. |
+| `SignatureMoveSelection` / `FileMoveReport` | Prüfen die Signaturgruppe und formatieren Zielnamen sowie Bericht in der gewählten Sprache. |
+| `IFileMoveReportService` / `FileMoveReportWindow` | Kleine Grenze zum modalen Abschlussdialog, im UI-Test durch einen aufzeichnenden Dienst ersetzbar. |
 | `IFileShellService` / `FileShellService` | Öffnet auf ausdrücklichen Benutzerwunsch Windows-Dateieigenschaften oder markiert die Datei im Explorer. UI-Prüfungen ersetzen den Dienst, ohne Shell-Fenster zu starten. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
 | `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
@@ -320,13 +347,19 @@ Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt 
 
 Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die Messung neu und erlaubt auch schmalere Spalten. Das Filtern allein setzt manuell gewählte Breiten nicht zurück.
 
-Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Da ein Popup außerhalb des visuellen Fensterbaums liegt, bezieht es seine Zeile über `PlacementTarget.DataContext`; der vorhandene `BindingProxy` liefert die Commands des Haupt-ViewModels. Die Aktion hängt damit weder an einer vorher ausgewählten Zeile noch an einem alten DataContext eines wiederverwendeten Zeilencontainers. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
+Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Da ein Popup außerhalb des visuellen Fensterbaums liegt, bezieht es seine Zeile über `PlacementTarget.DataContext`; der vorhandene `BindingProxy` liefert die Commands des Haupt-ViewModels. Die beiden Shell-Aktionen hängen damit weder an einer vorher ausgewählten Zeile noch an einem alten DataContext eines wiederverwendeten Zeilencontainers. Die Verschiebeaktion verwendet dagegen die ausdrücklich markierte Zeilengruppe; der Kontextparameter muss ebenfalls zu ihr gehören. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
 
 Beim horizontalen Scrollen kann WPF für `CellsPanelHorizontalOffset` einen geringfügig negativen Wert berechnen. Die Fluent-Vorlage bindet diesen Wert direkt an die Breite ihres internen „Alles auswählen“-Knopfs, auch bei ausgeblendeten Zeilenüberschriften. `DataGridScrollFix` ergänzt beim Laden der Tabelle ausschließlich für diese Bindung eine Begrenzung auf null. Positive Breiten bleiben erhalten; die native Vorlage, fixierte Spalten, Virtualisierung und automatische Spaltenbreiten bleiben bestehen. Die Binding-Fehlerausgabe wird nicht abgeschaltet.
 
 ### Ordnersuche und Exportstrategien
 
 Die Exportarchitektur verwendet **Strategy**: `ResultExporter` implementiert `IResultExporter`, wählt die registrierte `IResultExportStrategy` anhand des Formats und übernimmt temporäre Datei, atomaren Austausch, Abbruch und Aufräumen. `CsvExportStrategy` und `JsonExportStrategy` schreiben nur in den bereitgestellten Stream. Die Strategien werden in `App.OnStartup` zusammengestellt. `ResultExportTable` enthält stabile IDs, übersetzte Überschriften und Werte, ohne WPF-Abhängigkeit; `ResultExportProjection` erstellt die Momentaufnahme vor dem Hintergrundexport. Neue Exportfelder werden im zentralen Katalog `ColumnOption.CreateDefaults` ergänzt. Die Ordnersuche liegt getrennt in `IFolderScanner` / `FolderScanner`.
+
+### Verschieben und Abschlussbericht
+
+`MainViewModel` erhält die Mehrfachauswahl aus den Ereignissen der Tabelle und prüft sie mit der WPF-unabhängigen Klasse `SignatureMoveSelection`. Beim Start hält es Auswahl, Zielordner und bereits geladene Pfade als Momentaufnahme fest. `IFileMoveService` verarbeitet diese Daten im Hintergrund; `FileMoveService` nutzt `File.Move(..., overwrite: false)`. Die Prüfung auf ein vorhandenes Ziel ist nur eine Vorprüfung: Auch der eigentliche Verschiebeaufruf erlaubt kein Ersetzen. Der Dienst behandelt erwartete Dateisystemfehler pro Datei und liefert bei Abbruch bereits ausgeführte sowie noch nicht ausgeführte Einträge gemeinsam zurück.
+
+Nach der Rückkehr aktualisiert `FileRowViewModel.Relocate` ausschließlich den Pfad der Zeile und ihres Analyseergebnisses. Hashes und Signaturauswahl bleiben erhalten; die Pfadmenge zur Duplikaterkennung wird mitgeführt. `IFileMoveReportService` öffnet den Bericht erst nach Ende des Jobs auf dem UI-Thread. Die kleine Informationsansicht braucht kein eigenes ViewModel: `FileMoveReport` formatiert ihre unveränderlichen Ergebnisse, während Sprache und Fluent-Design auch im geöffneten Dialog umschaltbar bleiben. Die konkreten Dienste werden wie die bestehenden Abhängigkeiten in `App.OnStartup` zusammengestellt.
 
 ### Programmheader
 
@@ -447,11 +480,11 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
-| Core | **188** unter Linux bestanden, einschließlich 5 neuer Phasenprüfungen. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **477** erwartet. |
-| Präsentation und Einstellungen | **175** bestanden, einschließlich 10 neuer Prüfungen für Fortschrittspuffer und Phasentexte. |
-| WPF / UI / MVVM | **343** erwartet, einschließlich 11 neuer Prüfungen für gepufferten Fortschritt und pausierte Filter; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| Core | **201** unter Linux bestanden, einschließlich 5 Phasenprüfungen und 13 Prüfungen zum Verschieben. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **490** bei denselben Voraussetzungen erwartet. |
+| Präsentation und Einstellungen | **194** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte und 19 für Signaturgruppen, neue Pfade und lokalisierte Verschiebeberichte. |
+| WPF / UI / MVVM | **363** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter und 20 für Verschiebeaktion und Bericht; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog 27 Prüfungen für das Dateikontextmenü und 11 Prüfungen für gepufferten Fortschritt und pausierte Filter. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 

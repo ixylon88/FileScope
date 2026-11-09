@@ -26,7 +26,7 @@ function Invoke-Checks {
         # Compile the UI-independent presentation code without a Windows runtime.
         $sources = @('Infrastructure/ObservableObject.cs', 'Infrastructure/Commands.cs',
             'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs', 'Presentation/WindowSize.cs', 'Presentation/ResultExportProjection.cs',
-            'Presentation/AnalysisRunSummary.cs', 'Presentation/AnalysisProgressBuffer.cs', 'Presentation/AnalysisStageText.cs',
+            'Presentation/AnalysisRunSummary.cs', 'Presentation/AnalysisProgressBuffer.cs', 'Presentation/SignatureMoveSelection.cs', 'Presentation/FileMoveReport.cs', 'Presentation/AnalysisStageText.cs',
             'Services/PreferencesStore.cs', 'Services/IThemeService.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
             'ViewModels/SignatureOption.cs', 'ViewModels/OptionsViewModel.cs', 'ViewModels/FileRowViewModel.cs')
         foreach ($relative in $sources) {

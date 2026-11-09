@@ -45,8 +45,16 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             return $"{date} UTC ({strings["Timestamp_" + timestamp.Status]})";
         }
     }
-    public string FullPath { get; } = path;
-    public string FileName { get; } = GetName(path);
+    public string FullPath { get; private set; } = path;
+    public string FileName => GetName(FullPath);
+
+    /// <summary>Keep the analysis and selected signer when a successful move changes only the path.</summary>
+    public void Relocate(string fullPath)
+    {
+        FullPath = Path.GetFullPath(fullPath);
+        if (Result is not null) Result = Result with { FullPath = FullPath };
+        OnPropertyChanged(null);
+    }
     public FileAnalysisResult? Result { get; private set; }
     public RowStatus State { get; private set; } = RowStatus.Queued;
     public AnalysisStage Stage { get; private set; }

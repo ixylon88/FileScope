@@ -741,4 +741,82 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="FiltersPausedTip" xml:space="preserve">
     <value>任务运行期间暂停筛选和排序，完成后重新应用。</value>
   </data>
+  <data name="MoveSelectedMenu" xml:space="preserve">
+    <value>将选中的文件移至“{0}”…</value>
+  </data>
+  <data name="MovingFiles" xml:space="preserve">
+    <value>正在移动文件…</value>
+  </data>
+  <data name="MovesFinished" xml:space="preserve">
+    <value>移动操作已结束。详情请查看报告。</value>
+  </data>
+  <data name="MoveReportTitle" xml:space="preserve">
+    <value>文件移动报告</value>
+  </data>
+  <data name="MoveReportSummary" xml:space="preserve">
+    <value>{0} 个文件 · 已移动 {1} 个 · 错误 {2} 个 · 已跳过/取消 {3} 个</value>
+  </data>
+  <data name="MoveReportSource" xml:space="preserve">
+    <value>源路径：{0}</value>
+  </data>
+  <data name="MoveReportDestination" xml:space="preserve">
+    <value>目标路径：{0}</value>
+  </data>
+  <data name="MoveOutcome_Moved" xml:space="preserve">
+    <value>已移动</value>
+  </data>
+  <data name="MoveOutcome_TargetExists" xml:space="preserve">
+    <value>已跳过：目标已存在</value>
+  </data>
+  <data name="MoveOutcome_AlreadyInFolder" xml:space="preserve">
+    <value>已跳过：已在对应的子文件夹中</value>
+  </data>
+  <data name="MoveOutcome_SourceMissing" xml:space="preserve">
+    <value>失败：未找到源文件</value>
+  </data>
+  <data name="MoveOutcome_SourceLink" xml:space="preserve">
+    <value>已跳过：源文件是符号链接或其他重解析点</value>
+  </data>
+  <data name="MoveOutcome_TargetLink" xml:space="preserve">
+    <value>已跳过：目标文件夹是链接或其他重解析点</value>
+  </data>
+  <data name="MoveOutcome_TargetListed" xml:space="preserve">
+    <value>已跳过：目标路径已在结果列表中</value>
+  </data>
+  <data name="MoveOutcome_Cancelled" xml:space="preserve">
+    <value>已取消：文件未移动</value>
+  </data>
+  <data name="MoveOutcome_Failed" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="MoveFolder_Valid" xml:space="preserve">
+    <value>有效</value>
+  </data>
+  <data name="MoveFolder_NoEmbeddedSignature" xml:space="preserve">
+    <value>未签名</value>
+  </data>
+  <data name="MoveFolder_InvalidSignature" xml:space="preserve">
+    <value>无效</value>
+  </data>
+  <data name="MoveFolder_Untrusted" xml:space="preserve">
+    <value>不受信任</value>
+  </data>
+  <data name="MoveFolder_Expired" xml:space="preserve">
+    <value>已过期</value>
+  </data>
+  <data name="MoveFolder_Revoked" xml:space="preserve">
+    <value>已吊销</value>
+  </data>
+  <data name="MoveFolder_RevocationUnknown" xml:space="preserve">
+    <value>吊销未知</value>
+  </data>
+  <data name="MoveFolder_UnsupportedFormat" xml:space="preserve">
+    <value>不支持格式</value>
+  </data>
+  <data name="MoveFolder_UnsupportedPlatform" xml:space="preserve">
+    <value>不支持平台</value>
+  </data>
+  <data name="MoveFolder_CheckFailed" xml:space="preserve">
+    <value>检查失败</value>
+  </data>
 </root>

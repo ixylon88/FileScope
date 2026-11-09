@@ -741,4 +741,82 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="FiltersPausedTip" xml:space="preserve">
     <value>Filters and sorting are paused during a job and reapplied when it finishes.</value>
   </data>
+  <data name="MoveSelectedMenu" xml:space="preserve">
+    <value>Move selected files to “{0}”…</value>
+  </data>
+  <data name="MovingFiles" xml:space="preserve">
+    <value>Moving files…</value>
+  </data>
+  <data name="MovesFinished" xml:space="preserve">
+    <value>Move operation finished. See the report for details.</value>
+  </data>
+  <data name="MoveReportTitle" xml:space="preserve">
+    <value>File move report</value>
+  </data>
+  <data name="MoveReportSummary" xml:space="preserve">
+    <value>{0} files · {1} moved · {2} errors · {3} skipped / cancelled</value>
+  </data>
+  <data name="MoveReportSource" xml:space="preserve">
+    <value>Source: {0}</value>
+  </data>
+  <data name="MoveReportDestination" xml:space="preserve">
+    <value>Destination: {0}</value>
+  </data>
+  <data name="MoveOutcome_Moved" xml:space="preserve">
+    <value>Moved</value>
+  </data>
+  <data name="MoveOutcome_TargetExists" xml:space="preserve">
+    <value>Skipped: destination already exists</value>
+  </data>
+  <data name="MoveOutcome_AlreadyInFolder" xml:space="preserve">
+    <value>Skipped: already in the matching subfolder</value>
+  </data>
+  <data name="MoveOutcome_SourceMissing" xml:space="preserve">
+    <value>Failed: source was not found</value>
+  </data>
+  <data name="MoveOutcome_SourceLink" xml:space="preserve">
+    <value>Skipped: source is a symbolic link or another reparse point</value>
+  </data>
+  <data name="MoveOutcome_TargetLink" xml:space="preserve">
+    <value>Skipped: destination folder is a link or another reparse point</value>
+  </data>
+  <data name="MoveOutcome_TargetListed" xml:space="preserve">
+    <value>Skipped: destination path is already in the results list</value>
+  </data>
+  <data name="MoveOutcome_Cancelled" xml:space="preserve">
+    <value>Cancelled: file was not moved</value>
+  </data>
+  <data name="MoveOutcome_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="MoveFolder_Valid" xml:space="preserve">
+    <value>valid</value>
+  </data>
+  <data name="MoveFolder_NoEmbeddedSignature" xml:space="preserve">
+    <value>unsigned</value>
+  </data>
+  <data name="MoveFolder_InvalidSignature" xml:space="preserve">
+    <value>invalid</value>
+  </data>
+  <data name="MoveFolder_Untrusted" xml:space="preserve">
+    <value>untrust</value>
+  </data>
+  <data name="MoveFolder_Expired" xml:space="preserve">
+    <value>expired</value>
+  </data>
+  <data name="MoveFolder_Revoked" xml:space="preserve">
+    <value>revoked</value>
+  </data>
+  <data name="MoveFolder_RevocationUnknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="MoveFolder_UnsupportedFormat" xml:space="preserve">
+    <value>format</value>
+  </data>
+  <data name="MoveFolder_UnsupportedPlatform" xml:space="preserve">
+    <value>platform</value>
+  </data>
+  <data name="MoveFolder_CheckFailed" xml:space="preserve">
+    <value>failed</value>
+  </data>
 </root>

@@ -4,6 +4,7 @@ using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
 using FileScope.Core.Export;
+using FileScope.Core.Files;
 
 internal static class PresentationChecks
 {
@@ -23,6 +24,7 @@ internal static class PresentationChecks
             CheckRunSummaries();
             CheckThemePreferences();
             CheckProgressBuffer();
+            CheckMovePresentation();
             Console.WriteLine();
             ConsoleColor backgroundBackup = Console.BackgroundColor;
             ConsoleColor foregroundBackup = Console.ForegroundColor;
@@ -37,6 +39,77 @@ internal static class PresentationChecks
         }
         catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }
     }
+    private static void CheckMovePresentation()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        FileRowViewModel Row(string name, SignatureStatus status, RevocationMode mode = RevocationMode.OfflineCache)
+        {
+            var row = new FileRowViewModel(Path.GetFullPath(name), strings);
+            row.Complete(new FileAnalysisResult(row.FullPath, 3, null,
+                new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = "00FF" }, new SignatureResult(status, mode)));
+            return row;
+        }
+        var first = Row("first.exe", SignatureStatus.Revoked);
+        var second = Row("second.exe", SignatureStatus.Revoked);
+        Check(SignatureMoveSelection.GetStatus([]) is null
+            && SignatureMoveSelection.GetStatus([new FileRowViewModel("queued", strings)]) is null,
+            "empty and unanalysed selections have no move category");
+        Check(SignatureMoveSelection.GetStatus([Row("unchecked", SignatureStatus.NotChecked)]) is null,
+            "unchecked signatures do not offer a move category");
+        Check(SignatureMoveSelection.GetStatus([first, second]) == SignatureStatus.Revoked,
+            "identical completed signature results offer one move category");
+        Check(SignatureMoveSelection.GetStatus([first, Row("other", SignatureStatus.NoEmbeddedSignature)]) is null,
+            "mixed signature results cannot be moved as one group");
+        Check(SignatureMoveSelection.GetStatus([Row("offline", SignatureStatus.Valid), Row("online", SignatureStatus.Valid, RevocationMode.Online)]) is null,
+            "valid online and offline labels are distinct move groups");
+        var failed = Row("failed", SignatureStatus.Revoked);
+        failed.Complete(failed.Result! with { Error = AnalysisError.ReadFailure });
+        Check(SignatureMoveSelection.GetStatus([first, failed]) is null,
+            "a failed analysis cannot contribute a stale signature result to the move group");
+        var entries = new EmbeddedSignature[]
+        {
+            new(0, SignatureStatus.Valid, null, 0, null, "SHA-256", SignatureTimestamp.NotPresent),
+            new(1, SignatureStatus.Revoked, null, 1, "selected diagnostic", "SHA-1", SignatureTimestamp.NotPresent)
+        };
+        var multi = Row("multi.exe", SignatureStatus.Valid);
+        multi.Complete(multi.Result! with { Signature = multi.Result.Signature with { Signatures = entries } });
+        Check(SignatureMoveSelection.GetStatus([first, multi]) is null, "the initially displayed signer controls move grouping");
+        multi.SelectedSignature = multi.Signatures[1];
+        Check(SignatureMoveSelection.GetStatus([first, multi]) == SignatureStatus.Revoked,
+            "choosing another signer immediately changes move grouping");
+        var selected = multi.SelectedSignature;
+        var hashes = multi.Result!.Checksums;
+        var newPath = Path.GetFullPath(Path.Combine("revoked", "multi.exe"));
+        multi.Relocate(newPath);
+        Check(multi.FullPath == newPath && multi.Result.FullPath == newPath && multi.FileName == "multi.exe"
+            && ReferenceEquals(multi.SelectedSignature, selected) && ReferenceEquals(multi.Result.Checksums, hashes)
+            && multi.SHA256 == "00FF" && multi.State == RowStatus.Completed,
+            "relocation updates both paths while preserving checksums, completion and signer selection");
+        var columns = ColumnOption.CreateDefaults(strings);
+        var exported = ResultExportProjection.Capture([multi], columns);
+        Check(exported.Rows[0][columns.Select(column => column.Id).ToList().IndexOf("Path")] == newPath
+            && multi.Details.Contains(newPath) && multi.Matches("revoked"),
+            "exports, details and filtering use a relocated file's new path");
+        var report = Enum.GetValues<FileMoveOutcome>().Select((outcome, index) =>
+            new FileMoveResult("source-" + index, "destination-" + index, outcome, outcome == FileMoveOutcome.Failed ? "custom error" : null)).ToArray();
+        var statuses = Enum.GetValues<SignatureStatus>().Where(status => status != SignatureStatus.NotChecked).ToArray();
+        foreach (var culture in new[] { "de", "en", "zh-Hans" })
+        {
+            strings.SetCulture(culture);
+            var folders = statuses.Select(status => SignatureMoveSelection.FolderName(status, strings)).ToArray();
+            Check(folders.All(FileMoveService.IsValidFolderName) && folders.Distinct(StringComparer.OrdinalIgnoreCase).Count() == folders.Length,
+                "all signature categories have distinct legal subfolders of at most eight characters / " + culture);
+            var text = FileMoveReport.Format(report, strings);
+            Check(report.All(result => text.Contains(result.SourcePath) && text.Contains(result.DestinationPath!)
+                    && text.Contains(strings["MoveOutcome_" + result.Outcome])) && text.Contains("custom error"),
+                "the move report includes every localized outcome, both paths and failure details / " + culture);
+            Check(FileMoveReport.Summary(report, strings) == strings.Format("MoveReportSummary", 9, 1, 2, 6),
+                "the move summary distinguishes success, errors and skipped or cancelled files / " + culture);
+        }
+        strings.SetCulture("en");
+    }
+
     private static void CheckProgressBuffer()
     {
         var previousContext = SynchronizationContext.Current;

@@ -24,7 +24,7 @@ public partial class App : Application
         var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath), new ThemeService(this));
         var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options,
             new FolderScanner(), new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]),
-            new ConfirmationService(), new FileShellService());
+            new ConfirmationService(), new FileShellService(), new FileMoveService(), new FileMoveReportService());
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();

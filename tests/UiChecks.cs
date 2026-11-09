@@ -65,6 +65,7 @@ internal static class UiChecks
             CheckThemeSwitching(app, strings);
             CheckAboutDialog(app, strings);
             CheckFileContextMenu(app, strings);
+            CheckFileMoves(app, strings);
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
@@ -187,6 +188,169 @@ internal static class UiChecks
         }
     }
 
+    private static void CheckFileMoves(Application app, LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var uiThread = Environment.CurrentManagedThreadId;
+        var analysis = new ImmediateAnalysis();
+        var mover = new RecordingFileMover();
+        var reports = new RecordingMoveReports();
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        mover.OnMove = (paths, folder, token) =>
+        {
+            entered.Set();
+            using var registration = token.Register(release.Set);
+            release.Wait(CancellationToken.None); // Cancellation releases the fake and returns partial results.
+            return paths.Select((path, index) => new FileMoveResult(path,
+                Path.Combine(Path.GetDirectoryName(path)!, folder, Path.GetFileName(path)),
+                index == 0 ? FileMoveOutcome.Moved : token.IsCancellationRequested ? FileMoveOutcome.Cancelled : FileMoveOutcome.TargetExists)).ToArray();
+        };
+        using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings), fileMover: mover, moveReports: reports);
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+        var previousMain = app.MainWindow;
+        app.MainWindow = window;
+        var themes = new ThemeService(app);
+        ContextMenu? menu = null;
+        FileMoveReportWindow? reportWindow = null;
+        var errors = new StringWriter();
+        using var listener = new TextWriterTraceListener(errors);
+        var bindingSource = PresentationTraceSources.DataBindingSource;
+        var previousLevel = bindingSource.Switch.Level;
+        bindingSource.Switch.Level = SourceLevels.Error;
+        bindingSource.Listeners.Add(listener);
+        try
+        {
+            window.Show();
+            var directory = Path.Combine(Path.GetTempPath(), "FileScope-move-ui-" + Guid.NewGuid().ToString("N"));
+            var paths = new[] { Path.Combine(directory, "first.exe"), Path.Combine(directory, "second.exe"), Path.Combine(directory, "third.exe") };
+            vm.DropFilesCommand.Execute(paths);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 3);
+            var first = vm.Rows[0];
+            var second = vm.Rows[1];
+            var third = vm.Rows[2];
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            grid.UnselectAll();
+            grid.SelectedItems.Add(first);
+            grid.SelectedItems.Add(second);
+            grid.ScrollIntoView(first);
+            window.UpdateLayout();
+            DrainDispatcher();
+            var container = (DataGridRow)grid.ItemContainerGenerator.ContainerFromItem(first);
+            menu = container.ContextMenu;
+            menu.PlacementTarget = container;
+            menu.IsOpen = true;
+            DrainDispatcher();
+            var moveItem = (MenuItem)menu.Items[2];
+            Check(vm.CanMoveSelected && moveItem.Visibility == Visibility.Visible && moveItem.IsEnabled
+                && ReferenceEquals(moveItem.Command, vm.MoveSelectedCommand) && ReferenceEquals(moveItem.CommandParameter, first),
+                "real grid multi-selection enables the row menu's move command for identical signature results");
+            Check(!vm.MoveSelectedCommand.CanExecute(null) && !vm.MoveSelectedCommand.CanExecute(third),
+                "the move command rejects missing parameters and unselected context rows");
+            third.Complete(third.Result! with { Signature = new SignatureResult(SignatureStatus.Revoked, RevocationMode.OfflineCache) });
+            grid.SelectedItems.Add(third);
+            DrainDispatcher();
+            Check(!vm.CanMoveSelected && moveItem.Visibility == Visibility.Collapsed,
+                "adding a row with a different signature result hides the move menu item");
+            vm.MoveSelectedCommand.Execute(first);
+            Check(mover.Sources.Length == 0, "a hidden move action also refuses programmatic execution");
+            third.Reset();
+            DrainDispatcher();
+            Check(!vm.CanMoveSelected && moveItem.Visibility == Visibility.Collapsed,
+                "an unanalysed selected row also hides the move menu item");
+            grid.SelectedItems.Remove(third);
+            strings.SetCulture("de");
+            DrainDispatcher();
+            Check(vm.CanMoveSelected && moveItem.Header.ToString() == strings.Format("MoveSelectedMenu", "ohnesig"),
+                "changing language updates the short destination folder in the live move menu");
+            var hash = first.SHA256;
+            InvokeMenuItem(moveItem);
+            PumpUntil(() => entered.IsSet);
+            Check(vm.IsBusy && vm.IsProgressIndeterminate && !vm.CanMoveSelected
+                && !vm.ClearCommand.CanExecute(null) && vm.StatusText.StartsWith(strings["MovingFiles"], StringComparison.Ordinal),
+                "moving runs as a cancellable background job and disables conflicting commands");
+            menu.IsOpen = false;
+            release.Set();
+            PumpUntil(() => !vm.IsBusy && reports.Results != null);
+            var destination = Path.Combine(directory, "ohnesig", "first.exe");
+            Check(mover.Sources.SequenceEqual(paths.Take(2)) && mover.Folder == "ohnesig"
+                && mover.Listed!.SetEquals(paths) && mover.ThreadId != uiThread && reports.ThreadId == uiThread,
+                "move inputs are captured on the UI thread, files move on a worker, and the report returns to the UI");
+            Check(first.FullPath == destination && first.Result!.FullPath == destination && first.SHA256 == hash
+                && second.FullPath == paths[1] && reports.Results!.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Moved, FileMoveOutcome.TargetExists]),
+                "only successfully moved rows get new paths and all outcomes reach the report");
+            var calls = analysis.Calls;
+            vm.DropFilesCommand.Execute(new[] { destination });
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == 3 && analysis.Calls == calls, "a moved destination stays protected by intake deduplication");
+            vm.DropFilesCommand.Execute(new[] { paths[0] });
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 4);
+            Check(vm.Rows.Count == 4 && analysis.Calls == calls + 1, "a successfully moved source path becomes available for a new file");
+
+            // A separate batch proves cancellation retains a completed move and the remaining rows.
+            entered.Reset();
+            release.Reset();
+            grid.UnselectAll();
+            grid.SelectedItems.Add(second);
+            grid.SelectedItems.Add(vm.Rows[3]);
+            vm.MoveSelectedCommand.Execute(second);
+            PumpUntil(() => entered.IsSet);
+            vm.CancelCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && reports.Results!.Any(result => result.Outcome == FileMoveOutcome.Cancelled));
+            Check(second.FullPath == Path.Combine(directory, "ohnesig", "second.exe") && vm.Rows[3].FullPath == paths[0]
+                && reports.Results!.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Moved, FileMoveOutcome.Cancelled]),
+                "cancellation keeps successful move paths and reports each unattempted file");
+            var reportResults = reports.Results!;
+            var modalOpened = false;
+            app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                var dialog = app.Windows.OfType<FileMoveReportWindow>().SingleOrDefault(candidate => candidate.IsVisible);
+                if (dialog == null) return;
+                modalOpened = ReferenceEquals(dialog.Owner, window) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
+                ((Button)dialog.FindName("CloseMoveReportButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }));
+            new FileMoveReportService().Show(reportResults);
+            Check(modalOpened && !app.Windows.OfType<FileMoveReportWindow>().Any(candidate => candidate.IsVisible),
+                "the real move report service opens an owned modal window and its Close button returns");
+            reportWindow = new FileMoveReportWindow(reportResults) { Owner = window, ShowActivated = false };
+            reportWindow.Show();
+            var reportText = (TextBox)reportWindow.FindName("MoveReportText");
+            Check(reportText.IsReadOnly && reportText.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto
+                && reportText.VerticalScrollBarVisibility == ScrollBarVisibility.Auto && reportWindow.ResizeMode == ResizeMode.CanResize,
+                "the move report is resizable with selectable read-only text and both scrollbars");
+            foreach (var culture in new[] { "de", "en", "zh-Hans" })
+            {
+                strings.SetCulture(culture);
+                DrainDispatcher();
+                Check(reportWindow.Title == strings["MoveReportTitle"] && reportText.Text == FileMoveReport.Format(reportResults, strings)
+                    && ((TextBlock)reportWindow.FindName("MoveSummaryText")).Text == FileMoveReport.Summary(reportResults, strings)
+                    && ((Button)reportWindow.FindName("CloseMoveReportButton")).Content.ToString() == strings["Close"],
+                    "the existing move report updates title, counts, details and Close together / " + culture);
+            }
+            foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
+            {
+                themes.Apply(theme);
+                DrainDispatcher();
+                Check(((SolidColorBrush)((TextBlock)reportWindow.FindName("MoveSummaryText")).Foreground).Color
+                        == ((SolidColorBrush)app.FindResource("MutedBrush")).Color,
+                    "the existing move report follows the current palette / " + theme);
+            }
+            Check(errors.ToString().Length == 0, "move menu and report have no WPF binding errors: " + errors);
+        }
+        finally
+        {
+            release.Set();
+            if (menu != null) menu.IsOpen = false;
+            reportWindow?.Close();
+            window.Close();
+            app.MainWindow = previousMain;
+            themes.Apply(AppTheme.Light);
+            strings.SetCulture("en");
+            bindingSource.Listeners.Remove(listener);
+            bindingSource.Switch.Level = previousLevel;
+        }
+    }
+
     private static void CheckFileContextMenu(Application app, LocalizationService strings)
     {
         var directory = Path.Combine(Path.GetTempPath(), "FileScope-shell-" + Guid.NewGuid().ToString("N"));
@@ -230,7 +394,7 @@ internal static class UiChecks
             menu = OpenMenu(second);
             var properties = (MenuItem)menu.Items[0];
             var explorer = (MenuItem)menu.Items[1];
-            Check(menu.Items.Count == 2 && ReferenceEquals(properties.Command, vm.ShowFilePropertiesCommand)
+            Check(menu.Items.Count == 3 && ReferenceEquals(properties.Command, vm.ShowFilePropertiesCommand)
                 && ReferenceEquals(explorer.Command, vm.ShowInExplorerCommand), "row menu binds both file commands");
             Check(ReferenceEquals(properties.CommandParameter, second) && ReferenceEquals(explorer.CommandParameter, second)
                 && ReferenceEquals(vm.SelectedRow, first), "context menu targets its row independently of the previous selection");
@@ -1876,10 +2040,41 @@ internal static class UiChecks
 
     private static MainViewModel CreateMainViewModel(IFileAnalysisService analysis, IFilePickerService picker,
         LocalizationService strings, OptionsViewModel options, IFolderScanner? scanner = null, IResultExporter? exporter = null,
-        IConfirmationService? confirmation = null, IFileShellService? fileShell = null) =>
+        IConfirmationService? confirmation = null, IFileShellService? fileShell = null,
+        IFileMoveService? fileMover = null, IFileMoveReportService? moveReports = null) =>
         new(analysis, picker, strings, options, scanner ?? new FolderScanner(),
             exporter ?? new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]), confirmation ?? new TestConfirmation(),
-            fileShell ?? new RecordingFileShell());
+            fileShell ?? new RecordingFileShell(), fileMover ?? new RecordingFileMover(), moveReports ?? new RecordingMoveReports());
+
+    private sealed class RecordingFileMover : IFileMoveService
+    {
+        public string[] Sources { get; private set; } = [];
+        public string Folder { get; private set; } = "";
+        public IReadOnlySet<string>? Listed { get; private set; }
+        public int ThreadId { get; private set; }
+        public Func<IReadOnlyList<string>, string, CancellationToken, IReadOnlyList<FileMoveResult>>? OnMove { get; set; }
+        public IReadOnlyList<FileMoveResult> MoveToSubfolder(IReadOnlyList<string> sources, string folderName,
+            IReadOnlySet<string> listedPaths, CancellationToken cancellationToken = default)
+        {
+            Sources = sources.ToArray();
+            Folder = folderName;
+            Listed = listedPaths;
+            ThreadId = Environment.CurrentManagedThreadId;
+            return OnMove?.Invoke(sources, folderName, cancellationToken)
+                ?? sources.Select(path => new FileMoveResult(path, Path.Combine(Path.GetDirectoryName(path)!, folderName, Path.GetFileName(path)), FileMoveOutcome.Moved)).ToArray();
+        }
+    }
+
+    private sealed class RecordingMoveReports : IFileMoveReportService
+    {
+        public IReadOnlyList<FileMoveResult>? Results { get; private set; }
+        public int ThreadId { get; private set; }
+        public void Show(IReadOnlyList<FileMoveResult> results)
+        {
+            Results = results;
+            ThreadId = Environment.CurrentManagedThreadId;
+        }
+    }
 
     private sealed class TestConfirmation : IConfirmationService
     {

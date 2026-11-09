@@ -22,6 +22,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFolderScanner _folderScanner;
     private readonly IResultExporter _exporter;
     private readonly IConfirmationService _confirmation;
+    private readonly IFileMoveService _fileMover;
+    private readonly IFileMoveReportService _moveReports;
+    private IReadOnlyList<FileRowViewModel> _selectedRows = [];
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
@@ -59,16 +62,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand ResetFiltersCommand { get; }
     public AsyncRelayCommand ShowFilePropertiesCommand { get; }
     public AsyncRelayCommand ShowInExplorerCommand { get; }
+    public AsyncRelayCommand MoveSelectedCommand { get; }
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
         OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter, IConfirmationService confirmation,
-        IFileShellService fileShell)
+        IFileShellService fileShell, IFileMoveService fileMover, IFileMoveReportService moveReports)
     {
         _analysis = analysis;
         _picker = picker;
         _folderScanner = folderScanner;
         _exporter = exporter;
         _confirmation = confirmation;
+        _fileMover = fileMover;
+        _moveReports = moveReports;
         _strings = strings;
         Options = options;
         // Restore before attaching change handlers: initialization must not save
@@ -134,6 +140,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var success = await fileShell.TryShowInExplorerAsync(path);
             if (!_disposed && Rows.Contains(row)) SetFileActionError(success ? null : path, "FileExplorerError");
         }, OnCommandError, parameter => !_disposed && parameter is FileRowViewModel row && Rows.Contains(row));
+        MoveSelectedCommand = new AsyncRelayCommand(_ => MoveSelectedAsync(), OnCommandError,
+            parameter => CanMoveSelected && parameter is FileRowViewModel row && _selectedRows.Contains(row));
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
         options.ExportSelectionChanged += OnExportSelectionChanged;
@@ -239,6 +247,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
     public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
     public FileRowViewModel? SelectedRow { get; set => SetProperty(ref field, value); }
+    public bool CanMoveSelected => IsIdle && _selectedRows.All(Rows.Contains)
+        && SignatureMoveSelection.GetStatus(_selectedRows) is not null;
+    public string MoveSelectedMenu => IsIdle && SignatureMoveSelection.GetStatus(_selectedRows) is { } status
+        ? _strings.Format("MoveSelectedMenu", SignatureMoveSelection.FolderName(status, _strings)) : "";
+
+    public void SetSelectedRows(IEnumerable<FileRowViewModel> rows)
+    {
+        _selectedRows = rows.Where(Rows.Contains).Distinct().ToArray();
+        NotifyMoveSelectionChanged();
+    }
+
+    private void NotifyMoveSelectionChanged()
+    {
+        OnPropertyChanged(nameof(CanMoveSelected));
+        OnPropertyChanged(nameof(MoveSelectedMenu));
+        MoveSelectedCommand.NotifyCanExecuteChanged();
+    }
+
     public string SearchText
     {
         get => _searchText;
@@ -411,6 +437,36 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { SetStatus("ExportCancelled"); }
         finally { EndFileOperation(); }
+    }
+
+    private async Task MoveSelectedAsync()
+    {
+        if (!CanMoveSelected || SignatureMoveSelection.GetStatus(_selectedRows) is not { } status) return;
+        // Capture selection, language and paths once; no view models leave the UI thread.
+        var selected = _selectedRows.ToDictionary(row => row.FullPath, StringComparer.OrdinalIgnoreCase);
+        var paths = selected.Keys.ToArray();
+        var folder = SignatureMoveSelection.FolderName(status, _strings);
+        var listedPaths = new HashSet<string>(_paths, StringComparer.OrdinalIgnoreCase);
+        var token = BeginFileOperation("MovingFiles");
+        IReadOnlyList<FileMoveResult> results;
+        try
+        {
+            // The service records cancellation per file, preserving completed moves.
+            results = await Task.Run(() => _fileMover.MoveToSubfolder(paths, folder, listedPaths, token));
+            foreach (var result in results)
+            {
+                if (result.Outcome != FileMoveOutcome.Moved || result.DestinationPath is null) continue;
+                var row = selected[result.SourcePath];
+                _paths.Remove(row.FullPath);
+                row.Relocate(result.DestinationPath);
+                _paths.Add(row.FullPath);
+            }
+            SetStatus("MovesFinished");
+        }
+        finally { EndFileOperation(); }
+        if (_disposed) return;
+        RefreshView();
+        _moveReports.Show(results);
     }
 
     private CancellationToken BeginFileOperation(string status)
@@ -652,6 +708,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         NotifyDiagnosticsChanged();
         Rows.Clear();
         _paths.Clear();
+        SetSelectedRows([]);
         SelectedRow = null;
         _clearRequested = false;
         _processed = _batchTotal = _skipped = 0;
@@ -673,11 +730,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (wasVisible != ShowSignatureSelectorColumn) OnPropertyChanged(nameof(ShowSignatureSelectorColumn));
     }
 
-    private void OnSignatureSelectionChanged(object? sender, EventArgs args) => RefreshAfterStateChange();
+    private void OnSignatureSelectionChanged(object? sender, EventArgs args)
+    {
+        NotifyMoveSelectionChanged();
+        RefreshAfterStateChange();
+    }
 
     private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (sender is not FileRowViewModel row || (args.PropertyName is not (null or "" or nameof(FileRowViewModel.Diagnostic)))) return;
+        if (IsIdle && _selectedRows.Contains(row)) NotifyMoveSelectionChanged();
         // Diagnostic or all-property notifications cover result, reset and signature changes.
         // Track all loaded rows, independent of filters, without rescanning a large table.
         var changed = string.IsNullOrWhiteSpace(row.Diagnostic)
@@ -778,6 +840,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ResetFiltersCommand.NotifyCanExecuteChanged();
         ShowFilePropertiesCommand.NotifyCanExecuteChanged();
         ShowInExplorerCommand.NotifyCanExecuteChanged();
+        NotifyMoveSelectionChanged();
     }
     private void OnCommandError(Exception exception)
     {

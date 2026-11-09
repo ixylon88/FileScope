@@ -26,6 +26,7 @@ internal static class CoreChecks
             CheckPeHeaders();
             CheckNeHeaders();
             CheckFolderScan(temp);
+            CheckFileMoves(temp);
             await CheckCsvExportAsync(temp);
             await CheckJsonExportAsync(temp);
             var algorithms = Enum.GetValues<ChecksumAlgorithm>();
@@ -292,6 +293,124 @@ internal static class CoreChecks
             finally { File.Delete(hardLink); }
         }
         else Console.WriteLine("SKIP hard-link fixture: " + Marshal.GetLastWin32Error());
+    }
+
+    private static void CheckFileMoves(string temp)
+    {
+        var root = Path.Combine(temp, "moves");
+        var service = new FileMoveService();
+        var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string Source(string folder, string name = "same.bin")
+        {
+            var directory = Path.Combine(root, folder);
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, name);
+            File.WriteAllText(path, folder);
+            return path;
+        }
+        FileMoveResult Move(string source) => service.MoveToSubfolder([source], "unsigned", listed).Single();
+        var first = Source("first");
+        var second = Source("second");
+        var results = service.MoveToSubfolder([first, second], "unsigned", listed);
+        Check(results.All(result => result.Outcome == FileMoveOutcome.Moved)
+            && results.Select(result => result.DestinationPath).Distinct().Count() == 2,
+            "equal filenames from different parents move to separate child folders");
+        Check(!File.Exists(first) && !File.Exists(second)
+            && File.ReadAllText(results[0].DestinationPath!) == "first" && File.ReadAllText(results[1].DestinationPath!) == "second",
+            "moving preserves contents and removes only the original names");
+        var already = Move(results[0].DestinationPath!);
+        Check(already.Outcome == FileMoveOutcome.AlreadyInFolder && !Directory.Exists(Path.Combine(Path.GetDirectoryName(already.SourcePath)!, "unsigned")),
+            "repeating a move does not create nested status folders");
+        File.WriteAllText(first, "replacement");
+        Check(Move(first).Outcome == FileMoveOutcome.TargetExists
+            && File.ReadAllText(first) == "replacement" && File.ReadAllText(results[0].DestinationPath!) == "first",
+            "an existing destination is never overwritten and its source is retained");
+        var blocked = Source("blocked");
+        File.WriteAllText(Path.Combine(Path.GetDirectoryName(blocked)!, "unsigned"), "not a folder");
+        var missing = Path.Combine(root, "missing.bin");
+        var next = Source("after-error");
+        results = service.MoveToSubfolder([blocked, missing, next], "unsigned", listed);
+        Check(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Failed, FileMoveOutcome.SourceMissing, FileMoveOutcome.Moved])
+            && File.Exists(blocked) && results[0].Detail?.Length > 0,
+            "a blocked target and missing source are reported without stopping subsequent files");
+        var reserved = Source("listed");
+        listed.Add(Path.Combine(Path.GetDirectoryName(reserved)!, "unsigned", Path.GetFileName(reserved)));
+        Check(Move(reserved).Outcome == FileMoveOutcome.TargetListed && File.Exists(reserved),
+            "a destination already represented by another result row is reserved even if missing on disk");
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        results = service.MoveToSubfolder([first, blocked], "unsigned", listed, cancelled.Token);
+        Check(results.All(result => result.Outcome == FileMoveOutcome.Cancelled) && File.Exists(first) && File.Exists(blocked),
+            "cancellation before a batch reports every unattempted file without moving it");
+        using var midBatch = new CancellationTokenSource();
+        var partialFirst = Source("partial-first");
+        var partialSecond = Source("partial-second");
+        results = service.MoveToSubfolder(new CancelAfterFirstList([partialFirst, partialSecond], midBatch), "unsigned", listed, midBatch.Token);
+        Check(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Moved, FileMoveOutcome.Cancelled])
+            && !File.Exists(partialFirst) && File.Exists(partialSecond),
+            "cancellation between files retains the completed move and reports the remaining file");
+        var invalid = new[] { "", " ", ".", "..", "../bad", "a/b", "a\\b", "123456789", "bad:", "CON", "nul.txt", "LPT1", "trail.", "trail " };
+        Check(invalid.All(name => !FileMoveService.IsValidFolderName(name)) && FileMoveService.IsValidFolderName("未签名"),
+            "subfolders are short literal Windows names and support localized Unicode");
+        try { service.MoveToSubfolder([first], "../bad", listed); throw new Exception("Expected invalid folder rejection."); }
+        catch (ArgumentException) { Check(File.Exists(first), "invalid folder names are rejected before touching source files"); }
+
+        var link = Path.Combine(root, "source-link.bin");
+        var targetSource = Source("target-link");
+        var linkedFolder = Path.Combine(Path.GetDirectoryName(targetSource)!, "unsigned");
+        var outside = Path.Combine(root, "outside");
+        Directory.CreateDirectory(outside);
+        try
+        {
+            var created = false;
+            try
+            {
+                File.CreateSymbolicLink(link, first);
+                Directory.CreateSymbolicLink(linkedFolder, outside);
+                created = true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            { Console.WriteLine("SKIP move symlink fixtures: " + ex.Message); }
+            if (created)
+            {
+                Check(Move(link).Outcome == FileMoveOutcome.SourceLink && File.Exists(link) && File.Exists(first),
+                    "moving a symbolic file link is skipped without touching its target");
+                Check(Move(targetSource).Outcome == FileMoveOutcome.TargetLink && File.Exists(targetSource) && !Directory.EnumerateFileSystemEntries(outside).Any(),
+                    "a linked destination folder is not followed");
+            }
+        }
+        finally
+        {
+            File.Delete(link);
+            if (Directory.Exists(linkedFolder)) Directory.Delete(linkedFolder);
+        }
+        var hardLink = Path.Combine(root, "hard-link.bin");
+        var hardLinkCreated = OperatingSystem.IsWindows()
+            ? LinkTestNative.CreateHardLinkW(hardLink, first, IntPtr.Zero)
+            : OperatingSystem.IsLinux() && LinkTestNative.Link(Encoding.UTF8.GetBytes(first + '\0'), Encoding.UTF8.GetBytes(hardLink + '\0')) == 0;
+        if (hardLinkCreated)
+        {
+            var moved = Move(hardLink);
+            Check(moved.Outcome == FileMoveOutcome.Moved && File.Exists(first) && !File.Exists(hardLink)
+                && File.ReadAllText(moved.DestinationPath!) == File.ReadAllText(first),
+                "moving a hardlink renames that path while its other name remains available");
+        }
+        else Console.WriteLine("SKIP move hardlink fixture: " + Marshal.GetLastWin32Error());
+    }
+
+    private sealed class CancelAfterFirstList(string[] values, CancellationTokenSource cancellation) : IReadOnlyList<string>
+    {
+        public int Count => values.Length;
+        public string this[int index] => values[index];
+        public IEnumerator<string> GetEnumerator()
+        {
+            for (var i = 0; i < values.Length; i++)
+            {
+                if (i == 1) cancellation.Cancel();
+                yield return values[i];
+            }
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private static class LinkTestNative

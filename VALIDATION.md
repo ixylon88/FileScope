@@ -1,5 +1,25 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Dateien nach Signaturstatus verschieben
+
+Stand: 9. November 2026. Zweiter Patch, anzuwenden nach dem Fortschrittspatch auf `f3148e7` (`readme updated`). Ausführung mit .NET SDK 10.0.100 unter Linux.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build einschließlich Core, App, XAML und UI-Testprogramm | Bestanden, 0 Warnungen / 0 Fehler |
+| Core | 201 bestanden; 13 zusätzliche Prüfungen mit echten temporären Dateien, Symlinks und Hardlinks. Native Windows-Prüfungen hier übersprungen; ausgehend vom bisherigen Windows-Umfang mit identischen Voraussetzungen 490 erwartet. |
+| Präsentation und Einstellungen | 194 bestanden; 19 zusätzliche Assertions für Auswahlgruppen, Pfadwechsel, Export und alle drei Sprachen |
+| Statische Struktur- und Ressourcenprüfung | 1284 bestanden; 232 Schlüssel je Sprache |
+| WPF / UI / MVVM | 363 Assertions erwartet: 343 nach dem ersten Patch, zusätzlich 20. Testprogramm kompiliert, hier nicht ausgeführt. |
+
+Die Core-Prüfungen decken gleichnamige Dateien in verschiedenen Elternordnern, unveränderte Inhalte, belegte Ziele ohne Überschreiben, wiederholtes Verschieben, fehlende Quellen, blockierte Zielordner, bereits geladene Zielpfade und Abbruch vor bzw. zwischen Dateien ab. Symlink-Prüfungen stellen sicher, dass weder verlinkte Quelldateien noch verlinkte Zielordner verschoben bzw. verfolgt werden. Ein Hardlink-Test prüft, dass der andere Name erhalten bleibt. Link-Prüfungen können unter Windows abhängig von Dateisystem und Berechtigungen übersprungen werden.
+
+Die Präsentationsprüfungen unterscheiden gemischte, ungeprüfte und fehlgeschlagene Zeilen, ausgewählte Mehrfachsignaturen und gültige Online-/Offline-Ergebnisse. Sie prüfen den Erhalt von Hashes und Signaturauswahl beim Pfadwechsel sowie den neuen Pfad in Details und Export. Alle lokalisierten Ordnernamen werden auf Eindeutigkeit, Windows-taugliche Namen und höchstens acht Zeichen geprüft; jeder Berichteintrag enthält Ergebnis und beide Pfade.
+
+Die UI-Prüfungen verbinden die echte DataGrid-Mehrfachauswahl mit dem Kontextmenü. Ein injizierter Verschiebedienst vermeidet Änderungen an echten Benutzerdateien; er prüft Arbeitsthread, gesperrte Befehle, erfolgreiche und übersprungene Einträge, Abbruch mit Teilergebnis sowie aktualisierte Pfade und Duplikaterkennung. Der reale Berichtsdienst öffnet zusätzlich ein modales Fenster mit Besitzer; die Tests prüfen den Schließen-Knopf, Skalierbarkeit, Scrollbalken, Sprachen, Themes und Bindingfehler. Die 20 Assertions ergeben sich aus 17 Prüfstellen, davon einer für drei Sprachen und einer für beide Designs.
+
+Unter Windows noch ausführen: `.\Verify.ps1`. Manuell an einem Testordner prüfen: Rechtsklick auf eine neue bzw. schon markierte Zeile, Mehrfachauswahl, Menütaste / Umschalt+F10, tatsächliche Verschiebung und Namenskollision, Abbruch sowie den langen Bericht bei höherer Bildschirmskalierung. Keine produktiven Dateien wurden hier verschoben; Windows-Laufzeitverhalten und Darstellung sind noch nicht bestätigt.
+
 ## Ergänzung: Gepufferter Fortschritt und Analysephasen
 
 Stand: 9. November 2026. Patchbasis: `f3148e7` (`readme updated`). Ausführung mit .NET SDK 10.0.100 unter Linux.

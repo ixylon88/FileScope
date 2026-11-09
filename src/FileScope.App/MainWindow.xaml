@@ -137,7 +137,8 @@
 
     <Border Grid.Row="3" Margin="24,0,24,12" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <Grid>
-        <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
+        <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" SelectionChanged="OnResultsSelectionChanged"
+                  ContextMenuOpening="OnResultsContextMenuOpening" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
                   behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True"
                   CanUserSortColumns="{Binding IsIdle}" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"
@@ -159,6 +160,10 @@
                               CommandParameter="{Binding}" />
                     <MenuItem Header="{loc:Loc ShowInExplorerMenu}"
                               Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource ViewModelProxy}}"
+                              CommandParameter="{Binding}" />
+                    <MenuItem Header="{Binding Data.MoveSelectedMenu, Source={StaticResource ViewModelProxy}}"
+                              Command="{Binding Data.MoveSelectedCommand, Source={StaticResource ViewModelProxy}}"
+                              Visibility="{Binding Data.CanMoveSelected, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
                               CommandParameter="{Binding}" />
                   </ContextMenu>
                 </Setter.Value>

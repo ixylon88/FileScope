@@ -741,4 +741,82 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="FiltersPausedTip" xml:space="preserve">
     <value>Filter und Sortierung pausieren während eines Jobs und werden danach erneut angewendet.</value>
   </data>
+  <data name="MoveSelectedMenu" xml:space="preserve">
+    <value>Markierte Dateien nach „{0}“ verschieben…</value>
+  </data>
+  <data name="MovingFiles" xml:space="preserve">
+    <value>Dateien werden verschoben…</value>
+  </data>
+  <data name="MovesFinished" xml:space="preserve">
+    <value>Verschieben beendet. Einzelheiten stehen im Bericht.</value>
+  </data>
+  <data name="MoveReportTitle" xml:space="preserve">
+    <value>Bericht zum Verschieben</value>
+  </data>
+  <data name="MoveReportSummary" xml:space="preserve">
+    <value>{0} Dateien · {1} verschoben · {2} Fehler · {3} übersprungen / abgebrochen</value>
+  </data>
+  <data name="MoveReportSource" xml:space="preserve">
+    <value>Quelle: {0}</value>
+  </data>
+  <data name="MoveReportDestination" xml:space="preserve">
+    <value>Ziel: {0}</value>
+  </data>
+  <data name="MoveOutcome_Moved" xml:space="preserve">
+    <value>Verschoben</value>
+  </data>
+  <data name="MoveOutcome_TargetExists" xml:space="preserve">
+    <value>Übersprungen: Ziel existiert bereits</value>
+  </data>
+  <data name="MoveOutcome_AlreadyInFolder" xml:space="preserve">
+    <value>Übersprungen: bereits im passenden Unterordner</value>
+  </data>
+  <data name="MoveOutcome_SourceMissing" xml:space="preserve">
+    <value>Fehler: Quelle wurde nicht gefunden</value>
+  </data>
+  <data name="MoveOutcome_SourceLink" xml:space="preserve">
+    <value>Übersprungen: Quelle ist ein symbolischer Link oder ein anderer Reparse Point</value>
+  </data>
+  <data name="MoveOutcome_TargetLink" xml:space="preserve">
+    <value>Übersprungen: Zielordner ist ein Link oder ein anderer Reparse Point</value>
+  </data>
+  <data name="MoveOutcome_TargetListed" xml:space="preserve">
+    <value>Übersprungen: Zielpfad steht bereits in der Ergebnisliste</value>
+  </data>
+  <data name="MoveOutcome_Cancelled" xml:space="preserve">
+    <value>Abgebrochen: Datei wurde nicht verschoben</value>
+  </data>
+  <data name="MoveOutcome_Failed" xml:space="preserve">
+    <value>Fehlgeschlagen</value>
+  </data>
+  <data name="MoveFolder_Valid" xml:space="preserve">
+    <value>gueltig</value>
+  </data>
+  <data name="MoveFolder_NoEmbeddedSignature" xml:space="preserve">
+    <value>ohnesig</value>
+  </data>
+  <data name="MoveFolder_InvalidSignature" xml:space="preserve">
+    <value>unguelt</value>
+  </data>
+  <data name="MoveFolder_Untrusted" xml:space="preserve">
+    <value>unvertr</value>
+  </data>
+  <data name="MoveFolder_Expired" xml:space="preserve">
+    <value>abgelauf</value>
+  </data>
+  <data name="MoveFolder_Revoked" xml:space="preserve">
+    <value>widerruf</value>
+  </data>
+  <data name="MoveFolder_RevocationUnknown" xml:space="preserve">
+    <value>unklar</value>
+  </data>
+  <data name="MoveFolder_UnsupportedFormat" xml:space="preserve">
+    <value>format</value>
+  </data>
+  <data name="MoveFolder_UnsupportedPlatform" xml:space="preserve">
+    <value>system</value>
+  </data>
+  <data name="MoveFolder_CheckFailed" xml:space="preserve">
+    <value>fehler</value>
+  </data>
 </root>
