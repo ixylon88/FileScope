@@ -50,6 +50,7 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             if (options.Algorithms.Count > 0) progress?.Report(new AnalysisProgress(AnalysisStage.Reading, 0, length));
             var hashProgress = new ForwardProgress<long>(n =>
                 progress?.Report(new AnalysisProgress(AnalysisStage.Reading, n, length)));
+            hashProgress.Report(0);
             var hashes = await checksums.ComputeAsync(stream, options.Algorithms, hashProgress, cancellationToken)
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
