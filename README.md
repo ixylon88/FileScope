@@ -403,7 +403,7 @@ Die Windows-Anbindung besteht aus C#-Deklarationen und Aufrufen nativer Systemfu
 | Versionsressourcen vom offenen Handle lesen und Felder abfragen | `GetFileVersionInfoByHandle`, `VerQueryValueW` in `version.dll` | `WindowsFileVersionReader` |
 | Sprachname, Dateizeiger und Freigabe des Versionspuffers | `VerLanguageNameW`, `SetFilePointerEx`, `LocalFree` in `kernel32.dll` | `WindowsFileVersionReader` |
 | Registrierte Bezeichnung einer Dateiendung abfragen | `SHGetFileInfoW` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FilePropertiesInspector` |
-| Dateieigenschaften anzeigen und Datei im Explorer markieren | `SHObjectProperties`, `SHParseDisplayName`, `SHOpenFolderAndSelectItems` in `shell32.dll`; COM-Initialisierung in `ole32.dll` | `FileShellService` in der WPF-App |
+| Dateieigenschaften anzeigen und Datei im Explorer markieren | `SHObjectProperties`, `SHParseDisplayName`, `SHOpenFolderAndSelectItems` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FileShellService` in der WPF-App |
 
 Die meisten Importe verwenden `LibraryImport` mit zur Übersetzungszeit erzeugtem Marshalling-Code. `SHGetFileInfoW` verwendet bewusst `DllImport`, weil `SHFILEINFOW` die beiden Zeichenfelder direkt in der Struktur enthält und deren `ByValTStr`-Marshalling hier nicht vom Quellcodegenerator unterstützt wird. `GetFileVersionInfoByHandle` wird einmalig mit `NativeLibrary.TryLoad` / `TryGetExport` aufgelöst und als Delegate zwischengespeichert; so bleibt ein fehlender Export als Kompatibilitätsfall behandelbar.
 
@@ -447,6 +447,21 @@ Für die Dateitypbezeichnung kombiniert `ReadWindowsType` `SHGFI_TYPENAME` mit `
 #### Dateikontextmenü und Explorer
 
 Die Dateieigenschaften werden mit `SHObjectProperties` (`SHOP_FILEPATH`) auf dem WPF-Thread und mit dem Hauptfenster als Besitzer geöffnet. Die Pfadauflösung für den Explorer läuft dagegen zusammen mit der Auswahl auf einem COM-initialisierten Hintergrundthread. Bei `SHOpenFolderAndSelectItems` bedeutet `cidl = 0`, dass die PIDL die auszuwählende Datei bezeichnet; Windows öffnet deren übergeordneten Ordner. Damit entfällt das Zusammensetzen einer Explorer-Befehlszeile. Die Importe verwenden `LibraryImport`, UTF-16-Pfade und `System32`-Suchpfade; `IntPtr` bleibt für x64 und ARM64 passend. Siehe [SHObjectProperties](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shobjectproperties), [SHParseDisplayName](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shparsedisplayname) und [SHOpenFolderAndSelectItems](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shopenfolderandselectitems).
+
+Die einzelnen Aufrufe haben folgende Verträge:
+
+| Aufruf | Verwendung in FileScope | Rückgabe und Lebensdauer |
+| --- | --- | --- |
+| `SHObjectProperties` | Geliehener Fenster-Handle, `SHOP_FILEPATH = 0x2`, vollständiger Dateipfad und `null` für die Standard-Eigenschaftsseite. | Windows-`BOOL` mit 32 Bit: ungleich null bedeutet, dass der Eigenschaften-Befehl erfolgreich aufgerufen wurde. Der Fenster-Handle bleibt Eigentum von WPF. |
+| `SHParseDisplayName` | Löst den Pfad in eine absolute Shell-Elementliste (PIDL) auf. Bindungskontext und Attributmaske sind null bzw. `0`; es werden keine Attribute abgefragt. | `HRESULT`; bei Erfolg erhält der Aufrufer den PIDL-Speicher und muss ihn freigeben. |
+| `SHOpenFolderAndSelectItems` | Erhält die Datei-PIDL, `cidl = 0`, kein Array von Unterelementen und Flags `0` für die normale Auswahl. | `HRESULT`; die PIDL wird nur ausgeliehen und bleibt bis zum Ende des Aufrufs gültig. |
+| `CoInitializeEx` | Initialisiert COM auf dem ausführenden Hintergrundthread mit `COINIT_MULTITHREADED = 0` (MTA); der reservierte Parameter ist null. | `S_OK = 0` und `S_FALSE = 1` gelten als Erfolg. Auch `S_FALSE` muss durch einen eigenen `CoUninitialize`-Aufruf ausgeglichen werden. |
+| `CoUninitialize` | Gleicht die erfolgreiche Initialisierung im `finally` auf demselben Thread aus. | Kein Rückgabewert; wird auch nach fehlgeschlagener Pfadauflösung oder Auswahl ausgeführt, jedoch nicht nach fehlgeschlagener Initialisierung. |
+| `Marshal.FreeCoTaskMem` | Verwalteter Aufruf der COM-Speicherfreigabe für die PIDL im `finally`, vor `CoUninitialize`. | Gibt den COM-Speicher frei; `IntPtr.Zero` ist zulässig. Dies schließt weder eine Datei noch das Explorer-Fenster. |
+
+Der gesamte Explorer-Auftrag läuft in einem synchronen `Task.Run`-Delegaten ohne `await` im Inneren. Damit bleiben COM-Initialisierung, Pfadauflösung, Auswahl und Freigabe auf demselben Thread. Der Dienst behandelt jedes negative `HRESULT` als Fehlschlag und gibt `false` zurück. Dies gilt hier auch für `RPC_E_CHANGED_MODE`: Anders als die oben beschriebene Dateitypabfrage setzt dieser Auftrag einen erfolgreich initialisierten MTA-Kontext voraus. Nach gescheiterter Initialisierung wird kein `CoUninitialize` aufgerufen. Die Shell-Importe verwenden keinen `GetLastError`-Vertrag. Siehe [CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex) und [CoUninitialize](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-couninitialize).
+
+Die PIDL enthält die Shell-Identität des Elements und ist kein geöffneter Datei-Handle. Ihr Speicher stammt aus dem COM-Task-Allocator; deshalb wird er mit `Marshal.FreeCoTaskMem` freigegeben. Der gemeinsame Analyse-Handle wird für diese Benutzeraktionen nicht übernommen. Die Shell darf zusätzliche Dateizugriffe durchführen. Ein erfolgreicher Dienstaufruf bestätigt das native Ergebnis; FileScope überwacht anschließend nicht, ob oder wie lange die Auswahl im Explorer sichtbar bleibt. Siehe [PIDL-Speicherfreigabe](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-ilfree#remarks) und [Marshal.FreeCoTaskMem](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal.freecotaskmem).
 
 ### Splashscreen und Bildressourcen
 

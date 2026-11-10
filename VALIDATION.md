@@ -1,5 +1,15 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Dokumentation der nativen Shell-Aufrufe
+
+Stand: 10. November 2026. Patchbasis: `a349320` auf `dev`.
+
+Die fünf P/Invoke-Deklarationen in `FileShellService` sind mit Zweck, Parametern, Rückgabevertrag und Microsoft-Referenzen dokumentiert. Ergänzt sind der Vertrag von `IFileShellService`, COM-Threadbindung, die PIDL-Freigabe sowie die entsprechende Methodenübersicht unter Architektur → Native Windows-API-Anbindung → Dateikontextmenü und Explorer in der README.
+
+Geprüft: 1431 statische Struktur-/Ressourcenprüfungen bestanden; alle zwölf XML-Dokumentationsblöcke der beiden bearbeiteten C#-Dateien sind wohlgeformt. Nach Entfernung der Kommentare stimmt der C#-Inhalt mit der Patchbasis überein; Methodenkörper, Signaturen und Importattribute bleiben unverändert. `git diff --check` ist fehlerfrei.
+
+Reiner Dokumentationspatch: kein neuer Build und kein erneuter Testlauf. Testquellen, Testanzahlen und deren bisher dokumentierter Ausführungsstand bleiben unverändert (Core 201 unter Linux / 490 unter den dokumentierten Windows-Voraussetzungen erwartet; Präsentation 199; UI 413 erwartet).
+
 ## Ergänzung: Explizite Datenquelle für Vorlagenzellen
 
 Stand: 9. November 2026. Folgepatch auf `FileScope-shortcuts-owner-fix.patch`; vorangegangene Änderungen sind nicht nochmals enthalten. .NET SDK 10.0.100 unter Linux.
