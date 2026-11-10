@@ -6,9 +6,10 @@
     <AnalysisLevel>latest</AnalysisLevel>
 	  <LangVersion>Latest</LangVersion>
     <Configurations>Debug;Release</Configurations>
-    <Platforms>AnyCPU;x64;Arm64</Platforms>
-    <TargetLatestRuntimePatch>false</TargetLatestRuntimePatch>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <Platforms>AnyCPU;x64;Arm64;x86</Platforms>
+    <!-- Keep the SDK defaults: latest known patch for self-contained publishing,
+         minimum framework version for framework-dependent applications. -->
+    <AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

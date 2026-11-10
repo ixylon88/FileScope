@@ -194,6 +194,62 @@
         "runOptions": {
           "instanceLimit": 1
         }
+      },
+      {
+        "label": "FileScope: Verify (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "FileScope: Verify (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
       }
     ]
   }

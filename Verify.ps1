@@ -1,20 +1,35 @@
+<#
+.SYNOPSIS
+Builds FileScope and executes its checks on the selected Windows architecture.
+.DESCRIPTION
+Without -Runtime, the test processes use the current SDK host architecture.
+An explicit Windows RID requires a Windows machine that can execute that RID.
+.EXAMPLE
+.\Verify.ps1 -Runtime win-arm64
+#>
 [CmdletBinding()]
 param(
     [string]$SignedFile,
     [string[]]$VersionFile = @(),
     [switch]$SkipBuild,
-    [switch]$SkipUi
+    [switch]$SkipUi,
+    [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
+    [ValidateSet('win-x64', 'win-arm64', 'win-x86')][string]$Runtime,
+    [ValidateSet('quiet', 'minimal', 'normal', 'detailed', 'diagnostic')][string]$Verbosity = 'minimal',
+    [switch]$NoColor
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'Install the .NET 10 SDK first.' }
+. (Join-Path $PSScriptRoot 'build/ScriptSupport.ps1') -NoColor:$NoColor
+if ($Runtime) { $Runtime = $Runtime.ToLowerInvariant() }
 $coreProject = Join-Path $PSScriptRoot 'src/FileScope.Core/FileScope.Core.csproj'
 $appProject = Join-Path $PSScriptRoot 'src/FileScope.App/FileScope.App.csproj'
 $testDirectory = Join-Path $PSScriptRoot ('artifacts/verify/' + [Guid]::NewGuid().ToString('N'))
-[void](New-Item -ItemType Directory -Path $testDirectory -Force)
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 function Invoke-Checks {
     param([string]$Name, [string]$TargetFramework, [string]$Reference, [bool]$UseWpf, [string[]]$TestArguments)
+    Write-BuildMessage $Name -Kind Phase
     $harnessDirectory = Join-Path $testDirectory $Name
     [void](New-Item -ItemType Directory -Path $harnessDirectory -Force)
     $project = Join-Path $harnessDirectory "$Name.csproj"
@@ -41,35 +56,52 @@ function Invoke-Checks {
   <PropertyGroup>
     <OutputType>Exe</OutputType><TargetFramework>$TargetFramework</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <DebugType>portable</DebugType><DebugSymbols>true</DebugSymbols>
     <RootNamespace>FileScope.App</RootNamespace>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>$wpf
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="$referenceXml" /><Compile Include="$sourceXml" />$extraItems</ItemGroup>
 </Project>
 "@ | Set-Content -LiteralPath $project -Encoding UTF8
-    & dotnet run --project $project --configuration Release -- @TestArguments
-    if ($LASTEXITCODE -ne 0) { throw "$Name failed (exit $LASTEXITCODE)." }
+    $arguments = @('run', '--project', $project, '--configuration', $Configuration,
+        '--self-contained', 'false', '--no-launch-profile', '--verbosity', $Verbosity, '--tl:off',
+        "-p:Platform=$(Get-BuildPlatform $Runtime)")
+    if ($Runtime) { $arguments += @('--runtime', $Runtime) }
+    Invoke-DotNet -Name $Name -Arguments ($arguments + @('--') + $TestArguments)
 }
 
+# Resolve user-supplied paths relative to the caller, before entering the repository.
+$coreArguments = @()
+if ($SignedFile) { $coreArguments = @('--signed-file', (Resolve-Path -LiteralPath $SignedFile).Path) }
+foreach ($file in $VersionFile) { $coreArguments += @('--version-file', (Resolve-Path -LiteralPath $file).Path) }
 Push-Location $PSScriptRoot
 try {
+    $target = if ($Runtime) { $Runtime } else { 'current SDK host' }
+    Write-BuildMessage "FILESCOPE VERIFY | $Configuration | $target" -Kind Header
+    Assert-RuntimeExecution -Runtime $Runtime
+    Initialize-BuildEnvironment -RepositoryRoot $PSScriptRoot
+    Write-BuildMessage 'ScriptChecks' -Kind Phase
+    & (Join-Path $PSScriptRoot 'tests/ScriptChecks.ps1')
     if (-not $SkipBuild) {
-        & dotnet build (Join-Path $PSScriptRoot 'FileScope.sln') --configuration Release
-        if ($LASTEXITCODE -ne 0) { throw "Solution build failed (exit $LASTEXITCODE)." }
+        Invoke-SolutionBuild -RepositoryRoot $PSScriptRoot -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
     }
-    $coreArguments = @()
-    if ($SignedFile) { $coreArguments = @('--signed-file', (Resolve-Path -LiteralPath $SignedFile).Path) }
-    foreach ($file in $VersionFile) { $coreArguments += @('--version-file', (Resolve-Path -LiteralPath $file).Path) }
+    else { Write-BuildMessage 'Solution build skipped; test harnesses still build their references.' -Kind Warning }
     Invoke-Checks -Name 'CoreChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments $coreArguments
     Invoke-Checks -Name 'PresentationChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments @()
     if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {
         Invoke-Checks -Name 'UiChecks' -TargetFramework 'net10.0-windows' -Reference $appProject -UseWpf $true -TestArguments @()
     }
-    else { Write-Host 'Windows UI checks skipped.' }
-    Write-Host 'All requested checks passed.'
+    else { Write-BuildMessage 'Windows UI checks skipped.' -Kind Warning }
+    Write-BuildMessage 'All requested checks passed.' -Kind Success
+}
+catch {
+    Write-BuildMessage $_.Exception.Message -Kind Failure
+    throw
 }
 finally {
     Pop-Location
     # Only this invocation's generated harness files are removed.
     Remove-Item -LiteralPath $testDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    $stopwatch.Stop()
+    Write-BuildMessage "Elapsed: $($stopwatch.Elapsed)"
 }

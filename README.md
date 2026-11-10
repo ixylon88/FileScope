@@ -33,7 +33,7 @@ Durch die gemeinsame Verarbeitung eignet sich FileScope besonders für die Prüf
 
 ## Starten
 
-Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine Version mit .NET-10-Unterstützung verwenden. Es wird ein workspace für Visual Studio Code mit vordefinierten Tasks mitgeliefert.
+Voraussetzung zum Bauen: Windows und das in [`global.json`](global.json) festgelegte **.NET SDK 10.0.114**. `rollForward: disable` verlangt genau diese SDK-Version; andere SDKs können parallel installiert bleiben. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine kompatible Version verwenden. Es wird ein Workspace für Visual Studio Code mit vordefinierten Tasks mitgeliefert. Fertige self-contained Pakete benötigen kein installiertes SDK und keine separate Runtime.
 
 Visual Studio:
 
@@ -67,32 +67,35 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 
 ### VS-Code-Workspace-Tasks
 
-`FileScope.code-workspace` öffnen. Unter **Terminal → Task ausführen** stehen drei Aufgaben:
+`FileScope.code-workspace` öffnen. Unter **Terminal → Task ausführen** stehen folgende Aufgaben:
 
 | Task | Skriptaufruf |
 | --- | --- |
 | `FileScope: Build (Release)` | `Build.ps1 -Configuration Release`; Standard-Build mit Ctrl+Shift+B |
 | `FileScope: Publish (win-x64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
-| `FileScope: Publish (win-arm64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
-| `FileScope: Publish self-contained (win-x64)` | `Build.ps1 -Configuration Release -Publish --self-contained true -Runtime win-x64` |
-| `FileScope: Publish self-contained (win-arm64)` | `Build.ps1 -Configuration Release -Publish --self-contained true -Runtime win-x64` |
-| `FileScope: Verify` | `Verify.ps1`; baut die Lösung und führt alle für Windows vorgesehenen Prüfungen aus |
+| `FileScope: Publish (win-arm64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-arm64` |
+| `FileScope: Publish self-contained (win-x64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-x64` |
+| `FileScope: Publish self-contained (win-arm64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-arm64` |
+| `FileScope: Verify` | `Verify.ps1`; prüft mit der Architektur des aktuellen SDK-Hosts |
+| `FileScope: Verify (win-x64)` | `Verify.ps1 -Runtime win-x64`; führt die Tests als Windows-x64-Prozesse aus |
+| `FileScope: Verify (win-arm64)` | `Verify.ps1 -Runtime win-arm64`; benötigt Windows ARM64 und dessen passende .NET-Desktop-Runtime |
 
-Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Workspace-Ordner als Arbeitsverzeichnis. Auch Pfade mit Leerzeichen funktionieren, da Argumente getrennt übergeben werden. Das .NET-10-SDK muss im `PATH` des VS-Code-Prozesses liegen. Publish erzeugt eine eigenständige Ausgabe unter `artifacts/publish/win-x64`.
+Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Workspace-Ordner als Arbeitsverzeichnis. Auch Pfade mit Leerzeichen funktionieren, da Argumente getrennt übergeben werden. Das ausgewählte SDK muss über `dotnet` im `PATH` des VS-Code-Prozesses erreichbar sein. Die Skripte sind auch für PowerShell 7 vorgesehen. Gemeinsame Hilfsfunktionen in `build/ScriptSupport.ps1` geben Phasen blau, Erfolg grün und Fehler rot aus; `-NoColor` oder `NO_COLOR` schaltet die eigene Farbausgabe ab. Die Textkennzeichnungen bleiben erhalten. SDK-Informationen, Befehle und Gesamtdauer erscheinen lokal und in CI gleich; native Fehlercodes führen zum Abbruch.
 
-### Eigenständige Windows-Ausgabe
+### Windows-Ausgabe mit und ohne Runtime
 
-#### Windows (x64)
 ```powershell
 .\Build.ps1 -Publish -Runtime win-x64
-```
-
-#### Windows (ARM64)
-```powershell
 .\Build.ps1 -Publish -Runtime win-arm64
+.\Build.ps1 -Publish -Runtime win-x64 -SelfContained
+.\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 ```
 
-Die Ausgabe liegt unter `artifacts/publish/win-x64` bzw. `artifacts/publish/win-arm64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch einen self-contained publish ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
+Die Ausgabe liegt unter `artifacts/publish/<Runtime>` bzw. `artifacts/publish/<Runtime>_self-contained`. Vor jedem Publish wird ausschließlich dieser Ausgabeordner geleert. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Ohne `-SelfContained` wird explizit framework-dependent veröffentlicht: Auf dem Zielrechner muss die passende **.NET 10 Desktop Runtime** installiert sein. Mit `-SelfContained` ist sie enthalten. Beide Varianten werden nicht getrimmt.
+
+Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt wird der vom festgelegten SDK bekannte Runtime-Patchstand. Das ist keine Suche nach einer beliebigen neuesten Online-Version. Ein SDK-Update wird bewusst in `global.json` vorgenommen und anschließend geprüft. Weitere Einzelheiten zu SDK/Runtime, Reproduzierbarkeit und dem geplanten Release-/WiX-Aufbau stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md).
+
+`Build.ps1 -Publish -Runtime win-arm64` kann auch auf Windows x64 bauen. Zum **Ausführen** wird dagegen ein passendes Windows-System benötigt. `-Run` startet nach einem Publish ausdrücklich die erzeugte `FileScope.App.exe`; ohne Publish startet es den normalen Build. Normale Build-Ausgaben enthalten nun den RID im Pfad, zum Beispiel `src/FileScope.App/bin/Arm64/Release/net10.0-windows/win-arm64`, damit sich x64 und ARM64 nicht gegenseitig überschreiben. Der RID bestimmt ausdrücklich auch die Solution-/Projektplattform; ohne RID verwendet Verify `Any CPU` statt der zuvor implizit ausgewählten ersten Solution-Plattform.
 
 **Plattformunterstützung**: Windows x64 und Windows ARM64. Die ARM64-Version wurde unter Windows 11 in Parallels Desktop erfolgreich getestet. Weitere Zielarchitekturen können über den Runtime-Parameter gewählt werden.
 
@@ -512,9 +515,13 @@ Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injecti
 
 ```powershell
 .\Verify.ps1
+.\Verify.ps1 -Runtime win-x64
+.\Verify.ps1 -Runtime win-arm64
 ```
 
-Das Skript baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
+Das Skript prüft zunächst die PowerShell-Orchestrierung, baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete. `tests/ScriptChecks.ps1` lässt sich auch separat ohne SDK ausführen; ein Ersatz für `dotnet` prüft Parameterweitergabe, Fehlerabbruch und Aufräumen in temporären Verzeichnissen, ohne echte Windows-Programme zu starten.
+
+Die drei Aufrufe sind Alternativen. Ohne `-Runtime` bleibt die bisherige Auswahl durch den SDK-Host erhalten; unter Linux laufen damit Core und Präsentation. Mit `-Runtime` erhalten sowohl der Lösungsbuild als auch alle Testprozesse ausdrücklich denselben Windows-RID. ARM64-Prüfungen müssen unter Windows ARM64 laufen; ein x64-Rechner kann sie nicht durch Cross-Compilation ausführen. x64-Prüfungen auf Windows ARM64 sind gegebenenfalls emuliert und ersetzen keinen nativen ARM64-Lauf. `-Configuration` und `-Verbosity` gelten für Build und Tests. `-SkipBuild` überspringt nur den vorangestellten Lösungsbuild; die temporären Testprojekte bauen weiterhin ihre Referenzen. `-SkipUi` lässt die WPF-Prüfungen ausdrücklich aus.
 
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
 
@@ -522,9 +529,10 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung
 
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
+| PowerShell-Skripte | **34** bestanden; vier Publish-Varianten, Architektur-/Konfigurationsweitergabe, Pfade mit Leerzeichen/Sonderzeichen, Exitcodes, Aufräumen und Plattformprüfung. |
 | Core | **201** unter Linux bestanden, einschließlich 5 Phasenprüfungen und 13 Prüfungen zum Verschieben. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **490** bei denselben Voraussetzungen erwartet. |
 | Präsentation und Einstellungen | **199** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte, 19 für Signaturgruppen/Pfade/Verschiebeberichte und 5 zur gespeicherten Pfadbreitenwahl. |
-| WPF / UI / MVVM | **413** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung und jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen; Testprogramm fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| WPF / UI / MVVM | **413** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung und jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen; Testprogramm mit SDK 10.0.114 für x64 und ARM64 fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
 Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht und 16 Ergänzungen für Auswahl, Menütrennung, Pfadkopf und Breitenoption sowie jeweils 17 für die Tastenkürzelübersicht und die Bindungen der Vorlagenzellen. Die Zellprüfungen behandeln auch noch nicht eingebaute Presenter, den Wechsel und das Leeren des Zeilenkontexts sowie Filter- und Sichtbarkeitswechsel. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 

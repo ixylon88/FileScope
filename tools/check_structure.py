@@ -157,7 +157,7 @@ workspace = json.loads((ROOT / 'FileScope.code-workspace').read_text(encoding='u
 check(any(folder.get('name') == 'FileScope' and folder.get('path') == '.' for folder in workspace['folders']),
       'Task workspace folder must resolve to the repository root.')
 tasks = workspace['tasks']['tasks']
-check(len(tasks) == 6 and len({task['label'] for task in tasks}) == 6, 'Expected six distinct workspace tasks.')
+check(len(tasks) == 8 and len({task['label'] for task in tasks}) == 8, 'Expected eight distinct workspace tasks.')
 for task in tasks:
     check(task['type'] == 'process' and task['command'] == 'powershell.exe', 'Use PowerShell process tasks.')
     args = task['args']
@@ -170,6 +170,9 @@ check(len(publish) == 4 and {(task['args'][task['args'].index('-Runtime') + 1], 
                            for task in publish} == {('win-x64', False), ('win-x64', True), ('win-arm64', False), ('win-arm64', True)},
       'Publish tasks must cover both runtimes with and without self-contained deployment.')
 check(any(task['args'][-1].endswith('/Verify.ps1') for task in tasks), 'Verify task must invoke Verify.ps1.')
+verify_tasks = [task for task in tasks if '/Verify.ps1' in ' '.join(task['args']) and '-Runtime' in task['args']]
+check({task['args'][task['args'].index('-Runtime') + 1] for task in verify_tasks} == {'win-x64', 'win-arm64'},
+      'Verify tasks must explicitly select x64 and ARM64, in addition to the host default.')
 
 # The generated WPF entry point needs an embedded splash, not a loose output file.
 app_project = ET.parse(ROOT / 'src/FileScope.App/FileScope.App.csproj').getroot()

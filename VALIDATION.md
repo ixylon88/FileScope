@@ -1,5 +1,54 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Gemeinsame Build-/Verify-Skripte und ARM64
+
+Stand: 10. November 2026. Patchbasis: `f25655d` auf `dev`. Prüfung mit dem in
+`global.json` festgelegten .NET SDK **10.0.114**, Runtime **10.0.14** und PowerShell
+**7.6.9** unter Linux. Die Skripte verwenden weiterhin Syntax für Windows
+PowerShell 5.1; dessen Laufzeit ist hier nicht verfügbar.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Verify.ps1 -NoColor` | Bestanden: Lösungsbuild, Skript-, Core- und Präsentationsprüfungen; WPF-Ausführung unter Linux ausdrücklich übersprungen |
+| PowerShell-Orchestrierung | **34** Assertions bestanden; zusätzlich Syntaxprüfung der vier PS1-Dateien und Wiederherstellung des Exitcodes des Aufrufers geprüft |
+| Core | **201** bestanden; Windows-spezifische Tests übersprungen, weiterhin **490** bei den bisher dokumentierten Voraussetzungen erwartet |
+| Präsentation und Einstellungen | **199** bestanden; unveränderte C#-Testquellen |
+| UI-Testprogramm | Für `win-x64` und `win-arm64` mit passenden Projektplattformen kompiliert; jeweils 0 Warnungen / 0 Fehler. Weiterhin **413** Assertions bei Ausführung unter Windows erwartet |
+| Vier Publish-Varianten | x64/ARM64, jeweils framework-dependent und self-contained, über `Build.ps1` erfolgreich erstellt |
+| Paketinhalt | PE-Architektur der EXE geprüft (`0x8664` / `0xAA64`), LICENSE unverändert, deutsche und chinesische Ressourcen vorhanden; `hostfxr.dll` ausschließlich in self-contained |
+| Runtime-Auswahl | Beide self-contained Pakete enthalten .NET und Windows Desktop **10.0.14**; beide framework-dependent Pakete deklarieren **10.0.0** als Framework-Mindestversion |
+| Statische Struktur-/Ressourcenprüfung | **1438** bestanden; **267** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis geprüft |
+
+Die Skriptprüfungen arbeiten in einem temporären Verzeichnis mit einem Ersatz für
+`dotnet`. Sie prüfen alle vier Publish-Kombinationen, Architektur/Plattform und
+Konfiguration in Build sowie allen drei Testprogrammen, Pfade mit Leerzeichen und
+Sonderzeichen, gezielte Bereinigung, Skip-Schalter und sofortigen Abbruch bei
+SDK-, Build-, Publish- oder Testfehlern. Sie starten keine Windows-Anwendung und
+ersetzen keinen nativen ARM64- oder WPF-Testlauf. Die Skriptanzahl ist getrennt von
+den unveränderten drei C#-Testgruppen dokumentiert.
+
+Der echte Core-Lauf fand außerdem eine zusätzliche unbedingte
+`hashProgress.Report(0)`-Meldung: Sie zeigte auch ohne aktivierte Hashes die Phase
+`Reading` an. Entfernt wurde ausschließlich diese redundante Meldung. Die bereits
+vorhandene, an aktivierte Hashes gebundene Startmeldung bleibt erhalten. Die
+bestehende Assertion für abgeschaltete Analysen deckt die Korrektur ab; Anzahl und
+Inhalt der C#-Tests wurden dafür nicht geändert.
+
+Ein paralleler MSBuild-Lösungsbuild brach in dieser Linux-Umgebung ohne konkrete
+MSBuild-Fehlermeldung ab. Der gemeinsame Lösungsbuild läuft nun lokal und in CI
+seriell mit `-m:1`. Der abschließende Verify-Lauf und ein erneuter ARM64-Publish
+bestanden ohne einen zusätzlichen `DOTNET_PROCESSOR_COUNT`-Override. Die ersten
+vier Publish-Prüfungen waren mit diesem Umgebungswert auf 1 erfolgt.
+
+Noch unter Windows auszuführen: `Verify.ps1 -Runtime win-x64` bzw.
+`Verify.ps1 -Runtime win-arm64` auf der passenden Architektur; ebenso ein Lauf
+unter Windows PowerShell 5.1. Die veröffentlichten EXEs sind zusätzlich aus dem
+Explorer zu starten und mit hellem/dunklem Design, Symbol und Splash anzusehen.
+Die geänderte Runtime-Auswahl ist noch keine bestätigte Behebung des gemeldeten
+Theme-Unterschieds. CI-/Release-Workflows und das WiX-Burn-Setup sind als Plan in
+`docs/BUILD-RELEASE.md` festgehalten und noch nicht implementiert.
+
 ## Ergänzung: Dokumentation der nativen Shell-Aufrufe
 
 Stand: 10. November 2026. Patchbasis: `a349320` auf `dev`.
