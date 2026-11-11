@@ -125,7 +125,7 @@ internal static class UiChecks
             Check(vm.RowsView.Count == 2, "analysis-state filter");
             vm.Options.SelectedLanguage = vm.Options.Languages.Single(x => x.CultureName == "de");
             Check(vm.Rows[0].StateText == "Fertig", "existing row status changes language");
-            Check(vm.Rows[0].SignatureText == strings["Signature_NoEmbeddedSignature"], "existing signature changes language");
+            Check(vm.Rows[0].SignatureText == "3 | " + strings["Signature_NoEmbeddedSignature"], "existing signature changes language and retains its code");
             vm.Options.SelectedLanguage = vm.Options.Languages.Single(x => x.CultureName == "zh-Hans");
             Check(vm.Rows[0].StateText == "已完成", "Chinese satellite resource is loaded");
             vm.ChecksumOptions.Single(x => x.Algorithm == ChecksumAlgorithm.SHA512).IsSelected = true;

@@ -157,20 +157,26 @@ Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows di
 
 Eine oder mehrere Ergebniszeilen markieren und das Kontextmenü öffnen. Der erste Menüeintrag und seine Trennlinie sind nur vorhanden, wenn alle markierten Zeilen eine abgeschlossene Analyse und **dasselbe angezeigte Signaturergebnis** besitzen. Bei mehreren Signaturen zählt die aktuelle Signaturauswahl jeder Zeile. „Gültig (online)“ und „Gültig (offline)“ bilden getrennte Gruppen. Gemischte, ungeprüfte, wartende, abgebrochene oder insgesamt fehlgeschlagene Analysen bieten die Aktion nicht an. Ein Rechtsklick auf eine noch nicht markierte Zeile wählt diese allein aus; innerhalb einer bestehenden Mehrfachauswahl bleibt die Auswahl erhalten.
 
+Der Signaturstatus beginnt mit einem **festen einstelligen Hexcode von `0` bis `B`**, zum Beispiel `1 | Gültig · Online-Sperrprüfung` oder `2 | Gültig · Sperrprüfung aus Cache`. Die elf Signaturzustände ergeben durch die getrennten gültigen Online-/Cache-Ergebnisse zwölf Anzeigegruppen. Der Code bleibt in allen Sprachen gleich und erscheint auch in Details, Kopierausgabe, Suche und im Signaturfeld des CSV-/JSON-Exports. Dies sind FileScope-Gruppencodes; der ursprüngliche Windows-Rückgabecode bleibt separat in „Windows-Vertrauenscode“ erhalten.
+
+**Gleiche Codes von `1` bis `B` bedeuten dieselbe Verschiebegruppe.** Dafür müssen alle markierten Analysen abgeschlossen sein und FileScope muss sich im Leerlauf befinden. Verschiedene Codes werden nicht gemeinsam verschoben; `0` bedeutet „nicht geprüft“ und bietet kein Verschieben an. Die Farbe zeigt nur eine gröbere Bewertung. Die beiden grünen Gruppen `1` und `2` verwenden zwar denselben Zielordner, bleiben aber getrennte Verschiebegruppen.
+
 Jede Datei kommt in einen Unterordner **ihres bisherigen direkten Elternordners**, etwa `C:\Pruefung\Unterordner\datei.exe` → `C:\Pruefung\Unterordner\widerruf\datei.exe`. Gleichnamige Dateien aus verschiedenen Ordnern bleiben damit getrennt. Die App-Sprache beim Start der Aktion bestimmt den Namen; jeder Name umfasst höchstens acht Zeichen. Das ist eine Begrenzung der Ordnernamen, keine Zusage zum DOS-8.3-Format.
 
-| Signaturergebnis | Deutsch | Englisch | 简体中文 |
-| --- | --- | --- | --- |
-| Gültig | `gueltig` | `valid` | `有效` |
-| Keine eingebettete Signatur | `ohnesig` | `unsigned` | `未签名` |
-| Ungültig | `unguelt` | `invalid` | `无效` |
-| Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
-| Abgelaufen | `abgelauf` | `expired` | `已过期` |
-| Widerrufen | `widerruf` | `revoked` | `已吊销` |
-| Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
-| Format nicht unterstützt | `format` | `format` | `不支持格式` |
-| Plattform nicht unterstützt | `system` | `platform` | `不支持平台` |
-| Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
+| Code | Farbe | Signaturstatus | Zielordner Deutsch | Englisch | 简体中文 |
+| --- | --- | --- | --- | --- | --- |
+| `0` | Grau | Nicht geprüft | — | — | — |
+| `1` | Grün | Gültig · Online-Sperrprüfung | `gueltig` | `valid` | `有效` |
+| `2` | Grün | Gültig · Sperrprüfung aus Cache | `gueltig` | `valid` | `有效` |
+| `3` | Grau | Keine eingebettete Signatur | `ohnesig` | `unsigned` | `未签名` |
+| `4` | Rot | Ungültige Signatur / Prüfsumme | `unguelt` | `invalid` | `无效` |
+| `5` | Gelb | Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
+| `6` | Rot | Zertifikatszeitraum ungültig | `abgelauf` | `expired` | `已过期` |
+| `7` | Rot | Zertifikat gesperrt | `widerruf` | `revoked` | `已吊销` |
+| `8` | Gelb | Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
+| `9` | Gelb | Signaturformat nicht unterstützt | `format` | `format` | `不支持格式` |
+| `A` | Gelb | Windows erforderlich | `system` | `platform` | `不支持平台` |
+| `B` | Rot | Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
 
 **Vorhandene Ziele werden niemals überschrieben.** Auch ein Zielpfad, der bereits als andere Ergebniszeile geladen ist, bleibt reserviert. Dateien, die bereits unmittelbar im passenden Unterordner liegen, werden übersprungen; es entstehen keine wiederholten Status-Unterordner. Symbolische Dateilinks und andere Datei-Reparse-Points werden mit Hinweis übersprungen, ebenso verlinkte Zielordner. Ein gewöhnlicher Hardlink wird als einzelner Pfad verschoben; seine anderen Namen bleiben erhalten.
 
@@ -274,6 +280,8 @@ Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktiviert
 
 ### Zertifikatsprüfung: genaue Bedeutung
 
+Die [Statustabelle mit Hexcodes, Farben und Verschiebegruppen](#dateien-nach-signaturergebnis-verschieben) führt alle angezeigten Ergebnisse auf.
+
 Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch werden Dateiintegrität und Vertrauenskette durch Windows beurteilt; ein auslesbares Zertifikat allein wird nie als gültige Signatur gewertet. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
 
 - **Gültig · Sperrprüfung aus Cache:** Windows hat unter der lokalen Vertrauensrichtlinie und den vorhandenen Cache-Daten erfolgreich geprüft. Dies ist keine Zusicherung aktueller Online-Sperrinformationen.
@@ -324,6 +332,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
 | `IFileMoveService` / `FileMoveService` | Verschiebt Dateien ohne Überschreiben und liefert pro Datei ein sprachneutrales Ergebnis; keine WPF-Abhängigkeit. |
 | `SignatureMoveSelection` / `FileMoveReport` | Prüfen die Signaturgruppe und formatieren Zielnamen sowie Bericht in der gewählten Sprache. |
+| `SignatureGroup` | Gemeinsame, WPF-unabhängige Zuordnung für feste Statuscodes, lokalisierte Anzeige und Verschiebegruppen; unterscheidet gültige Online-/Cache-Ergebnisse. |
 | `IFileMoveReportService` / `FileMoveReportWindow` | Kleine Grenze zum modalen Abschlussdialog, im UI-Test durch einen aufzeichnenden Dienst ersetzbar. |
 | `IFileShellService` / `FileShellService` | Öffnet auf ausdrücklichen Benutzerwunsch Windows-Dateieigenschaften oder markiert die Datei im Explorer. UI-Prüfungen ersetzen den Dienst, ohne Shell-Fenster zu starten. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
@@ -388,6 +397,8 @@ Die Exportarchitektur verwendet **Strategy**: `ResultExporter` implementiert `IR
 ### Verschieben und Abschlussbericht
 
 `MainViewModel` erhält die Mehrfachauswahl aus den Ereignissen der Tabelle und prüft sie mit der WPF-unabhängigen Klasse `SignatureMoveSelection`. Beim Start hält es Auswahl, Zielordner und bereits geladene Pfade als Momentaufnahme fest. `IFileMoveService` verarbeitet diese Daten im Hintergrund; `FileMoveService` nutzt `File.Move(..., overwrite: false)`. Die Prüfung auf ein vorhandenes Ziel ist nur eine Vorprüfung: Auch der eigentliche Verschiebeaufruf erlaubt kein Ersetzen. Der Dienst behandelt erwartete Dateisystemfehler pro Datei und liefert bei Abbruch bereits ausgeführte sowie noch nicht ausgeführte Einträge gemeinsam zurück.
+
+`SignatureGroup.From` bildet den angezeigten Signaturstatus und den Prüfmodus auf eine gemeinsame Gruppe ab. Sowohl `FileRowViewModel.SignatureText` als auch `SignatureMoveSelection` verwenden diese Zuordnung. Nur bei gültigen Signaturen gehört der Online-/Cache-Modus zur Gruppengleichheit; andere Ergebnisse werden unabhängig vom Modus gruppiert. Die Codes sind ausdrücklich zugewiesen und hängen weder von der Reihenfolge des Core-Enums noch von einem nativen Fehlercode ab. Unbekannte Werte erhalten keine Gruppe und bieten kein Verschieben an.
 
 Nach der Rückkehr aktualisiert `FileRowViewModel.Relocate` ausschließlich den Pfad der Zeile und ihres Analyseergebnisses. Hashes und Signaturauswahl bleiben erhalten; die Pfadmenge zur Duplikaterkennung wird mitgeführt. `IFileMoveReportService` öffnet den Bericht erst nach Ende des Jobs auf dem UI-Thread. Die kleine Informationsansicht braucht kein eigenes ViewModel: `FileMoveReport` formatiert ihre unveränderlichen Ergebnisse, während Sprache und Fluent-Design auch im geöffneten Dialog umschaltbar bleiben. Die konkreten Dienste werden wie die bestehenden Abhängigkeiten in `App.OnStartup` zusammengestellt.
 
@@ -531,8 +542,8 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung
 | --- | --- |
 | PowerShell-Skripte | **51** bestanden; vier Publish-Varianten, Plattformauswahl ohne Solution-RID, passende Build-/Run-Pfade, Test-RIDs, Farb-Resets je Zeile, farblose Ausgabe, Pfade mit Leerzeichen/Sonderzeichen, Exitcodes, Aufräumen und Plattformprüfung. |
 | Core | **201** unter Linux bestanden, einschließlich 5 Phasenprüfungen und 13 Prüfungen zum Verschieben. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **490** bei denselben Voraussetzungen erwartet. |
-| Präsentation und Einstellungen | **199** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte, 19 für Signaturgruppen/Pfade/Verschiebeberichte und 5 zur gespeicherten Pfadbreitenwahl. |
-| WPF / UI / MVVM | **413** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung und jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen; Testprogramm mit SDK 10.0.114 für x64 und ARM64 fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| Präsentation und Einstellungen | **210** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte, 19 für Signaturgruppen/Pfade/Verschiebeberichte, 5 zur gespeicherten Pfadbreitenwahl und 11 für feste Statuscodes, Sprache, Export und übereinstimmende Verschiebegruppen. |
+| WPF / UI / MVVM | **413** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung und jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen; vorhandene Sprachprüfung an die Statuscodes angepasst, Testprogramm mit SDK 10.0.404 für x64 fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
 Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht und 16 Ergänzungen für Auswahl, Menütrennung, Pfadkopf und Breitenoption sowie jeweils 17 für die Tastenkürzelübersicht und die Bindungen der Vorlagenzellen. Die Zellprüfungen behandeln auch noch nicht eingebaute Presenter, den Wechsel und das Leeren des Zeilenkontexts sowie Filter- und Sichtbarkeitswechsel. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 

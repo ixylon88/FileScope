@@ -17,6 +17,7 @@ internal static class PresentationChecks
             CheckRows();
             CheckMetadata();
             CheckSignatures();
+            CheckSignatureStatusCodes();
             CheckWindowSizes();
             CheckOptionsWindowPreferences();
             CheckOptions();
@@ -321,6 +322,67 @@ internal static class PresentationChecks
         strings.SetCulture("en");
     }
 
+    private static void CheckSignatureStatusCodes()
+    {
+        var strings = LocalizationService.Instance;
+        strings.SetCulture("en");
+        (SignatureStatus Status, string Code)[] cases =
+        [
+            (SignatureStatus.NotChecked, "0"), (SignatureStatus.Valid, "2"),
+            (SignatureStatus.NoEmbeddedSignature, "3"), (SignatureStatus.InvalidSignature, "4"),
+            (SignatureStatus.Untrusted, "5"), (SignatureStatus.Expired, "6"),
+            (SignatureStatus.Revoked, "7"), (SignatureStatus.RevocationUnknown, "8"),
+            (SignatureStatus.UnsupportedFormat, "9"), (SignatureStatus.UnsupportedPlatform, "A"),
+            (SignatureStatus.CheckFailed, "B")
+        ];
+        Check(cases.Select(item => item.Status).ToHashSet().SetEquals(Enum.GetValues<SignatureStatus>()),
+            "the documented code contract covers every signature status");
+        var rows = cases.Select(item =>
+        {
+            var row = new FileRowViewModel("signature-" + item.Code + ".exe", strings);
+            row.Complete(new FileAnalysisResult(row.FullPath, 1, null, new Dictionary<ChecksumAlgorithm, string>(),
+                new SignatureResult(item.Status, RevocationMode.OfflineCache)));
+            return row;
+        }).ToArray();
+        var originals = rows.Select(row => row.Result).ToArray();
+        var online = new FileRowViewModel("online.exe", strings);
+        online.Complete(originals[1]! with
+        {
+            FullPath = online.FullPath,
+            Signature = new SignatureResult(SignatureStatus.Valid, RevocationMode.Online, NativeStatusCode: 0)
+        });
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            foreach (var row in rows) row.RefreshLanguage();
+            online.RefreshLanguage();
+            Check(rows.Select((row, index) => row.SignatureText == cases[index].Code + " | " +
+                    strings[cases[index].Status == SignatureStatus.Valid ? "Signature_ValidOffline" : "Signature_" + cases[index].Status]
+                    && ReferenceEquals(row.Result, originals[index])).All(matches => matches),
+                "existing rows retain fixed hex codes while their text changes language / " + language.CultureName);
+            Check(online.SignatureText == "1 | " + strings["Signature_ValidOnline"] && online.SignatureText != rows[1].SignatureText
+                && online.NativeCode == "0x00000000" && SignatureMoveSelection.GetStatus([rows[1], online]) is null,
+                "valid online/cache results have distinct codes 1/2 and move groups, separate from the native code / " + language.CultureName);
+            var columns = ColumnOption.CreateDefaults(strings);
+            foreach (var column in columns) column.IsExportSelected = column.Id == "Signature";
+            var exported = ResultExportProjection.Capture(rows, columns);
+            Check(rows.Select((row, index) => row.Details.Contains(row.SignatureText, StringComparison.Ordinal)
+                    && row.Matches(cases[index].Code + " |") && exported.Rows[index][0] == row.SignatureText).All(matches => matches),
+                "details, search and the shared CSV/JSON projection retain the displayed status code / " + language.CultureName);
+        }
+        var allModes = Enum.GetValues<SignatureStatus>().SelectMany(status => Enum.GetValues<RevocationMode>().Select(mode =>
+        {
+            var row = new FileRowViewModel("group.exe", strings);
+            row.Complete(new FileAnalysisResult(row.FullPath, 1, null, new Dictionary<ChecksumAlgorithm, string>(), new SignatureResult(status, mode)));
+            return row;
+        })).ToArray();
+        Check(allModes.All(first => allModes.All(second =>
+                (SignatureMoveSelection.GetStatus([first, second]) is not null) ==
+                (first.SignatureText[0] != '0' && first.SignatureText[0] == second.SignatureText[0]))),
+            "all 484 status/mode pairs agree: matching nonzero display codes exactly identify movable groups");
+        strings.SetCulture("en");
+    }
+
     private static void CheckSignatures()
     {
         var strings = LocalizationService.Instance;
@@ -352,6 +414,7 @@ internal static class PresentationChecks
         row.SetHashFormat(HashFormat.Base64);
         row.SelectedSignature = row.Signatures[1];
         Check(changes == 1 && row.SignatureState == SignatureStatus.Untrusted && row.NativeCode == "0x800B0109"
+            && row.SignatureText == "5 | " + strings["Signature_Untrusted"]
             && row.Publisher == "Second publisher" && row.SerialNumber == "02" && row.CertificateSha1 == "/w==",
             "selection switches verification status, certificate fields and formatted fingerprints together");
         Check(row.ValidFromDate == second.NotBefore && row.ValidUntilDate == second.NotAfter,
@@ -384,7 +447,8 @@ internal static class PresentationChecks
             && row.SigningTimeText == strings["Timestamp_Unreadable"], "failed entry never borrows primary metadata");
         row.Reset();
         Check(!row.HasMultipleSignatures && row.Signatures.Count == 0 && row.SelectedSignature is null
-            && row.SigningTime is null && row.SigningTimeText == "", "reset removes all signature state");
+            && row.SigningTime is null && row.SigningTimeText == "" && row.SignatureText == "0 | " + strings["Signature_NotChecked"],
+            "reset removes all signature state and restores the unchecked display code");
         strings.SetCulture("en");
     }
 

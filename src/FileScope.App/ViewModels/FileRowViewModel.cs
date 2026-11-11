@@ -109,9 +109,8 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string StateText => State == RowStatus.Running
         ? AnalysisStageText.Format(Stage, _runningRevocationMode, strings)
         : strings[$"Row_{State}"];
-    public string SignatureText => SignatureState == SignatureStatus.Valid
-        ? strings[Result?.Signature.RevocationMode == RevocationMode.Online ? "Signature_ValidOnline" : "Signature_ValidOffline"]
-        : strings[$"Signature_{SignatureState}"];
+    public string SignatureText => SignatureGroup.From(SignatureState,
+        Result?.Signature.RevocationMode ?? RevocationMode.OfflineCache)?.Format(strings) ?? "?";
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
     {
         Result.Error == AnalysisError.None ? null : strings[$"Error_{Result.Error}"],

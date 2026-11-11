@@ -1,5 +1,38 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Statuscodes und gemeinsame Verschiebegruppen
+
+Stand: 11. November 2026. Patchbasis: `800c08c` (`ps update`) auf `dev`.
+Prüfung mit .NET SDK **10.0.404** und PowerShell **7.6.9** unter Linux.
+
+`SignatureGroup` ist die gemeinsame Zuordnung für die Statusanzeige und
+`SignatureMoveSelection`. Die elf Core-Zustände ergeben zwölf Anzeigegruppen:
+`0` für ungeprüft, `1` für gültig mit Online-Sperrprüfung, `2` für gültig mit
+Cache-Sperrprüfung und `3` bis `B` für die übrigen Ergebnisse. Nur gültige
+Signaturen unterscheiden den Prüfmodus. Die fest zugewiesenen Codes hängen
+nicht von Enum-Reihenfolge oder nativen Windows-Fehlercodes ab.
+
+Bei abgeschlossenen, erfolgreichen Dateianalysen im Leerlauf kennzeichnen
+gleiche Codes von `1` bis `B` dieselbe Verschiebegruppe. `0` und unbekannte
+Werte erlauben kein Verschieben. Die Anzeige folgt weiterhin der ausgewählten
+Signatur und der aktuellen Sprache. Details, Kopieren, Suche und der gemeinsame
+CSV-/JSON-Export übernehmen den Code über `SignatureText`; Farben und bestehende
+Zielordner bleiben erhalten. Die README enthält die vollständige Zuordnung.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Verify.ps1 -NoColor` | Bestanden: Lösungsbuild, **51** Skript-, **201** Core- und **210** Präsentationsprüfungen; Windows-UI-Ausführung unter Linux ausdrücklich übersprungen |
+| Neue Präsentationsprüfungen | **11** zusätzliche Assertions: feste Codes, Sprachwechsel vorhandener Zeilen, Online-/Cache-Unterscheidung, unveränderte Analysewerte/Windows-Codes, Details/Suche/Export und Übereinstimmung mit den Verschiebegruppen |
+| Vollständiger Gruppenvergleich | Alle **484** Paare aus elf Signaturzuständen und zwei Prüfmodi werden innerhalb einer Assertion geprüft: gleicher Code ungleich `0` genau dann, wenn die abgeschlossenen Zeilen eine gemeinsame Verschiebegruppe haben |
+| Bestehende Signaturprüfungen | Auswahl einer anderen Signatur und Zurücksetzen prüfen zusätzlich den passenden Anzeigecode; ihre Assertion-Anzahl bleibt gleich |
+| UI-Testprogramm | Für `win-x64` kompiliert, einschließlich App, Core und XAML: 0 Warnungen / 0 Fehler. Vorhandene Sprachprüfung angepasst; weiterhin **413** Assertions unter Windows erwartet |
+| Statische Struktur-/Ressourcenprüfung | **1440** bestanden; weiterhin **267** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis geprüft |
+
+Kein neuer Windows-Lauf: Die sichtbaren Badges und das Kontextmenü sind dort
+noch mit gleichen sowie unterschiedlichen Codes zu prüfen, insbesondere mit
+`1` und `2`, beim Signaturwechsel und nach einem Sprachwechsel.
+
 ## Korrektur: Lösungsbuild ohne RID und ANSI-Farbabschluss
 
 Stand: 10. November 2026. Folgepatch auf `06ee93f` (`global.json`) auf `dev`.
