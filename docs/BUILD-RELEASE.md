@@ -12,6 +12,11 @@ dafür weder lokal noch in CI benötigt. Die Darstellung orientiert sich an den
 TinyCamServer-Skripten; Visual-Studio-Pfade, COM-Registrierung und deren
 projektspezifische Schritte werden nicht übernommen.
 
+Die ANSI-Sequenzen stehen in `build/colored_console.ps1`. Jede farbige Zeile
+endet mit einem Reset (`ESC[0m`), bevor `Write-Host` den Zeilenumbruch ausgibt.
+Auch mehrzeilige Meldungen werden zeilenweise eingefärbt und zurückgesetzt,
+damit Hintergrundfarben nicht in die nächste Zeile weiterlaufen.
+
 ```powershell
 # Auf Windows x64
 .\Verify.ps1 -Runtime win-x64
@@ -34,12 +39,11 @@ vorher relativ zum aufrufenden Verzeichnis aufgelöst.
 
 ## SDK, Runtime und Reproduzierbarkeit
 
-- `global.json` legt **SDK 10.0.114** mit `rollForward: disable` fest. Dieser
-  Patch bleibt innerhalb der bisherigen Feature-Band 10.0.1xx. Die vollständige
-  Version ist bewusst festgelegt; ein fehlendes SDK wird gemeldet und nicht
-  automatisch durch eine andere Version ersetzt. Weitere SDKs können parallel
-  installiert sein. Eine Pipeline muss diese Datei auch bei der SDK-Installation
-  auswerten.
+- `global.json` legt die vollständige **SDK-Version** mit `rollForward: disable`
+  fest. Maßgeblich ist die dort eingetragene Version; ein fehlendes SDK wird
+  gemeldet und nicht automatisch durch eine andere Version ersetzt. Weitere SDKs
+  können parallel installiert sein. Eine Pipeline muss diese Datei auch bei der
+  SDK-Installation auswerten.
 - Für self-contained wird `TargetLatestRuntimePatch=true` verwendet. Das SDK
   bestimmt den ihm bekannten Runtime-Patch; es wird kein beliebiger neuer Patch
   zur Laufzeit des Skripts gesucht. Die Runtime wird mit der App ausgeliefert.
@@ -50,10 +54,14 @@ vorher relativ zum aufrufenden Verzeichnis aufgelöst.
   daher nicht auf allen Rechnern einen identischen WPF-Runtime-Stand.
 - Alle vier Publish-Varianten erhalten eigene Ausgabeordner. Vor einem Publish
   wird nur dessen eigener Ordner geleert; übrige Varianten bleiben erhalten.
-  Normale Build-Ausgaben trennen außerdem die RIDs. Der Runtime-Parameter wählt
-  auch die passende Solution-/Projektplattform; ohne RID prüft Verify mit
-  `Any CPU`. Die Solution enthält dafür neben x64/ARM64 jetzt auch Any CPU und
-  die bereits vom Build-Skript angebotene x86-Variante. Gleichzeitige Builds im
+- Beim Lösungsbuild wählt der Skriptparameter `-Runtime` ausschließlich die
+  passende `Platform` (x64, Arm64 oder x86). Ein `--runtime` am Lösungsbuild
+  ist nicht zulässig (NETSDK1134). Normale Build-Ausgaben sind bereits durch die
+  Plattform getrennt, etwa `bin/Arm64/Release/net10.0-windows`. `Build.ps1 -Run`
+  verwendet dieselbe Plattform ohne RID und startet diesen vorhandenen Build.
+  Publish und die einzelnen Verify-Testprojekte erhalten dagegen einen RID;
+  ihre Build-Ausgaben enthalten zusätzlich das RID-Unterverzeichnis. Ohne
+  `-Runtime` baut Verify die Solution mit `Any CPU`. Gleichzeitige Builds im
   selben Checkout werden nicht unterstützt: NuGet-Zwischendateien in `obj`
   werden weiterhin gemeinsam verwendet. CI-Matrixjobs benötigen eigene Checkouts.
 
@@ -74,7 +82,8 @@ SDK-Patchstände zulassen.
 Microsoft-Referenzen:
 [global.json](https://learn.microsoft.com/en-us/dotnet/core/tools/global-json),
 [Runtime-Patchauswahl](https://learn.microsoft.com/en-us/dotnet/core/deploying/runtime-patch-selection),
-[Bereitstellungsvarianten](https://learn.microsoft.com/en-us/dotnet/core/deploying/).
+[Bereitstellungsvarianten](https://learn.microsoft.com/en-us/dotnet/core/deploying/),
+[SDK-Fehler einschließlich NETSDK1134](https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/).
 
 ## Geplant: CI und tagbasierte Releases
 

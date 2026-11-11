@@ -1,5 +1,39 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Korrektur: Lösungsbuild ohne RID und ANSI-Farbabschluss
+
+Stand: 10. November 2026. Folgepatch auf `06ee93f` (`global.json`) auf `dev`.
+Prüfung mit dem dort bereits festgelegten .NET SDK **10.0.404** und PowerShell
+**7.6.9** unter Linux; die SDK-Auswahl wurde nicht verändert.
+
+`Build.ps1` und der vorangestellte Lösungsbuild von `Verify.ps1` wählen die
+Architektur über `Platform`. Der unzulässige Solution-Parameter `--runtime`
+(NETSDK1134) entfällt. Auch `Build.ps1 -Run` ohne Publish verwendet keinen RID,
+damit `--no-build` denselben Ausgabeordner findet. Publish und die einzelnen
+architekturspezifischen Testprojekte behalten ihre gezielten RID-Aufrufe.
+
+Die bisherigen Skriptprüfungen hatten den falschen Solution-Aufruf ebenfalls
+zugelassen. Der Ersatz für `dotnet` weist ihn nun zurück. Die zusätzlichen
+Prüfungen decken Build/Run, die Trennung von Solution-Plattform und Test-RID
+sowie ANSI-Resets vor jedem Zeilenumbruch ab, einschließlich CRLF, LF, CR,
+Leerzeilen, `-NoColor` und `NO_COLOR`.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Build.ps1 -Runtime win-x64 -NoColor` | Echter Release-Lösungsbuild bestanden; 0 Warnungen / 0 Fehler |
+| `Build.ps1 -Runtime win-arm64 -NoColor` | Echter Release-Lösungsbuild bestanden; 0 Warnungen / 0 Fehler |
+| `Verify.ps1 -NoColor` | Vollständiger Lauf bestanden: Lösungsbuild, **51** Skript-, **201** Core- und **199** Präsentationsprüfungen; Windows-UI-Prüfungen unter Linux ausdrücklich übersprungen |
+| Normaler Startpfad | Für x64 und Arm64 die MSBuild-Eigenschaften `RunCommand`, `TargetPath` und den leeren `RuntimeIdentifier` ausgewertet; die ermittelten Dateien existieren im jeweiligen Build-Ordner |
+| PowerShell-Skripte | **51** Assertions bestanden (bisher 34); alle fünf PS1-Dateien ohne Parserfehler |
+| Statische Struktur-/Ressourcenprüfung | **1438** bestanden; **267** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis geprüft |
+
+Die Windows-App wurde hier nicht gestartet. Die tatsächliche WPF-Ausführung,
+Windows PowerShell 5.1 und die Farbdarstellung im verwendeten Windows-Terminal
+bleiben unter Windows zu prüfen. Die C#-Testquellen und deren Prüfanzahlen sind
+unverändert. Die vier Publish-Varianten wurden für diesen Folgepatch nur in der
+Skript-Orchestrierung geprüft, nicht erneut veröffentlicht.
+
 ## Ergänzung: Gemeinsame Build-/Verify-Skripte und ARM64
 
 Stand: 10. November 2026. Patchbasis: `f25655d` auf `dev`. Prüfung mit dem in

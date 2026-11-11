@@ -62,8 +62,10 @@ try {
             if ($LASTEXITCODE -ne 0) { throw "Published app exited with code $LASTEXITCODE." }
         }
         else {
+            # Match the solution's platform-only output path; --runtime would
+            # make --no-build look for a different, RID-specific directory.
             Invoke-DotNet -Name 'Application' -Arguments @('run', '--project', $appProject,
-                '--configuration', $Configuration, '--runtime', $Runtime, '--self-contained', 'false',
+                '--configuration', $Configuration, '--self-contained', 'false',
                 '--no-build', '--no-launch-profile', '--verbosity', $Verbosity, '--tl:off',
                 "-p:Platform=$(Get-BuildPlatform $Runtime)")
         }

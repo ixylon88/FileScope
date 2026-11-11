@@ -3,6 +3,7 @@
 [CmdletBinding()]
 param([switch]$NoColor)
 
+. (Join-Path $PSScriptRoot 'colored_console.ps1')
 $script:FileScopeUseColor = -not ($NoColor -or $env:NO_COLOR)
 
 function Write-BuildMessage {
@@ -14,13 +15,17 @@ function Write-BuildMessage {
 
     $text = "[$($Kind.ToUpperInvariant())] $Message"
     if (-not $script:FileScopeUseColor) { Write-Host $text; return }
-    switch ($Kind) {
-        'Header'  { Write-Host $text -ForegroundColor White -BackgroundColor DarkMagenta }
-        'Phase'   { Write-Host $text -ForegroundColor White -BackgroundColor DarkBlue }
-        'Success' { Write-Host $text -ForegroundColor White -BackgroundColor DarkGreen }
-        'Warning' { Write-Host $text -ForegroundColor Yellow }
-        'Failure' { Write-Host $text -ForegroundColor White -BackgroundColor DarkRed }
-        default   { Write-Host $text -ForegroundColor Gray }
+    $color = switch ($Kind) {
+        'Header'  { $BANNER_MAGENTA_WHITE }
+        'Phase'   { $BANNER_BLUE_WHITE }
+        'Success' { $BANNER_GREEN_WHITE }
+        'Warning' { $FG_LIGHTYELLOW }
+        'Failure' { $BANNER_RED_WHITE }
+        default   { $FG_GRAY }
+    }
+    # Reset before Write-Host adds its newline, also for each line of an exception.
+    foreach ($line in ($text -split '\r\n|\n|\r')) {
+        Write-Host "$color$line$CLRF"
     }
 }
 
@@ -78,6 +83,8 @@ function Invoke-SolutionBuild {
     param([string]$RepositoryRoot, [string]$Configuration, [string]$Runtime, [string]$Verbosity)
 
     Write-BuildMessage 'BUILD SOLUTION' -Kind Phase
+    # Solutions select an architecture through Platform; a solution-wide RID
+    # causes NETSDK1134. Runtime identifiers belong to individual project calls.
     # Solution platform names use "Any CPU"; SDK project properties use "AnyCPU".
     $platform = if ($Runtime) { Get-BuildPlatform $Runtime } else { 'Any CPU' }
     $arguments = @('build', (Join-Path $RepositoryRoot 'FileScope.sln'),
@@ -85,6 +92,5 @@ function Invoke-SolutionBuild {
         # A serial solution build keeps the two-project log ordered and avoids
         # additional MSBuild worker processes on constrained build hosts.
         '-m:1', '--self-contained', 'false', "-p:Platform=$platform")
-    if ($Runtime) { $arguments += @('--runtime', $Runtime) }
     Invoke-DotNet -Name 'Solution build' -Arguments $arguments
 }

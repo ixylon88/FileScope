@@ -31,6 +31,10 @@ function Invoke-Scenario {
             $xml = [xml](Get-Content -LiteralPath $project -Raw)
         }
         $scenarioState.Calls.Add([pscustomobject]@{ Name = $name; Arguments = $arguments; Project = $xml })
+        # Match the SDK restriction instead of accepting invalid solution calls.
+        if ($name -eq 'build' -and $arguments[1] -like '*.sln' -and $arguments -contains '--runtime') {
+            throw 'NETSDK1134: A solution build cannot specify a runtime identifier.'
+        }
         $global:LASTEXITCODE = if ($name -eq $scenarioState.FailurePoint) { 23 } else { 0 }
         if ($arguments[0] -eq '--version') { 'test SDK' }
     }
@@ -53,13 +57,26 @@ function Has-Option {
     return $index -ge 0 -and $index + 1 -lt $Call.Arguments.Count -and $Call.Arguments[$index + 1] -eq $Value
 }
 
+function Get-MessageLines {
+    param([string]$Message, [string]$Kind = 'Info', [switch]$NoColor)
+    $lines = [System.Collections.Generic.List[string]]::new()
+    # Capture each host write before the host appends its newline.
+    function Write-Host { param([string]$Object) $lines.Add($Object) }
+    . (Join-Path $repository 'build/ScriptSupport.ps1') -NoColor:$NoColor
+    Write-BuildMessage -Message $Message -Kind $Kind
+    $lines.ToArray()
+}
+
 $oldOs = $env:OS
+$oldNoColor = $env:NO_COLOR
 $oldExitCode = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
 $oldExitCodeValue = if ($null -ne $oldExitCode) { $oldExitCode.Value } else { 0 }
 try {
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'build') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'tests') -Force)
-    foreach ($path in @('Build.ps1', 'Verify.ps1', 'global.json', 'build/ScriptSupport.ps1')) {
+    [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'src/FileScope.App') -Force)
+    foreach ($path in @('Build.ps1', 'Verify.ps1', 'global.json', 'build/ScriptSupport.ps1',
+        'build/colored_console.ps1', 'src/FileScope.App/FileScope.App.csproj')) {
         Copy-Item -LiteralPath (Join-Path $repository $path) -Destination (Join-Path $fixture $path)
     }
     # Only the disposable copy bypasses platform execution; every dotnet call is fake.
@@ -88,12 +105,28 @@ try {
     }
 
     foreach ($runtime in @('win-x64', 'win-arm64')) {
+        $result = Invoke-Scenario 'Build.ps1' @{ Runtime = $runtime; Configuration = 'Debug'; Run = $true }
+        $build = @($result.Calls | Where-Object Name -eq 'build')
+        $run = @($result.Calls | Where-Object Name -eq 'FileScope.App')
+        $platform = if ($runtime -eq 'win-arm64') { 'Arm64' } else { 'x64' }
+        Check ($result.Error -eq '' -and $build.Count -eq 1 -and $run.Count -eq 1 -and
+            (Has-Option $build[0] '--configuration' 'Debug') -and (Has-Option $run[0] '--configuration' 'Debug') -and
+            $build[0].Arguments -contains "-p:Platform=$platform" -and $run[0].Arguments -contains "-p:Platform=$platform") "normal build and run select the same platform/configuration: $runtime"
+        Check ($build[0].Arguments -notcontains '--runtime' -and $run[0].Arguments -notcontains '--runtime' -and
+            $run[0].Arguments -contains '--no-build') "run reuses the solution output without a different RID directory: $runtime"
+    }
+
+    foreach ($runtime in @('win-x64', 'win-arm64')) {
         $result = Invoke-Scenario 'Verify.ps1' @{ Runtime = $runtime; Configuration = 'Debug' }
         $work = @($result.Calls | Where-Object { $_.Name -in @('build', 'CoreChecks', 'PresentationChecks', 'UiChecks') })
         $platform = if ($runtime -eq 'win-arm64') { 'Arm64' } else { 'x64' }
         Check ($result.Error -eq '' -and $work.Count -eq 4 -and
-            @($work | Where-Object { -not (Has-Option $_ '--runtime' $runtime) -or -not (Has-Option $_ '--configuration' 'Debug') -or
+            @($work | Where-Object { -not (Has-Option $_ '--configuration' 'Debug') -or
                 $_.Arguments -notcontains "-p:Platform=$platform" }).Count -eq 0) "build and all three test processes use the same architecture/configuration: $runtime"
+        $build = $work | Where-Object Name -eq 'build'
+        $harnesses = @($work | Where-Object Name -ne 'build')
+        Check ($build.Arguments -notcontains '--runtime' -and
+            @($harnesses | Where-Object { -not (Has-Option $_ '--runtime' $runtime) }).Count -eq 0) "verify uses runtime identifiers only for individual test projects: $runtime"
         $ui = $work | Where-Object Name -eq 'UiChecks'
         Check ($ui.Project.Project.PropertyGroup.UseWPF -eq 'true') "UI harness still uses actual WPF: $runtime"
         Check (@(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1 -and $result.LocationRestored) "verify cleans only its temporary harnesses: $runtime"
@@ -126,6 +159,24 @@ try {
     $result = Invoke-Scenario 'Build.ps1' @{ SelfContained = $true }
     Check ($result.Error -like '*requires -Publish*' -and $result.Calls.Count -eq 0) 'self-contained without publish fails before any build'
 
+    $env:NO_COLOR = $null
+    $escape = [string][char]27
+    $colors = @{ Header = '45;97'; Phase = '44;97'; Info = '37'; Success = '42;97'; Warning = '93'; Failure = '41;97' }
+    foreach ($kind in @('Header', 'Phase', 'Info', 'Success', 'Warning', 'Failure')) {
+        $lines = @(Get-MessageLines 'Test message' $kind)
+        Check ($lines.Count -eq 1 -and $lines[0] -ceq "${escape}[$($colors[$kind])m[$($kind.ToUpperInvariant())] Test message${escape}[0m") "ANSI color resets before the host newline: $kind"
+    }
+    foreach ($separator in @("`r`n", "`n", "`r")) {
+        $lines = @(Get-MessageLines "first${separator}${separator}last" 'Phase')
+        Check ($lines.Count -eq 3 -and $lines[0] -ceq "${escape}[44;97m[PHASE] first${escape}[0m" -and
+            $lines[1] -ceq "${escape}[44;97m${escape}[0m" -and $lines[2] -ceq "${escape}[44;97mlast${escape}[0m") "multiline output resets every line, including empty lines (separator bytes: $([System.Text.Encoding]::ASCII.GetBytes($separator) -join ', '))"
+    }
+    $lines = @(Get-MessageLines 'Plain message' 'Success' -NoColor)
+    Check ($lines.Count -eq 1 -and $lines[0] -ceq '[SUCCESS] Plain message') 'NoColor suppresses ANSI sequences'
+    $env:NO_COLOR = '1'
+    $lines = @(Get-MessageLines 'Plain message' 'Failure')
+    Check ($lines.Count -eq 1 -and $lines[0] -ceq '[FAILURE] Plain message') 'NO_COLOR environment variable suppresses ANSI sequences'
+
     # Test the real platform guard independently of the fake Windows scenarios.
     . (Join-Path $repository 'build/ScriptSupport.ps1') -NoColor
     $isWindowsHost = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
@@ -138,6 +189,7 @@ try {
 }
 finally {
     $env:OS = $oldOs
+    $env:NO_COLOR = $oldNoColor
     if ($null -ne $oldExitCode) { $global:LASTEXITCODE = $oldExitCodeValue }
     else { Remove-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $fixture -Recurse -Force -ErrorAction SilentlyContinue
