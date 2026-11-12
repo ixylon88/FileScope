@@ -1,5 +1,36 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Korrektur: Fixierte Spalten bei der Initialisierung
+
+Stand: 2026-11-12, Basis `58920d6` (`dev`), .NET SDK **10.0.404**.
+
+Im [ersten CI-Lauf](https://github.com/ixylon88/FileScope/actions/runs/43289884999)
+scheitern x64 und ARM64 an derselben UI-Assertion: `FrozenColumnCount` ist `0`
+statt `2`. Checkout, SDK-Installation, Strukturprüfung, Lösungsbuild sowie die
+Skript-, Core- und Präsentationsprüfungen sind auf beiden Runnern erfolgreich.
+Die Publish-Schritte werden nach dem fehlgeschlagenen Verify korrekt übersprungen.
+
+WPF begrenzt die konfigurierte Zahl zunächst auf die noch leere Spaltenliste.
+Die erneute Auswertung kann bis zum ersten Layout verzögert sein. Der Adapter
+liest diesen vorläufigen Nullwert beim ersten Umordnen und schreibt ihn danach
+als neuen lokalen Wert zurück. `ApplyOrder` fordert jetzt vor dem Sichern mit
+`CoerceValue` die Neuberechnung an, nachdem die Spalten bereits vorhanden sind.
+Die ursprüngliche Scroll-Assertion auf zwei fixierte Spalten bleibt bestehen.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Bestehender GitHub-Lauf, x64 und ARM64 | Je **51** Skript-, **401** Core- und **210** Präsentationsprüfungen bestanden; UI-Abbruch bei fixierten Spalten; alle zwölf Optionsfuß-Prüfungen davor bestanden |
+| Korrigierter Stand: `Verify.ps1 -NoColor` unter Linux | Lösungsbuild mit 0 Warnungen / 0 Fehlern; **51** Skript-, **220** Core- und **210** Präsentationsprüfungen bestanden |
+| UI-Testprogramm | Für **win-x64** und **win-arm64** einschließlich XAML mit jeweils 0 Warnungen / 0 Fehlern kompiliert; nicht ausgeführt |
+| Regression | **9** zusätzliche Assertions: jeweils null, eine und zwei fixierte Spalten vor dem ersten Layout, nach einem Wechsel über die Fixierungsgrenze und nach dem Zurücksetzen; geprüft werden Anzahl, Reihenfolge und `IsFrozen` jeder Spalte |
+| Workflow und Struktur | `actionlint` 1.7.12 ohne Fehler; **1478** statische Prüfungen bestanden; **276** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Basis und Bytevergleich aller geänderten Dateien geprüft |
+
+Insgesamt werden **474** UI-Assertions erwartet. Ein erfolgreicher Windows-/CI-Lauf
+des korrigierten Commits steht noch aus. Die Core-Anzahl von **401** beschreibt
+die beiden GitHub-Runner; die früher erwarteten **509** gelten weiterhin nur bei
+denselben zusätzlichen Voraussetzungen wie im damaligen lokalen Windows-Lauf.
+
 ## Ergänzung: GitHub-CI und getrennte Scroll-Diagnose
 
 Stand: 2026-11-12, Basis `c7ee845` (`dev`) plus

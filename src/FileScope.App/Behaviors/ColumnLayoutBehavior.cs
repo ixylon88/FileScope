@@ -93,8 +93,15 @@ public static class ColumnLayoutBehavior
         private void ApplyOrder()
         {
             if (_applying || _grid.Columns.Count == 0) return;
-            _applying = true;
+
+            // XAML may set FrozenColumnCount before adding any columns. WPF then
+            // coerces it to zero and delays updating it until the first measure.
+            // Refresh it before saving/restoring, or we permanently overwrite the
+            // requested count with that temporary zero during initial ordering.
+            _grid.CoerceValue(DataGrid.FrozenColumnCountProperty);
             var frozen = _grid.FrozenColumnCount;
+
+            _applying = true;
             try
             {
                 // Allow any column to cross the frozen boundary in the options dialog.

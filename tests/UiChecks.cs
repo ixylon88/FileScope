@@ -86,6 +86,7 @@ internal static class UiChecks
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
             CheckOptionsFooter(strings);
+            CheckInitialFrozenColumns(strings);
             CheckHorizontalScrolling(strings);
             CheckTemplateCellBindings(strings);
             CheckScrollBarSizing();
@@ -2273,6 +2274,46 @@ internal static class UiChecks
             store.FailSave = false;
             window.Close();
             strings.SetCulture("en");
+        }
+    }
+
+    private static void CheckInitialFrozenColumns(LocalizationService strings)
+    {
+        foreach (var frozenCount in new[] { 0, 1, 2 })
+        {
+            using var options = CreateOptions(strings);
+            // Reproduce XAML construction: set the count on an empty grid, then
+            // add columns and attach the view model before any layout pass.
+            var grid = new DataGrid { AutoGenerateColumns = false, FrozenColumnCount = frozenCount };
+            foreach (var id in new[] { "Name", "Status", "Path" })
+            {
+                var column = new DataGridTextColumn();
+                ColumnLayoutBehavior.SetId(column, id);
+                grid.Columns.Add(column);
+            }
+
+            void CheckFrozen(string[] order, string stage)
+            {
+                var displayed = grid.Columns.OrderBy(column => column.DisplayIndex).ToArray();
+                Check(grid.FrozenColumnCount == frozenCount
+                    && displayed.Select(ColumnLayoutBehavior.GetId).SequenceEqual(order)
+                    && displayed.Select(column => column.IsFrozen)
+                        .SequenceEqual(Enumerable.Range(0, order.Length).Select(index => index < frozenCount)),
+                    $"column ordering preserves the requested frozen prefix / {stage} / {frozenCount}");
+            }
+
+            try
+            {
+                ColumnLayoutBehavior.SetOptions(grid, options);
+                CheckFrozen(["Name", "Status", "Path"], "before first measure");
+
+                options.SetColumnOrder(["Path", "Name", "Status"]);
+                CheckFrozen(["Path", "Name", "Status"], "move across frozen boundary");
+
+                options.ResetOrderCommand.Execute(null);
+                CheckFrozen(["Name", "Status", "Path"], "reset order");
+            }
+            finally { ColumnLayoutBehavior.SetOptions(grid, null); }
         }
     }
 
