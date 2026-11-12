@@ -1,5 +1,60 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: GitHub-CI und getrennte Scroll-Diagnose
+
+Stand: 2026-11-12, Basis `c7ee845` (`dev`) plus
+`FileScope-options-layout-translations.patch`, .NET SDK **10.0.404**.
+
+Der gemeldete Windows-Abbruch betrifft die bisherige Sammelprüfung in
+`CheckHorizontalScrolling`, nach `CheckOptionsFooter`. Die fünf Bedingungen
+für Vorlage, fixierte Spalten, Zeilen-/Spaltenvirtualisierung und automatische
+Breiten bleiben unverändert, werden aber einzeln geprüft. Bei Breitenfehlern
+erscheinen die betroffenen Spalten-IDs, Breitenmodi und `PathAutoWidth`. Daraus
+entstehen vier zusätzliche Assertions, insgesamt **465** erwartete UI-Prüfungen.
+Die konkrete abweichende Eigenschaft und damit die Ursache sind noch offen;
+eine Behebung des Scroll-Fehlers ist mit diesem Stand nicht nachgewiesen.
+
+Die CI verwendet native Windows-x64- und Windows-ARM64-Jobs mit dem SDK aus
+`global.json`. Nach `Verify.ps1` folgen die beiden Publish-Varianten über
+`Build.ps1` und insgesamt vier herunterladbare Artefakte. Die vorhandenen
+PowerShell-Skripte und die App bleiben unverändert.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Verify.ps1 -NoColor` unter Linux | Bestanden: Lösungsbuild mit 0 Warnungen / 0 Fehlern; **51** Skript-, **220** Core- und **210** Präsentationsprüfungen |
+| UI-Testprogramm | Für **win-x64** und **win-arm64** einschließlich XAML mit jeweils 0 Warnungen / 0 Fehlern kompiliert; nicht ausgeführt |
+| Workflow | YAML-Struktur geprüft; `actionlint` **1.7.12** ohne Fehler; Action-Versionen, Commit-SHAs und verwendete Inputs gegen die jeweiligen offiziellen Quellen geprüft |
+| Statische Struktur-/Ressourcenprüfung | **1478** bestanden; **276** Ressourcenschlüssel je Sprache |
+| Patch | Anwendung nach dem Optionspatch auf unveränderter Basis und Bytevergleich aller geänderten Dateien geprüft; `git diff --check` fehlerfrei |
+
+Ein tatsächlicher GitHub-Actions-Lauf und die Ausführung von WPF/native Windows
+sind noch offen. Der Workflow startet nach dem Push der Änderung auf `dev`,
+`main` oder `master`. Die bisher erwarteten **509** nativen Core-Assertions
+bleiben unverändert; ihre tatsächliche Anzahl hängt vom Windows-Testsystem ab.
+
+## Korrektur: Kompakter Optionsfuß und Menüübersetzungen
+
+Stand: 2026-11-12, Basis `c7ee845` (`dev`), .NET SDK **10.0.404**.
+
+Die gemeinsame Zeile für Hinweise und Schließen bleibt erhalten. Der Knopf
+reserviert nun zuerst seine Breite am rechten Rand; die Meldungen umbrechen
+im verbleibenden Platz. Zuvor konnten längere Meldungen den verfügbaren Platz
+für Schließen aufbrauchen. Die wirkungslose `Grid.Column`-Angabe am Designfeld
+wurde entfernt. Der Menütitel lautet einheitlich „Menü“, „Menu“ und „菜单“.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Verify.ps1 -NoColor` | Bestanden: Lösungsbuild mit 0 Warnungen / 0 Fehlern, **51** Skript-, **220** Core- und **210** Präsentationsprüfungen |
+| UI-Testprogramm | Für `win-x64` einschließlich XAML mit 0 Warnungen / 0 Fehlern kompiliert |
+| Neue UI-Prüfungen | **12** zusätzliche Assertions: Schließen innerhalb des Fensters und ohne Überlappung mit Meldungen, bei Standard- und Mindestgröße, in drei Sprachen und jeweils mit erfolgreichem bzw. fehlgeschlagenem Speichern |
+| Statische Struktur-/Ressourcenprüfung | **1478** bestanden; **276** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis und Bytevergleich der geänderten Dateien geprüft |
+
+Insgesamt werden **461** UI-Assertions unter Windows erwartet. Die WPF-Laufzeit
+und das sichtbare Layout konnten unter Linux nicht geprüft werden. Der
+Windows-Lauf mit `Verify.ps1 -Runtime win-x64` bleibt offen; die bisher
+erwarteten **509** nativen Core-Assertions ändern sich nicht.
+
 ## Korrektur: Plattformabhängiger Core-Test und Menüprüfung
 
 Stand: 2026-11-12, Basis `9392ffd` (`dev`), .NET SDK **10.0.404**.

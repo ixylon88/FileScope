@@ -11,7 +11,7 @@
       <RowDefinition Height="*" /><RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
     <TextBlock Text="{loc:Loc OptionsTitle}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,18" />
-    <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Right">
+    <StackPanel Orientation="Vertical" HorizontalAlignment="Right">
         <TextBlock Text="{loc:Loc Group_Theme}" Style="{StaticResource FieldLabel}" Margin="0,10,0,5" />  
         <ComboBox x:Name="ThemeSelector" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Label"
                   MinHeight="34" MinWidth="100" AutomationProperties.Name="{loc:Loc Group_Theme}" />
@@ -88,16 +88,15 @@
         </Grid>
       </TabItem>
     </TabControl>
-    <StackPanel Grid.Row="4" Margin="0,14,0,0">
-      <DockPanel Dock="Right">
-        <StackPanel VerticalAlignment="Bottom">
-          <TextBlock Text="{loc:Loc OptionsSavedHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
-          <TextBlock Text="{Binding SettingsError}" Foreground="#B42318" TextWrapping="Wrap" Margin="0,8,0,0"
-           Visibility="{Binding HasSettingsError, Converter={StaticResource BoolToVisibility}}" />
-        </StackPanel>
-        <Button Content="{loc:Loc Close}" IsCancel="True"
-                HorizontalAlignment="Right" MinWidth="100" Margin="0,18,0,0" Padding="16,8" />
-      </DockPanel>
-    </StackPanel>
+    <DockPanel Grid.Row="4" Margin="0,14,0,0">
+      <!-- Reserve the button width first; messages wrap within the remaining space. -->
+      <Button x:Name="CloseOptionsButton" DockPanel.Dock="Right" Content="{loc:Loc Close}" IsCancel="True"
+              VerticalAlignment="Bottom" MinWidth="100" Margin="16,0,0,0" Padding="16,8" />
+      <StackPanel VerticalAlignment="Bottom">
+        <TextBlock Text="{loc:Loc OptionsSavedHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        <TextBlock x:Name="SettingsErrorText" Text="{Binding SettingsError}" Foreground="#B42318" TextWrapping="Wrap" Margin="0,8,0,0"
+                   Visibility="{Binding HasSettingsError, Converter={StaticResource BoolToVisibility}}" />
+      </StackPanel>
+    </DockPanel>
   </Grid>
 </Window>

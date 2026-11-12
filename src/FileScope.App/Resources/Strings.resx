@@ -949,6 +949,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
     <value>Excluded by intake filter: {0}</value>
   </data>
   <data name="MenuTitle" xml:space="preserve">
-    <value>Control menu</value>
+    <value>Menu</value>
   </data>
 </root>

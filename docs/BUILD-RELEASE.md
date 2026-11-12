@@ -2,8 +2,8 @@
 
 ## Gemeinsame Skripte für lokale Entwicklung und CI
 
-`Build.ps1` und `Verify.ps1` sind die gemeinsamen Einstiegspunkte. Eine künftige
-Pipeline ruft diese Skripte mit denselben Parametern wie die lokale Entwicklung
+`Build.ps1` und `Verify.ps1` sind die gemeinsamen Einstiegspunkte. Die CI
+ruft diese Skripte mit denselben Parametern wie die lokale Entwicklung
 auf. Es gibt keinen Schalter, der auf dem Build-Server andere App-Eigenschaften
 aktiviert. `build/ScriptSupport.ps1` bündelt Phasenfarben, SDK-Ausgabe,
 Exitcode-Prüfung und den Lösungsbuild. Die zwei Projekte werden beim
@@ -85,24 +85,63 @@ Microsoft-Referenzen:
 [Bereitstellungsvarianten](https://learn.microsoft.com/en-us/dotnet/core/deploying/),
 [SDK-Fehler einschließlich NETSDK1134](https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/).
 
-## Geplant: CI und tagbasierte Releases
+## GitHub-CI
 
-Dieser Abschnitt hält den vereinbarten Vorschlag fest. Die Workflows sind noch
-nicht implementiert.
+`.github/workflows/ci.yml` läuft bei Pushes und Pull Requests für `dev`, `main`
+und `master` sowie über `workflow_dispatch`. Zwei voneinander getrennte Jobs
+prüfen die unterstützten Architekturen:
 
-1. `ci.yml`: Pull Requests und Branch-Pushes prüfen; SDK aus `global.json`
-   installieren und `Verify.ps1` auf Windows ausführen. Die genaue Branch-Auswahl
-   wird bei Einrichtung der Pipeline festgelegt.
-2. `release.yml`: Ein Versions-Tag wie `v1.0.0` oder `v1.1.0-rc.1` löst die
+| Runtime | GitHub-Runner | SDK-Architektur |
+| --- | --- | --- |
+| `win-x64` | `windows-2025` | `x64` |
+| `win-arm64` | `windows-11-arm` | `arm64` |
+
+Jeder Job installiert das SDK aus `global.json`, prüft Struktur und Ressourcen
+und führt `Verify.ps1 -Runtime <Runtime> -NoColor` aus. Es wird kein `-SkipUi`
+gesetzt: Core, Präsentation, Skripte und WPF laufen auf der jeweiligen nativen
+Windows-Architektur. Ein fehlgeschlagener Job bricht den anderen nicht ab;
+dadurch bleiben beide Ergebnisse verfügbar. Ein neuer Lauf desselben Branches
+oder Pull Requests ersetzt dagegen einen noch laufenden älteren Lauf.
+
+Erst nach erfolgreichem Verify veröffentlicht `Build.ps1` nacheinander
+framework-dependent und self-contained. Die Upload-Schritte archivieren jeweils
+den vollständigen Publish-Ordner einschließlich Lizenz und Sprachressourcen.
+Die vier Artefakte heißen `FileScope-<Runtime>-framework-dependent` bzw.
+`FileScope-<Runtime>-self-contained` und bleiben 14 Tage verfügbar. Ein fehlender
+Publish-Ordner ist ein Fehler. Die Pipeline erzeugt noch keinen GitHub-Release
+und prüft das sichtbare Erscheinungsbild der veröffentlichten EXEs nicht.
+
+Der Workflow benötigt nur `contents: read`, keine zusätzlichen Secrets und
+keine Schreibrechte auf Branches oder Releases. Die verwendeten GitHub-Actions
+sind auf vollständige Commit-SHAs festgelegt; der jeweilige Versionsname steht
+daneben im Kommentar. Workflow-Anpassungen ändern keine lokalen Buildparameter.
+
+Der erste Lauf startet nach dem Push der Workflowdatei auf einen der genannten
+Branches. Sobald sie auf dem Standardbranch liegt, steht auch der manuelle
+Start unter **Actions → CI → Run workflow** zur Verfügung. Bei Fehlern zeigt
+der Schritt **Build and verify, including WPF** die genaue fehlgeschlagene
+Prüfbedingung. Die Scroll-Prüfung meldet Vorlage, fixierte Spalten, Virtualisierung
+und Breiten getrennt; abweichende Breiten enthalten Spalten-ID und Breitenmodus.
+
+GitHub-Referenzen:
+[Runner-Auswahl](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job),
+[SDK aus global.json](https://github.com/actions/setup-dotnet#using-the-global-json-file-input).
+
+## Geplant: Tagbasierte Releases
+
+Dieser Abschnitt hält den vereinbarten Vorschlag für die separate
+Release-Pipeline fest. Sie ist noch nicht implementiert.
+
+1. `release.yml`: Ein Versions-Tag wie `v1.0.0` oder `v1.1.0-rc.1` löst die
    Prüfung genau dieses Commits aus. Anschließend erzeugt `Build.ps1` vier ZIPs:
    x64/ARM64, jeweils framework-dependent und self-contained. SHA-256-Prüfsummen
    gehören zu den Release-Dateien.
-3. Der Vorschlag zur Versionsableitung bleibt **MinVer als reine
+2. Der Vorschlag zur Versionsableitung bleibt **MinVer als reine
    Build-Abhängigkeit** mit `PrivateAssets=all` und Tagpräfix `v`. MinVer ist für
    Git-Tag-Trigger nicht erforderlich, kann aber Assembly-/Produktversion und
    Paketnamen aus demselben Tag ableiten. Dafür sind vollständige Git-Historie
    und Tags nötig; manuelle konkurrierende Versionsangaben wären zu entfernen.
-4. Die veröffentlichten EXEs auf der passenden Windows-Architektur starten.
+3. Die veröffentlichten EXEs auf der passenden Windows-Architektur starten.
    `Verify.ps1` allein startet nicht die fertigen Publish-Pakete. Symbol, Splash
    sowie helles/dunkles Design sind zusätzlich sichtbar zu prüfen. Der erste
    Release kann dazu zunächst als Entwurf erstellt werden. Native ARM64-Tests

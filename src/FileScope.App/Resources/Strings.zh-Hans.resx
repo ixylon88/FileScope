@@ -949,6 +949,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
     <value>导入筛选器已排除：{0}</value>
   </data>
   <data name="MenuTitle" xml:space="preserve">
-    <value>控制</value>
+    <value>菜单</value>
   </data>
 </root>

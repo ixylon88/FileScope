@@ -85,6 +85,7 @@ internal static class UiChecks
             CheckExceptValidFilter(strings);
             CheckWindowPersistence(strings);
             CheckOptionsWindowPersistence(strings);
+            CheckOptionsFooter(strings);
             CheckHorizontalScrolling(strings);
             CheckTemplateCellBindings(strings);
             CheckScrollBarSizing();
@@ -2221,6 +2222,60 @@ internal static class UiChecks
         }
     }
 
+    private static void CheckOptionsFooter(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var store = new MemoryPreferences();
+        using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
+        var window = new OptionsWindow(options) { ShowActivated = false };
+
+        try
+        {
+            window.Show();
+            var root = (Grid)window.Content;
+            var close = (Button)window.FindName("CloseOptionsButton");
+            var error = (TextBlock)window.FindName("SettingsErrorText");
+            var messages = (FrameworkElement)error.Parent;
+            var sizes = new[] { new Size(window.Width, window.Height), new Size(window.MinWidth, window.MinHeight) };
+
+            foreach (var size in sizes)
+            {
+                window.Width = size.Width;
+                window.Height = size.Height;
+
+                foreach (var culture in new[] { "de", "en", "zh-Hans" })
+                {
+                    strings.SetCulture(culture);
+
+                    foreach (var failSave in new[] { false, true })
+                    {
+                        // Exercise the actual error binding through a failed save,
+                        // then clear it again on the next successful save.
+                        store.FailSave = failSave;
+                        options.PathAutoWidth = !options.PathAutoWidth;
+                        DrainDispatcher();
+                        window.UpdateLayout();
+
+                        var closeBounds = close.TransformToAncestor(root).TransformBounds(new Rect(close.RenderSize));
+                        var messageBounds = messages.TransformToAncestor(root).TransformBounds(new Rect(messages.RenderSize));
+
+                        Check(close.IsVisible && close.ActualWidth >= close.MinWidth
+                            && closeBounds.Left >= 0 && closeBounds.Right <= root.ActualWidth + 1
+                            && messageBounds.Right <= closeBounds.Left && closeBounds.Bottom <= root.ActualHeight + 1
+                            && error.IsVisible == failSave && error.Text == (failSave ? strings["SettingsSaveError"] : ""),
+                            $"options messages leave Close fully visible / {culture} / {size.Width}x{size.Height} / save error: {failSave}");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            store.FailSave = false;
+            window.Close();
+            strings.SetCulture("en");
+        }
+    }
+
     private static void CheckHorizontalScrolling(LocalizationService strings)
     {
         using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
@@ -2283,10 +2338,20 @@ internal static class UiChecks
                     && !BindingOperations.GetBindingExpression(button, FrameworkElement.WidthProperty)!.HasError,
                     "native corner width stays valid after horizontal scrolling / " + offset);
             }
-            Check(ReferenceEquals(template, grid.Template) && grid.FrozenColumnCount == 2
-                && grid.EnableRowVirtualization && grid.EnableColumnVirtualization
-                && grid.Columns.All(column => column.Width.IsAuto),
-                "scroll fix preserves native template, frozen columns, virtualization and automatic widths");
+            // Keep failures separate: the former combined assertion hid which
+            // layout setting had changed on the affected Windows installation.
+            Check(ReferenceEquals(template, grid.Template), "scroll fix preserves the native template");
+            Check(grid.FrozenColumnCount == 2,
+                $"scroll fix preserves frozen columns (expected 2; actual {grid.FrozenColumnCount})");
+            Check(grid.EnableRowVirtualization, "scroll fix preserves row virtualization");
+            Check(grid.EnableColumnVirtualization, "scroll fix preserves column virtualization");
+
+            var nonAutoColumns = grid.Columns.Where(column => !column.Width.IsAuto)
+                .Select(column => $"{ColumnLayoutBehavior.GetId(column)}={column.Width.UnitType}/{column.Width.Value}")
+                .ToArray();
+            Check(nonAutoColumns.Length == 0,
+                "scroll fix preserves automatic widths (PathAutoWidth=" + vm.Options.PathAutoWidth
+                + "; non-auto columns: " + (nonAutoColumns.Length == 0 ? "none" : string.Join(", ", nonAutoColumns)) + ")");
             trace.Flush();
             Check(!messages.ToString().Contains(nameof(DataGrid.CellsPanelHorizontalOffset), StringComparison.Ordinal),
                 "horizontal scrolling produces no CellsPanelHorizontalOffset binding errors");
@@ -2690,8 +2755,16 @@ internal static class UiChecks
     {
         public UserPreferences Saved { get; private set; } = new();
         public int SaveCount { get; private set; }
+        public bool FailSave { get; set; }
         public UserPreferences Load() => Saved;
-        public void Save(UserPreferences preferences) { Saved = preferences; SaveCount++; }
+
+        public void Save(UserPreferences preferences)
+        {
+            if (FailSave) throw new IOException("Simulated settings write failure.");
+
+            Saved = preferences;
+            SaveCount++;
+        }
     }
     private sealed class TestPicker : IFilePickerService
     {
