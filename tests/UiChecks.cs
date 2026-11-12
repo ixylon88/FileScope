@@ -177,11 +177,15 @@ internal static class UiChecks
             Console.WriteLine();
             ConsoleColor backgroundBackup = Console.BackgroundColor;
             ConsoleColor foregroundBackup = Console.ForegroundColor;
-            Console.BackgroundColor = ConsoleColor.White;
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
-            Console.WriteLine($"PASS: {_passed} UI / MVVM assertions.");
+
+            // Match BANNER_GREEN_WHITE in colored_console.ps1; restore colors before the newline.
+            Console.BackgroundColor = ConsoleColor.DarkGreen;
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"PASS: {_passed} UI / MVVM assertions.");
+
             Console.BackgroundColor = backgroundBackup;
             Console.ForegroundColor = foregroundBackup;
+            Console.WriteLine();
             Console.WriteLine("=======================");
             Console.WriteLine();
             return 0;

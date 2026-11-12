@@ -8,7 +8,7 @@
   <Grid Margin="24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-      <RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      <RowDefinition Height="*" /><RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
     <TextBlock Text="{loc:Loc OptionsTitle}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,18" />
     <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Right">
@@ -89,11 +89,15 @@
       </TabItem>
     </TabControl>
     <StackPanel Grid.Row="4" Margin="0,14,0,0">
-      <TextBlock Text="{loc:Loc OptionsSavedHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
-      <TextBlock Text="{Binding SettingsError}" Foreground="#B42318" TextWrapping="Wrap" Margin="0,8,0,0"
-                 Visibility="{Binding HasSettingsError, Converter={StaticResource BoolToVisibility}}" />
+      <DockPanel Dock="Right">
+        <StackPanel VerticalAlignment="Bottom">
+          <TextBlock Text="{loc:Loc OptionsSavedHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+          <TextBlock Text="{Binding SettingsError}" Foreground="#B42318" TextWrapping="Wrap" Margin="0,8,0,0"
+           Visibility="{Binding HasSettingsError, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+        <Button Content="{loc:Loc Close}" IsCancel="True"
+                HorizontalAlignment="Right" MinWidth="100" Margin="0,18,0,0" Padding="16,8" />
+      </DockPanel>
     </StackPanel>
-    <Button Grid.Row="5" Content="{loc:Loc Close}" IsCancel="True"
-            HorizontalAlignment="Right" MinWidth="100" Margin="0,18,0,0" Padding="16,8" />
   </Grid>
 </Window>
