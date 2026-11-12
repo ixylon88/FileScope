@@ -565,7 +565,7 @@
     <value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value>
   </data>
   <data name="ExportResults" xml:space="preserve">
-    <value>导出</value>
+    <value>导出…</value>
   </data>
   <data name="ExportTitle" xml:space="preserve">
     <value>导出结果</value>
@@ -947,5 +947,8 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="IntakeExcludedSummary" xml:space="preserve">
     <value>导入筛选器已排除：{0}</value>
+  </data>
+  <data name="MenuTitle" xml:space="preserve">
+    <value>控制</value>
   </data>
 </root>

@@ -565,7 +565,7 @@
     <value>Skipped: {0} unreadable folders and {1} directory links.</value>
   </data>
   <data name="ExportResults" xml:space="preserve">
-    <value>Export</value>
+    <value>Export...</value>
   </data>
   <data name="ExportTitle" xml:space="preserve">
     <value>Export results</value>
@@ -947,5 +947,8 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="IntakeExcludedSummary" xml:space="preserve">
     <value>Excluded by intake filter: {0}</value>
+  </data>
+  <data name="MenuTitle" xml:space="preserve">
+    <value>Control menu</value>
   </data>
 </root>

@@ -565,7 +565,7 @@
     <value>Übersprungen: {0} nicht lesbare Ordner und {1} Verzeichnisverknüpfungen.</value>
   </data>
   <data name="ExportResults" xml:space="preserve">
-    <value>Exportieren</value>
+    <value>Exportieren...</value>
   </data>
   <data name="ExportTitle" xml:space="preserve">
     <value>Ergebnisse exportieren</value>
@@ -947,5 +947,8 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="IntakeExcludedSummary" xml:space="preserve">
     <value>Durch Aufnahmefilter ausgeschlossen: {0}</value>
+  </data>
+  <data name="MenuTitle" xml:space="preserve">
+    <value>Menü</value>
   </data>
 </root>

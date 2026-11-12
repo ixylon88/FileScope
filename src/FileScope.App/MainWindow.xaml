@@ -39,100 +39,114 @@
         <TextBlock Text="FileScope" FontSize="24" FontWeight="SemiBold" />
         <TextBlock Text="{loc:Loc Subtitle}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
       </StackPanel>
-      <TextBlock Grid.Column="2" Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="2" VerticalAlignment="Top">
+        <Button Grid.Column="2" x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
+                ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}" Margin="0" HorizontalAlignment="Right">
+          <StackPanel Orientation="Horizontal">
+            <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
+            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <TextBlock Grid.Column="2" Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
+      </StackPanel>
     </Grid>
 
-    <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
-      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <StackPanel Orientation="Horizontal">
-          <StackPanel Width="Auto">
-            <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
-            <WrapPanel Margin="0,0,8,0">
-              <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >
-                <StackPanel Orientation="Horizontal">
-                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
-                  <Label Content="{loc:Loc AddFiles}" VerticalAlignment="Center" Padding="0" />
-                </StackPanel>
-              </Button>
-              <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource BandButton}" BorderBrush="{DynamicResource SystemFillColorAttentionBrush}" Background="{DynamicResource SystemFillColorAttentionBrush}" Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" d:BorderBrush="SkyBlue" d:Background="SkyBlue" ToolTip="{loc:Loc AddFolderTip}" >
-                <StackPanel Orientation="Horizontal">
-                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
-                  <Label Content="{loc:Loc AddFolder}" VerticalAlignment="Center" Padding="0" />
-                </StackPanel>
-              </Button>
-              <Button x:Name="ExportButton" Command="{Binding ExportCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportTip}" >
-                <StackPanel Orientation="Horizontal">
-                  <Label FontFamily="Segoe MDL2 Assets" Content="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
-                  <Label Content="{loc:Loc ExportResults}" VerticalAlignment="Center" Padding="0" />
-                </StackPanel>
-              </Button>
-            </WrapPanel>
-            <StackPanel x:Name="IntakeFilterPanel" Margin="0,9,16,0" IsEnabled="{Binding IsIdle}">
-              <TextBlock Text="{loc:Loc IntakeFilterLabel}" Style="{StaticResource FieldLabel}" />
-              <TextBox x:Name="IntakeFilterBox" Text="{Binding IntakePattern, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" Padding="9,4" ToolTip="{loc:Loc IntakeFilterTip}" AutomationProperties.Name="{loc:Loc IntakeFilterLabel}" />
-              <TextBlock Text="{loc:Loc IntakeFilterHint}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
-              <TextBlock x:Name="IntakeFilterErrorText" Text="{Binding IntakeFilterError}" ToolTip="{Binding IntakeFilterErrorDetails}"
-                         Foreground="{DynamicResource SystemFillColorCriticalBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
-                         Visibility="{Binding HasIntakeFilterError, Converter={StaticResource BoolToVisibility}}" />
+    <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12">
+      <Expander Padding="14,8" IsExpanded="True">
+        <Expander.Header>
+          <TextBlock Text="{loc:Loc MenuTitle}" VerticalAlignment="Center" />
+        </Expander.Header>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal">
+            <StackPanel Width="Auto">
+              <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
+              <WrapPanel Margin="0,0,8,0">
+                <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >
+                  <StackPanel Orientation="Horizontal">
+                    <Label FontFamily="Segoe MDL2 Assets" Content="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                    <Label Content="{loc:Loc AddFiles}" VerticalAlignment="Center" Padding="0" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="AddFolderButton" Command="{Binding AddFolderCommand}" Style="{StaticResource BandButton}" BorderBrush="{DynamicResource SystemFillColorAttentionBrush}" Background="{DynamicResource SystemFillColorAttentionBrush}" Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" d:BorderBrush="SkyBlue" d:Background="SkyBlue" ToolTip="{loc:Loc AddFolderTip}" >
+                  <StackPanel Orientation="Horizontal">
+                    <Label FontFamily="Segoe MDL2 Assets" Content="&#xE838;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                    <Label Content="{loc:Loc AddFolder}" VerticalAlignment="Center" Padding="0" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="ExportButton" Command="{Binding ExportCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportTip}" >
+                  <StackPanel Orientation="Horizontal">
+                    <Label FontFamily="Segoe MDL2 Assets" Content="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                    <Label Content="{loc:Loc ExportResults}" VerticalAlignment="Center" Padding="0" />
+                  </StackPanel>
+                </Button>
+              </WrapPanel>
+              <StackPanel x:Name="IntakeFilterPanel" Margin="0,9,16,0" IsEnabled="{Binding IsIdle}">
+                <TextBlock Text="{loc:Loc IntakeFilterLabel}" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="IntakeFilterBox" Text="{Binding IntakePattern, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" Padding="9,4" ToolTip="{loc:Loc IntakeFilterTip}"
+                         AutomationProperties.Name="{loc:Loc IntakeFilterLabel}" />
+                <TextBlock Text="{loc:Loc IntakeFilterHint}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+                <TextBlock x:Name="IntakeFilterErrorText" Text="{Binding IntakeFilterError}" ToolTip="{Binding IntakeFilterErrorDetails}"
+                           Foreground="{DynamicResource SystemFillColorCriticalBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
+                           Visibility="{Binding HasIntakeFilterError, Converter={StaticResource BoolToVisibility}}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc CancelTip}" />
+                <Button Content="{loc:Loc Clear}" Command="{Binding ClearCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ClearTip}" />
+                <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
+              </StackPanel>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-              <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc CancelTip}" />
-              <Button Content="{loc:Loc Clear}" Command="{Binding ClearCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ClearTip}" />
-              <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
+            <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+            <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
+              <TextBlock Text="{loc:Loc Group_Checksums}" Style="{StaticResource GroupHeading}" />
+              <ItemsControl ItemsSource="{Binding ChecksumOptions}" IsEnabled="{Binding IsIdle}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" MinWidth="106" Margin="0,4,0,10" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
-          </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
-            <TextBlock Text="{loc:Loc Group_Checksums}" Style="{StaticResource GroupHeading}" />
-            <ItemsControl ItemsSource="{Binding ChecksumOptions}" IsEnabled="{Binding IsIdle}">
-              <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate><CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" MinWidth="106" Margin="0,4,0,10" /></DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="Auto" MaxWidth="350" Margin="0,0,16,0">
-            <TextBlock Text="{loc:Loc Group_Certificates}" Style="{StaticResource GroupHeading}" />
-            <CheckBox Content="{loc:Loc InspectCertificates}" IsChecked="{Binding InspectCertificates}" IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectCertificatesTip}" />
-            <CheckBox Content="{loc:Loc OnlineRevocation}" IsChecked="{Binding OnlineRevocation}" IsEnabled="{Binding CanChooseOnlineRevocation}" ToolTip="{loc:Loc OnlineRevocationTip}" />
-            <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
-          </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
-            <TextBlock Text="{loc:Loc Group_Metadata}" Style="{StaticResource GroupHeading}" />
-            <CheckBox x:Name="InspectFilePropertiesCheckBox" Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
+            <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+            <StackPanel Width="Auto" MaxWidth="350" Margin="0,0,16,0">
+              <TextBlock Text="{loc:Loc Group_Certificates}" Style="{StaticResource GroupHeading}" />
+              <CheckBox Content="{loc:Loc InspectCertificates}" IsChecked="{Binding InspectCertificates}" IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectCertificatesTip}" />
+              <CheckBox Content="{loc:Loc OnlineRevocation}" IsChecked="{Binding OnlineRevocation}" IsEnabled="{Binding CanChooseOnlineRevocation}" ToolTip="{loc:Loc OnlineRevocationTip}" />
+              <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+            <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+            <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
+              <TextBlock Text="{loc:Loc Group_Metadata}" Style="{StaticResource GroupHeading}" />
+              <CheckBox x:Name="InspectFilePropertiesCheckBox" Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
                       IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectFilePropertiesTip}" />
-            <CheckBox x:Name="InspectPeHeaderCheckBox" Content="{loc:Loc InspectPeHeader}" IsChecked="{Binding InspectPeHeader}"
+              <CheckBox x:Name="InspectPeHeaderCheckBox" Content="{loc:Loc InspectPeHeader}" IsChecked="{Binding InspectPeHeader}"
                       IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc InspectPeHeaderTip}" />
-          </StackPanel>
-          <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="Auto" MaxWidth="200">
-            <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
-                    ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}">
-              <StackPanel Orientation="Horizontal">
-                <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
-                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="AboutButton" Click="OpenAbout" Style="{StaticResource BandButton}"
+            </StackPanel>
+            <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
+            <StackPanel Width="Auto" MaxWidth="200">
+              <Button x:Name="AboutButton" Click="OpenAbout" Style="{StaticResource BandButton}"
                     ToolTip="{loc:Loc AboutTitle}" AutomationProperties.Name="{loc:Loc AboutTitle}">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
                     ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Button>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
           </StackPanel>
-        </StackPanel>
-      </ScrollViewer>
+        </ScrollViewer>
+      </Expander>
     </Border>
 
     <Grid x:Name="FiltersPanel" Grid.Row="2" Margin="24,0,24,14" IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc FiltersPausedTip}">
