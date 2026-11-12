@@ -924,4 +924,28 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="ShortcutContextMenuAction" xml:space="preserve">
     <value>Open the row context menu</value>
   </data>
+  <data name="IntakeFilterLabel" xml:space="preserve">
+    <value>File intake (Regex)</value>
+  </data>
+  <data name="IntakeFilterTip" xml:space="preserve">
+    <value>Matches the filename including its extension, without the folder path; case-insensitive. Applies to Open files, Add folder and drag-and-drop. Example: \.(exe|dll)$</value>
+  </data>
+  <data name="IntakeFilterHint" xml:space="preserve">
+    <value>New files only · Empty: all files</value>
+  </data>
+  <data name="IntakeRegexInvalid" xml:space="preserve">
+    <value>Invalid regex. See the tooltip for details.</value>
+  </data>
+  <data name="IntakeRegexTimeout" xml:space="preserve">
+    <value>Regex took too long. Simplify the pattern.</value>
+  </data>
+  <data name="IntakeFilterStopped" xml:space="preserve">
+    <value>File intake stopped because of the filter.</value>
+  </data>
+  <data name="IntakeNoMatches" xml:space="preserve">
+    <value>No new files added.</value>
+  </data>
+  <data name="IntakeExcludedSummary" xml:space="preserve">
+    <value>Excluded by intake filter: {0}</value>
+  </data>
 </root>

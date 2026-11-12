@@ -1,5 +1,38 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Ergänzung: Regex-Filter vor der Dateiaufnahme
+
+Stand: 2026-11-12, Basis `11181df` (`dev`), .NET SDK **10.0.404**.
+
+Das eigene Feld „Dateiaufnahme (Regex)“ filtert neue Dateien vor dem Anlegen
+von Ergebniszeilen. Dateiauswahl, rekursive Ordnersuche und gemischte Drops
+verwenden denselben Filter auf Dateinamen einschließlich Endung, ohne Ordnerpfad.
+Die Suche in bestehenden Ergebnissen bleibt unverändert. Ein leeres Muster
+nimmt alle Dateien auf; bestehende Zeilen und deren erneute Analyse sind vom
+Aufnahmefilter unabhängig.
+
+Ungültige Muster sperren die Aufnahme und erscheinen mit einer Meldung am Feld
+in allen drei Sprachen. Die aktive Prüfung läuft im Hintergrund mit 100 ms
+Zeitlimit pro Dateiname. Ein Regex-Timeout verwirft die neue Auswahl vollständig;
+ein Abbruch während der Filterprüfung liefert ebenfalls keine Teilauswahl.
+Während des Vorgangs bleibt das gewählte Muster unverändert. Ausschlüsse werden
+getrennt von doppelten Pfaden gezählt und in der Abschlussmeldung genannt.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Verify.ps1 -NoColor` | Bestanden: Lösungsbuild mit 0 Warnungen / 0 Fehlern, **51** Skript-, **220** Core- und **210** Präsentationsprüfungen; Windows-UI-Ausführung unter Linux ausdrücklich übersprungen |
+| Neue Core-Prüfungen | **19** zusätzliche Assertions: alle README-Beispiele, Groß-/Kleinschreibung, reine Dateinamen statt Ordnerpfaden, Kulturunabhängigkeit, Leerzeichen, doppelte/leere Kandidaten, Ausschlussanzahl, Syntaxfehler, Abbruch und begrenztes Backtracking |
+| UI-Testprogramm | Für `win-x64` einschließlich App, Core und XAML kompiliert: 0 Warnungen / 0 Fehler; **24** zusätzliche Assertions, insgesamt **437** unter Windows erwartet |
+| Neue UI-Prüfungen | Echtes Textfeld, alle drei Aufnahmewege, spätere Aufnahme zuvor ausgeschlossener Pfade, unabhängige Ansichtsfilter, unveränderte bestehende Zeilen, vollständig ausgeschlossene Ordner, Fehlermeldungen in drei Sprachen, Timeout, Neuanalyse, festes Muster während der Ordnersuche und Abbruch mit verspätetem Suchergebnis |
+| Statische Struktur-/Ressourcenprüfung | **1474** bestanden; **275** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis und Bytevergleich der geänderten Dateien geprüft |
+
+Unter den bisher dokumentierten Windows-Voraussetzungen werden nun **509**
+Core-Assertions erwartet. Native Windows-Prüfungen und WPF-Laufzeitprüfungen
+wurden hier nicht ausgeführt. Unter Windows sind insbesondere die sichtbare
+Fehlermeldung, die Bedienung des neuen Felds und Datei-/Ordner-Drops mit aktiver
+Aufnahmeauswahl noch über `Verify.ps1` und einen kurzen Bedienungstest zu prüfen.
+
 ## Ergänzung: Statuscodes und gemeinsame Verschiebegruppen
 
 Stand: 11. November 2026. Patchbasis: `800c08c` (`ps update`) auf `dev`.

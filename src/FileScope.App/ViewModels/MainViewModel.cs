@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Threading;
@@ -34,6 +35,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _inspectFileProperties, _inspectPeHeader;
     private int _processed, _batchTotal, _skipped;
     private string _searchText = "";
+    private FileNameFilter? _intakeFilter = new("");
+    private string? _intakeFilterErrorKey;
+    private int _intakeExcluded;
     private string? _fileActionErrorPath;
     private string _fileActionErrorKey = "FilePropertiesError";
     private AnalysisProgressBuffer? _analysisDisplay;
@@ -115,12 +119,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
         RowsView.Filter = MatchesFilters;
         BrowseCommand = new AsyncRelayCommand(async _ =>
-            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => IsIdle);
-        AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => IsIdle);
+            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => CanAddFiles);
+        AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => CanAddFiles);
         ExportCommand = new AsyncRelayCommand(_ => ExportAsync(), OnCommandError,
             _ => IsIdle && HasRows && Options.HasExportColumns);
         DropFilesCommand = new AsyncRelayCommand(p => AddDroppedPathsAsync((string[])p!), OnCommandError,
-            p => IsIdle && p is string[] { Length: > 0 });
+            p => CanAddFiles && p is string[] { Length: > 0 });
         ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
             _ => IsIdle && HasRows);
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
@@ -154,11 +158,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(IsIdle));
+            OnPropertyChanged(nameof(CanAddFiles));
             OnPropertyChanged(nameof(CanChooseOnlineRevocation));
             NotifyCommands();
         }
     }
     public bool IsIdle => !IsBusy && !_disposed;
+    public bool CanAddFiles => IsIdle && _intakeFilter is not null;
     public bool HasRows => Rows.Count > 0;
     public bool ShowEmptyState => Rows.Count == 0;
     public bool ShowNoMatches => HasRows && RowsView.Count == 0;
@@ -239,6 +245,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 status += " · " + AnalysisStageText.Format(current.Progress.Stage, options.RevocationMode, _strings);
             if (LastRunSummary is { } summary && field is "CompletedSummary" or "CancelledSummary")
                 status += " · " + summary.Format(_strings);
+            if (_intakeExcluded > 0 && field is "CompletedSummary" or "CancelledSummary" or "IntakeNoMatches"
+                or "DuplicatesSkipped" or "IntakeCancelled")
+            {
+                status += " · " + _strings.Format("IntakeExcludedSummary", _intakeExcluded);
+            }
             return ShowDiagnosticColumn ? $"{status} · {_strings.Format("DiagnosticSummary", DiagnosticRowCount)}" : status;
         }
         private set;
@@ -266,6 +277,52 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ShowFilePropertiesCommand.NotifyCanExecuteChanged();
         ShowInExplorerCommand.NotifyCanExecuteChanged();
         MoveSelectedCommand.NotifyCanExecuteChanged();
+    }
+
+    public string IntakePattern
+    {
+        get;
+        set
+        {
+            if (!IsIdle || !SetProperty(ref field, value)) return;
+
+            try
+            {
+                _intakeFilter = new FileNameFilter(value);
+                _intakeFilterErrorKey = null;
+                IntakeFilterErrorDetails = "";
+            }
+            catch (ArgumentException ex)
+            {
+                SetIntakeFilterError("IntakeRegexInvalid", ex.Message);
+                return;
+            }
+
+            NotifyIntakeFilterChanged();
+        }
+    } = "";
+
+    public bool HasIntakeFilterError => _intakeFilterErrorKey is not null;
+    public string IntakeFilterError => _intakeFilterErrorKey is { } key ? _strings[key] : "";
+    public string IntakeFilterErrorDetails { get; private set; } = "";
+
+    private void SetIntakeFilterError(string key, string details)
+    {
+        _intakeFilter = null;
+        _intakeFilterErrorKey = key;
+        IntakeFilterErrorDetails = details;
+
+        NotifyIntakeFilterChanged();
+    }
+
+    private void NotifyIntakeFilterChanged()
+    {
+        OnPropertyChanged(nameof(HasIntakeFilterError));
+        OnPropertyChanged(nameof(IntakeFilterError));
+        OnPropertyChanged(nameof(IntakeFilterErrorDetails));
+        OnPropertyChanged(nameof(CanAddFiles));
+
+        NotifyCommands();
     }
 
     public string SearchText
@@ -323,7 +380,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private Task AddFolderAsync()
     {
-        if (!IsIdle) return Task.CompletedTask;
+        if (!CanAddFiles) return Task.CompletedTask;
         var folder = _picker.PickFolder(_strings["AddFolderTitle"]);
         if (folder is null) return Task.CompletedTask;
         return AddFoldersAsync([folder], []);
@@ -331,7 +388,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task AddDroppedPathsAsync(string[] paths)
     {
-        if (!IsIdle) return;
+        if (!CanAddFiles) return;
         var files = new List<string>();
         var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var path in paths)
@@ -359,7 +416,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task AddFoldersAsync(string[] folders, IReadOnlyList<string> directFiles)
     {
-        if (!IsIdle) return;
+        if (!CanAddFiles) return;
+
+        // Keep one immutable filter across discovery and intake, including mixed drops.
+        var filter = _intakeFilter;
         var token = BeginFileOperation("ScanningFolder");
         CurrentFile = folders[0];
         FolderScanResult? result = null;
@@ -378,7 +438,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var warning = result.Issues.Count == 0 && result.SkippedDirectoryLinks == 0 ? ""
             : _strings.Format("FolderScanWarning", result.Issues.Count, result.SkippedDirectoryLinks);
         if (result.Issues.Count > 0) warning += $"\n{result.Issues[0].Path}: {result.Issues[0].Message}";
-        await AddFilesAsync(result.Files, warning);
+        await AddFilesAsync(result.Files, warning, filter);
         if (result.Files.Count == 0 && result.Issues.Count == 0) SetStatus("FolderEmpty");
     }
 
@@ -498,18 +558,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void OnExportSelectionChanged(object? sender, EventArgs args) => ExportCommand.NotifyCanExecuteChanged();
 
-    private async Task AddFilesAsync(IEnumerable<string> paths, string warning = "")
+    private async Task AddFilesAsync(IEnumerable<string> paths, string warning = "", FileNameFilter? filter = null)
     {
         if (!IsIdle) return;
+
+        filter ??= _intakeFilter;
+        if (filter is null) return;
+
         var token = BeginFileOperation("PreparingFiles");
         LastError = warning;
         OnPropertyChanged(nameof(HasError));
         var added = new List<FileRowViewModel>();
         _skipped = 0;
+        _intakeExcluded = 0;
         var cancelled = false;
         var visited = 0;
         try
         {
+            if (filter.IsActive)
+            {
+                // Evaluate before publishing any rows. A timeout/cancellation cannot
+                // leave a partly accepted batch, and expensive patterns do not block WPF.
+                (paths, _intakeExcluded) = await Task.Run(() => filter.Apply(paths, token), token);
+            }
+
             // Keep the view readable during synchronous collection notifications.
             // Yield in chunks so a large folder can render and accept Cancel.
             foreach (var path in paths)
@@ -542,15 +614,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             foreach (var row in added) row.Cancel();
             SetStatus("IntakeCancelled");
         }
+        catch (RegexMatchTimeoutException ex)
+        {
+            SetIntakeFilterError("IntakeRegexTimeout", ex.Message);
+            SetStatus("IntakeFilterStopped");
+            return;
+        }
         finally { EndFileOperation(); RefreshView(); }
         if (cancelled || _disposed) return;
-        if (added.Count == 0) { SetStatus(_skipped > 0 ? "DuplicatesSkipped" : "Ready"); return; }
-        await RunBatchAsync(added, warning);
+        if (added.Count == 0)
+        {
+            SetStatus(_skipped > 0 ? "DuplicatesSkipped" : _intakeExcluded > 0 ? "IntakeNoMatches" : "Ready");
+            return;
+        }
+
+        await RunBatchAsync(added, warning, _intakeExcluded);
     }
 
-    private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "")
+    private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "", int intakeExcluded = 0)
     {
         if (!IsIdle || batch.Count == 0) return;
+        _intakeExcluded = intakeExcluded;
         // Time this analysis batch only; folder discovery, file intake and exports are separate operations.
         var timer = Stopwatch.StartNew();
         LastRunSummary = null;
@@ -714,7 +798,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SetSelectedRows([]);
         SelectedRow = null;
         _clearRequested = false;
-        _processed = _batchTotal = _skipped = 0;
+        _processed = _batchTotal = _skipped = _intakeExcluded = 0;
         Progress = 0;
         LastError = "";
         OnPropertyChanged(nameof(HasError));
@@ -852,6 +936,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void OnCultureChanged(object? sender, EventArgs args)
     {
         OnPropertyChanged(nameof(FileActionError));
+        OnPropertyChanged(nameof(IntakeFilterError));
         foreach (var row in Rows) row.RefreshLanguage();
         foreach (var option in StateFilters) option.RefreshLanguage();
         foreach (var option in SignatureFilters) option.RefreshLanguage();

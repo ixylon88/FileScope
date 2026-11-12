@@ -7,7 +7,7 @@
         xmlns:behaviors="clr-namespace:FileScope.App.Behaviors"
         xmlns:controls="clr-namespace:FileScope.App.Controls"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
-        Title="{loc:Loc WindowTitle}" Width="1440" Height="900" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
+        Title="{loc:Loc WindowTitle}" Width="1600" Height="1024" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
         WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
@@ -45,9 +45,9 @@
     <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,14">
       <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <StackPanel Orientation="Horizontal">
-          <StackPanel Width="316">
+          <StackPanel Width="Auto">
             <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
-            <WrapPanel>
+            <WrapPanel Margin="0,0,8,0">
               <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >
                 <StackPanel Orientation="Horizontal">
                   <Label FontFamily="Segoe MDL2 Assets" Content="&#xE8E5;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
@@ -60,8 +60,6 @@
                   <Label Content="{loc:Loc AddFolder}" VerticalAlignment="Center" Padding="0" />
                 </StackPanel>
               </Button>
-            </WrapPanel>
-            <WrapPanel>
               <Button x:Name="ExportButton" Command="{Binding ExportCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ExportTip}" >
                 <StackPanel Orientation="Horizontal">
                   <Label FontFamily="Segoe MDL2 Assets" Content="&#xEDE1;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
@@ -69,14 +67,22 @@
                 </StackPanel>
               </Button>
             </WrapPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+            <StackPanel x:Name="IntakeFilterPanel" Margin="0,9,16,0" IsEnabled="{Binding IsIdle}">
+              <TextBlock Text="{loc:Loc IntakeFilterLabel}" Style="{StaticResource FieldLabel}" />
+              <TextBox x:Name="IntakeFilterBox" Text="{Binding IntakePattern, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" Padding="9,4" ToolTip="{loc:Loc IntakeFilterTip}" AutomationProperties.Name="{loc:Loc IntakeFilterLabel}" />
+              <TextBlock Text="{loc:Loc IntakeFilterHint}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+              <TextBlock x:Name="IntakeFilterErrorText" Text="{Binding IntakeFilterError}" ToolTip="{Binding IntakeFilterErrorDetails}"
+                         Foreground="{DynamicResource SystemFillColorCriticalBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
+                         Visibility="{Binding HasIntakeFilterError, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
               <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc CancelTip}" />
               <Button Content="{loc:Loc Clear}" Command="{Binding ClearCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ClearTip}" />
               <Button Content="{loc:Loc Reanalyse}" Command="{Binding ReanalyseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc ReanalyseTip}" />
             </StackPanel>
           </StackPanel>
           <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="224" Margin="0,0,16,0">
+          <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Checksums}" Style="{StaticResource GroupHeading}" />
             <ItemsControl ItemsSource="{Binding ChecksumOptions}" IsEnabled="{Binding IsIdle}">
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -86,14 +92,14 @@
             </ItemsControl>
           </StackPanel>
           <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="292" Margin="0,0,16,0">
+          <StackPanel Width="Auto" MaxWidth="350" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Certificates}" Style="{StaticResource GroupHeading}" />
             <CheckBox Content="{loc:Loc InspectCertificates}" IsChecked="{Binding InspectCertificates}" IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectCertificatesTip}" />
             <CheckBox Content="{loc:Loc OnlineRevocation}" IsChecked="{Binding OnlineRevocation}" IsEnabled="{Binding CanChooseOnlineRevocation}" ToolTip="{loc:Loc OnlineRevocationTip}" />
             <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
           </StackPanel>
           <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="224" Margin="0,0,16,0">
+          <StackPanel Width="Auto" MaxWidth="300" Margin="0,0,16,0">
             <TextBlock Text="{loc:Loc Group_Metadata}" Style="{StaticResource GroupHeading}" />
             <CheckBox x:Name="InspectFilePropertiesCheckBox" Content="{loc:Loc InspectFileProperties}" IsChecked="{Binding InspectFileProperties}"
                       IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectFilePropertiesTip}" />
@@ -101,7 +107,7 @@
                       IsEnabled="{Binding IsIdle}" ToolTip="{loc:Loc InspectPeHeaderTip}" />
           </StackPanel>
           <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
-          <StackPanel Width="146">
+          <StackPanel Width="Auto" MaxWidth="200">
             <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
                     ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}">
               <StackPanel Orientation="Horizontal">

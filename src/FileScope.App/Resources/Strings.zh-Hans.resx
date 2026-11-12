@@ -924,4 +924,28 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="ShortcutContextMenuAction" xml:space="preserve">
     <value>打开当前行的快捷菜单</value>
   </data>
+  <data name="IntakeFilterLabel" xml:space="preserve">
+    <value>文件导入（正则表达式）</value>
+  </data>
+  <data name="IntakeFilterTip" xml:space="preserve">
+    <value>匹配含扩展名的文件名，不含文件夹路径，不区分大小写。适用于打开文件、添加文件夹和拖放。例如：\.(exe|dll)$</value>
+  </data>
+  <data name="IntakeFilterHint" xml:space="preserve">
+    <value>仅影响新文件 · 留空：所有文件</value>
+  </data>
+  <data name="IntakeRegexInvalid" xml:space="preserve">
+    <value>正则表达式无效。详情见工具提示。</value>
+  </data>
+  <data name="IntakeRegexTimeout" xml:space="preserve">
+    <value>正则表达式匹配超时，请简化表达式。</value>
+  </data>
+  <data name="IntakeFilterStopped" xml:space="preserve">
+    <value>因筛选器问题，已停止导入文件。</value>
+  </data>
+  <data name="IntakeNoMatches" xml:space="preserve">
+    <value>未添加新文件。</value>
+  </data>
+  <data name="IntakeExcludedSummary" xml:space="preserve">
+    <value>导入筛选器已排除：{0}</value>
+  </data>
 </root>

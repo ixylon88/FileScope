@@ -4,7 +4,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 ## Auf einen Blick
 
-- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien und Ordner per Drag-and-drop hinzufügen oder auswählen; Ordner werden einschließlich Unterordnern eingelesen.
+- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien und Ordner per Drag-and-drop hinzufügen oder auswählen; Ordner werden einschließlich Unterordnern eingelesen. Ein optionaler Regex-Aufnahmefilter begrenzt die Analyse auf passende Dateinamen oder Endungen.
 - **Prüfsummen berechnen:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 frei auswählen und gemeinsam berechnen.
 - **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen, optional mit <u>Online-Sperrprüfung</u> der Zertifikate; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
 - **Programmdateien einordnen:** Versions- und Herstellerangaben, Architektur und .NET-Plattform auslesen; auch ältere NE-/Win16-EXE und -DLL erkennen.
@@ -104,8 +104,9 @@ Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt
 | Funktion | Verhalten |
 | --- | --- |
 | Dateien oder Ordner ablegen | Eine oder mehrere Dateien und/oder Ordner auf einen beliebigen Bereich des Fensters ziehen. Für Ordner bestätigt eine gemeinsame Rückfrage die Auswertung einschließlich Unterordnern; „Nein“ verwirft den gesamten Drop. Alternativ „Dateien öffnen“ / Ctrl+O oder „Ordner hinzufügen“. |
-| Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und alle darin enthaltenen Dateien einschließlich Unterordner analysieren. Bereits geladene Pfade werden übersprungen. |
-| Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich ausgefilterter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
+| Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und darin enthaltene Dateien einschließlich Unterordner analysieren, sofern sie zum Aufnahmefilter passen. Bereits geladene Pfade werden übersprungen. |
+| Dateiaufnahme (Regex) | Vor dem Hinzufügen nach Dateinamen einschließlich Endung auswählen. Gilt für Dateiauswahl, Ordner und Drag-and-drop; ausgeschlossene Dateien erscheinen nicht in der Tabelle und werden nicht analysiert. Leer bedeutet alle Dateien. Beispiele stehen unterhalb dieser Tabelle. |
+| Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich durch Ansichtsfilter ausgeblendeter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
 | Exportfelder | Unter Zahnrad → Optionen → Exportieren die gewünschten Felder anhaken. Die Auswahl wird gespeichert und ist unabhängig von der Sichtbarkeit der Tabellenspalten. |
 | CSV-Trennzeichen | Im selben Reiter Semikolon oder Komma wählen. Standard ist Semikolon; die Auswahl wird gespeichert und bleibt beim Sprachwechsel erhalten. |
 | Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Beim ersten Start: SHA-256 und Signaturprüfung. Danach wird die gespeicherte Auswahl aller Prüf-Häkchen wiederhergestellt. |
@@ -132,12 +133,34 @@ Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Bei genau einer markierten Datei zeigt der Detailkopf nach „Kopieren:“ mit Abstand den vollständigen Pfad; der Detailtext ist markierbar. Bei keiner oder mehreren markierten Dateien bleiben Pfad und Detailtext leer. |
 | Tastaturnavigation in der Tabelle | **Strg+Pos1 / Strg+Ende** springen zur ersten bzw. letzten Tabellenzelle. **BildAuf / BildAb** bewegen sich um eine sichtbare Tabellenseite nach oben bzw. unten. Pos1 / Ende allein wechseln innerhalb der aktuellen Zeile zur ersten bzw. letzten Spalte. Die Ergebnisliste muss den Tastaturfokus haben. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
-| Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Filter, sobald kein Vorgang mehr läuft. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
+| Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Ansichtsfilter, sobald kein Vorgang mehr läuft. Der Aufnahmefilter bleibt erhalten. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
 | Design | Hell/Dunkel unter **Optionen → Design** umschalten; die Auswahl wird gespeichert. Native Fluent-Controls ohne eigene Vorlagen für Zeilen/Zellen. |
 | Über FileScope | Info-Knopf unter „Optionen“: Programmversion, Funktionsübersicht, Erklärung des gemeinsamen Lesedurchlaufs sowie Repository und MIT-Lizenz. |
 | Tastenkürzel | Tastatursymbol unter „Über“ oder **F1**: kompakte Übersicht für Aktionen, Navigation, Auswahl und Kopieren. Mit **Esc**, **Enter** oder „Schließen“ schließen. |
+
+### Dateien beim Hinzufügen filtern (Regex)
+
+Das Feld **„Dateiaufnahme (Regex)“** in der Dateigruppe entscheidet, welche neuen Dateien in FileScope aufgenommen werden. Geprüft wird nur der **Dateiname einschließlich Endung**, ohne Ordnerpfad; Groß- und Kleinschreibung werden ignoriert. Das gilt für **„Dateien öffnen“**, **„Ordner hinzufügen“** und **Drag-and-drop**, einschließlich Dateien in Unterordnern. Ordnernamen selbst werden nicht gefiltert. Ausgeschlossene Dateien werden nicht zur Analyse geöffnet und erscheinen weder in der Liste noch im Export.
+
+Ein **leeres Feld** nimmt alle Dateien auf. Der Aufnahmefilter gilt für die aktuelle Sitzung und bleibt beim Leeren der Liste sowie beim Zurücksetzen der Ansichtsfilter erhalten. Zum Abschalten den Inhalt dieses Feldes löschen. Eine Änderung betrifft nur künftige Aufnahmen; vorhandene Zeilen bleiben erhalten, und „Alle neu prüfen“ verarbeitet weiterhin alle geladenen Dateien. Während eines Vorgangs ist das Feld gesperrt.
+
+Die **Suche** über der Tabelle bleibt eine einfache Textsuche in bereits geladenen Ergebnissen. Sie und die Statusfilter beeinflussen nur die Ansicht.
+
+| Gewünschte Aufnahme | Regex zum Einfügen |
+| --- | --- |
+| Nur EXE-Dateien | `\.exe$` |
+| EXE- oder DLL-Dateien | `\.(exe\|dll)$` |
+| Dateiname enthält „setup“ | `setup` |
+| Dateiname beginnt mit „setup“ oder „install“ | `^(setup\|install)` |
+| Alle außer Dateinamen mit „setup“ | `^(?!.*setup).*$` |
+| Alle außer TMP- und BAK-Dateien | `^(?!.*\.(tmp\|bak)$).*$` |
+| Nur DLL-Dateien, deren Name weder „debug“ noch „test“ enthält | `^(?!.*(debug\|test)).*\.dll$` |
+
+Kurz erklärt: `\.` steht für einen echten Punkt, `$` für das Ende und `^` für den Anfang des Dateinamens. `.*` bedeutet beliebig viele Zeichen, `|` trennt Alternativen. Der negative Ausblick `(?!...)` schließt das darin beschriebene Muster aus. `\.exe$` passt deshalb auf `SETUP.EXE`, aber nicht auf `setup.exe.bak`. Das Feld verwendet .NET-Regulärausdrücke, keine Explorer-Platzhalter: statt `*.exe` wird `\.exe$` eingegeben. Auch Leerzeichen im Muster sind wirksam.
+
+Ein ungültiges Muster wird direkt am Feld gemeldet; die Dateiaufnahme bleibt bis zur Korrektur gesperrt. Dauert eine Prüfung zu lange, wird die neue Aufnahme abgebrochen, ohne einen Teil ihrer Treffer hinzuzufügen. Bereits vorhandene Ergebnisse bleiben erhalten. Nach einer erfolgreichen Aufnahme nennt die Statusleiste auch die Zahl der durch den Filter ausgeschlossenen Kandidaten.
 
 ## Funktionen im Detail
 
@@ -350,6 +373,8 @@ Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik läs
 
 ### Dateiaufnahme und Verarbeitung
 
+`FileNameFilter` prüft Dateinamen im Core ohne Inhaltszugriff. Das Haupt-ViewModel verwendet für Dateiauswahl, Ordnersuche und Drag-and-drop denselben Aufnahmeweg. Ein aktives Muster wird einmal erstellt und für die ganze Aufnahme unverändert verwendet: ohne Groß-/Kleinschreibung, kulturunabhängig und mit 100 ms Zeitlimit pro Abgleich. Negative Ausblicke ermöglichen Ausschlüsse. Die Prüfung läuft im Hintergrund vor dem Anlegen neuer Zeilen; ein Abbruch oder Regex-Timeout während dieser Prüfung liefert keine Teilauswahl. Die anschließende Pfadnormalisierung, Deduplizierung und Analyse bleiben getrennte Arbeitsschritte. Ohne Muster bleibt die bestehende, portionsweise Dateiaufnahme erhalten.
+
 Ein Hintergrund-Task verarbeitet den gesamten Analysedurchlauf. `AnalysisProgressBuffer` hält unter einer kurzen Sperre alle noch nicht übernommenen Resultate und nur den letzten Fortschrittsstand der aktuellen Datei. `Report` stellt keine Dispatcher-Aufträge ein. Ein `DispatcherTimer` mit Hintergrundpriorität leert den Puffer in `MainViewModel.StatusUpdateInterval` (100 ms); alle Änderungen an Zeilen, Bindungen und Status bleiben auf dem WPF-Thread. Die Taktzeit ist ein Mindestabstand, keine Echtzeitgarantie. Bei Abschluss oder Abbruch wird der Puffer unmittelbar übernommen; ein geschlossener Puffer verwirft verspätete Meldungen. Die gefilterte/sortierte Ansicht wird am Ende einmal erneuert, statt nach jeder Datei die gesamte Liste zu durchsuchen.
 
 Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
@@ -541,11 +566,11 @@ Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung
 | Gruppe | Anzahl und Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **51** bestanden; vier Publish-Varianten, Plattformauswahl ohne Solution-RID, passende Build-/Run-Pfade, Test-RIDs, Farb-Resets je Zeile, farblose Ausgabe, Pfade mit Leerzeichen/Sonderzeichen, Exitcodes, Aufräumen und Plattformprüfung. |
-| Core | **201** unter Linux bestanden, einschließlich 5 Phasenprüfungen und 13 Prüfungen zum Verschieben. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **490** bei denselben Voraussetzungen erwartet. |
+| Core | **220** unter Linux bestanden, einschließlich 5 Phasenprüfungen, 13 Prüfungen zum Verschieben und 19 für den Regex-Aufnahmefilter. Native Windows-Prüfungen hier übersprungen; ausgehend vom letzten Windows-Lauf mit 472 nun **509** bei denselben Voraussetzungen erwartet. |
 | Präsentation und Einstellungen | **210** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte, 19 für Signaturgruppen/Pfade/Verschiebeberichte, 5 zur gespeicherten Pfadbreitenwahl und 11 für feste Statuscodes, Sprache, Export und übereinstimmende Verschiebegruppen. |
-| WPF / UI / MVVM | **413** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung und jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen; vorhandene Sprachprüfung an die Statuscodes angepasst, Testprogramm mit SDK 10.0.404 für x64 fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
+| WPF / UI / MVVM | **437** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung, jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen sowie 24 für den Regex-Aufnahmefilter. Testprogramm mit SDK 10.0.404 für x64 fehlerfrei kompiliert. Erneuter Windows-Lauf noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht und 16 Ergänzungen für Auswahl, Menütrennung, Pfadkopf und Breitenoption sowie jeweils 17 für die Tastenkürzelübersicht und die Bindungen der Vorlagenzellen. Die Zellprüfungen behandeln auch noch nicht eingebaute Presenter, den Wechsel und das Leeren des Zeilenkontexts sowie Filter- und Sichtbarkeitswechsel. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
+Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht und 16 Ergänzungen für Auswahl, Menütrennung, Pfadkopf und Breitenoption sowie jeweils 17 für die Tastenkürzelübersicht und die Bindungen der Vorlagenzellen und 24 für den Regex-Aufnahmefilter. Dessen UI-Prüfungen verwenden das echte Textfeld und kontrollierte Dienste für Dateiauswahl, Ordnersuche und gemischte Drops; sie prüfen zudem Fehlermeldungen in drei Sprachen, Zeitlimit, Abbruch und unveränderte bestehende Ergebnisse. Die Zellprüfungen behandeln auch noch nicht eingebaute Presenter, den Wechsel und das Leeren des Zeilenkontexts sowie Filter- und Sichtbarkeitswechsel. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
 
 Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
 

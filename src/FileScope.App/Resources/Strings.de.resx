@@ -924,4 +924,28 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="ShortcutContextMenuAction" xml:space="preserve">
     <value>Kontextmenü der Zeile öffnen</value>
   </data>
+  <data name="IntakeFilterLabel" xml:space="preserve">
+    <value>Dateiaufnahme (Regex)</value>
+  </data>
+  <data name="IntakeFilterTip" xml:space="preserve">
+    <value>Prüft den Dateinamen einschließlich Endung, ohne Ordnerpfad; Groß-/Kleinschreibung wird ignoriert. Gilt für Dateien öffnen, Ordner hinzufügen und Drag-and-drop. Beispiel: \.(exe|dll)$</value>
+  </data>
+  <data name="IntakeFilterHint" xml:space="preserve">
+    <value>Nur neue Dateien · Leer: alle Dateien</value>
+  </data>
+  <data name="IntakeRegexInvalid" xml:space="preserve">
+    <value>Ungültiger Regex. Details im Tooltip.</value>
+  </data>
+  <data name="IntakeRegexTimeout" xml:space="preserve">
+    <value>Regex dauert zu lange. Das Muster bitte vereinfachen.</value>
+  </data>
+  <data name="IntakeFilterStopped" xml:space="preserve">
+    <value>Dateiaufnahme wegen des Filters abgebrochen.</value>
+  </data>
+  <data name="IntakeNoMatches" xml:space="preserve">
+    <value>Keine neuen Dateien aufgenommen.</value>
+  </data>
+  <data name="IntakeExcludedSummary" xml:space="preserve">
+    <value>Durch Aufnahmefilter ausgeschlossen: {0}</value>
+  </data>
 </root>

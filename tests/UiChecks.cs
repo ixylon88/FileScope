@@ -72,6 +72,8 @@ internal static class UiChecks
             CheckCheckboxPersistence(strings);
             CheckMetadataOptions(strings);
             CheckFileIntake(strings);
+            CheckIntakeFilter(strings);
+            CheckIntakeFilterDuringScan(strings);
             CheckFolderAndExport(strings);
             CheckDroppedFolders(strings);
             CheckFileOperationCancellation(strings);
@@ -1522,6 +1524,192 @@ internal static class UiChecks
             Check(vm.RowsView.Count == 1, "the same file can be dropped again after clear");
         }
         finally { viewNotifications.CollectionChanged -= readView; }
+    }
+
+    private static void CheckIntakeFilter(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var root = Path.Combine(Path.GetTempPath(), "FileScope-filter-" + Guid.NewGuid().ToString("N"));
+        var nested = Path.Combine(root, "excluded.txt");
+        Directory.CreateDirectory(nested);
+        var child = Path.Combine(nested, "child.DLL");
+        File.WriteAllText(child, "fixture");
+        File.WriteAllText(Path.Combine(nested, "notes.txt"), "fixture");
+
+        var picker = new TestPicker { Folder = root };
+        var analysis = new ImmediateAnalysis();
+        var scanner = new RecordingFolderScanner();
+        var confirmation = new TestConfirmation { Answer = true };
+        using var vm = CreateMainViewModel(analysis, picker, strings, CreateOptions(strings),
+            scanner: scanner, confirmation: confirmation);
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+
+        try
+        {
+            window.Show();
+            var input = (TextBox)window.FindName("IntakeFilterBox");
+            var error = (TextBlock)window.FindName("IntakeFilterErrorText");
+            input.SetCurrentValue(TextBox.TextProperty, @"\.exe$");
+            DrainDispatcher();
+            Check(vm.IntakePattern == @"\.exe$" && input.IsEnabled && !vm.HasIntakeFilterError,
+                "real intake textbox updates its regex immediately");
+
+            var first = Path.Combine(root, "setup.EXE");
+            var excluded = Path.Combine(root, "readme.txt");
+            picker.Files = [first, excluded];
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.HasError && vm.Rows.Select(row => row.FullPath).SequenceEqual([first]) && analysis.Calls == 1,
+                "file picker excludes nonmatching names before creating rows or analysing them");
+            Check(vm.StatusText.Contains(strings.Format("IntakeExcludedSummary", 1), StringComparison.Ordinal),
+                "completed intake reports its excluded candidate count");
+
+            vm.SearchText = "no-visible-result";
+            vm.ResetFiltersCommand.Execute(null);
+            Check(vm.IntakePattern == @"\.exe$" && vm.RowsView.Count == 1,
+                "resetting result filters leaves the independent intake pattern intact");
+            vm.IntakePattern = @"\.dll$";
+            Check(vm.Rows.Count == 1 && vm.Rows[0].FullPath == first && analysis.Calls == 1,
+                "editing the intake pattern neither removes nor reanalyses existing rows");
+
+            vm.IntakePattern = "";
+            vm.DropFilesCommand.Execute(new[] { excluded });
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == 2 && vm.Rows.Any(row => row.FullPath == excluded) && analysis.Calls == 2,
+                "an excluded path can later be admitted without being mistaken for a duplicate");
+
+            vm.IntakePattern = @"\.dll$";
+            vm.ClearCommand.Execute(null);
+            Check(vm.Rows.Count == 0 && vm.IntakePattern == @"\.dll$",
+                "clearing results retains the chosen intake pattern for the next batch");
+            var beforeFolder = analysis.Calls;
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.HasError && vm.Rows.Select(row => row.FullPath).SequenceEqual([child])
+                && analysis.Calls == beforeFolder + 1 && scanner.Roots.SequenceEqual([root]),
+                "recursive folder intake matches filenames without pruning nonmatching folder names");
+
+            vm.ReanalyseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(analysis.Calls == beforeFolder + 2
+                && !vm.StatusText.Contains(strings.Format("IntakeExcludedSummary", 1), StringComparison.Ordinal),
+                "reanalysis does not repeat the previous intake exclusion count");
+
+            var direct = Path.Combine(root, "direct.dll");
+            var beforeDrop = analysis.Calls;
+            vm.DropFilesCommand.Execute(new[] { root, direct, excluded });
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.HasError && confirmation.Calls == 1 && scanner.Roots.Count == 2
+                && vm.Rows.Select(row => row.FullPath).ToHashSet().SetEquals([child, direct])
+                && analysis.Calls == beforeDrop + 1,
+                "mixed folder/file drops use one intake filter and still deduplicate admitted paths");
+            Check(vm.StatusText.Contains(strings.Format("IntakeExcludedSummary", 2), StringComparison.Ordinal),
+                "mixed drops report excluded direct files and discovered files together");
+
+            vm.IntakePattern = @"\.exe$";
+            var existing = vm.Rows.ToArray();
+            var calls = analysis.Calls;
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.SequenceEqual(existing) && analysis.Calls == calls && !vm.HasError
+                && vm.StatusText.StartsWith(strings["IntakeNoMatches"], StringComparison.Ordinal)
+                && vm.StatusText.Contains(strings.Format("IntakeExcludedSummary", 2), StringComparison.Ordinal),
+                "an entirely excluded folder preserves existing rows and reports no new files");
+
+            vm.IntakePattern = "[";
+            DrainDispatcher();
+            Check(vm.HasIntakeFilterError && !vm.CanAddFiles && !vm.BrowseCommand.CanExecute(null)
+                && !vm.AddFolderCommand.CanExecute(null) && !vm.DropFilesCommand.CanExecute(new[] { first })
+                && vm.ReanalyseCommand.CanExecute(null) && vm.ExportCommand.CanExecute(null),
+                "invalid intake regex blocks all addition commands while existing results remain usable");
+            var scans = scanner.Roots.Count;
+            vm.BrowseCommand.Execute(null);
+            vm.AddFolderCommand.Execute(null);
+            vm.DropFilesCommand.Execute(new[] { first });
+            DrainDispatcher();
+            Check(vm.Rows.SequenceEqual(existing) && analysis.Calls == calls && scanner.Roots.Count == scans,
+                "disabled intake commands never silently bypass an invalid regex");
+
+            foreach (var culture in new[] { "de", "zh-Hans", "en" })
+            {
+                strings.SetCulture(culture);
+                DrainDispatcher();
+                Check(error.Visibility == Visibility.Visible && error.Text == strings["IntakeRegexInvalid"]
+                    && !string.IsNullOrWhiteSpace(error.ToolTip as string),
+                    "existing intake error updates its localized text and retains parse details / " + culture);
+            }
+
+            vm.IntakePattern = "";
+            DrainDispatcher();
+            Check(!vm.HasIntakeFilterError && error.Visibility == Visibility.Collapsed && vm.CanAddFiles,
+                "clearing the invalid pattern removes its error and enables intake again");
+
+            vm.IntakePattern = "^(a+)+$";
+            picker.Files = ["a", new string('a', 512) + "!"];
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.SequenceEqual(existing) && analysis.Calls == calls && !vm.HasError
+                && vm.HasIntakeFilterError && vm.IntakeFilterError == strings["IntakeRegexTimeout"]
+                && vm.StatusText.StartsWith(strings["IntakeFilterStopped"], StringComparison.Ordinal) && !vm.CanAddFiles,
+                "regex timeout stops intake without publishing an earlier match or analysing new files");
+
+            vm.ReanalyseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.SequenceEqual(existing) && analysis.Calls == calls + existing.Length && !vm.HasError,
+                "an intake regex error does not prevent reanalysis of existing files");
+            vm.IntakePattern = "";
+            Check(vm.CanAddFiles && !vm.HasIntakeFilterError,
+                "editing a timed-out pattern allows the next intake to proceed");
+        }
+        finally
+        {
+            window.Close();
+            strings.SetCulture("en");
+            Directory.Delete(root, true);
+        }
+    }
+
+    private static void CheckIntakeFilterDuringScan(LocalizationService strings)
+    {
+        var scanner = new BlockingFolderScanner();
+        var analysis = new ImmediateAnalysis();
+        var root = Path.Combine(Path.GetTempPath(), "FileScope-filter-scan");
+        using var vm = CreateMainViewModel(analysis, new TestPicker { Folder = root }, strings,
+            CreateOptions(strings), scanner: scanner);
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+
+        try
+        {
+            window.Show();
+            vm.IntakePattern = @"\.bin$";
+            vm.AddFolderCommand.Execute(null);
+            PumpUntil(() => scanner.Started.Task.IsCompleted);
+            vm.IntakePattern = @"\.exe$";
+            Check(!((TextBox)window.FindName("IntakeFilterBox")).IsEnabled && vm.IntakePattern == @"\.bin$",
+                "folder discovery disables the intake field and ignores programmatic filter changes");
+
+            scanner.Release.TrySetResult();
+            PumpUntil(() => !vm.IsBusy);
+            Check(vm.Rows.Count == 1 && vm.Rows[0].FileName == "new.bin" && analysis.Calls == 1 && !vm.HasError,
+                "discovered filenames use the immutable pattern selected before folder scanning");
+        }
+        finally
+        {
+            scanner.Release.TrySetResult();
+            window.Close();
+        }
+
+        var cancelledScanner = new BlockingFolderScanner(observeCancellation: false);
+        using var cancelled = CreateMainViewModel(new ImmediateAnalysis(), new TestPicker { Folder = root }, strings,
+            CreateOptions(strings), scanner: cancelledScanner);
+        cancelled.IntakePattern = @"\.bin$";
+        cancelled.AddFolderCommand.Execute(null);
+        PumpUntil(() => cancelledScanner.Started.Task.IsCompleted);
+        cancelled.CancelCommand.Execute(null);
+        cancelledScanner.Release.TrySetResult();
+        PumpUntil(() => !cancelled.IsBusy);
+        Check(cancelled.Rows.Count == 0 && cancelled.CanAddFiles && !cancelled.HasIntakeFilterError && !cancelled.HasError,
+            "cancelling a filtered scan discards late filenames and leaves the filter reusable");
     }
 
     private static void CheckBufferedProgress(LocalizationService strings)

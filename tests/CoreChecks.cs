@@ -3,6 +3,7 @@ using System.Formats.Asn1;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Models;
@@ -25,6 +26,7 @@ internal static class CoreChecks
             CheckTimestamps();
             CheckPeHeaders();
             CheckNeHeaders();
+            CheckFileNameFilter();
             CheckFolderScan(temp);
             CheckFileMoves(temp);
             await CheckCsvExportAsync(temp);
@@ -202,6 +204,92 @@ internal static class CoreChecks
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
         finally { Directory.Delete(temp, true); }
+    }
+
+    private static void CheckFileNameFilter()
+    {
+        // No fixture files are created: matching needs names, never file contents.
+        var names = new[] { "Setup.EXE", "tool.dll", "tool.exe.bak", "debug.dll", "test.dll", "notes.txt", "copy.tmp" };
+        var paths = names.Select(name => Path.Combine("not-created", "parent.exe", name)).ToArray();
+
+        var all = new FileNameFilter("");
+        var (allFiles, allExcluded) = all.Apply(paths);
+        Check(!all.IsActive && allFiles.SequenceEqual(paths) && allExcluded == 0,
+            "empty intake pattern admits every path in its original order without file access");
+
+        void Matches(string pattern, params string[] expected)
+        {
+            var filter = new FileNameFilter(pattern);
+            var (files, excluded) = filter.Apply(paths);
+            Check(filter.IsActive && files.Select(Path.GetFileName).SequenceEqual(expected)
+                && excluded == paths.Length - expected.Length,
+                "filename intake pattern and excluded count / " + pattern);
+        }
+
+        Matches(@"\.exe$", "Setup.EXE");
+        Matches(@"\.(exe|dll)$", "Setup.EXE", "tool.dll", "debug.dll", "test.dll");
+        Matches("setup", "Setup.EXE");
+        Matches("^(setup|install)", "Setup.EXE");
+        Matches("^(?!.*setup).*$", names.Skip(1).ToArray());
+        Matches(@"^(?!.*\.(tmp|bak)$).*$", "Setup.EXE", "tool.dll", "debug.dll", "test.dll", "notes.txt");
+        Matches(@"^(?!.*(debug|test)).*\.dll$", "tool.dll");
+        Matches("parent");
+        Matches("^(?!.*parent).*$", names);
+
+        var (dotFiles, dotExcluded) = new FileNameFilter(@"\.exe$").Apply(["app.exe", "appexe", "appXexe"]);
+        Check(dotFiles.SequenceEqual(["app.exe"]) && dotExcluded == 2,
+            "escaped period matches a literal extension separator");
+
+        var (spaceFiles, spaceExcluded) = new FileNameFilter(" ").Apply(["has space.exe", "plain.exe"]);
+        Check(spaceFiles.SequenceEqual(["has space.exe"]) && spaceExcluded == 1,
+            "spaces remain meaningful regex characters");
+
+        var (duplicateFiles, duplicateExcluded) = new FileNameFilter(@"\.dll$").Apply(["a.dll", "", " ", "a.dll", "a.txt"]);
+        Check(duplicateFiles.SequenceEqual(["a.dll", "a.dll"]) && duplicateExcluded == 1,
+            "intake matching leaves deduplication to the caller and ignores empty paths");
+
+        var originalCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new("tr-TR");
+            Check(new FileNameFilter("^install").Apply(["INSTALL.EXE"]).Files.Count == 1,
+                "filename matching is case-insensitive independently of application culture");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = originalCulture; }
+
+        try
+        {
+            _ = new FileNameFilter("[");
+            throw new Exception("Expected invalid regex rejection.");
+        }
+        catch (ArgumentException) { Check(true, "invalid intake patterns are rejected instead of admitting every file"); }
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        foreach (var input in new[] { paths, Array.Empty<string>() })
+        {
+            try
+            {
+                all.Apply(input, cancellation.Token);
+                throw new Exception("Expected intake cancellation.");
+            }
+            catch (OperationCanceledException) { Check(true, "cancelled filename filtering returns no selection, even for empty input"); }
+        }
+
+        using var midCancellation = new CancellationTokenSource();
+        try
+        {
+            all.Apply(new CancelAfterFirstList(paths, midCancellation), midCancellation.Token);
+            throw new Exception("Expected mid-intake cancellation.");
+        }
+        catch (OperationCanceledException) { Check(true, "cancellation between filenames does not return a partial selection"); }
+
+        try
+        {
+            new FileNameFilter("^(a+)+$").Apply(["a", new string('a', 512) + "!"]);
+            throw new Exception("Expected regex timeout.");
+        }
+        catch (RegexMatchTimeoutException) { Check(true, "excessive backtracking times out without returning a partial selection"); }
     }
 
     private static void CheckFolderScan(string temp)
