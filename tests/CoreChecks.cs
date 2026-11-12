@@ -711,8 +711,22 @@ internal static class CoreChecks
         }
         using (var stream = new MemoryStream(PeFixture(0x8664, true, 1)))
             Equal(ManagedPlatform.MachineSpecific, inspector.Inspect(stream).Header!.ManagedPlatform, "IL-only x64 stays machine-specific");
-        using (var stream = File.OpenRead(typeof(FileAnalysisService).Assembly.Location))
-            Equal(ManagedPlatform.AnyCpu, inspector.Inspect(stream).Header!.ManagedPlatform, "real SDK-built AnyCPU assembly");
+
+        // Verify forwards its target platform to project references, so this DLL
+        // is not always AnyCPU. Ask the runtime for the built module's metadata;
+        // the process architecture alone cannot distinguish AnyCPU from x64.
+        var coreAssembly = typeof(FileAnalysisService).Assembly;
+        coreAssembly.ManifestModule.GetPEKind(out var peKind, out var machine);
+        var expectedPlatform = machine == ImageFileMachine.I386 && peKind == PortableExecutableKinds.ILOnly
+            ? ManagedPlatform.AnyCpu : ManagedPlatform.MachineSpecific;
+
+        using (var stream = File.OpenRead(coreAssembly.Location))
+        {
+            var result = inspector.Inspect(stream);
+            Check(result is { Diagnostic: null, Header: { } header }
+                && header.MachineCode == (ushort)machine && header.ManagedPlatform == expectedPlatform,
+                $"real SDK-built library agrees with runtime PE metadata / {machine} / {peKind} / {expectedPlatform}");
+        }
 
         var dosOnly = new byte[128];
         dosOnly[0] = (byte)'M'; dosOnly[1] = (byte)'Z';

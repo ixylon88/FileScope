@@ -66,6 +66,7 @@ internal static class UiChecks
             CheckThemeSwitching(app, strings);
             CheckAboutDialog(app, strings);
             CheckShortcutsDialog(app, strings);
+            CheckCollapsibleMenu(strings);
             CheckFileContextMenu(app, strings);
             CheckFileMoves(app, strings);
             CheckPathPresentation(strings);
@@ -191,6 +192,76 @@ internal static class UiChecks
             window?.Close();
             app?.Shutdown();
             SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
+    }
+
+    private static void CheckCollapsibleMenu(LocalizationService strings)
+    {
+        strings.SetCulture("en");
+        var source = Path.Combine(Path.GetTempPath(), "menu-open.bin");
+        var analysis = new ImmediateAnalysis();
+        using var vm = CreateMainViewModel(analysis, new TestPicker { Files = [source] }, strings, CreateOptions(strings));
+        var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
+
+        try
+        {
+            window.Show();
+            DrainDispatcher();
+            var menu = (Expander)window.FindName("MenuExpander");
+            var input = (TextBox)window.FindName("IntakeFilterBox");
+            var files = (StackPanel)window.FindName("FileCommandsPanel");
+            var options = (Button)window.FindName("OptionsButton");
+            var grid = (DataGrid)window.FindName("ResultsGrid");
+            var peer = new ExpanderAutomationPeer(menu);
+            var expandCollapse = (IExpandCollapseProvider)peer.GetPattern(PatternInterface.ExpandCollapse);
+            Check(menu.IsExpanded && input.IsVisible && options.IsVisible,
+                "the menu starts expanded and the separate options button remains visible");
+
+            vm.IntakePattern = @"\.bin$";
+            var expandedGridHeight = grid.ActualHeight;
+            expandCollapse.Collapse();
+            PumpUntil(() => !input.IsVisible && grid.ActualHeight > expandedGridHeight + 20);
+            Check(!menu.IsExpanded && options.IsVisible && grid.IsVisible,
+                "collapsing the real expander frees table space without hiding options or results");
+
+            var openShortcut = window.InputBindings.OfType<KeyBinding>().Single(binding =>
+                binding.Key == Key.O && binding.Modifiers == ModifierKeys.Control);
+            Check(openShortcut.Command.CanExecute(openShortcut.CommandParameter),
+                "the window's Ctrl+O binding stays enabled while the menu is collapsed");
+            openShortcut.Command.Execute(openShortcut.CommandParameter);
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.HasError && vm.Rows.Count == 1 && analysis.Calls == 1 && !menu.IsExpanded,
+                "opening files through the window shortcut works without expanding the menu");
+
+            var dropped = Path.Combine(Path.GetTempPath(), "menu-drop.bin");
+            FileDropBehavior.GetCommand(window)!.Execute(new[] { dropped });
+            PumpUntil(() => !vm.IsBusy);
+            Check(!vm.HasError && vm.Rows.Count == 2 && analysis.Calls == 2 && !menu.IsExpanded,
+                "the window's drop command remains connected while the menu is collapsed");
+
+            expandCollapse.Expand();
+            PumpUntil(() => input.IsVisible);
+            Check(input.Text == @"\.bin$" && vm.Rows.Count == 2,
+                "expanding again preserves the intake filter and analysed rows");
+
+            // TextBox measurement must not make this unbounded horizontal stack
+            // grow by thousands of pixels when a long pattern is entered.
+            vm.IntakePattern = new string('a', 2048);
+            foreach (var culture in new[] { "de", "en", "zh-Hans" })
+            {
+                strings.SetCulture(culture);
+                DrainDispatcher();
+                Check(files.ActualWidth > 0 && files.ActualWidth < window.ActualWidth
+                    && input.ActualWidth <= files.ActualWidth,
+                    "long regex text stays within a bounded file group / " + culture);
+                Check(((TextBlock)menu.Header).Text == strings["MenuTitle"] && peer.GetName() == strings["MenuTitle"],
+                    "the menu caption and accessible name follow the current language / " + culture);
+            }
+        }
+        finally
+        {
+            window.Close();
+            strings.SetCulture("en");
         }
     }
 

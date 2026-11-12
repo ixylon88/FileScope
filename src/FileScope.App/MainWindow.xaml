@@ -40,7 +40,7 @@
         <TextBlock Text="{loc:Loc Subtitle}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
       </StackPanel>
       <StackPanel Grid.Column="2" VerticalAlignment="Top">
-        <Button Grid.Column="2" x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
+        <Button x:Name="OptionsButton" Click="OpenOptions" Style="{StaticResource BandButton}"
                 ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}" Margin="0" HorizontalAlignment="Right">
           <StackPanel Orientation="Horizontal">
             <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
@@ -48,18 +48,19 @@
             <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <TextBlock Grid.Column="2" Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
+        <TextBlock Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
       </StackPanel>
     </Grid>
 
     <Border Grid.Row="1" Margin="24,0,24,18" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12">
-      <Expander Padding="14,8" IsExpanded="True">
+      <Expander x:Name="MenuExpander" Padding="14,8" IsExpanded="True" AutomationProperties.Name="{loc:Loc MenuTitle}">
         <Expander.Header>
           <TextBlock Text="{loc:Loc MenuTitle}" VerticalAlignment="Center" />
         </Expander.Header>
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal">
-            <StackPanel Width="Auto">
+            <!-- Keep automatic sizing, but stop long regex text from widening the entire menu. -->
+            <StackPanel x:Name="FileCommandsPanel" Width="Auto" MaxWidth="600">
               <TextBlock Text="{loc:Loc Group_Files}" Style="{StaticResource GroupHeading}" />
               <WrapPanel Margin="0,0,8,0">
                 <Button Command="{Binding BrowseCommand}" Style="{StaticResource BandButton}" ToolTip="{loc:Loc AddFilesTip}" >

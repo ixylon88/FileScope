@@ -1,5 +1,41 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Korrektur: Plattformabhängiger Core-Test und Menüprüfung
+
+Stand: 2026-11-12, Basis `9392ffd` (`dev`), .NET SDK **10.0.404**.
+Geprüft wurden die Commits `c872147` (Aufnahmefilter und automatische
+Gruppenbreiten) und `9392ffd` (aufklappbares Menü, Optionen im Fensterkopf,
+Sprachsymbol und Beschriftungen).
+
+Der bisherige PE-Test behandelte die tatsächlich gebaute Core-DLL immer als
+AnyCPU. Bei `Verify.ps1 -Runtime win-x64` wird jedoch auch das referenzierte
+Core-Projekt mit `Platform=x64` gebaut. Die Erkennung als `MachineSpecific`
+war richtig. Der Test vergleicht die gelesene Maschinenkennung und Plattform
+jetzt mit den Modulmetadaten aus `Module.GetPEKind`, unabhängig von der
+Architektur des ausführenden Prozesses. Die festen PE-/CLR-Testdaten bleiben
+erhalten; die Core-Assertion-Anzahl ändert sich nicht.
+
+Das Menü verwendet weiterhin den nativen WPF-Expander. Die Dateigruppe erhält
+wie die übrigen Gruppen eine maximale Breite; lange Regex-Eingaben können
+dadurch nicht die gesamte Gruppe beliebig verbreitern. Zwei nach dem Umzug
+in ein StackPanel wirkungslose `Grid.Column`-Angaben wurden entfernt. Der
+Expander erhält einen lokalisierten Namen für Bedienungshilfen.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Fehler reproduziert | Vor der Korrektur endet ein x64-Build des Core-Testprogramms unter Linux mit derselben AnyCPU-/MachineSpecific-Assertion |
+| Core-Testprogramm mit `Platform=x64` | Nach der Korrektur **220** Assertions bestanden; echte Core-DLL als AMD64 / ILOnly, PE32Plus / MachineSpecific bestätigt |
+| `Verify.ps1 -NoColor` | Bestanden: Lösungsbuild mit 0 Warnungen / 0 Fehlern, **51** Skript-, **220** Core- und **210** Präsentationsprüfungen; echte AnyCPU-Core-DLL als I386 / ILOnly / AnyCpu bestätigt |
+| UI-Testprogramm | Für `win-x64` einschließlich App, Core und XAML kompiliert: 0 Warnungen / 0 Fehler; **12** zusätzliche Assertions, insgesamt **449** unter Windows erwartet |
+| Neue Menüprüfungen | Ein-/Ausklappen über den echten Automation-Peer, zusätzliche Tabellenfläche, sichtbarer Optionsknopf, Ctrl+O-Bindung und Drop-Command bei eingeklapptem Menü, Erhalt von Aufnahmefilter und Ergebnissen, begrenzte Breite bei langer Regex-Eingabe sowie Beschriftung und zugänglicher Name in allen drei Sprachen |
+| Statische Struktur-/Ressourcenprüfung | **1478** bestanden; **276** Ressourcenschlüssel je Sprache |
+| Patch | `git diff --check` fehlerfrei; Anwendung auf unveränderter Patchbasis und Bytevergleich der geänderten Dateien geprüft |
+
+Der vollständige Windows-Lauf mit `Verify.ps1 -Runtime win-x64` und die
+WPF-Laufzeitprüfung bleiben hier offen. Unter den bisherigen nativen
+Windows-Voraussetzungen werden weiterhin **509** Core-Assertions erwartet.
+Die neuen Menüprüfungen wurden hier kompiliert, nicht ausgeführt.
+
 ## Ergänzung: Regex-Filter vor der Dateiaufnahme
 
 Stand: 2026-11-12, Basis `11181df` (`dev`), .NET SDK **10.0.404**.
