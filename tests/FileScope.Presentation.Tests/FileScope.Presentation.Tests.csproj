@@ -20,4 +20,14 @@
     <Compile Include="../../src/FileScope.App/ViewModels/FileRowViewModel.cs" Link="App/ViewModels/FileRowViewModel.cs" />
     <EmbeddedResource Include="../../src/FileScope.App/Resources/Strings*.resx" Link="Resources/%(Filename)%(Extension)" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Source assets are embedded only in the test assembly. Checks work from
+         any working directory and do not need WPF or an adjacent checkout. -->
+    <EmbeddedResource Include="../../src/FileScope.App/**/*.xaml"
+                      Exclude="../../src/FileScope.App/bin/**;../../src/FileScope.App/obj/**"
+                      LogicalName="Source.Xaml.%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/FileScope.App/FileScope.App.csproj" LogicalName="Source.AppProject.xml" />
+    <EmbeddedResource Include="../../src/FileScope.App/Resources/FileScopeSplash.png" LogicalName="Source.Splash.png" />
+  </ItemGroup>
 </Project>

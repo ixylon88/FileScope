@@ -595,17 +595,27 @@ Abbruch, Sprach- und Designwechsel, Kontextmenüs, Optionsdialog und
 Spaltendarstellung geprüft. Jeder Test kann unabhängig ausgewählt werden;
 verbliebene Fenster werden auch nach einem Fehler geschlossen.
 
+Zusätzlich prüfen statische MSTest-Tests Übersetzungsschlüssel und Platzhalter,
+Theme-Ressourcen, Spaltenzuordnung und Startbild, ohne ein WPF-Fenster zu öffnen.
+Sie laufen mit den Präsentationstests; Python wird dafür nicht mehr benötigt.
+Die [Aufteilung zwischen Build, Konsistenz- und Verhaltenstests](docs/BUILD-RELEASE.md#build-konsistenz-und-verhalten)
+beschreibt die Zuständigkeiten der einzelnen Prüfungen.
+
 Seit der MSTest-Umstellung zählen die C#-Gruppen **Testfälle einschließlich
 Datenzeilen**. Ein Testfall kann mehrere Prüfbedingungen enthalten. Die früheren
 Assertion-Zahlen sind deshalb nicht direkt mit diesen Zahlen vergleichbar.
-Der folgende Stand ist in der CI auf **Windows x64 und ARM64** bestätigt:
+Aktueller Ausführungsstand:
 
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
-| PowerShell-Skripte | **56 Prüfbedingungen bestanden**; unter anderem Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
+| PowerShell-Skripte | **61 Prüfbedingungen unter Linux bestanden**; unter anderem VS-Code-Aufgaben, Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
-| Präsentation und Einstellungen | **22 Testfälle bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen. |
+| Präsentation, Einstellungen und Ressourcen | **33 Testfälle unter Linux bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen sowie **11** zusätzliche Konsistenzprüfungen. |
 | WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
+
+Die unveränderten Core- und UI-Testgruppen sind in der CI auf **Windows x64 und
+ARM64** bestätigt. Der Windows-/CI-Lauf mit den erweiterten Ressourcen- und
+Skriptprüfungen steht noch aus. Insgesamt sind **95 C#-Testfälle** vorhanden.
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in
@@ -644,7 +654,7 @@ Der entsprechende Parameter in der `.runsettings`-Datei heißt ebenfalls `Signed
 Der Skriptparameter `-VersionFile` entspricht `VersionFiles` in der
 `.runsettings`-Datei; dort werden die Pfade als JSON-Array hinterlegt.
 
-Der tatsächliche Ausführungsstand der mitgelieferten Version steht in `VALIDATION.md`. Ein zusätzlicher statischer Strukturcheck kann optional mit `python tools/check_structure.py` ausgeführt werden. Er ersetzt keinen .NET-Build.
+Der tatsächliche Ausführungsstand der mitgelieferten Version steht in [`VALIDATION.md`](VALIDATION.md).
 
 ### Code-Stil
 

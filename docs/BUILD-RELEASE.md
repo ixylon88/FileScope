@@ -90,6 +90,33 @@ zehn Sekunden begrenzt; ein Fehler hält dadurch nicht den letzten Test endlos o
 Die Präsentationstests binden weiterhin nur die UI-unabhängigen Quelldateien
 ein; dafür wird kein WPF-Fenster benötigt.
 
+### Build, Konsistenz und Verhalten
+
+Die Prüfungen ergänzen sich und laufen lokal sowie in der CI über `Verify.ps1`:
+
+| Prüfung | Aufgabe |
+| --- | --- |
+| .NET-Build | C# und XAML kompilieren, Projektverweise und Ressourcen verarbeiten. |
+| Statische MSTest-Prüfungen | Übersetzungsschlüssel und Formatplatzhalter, XAML-Ressourcenverweise, Theme-Paletten, Spaltenkatalog, Darstellungsgrundregeln und das eingebettete Startbild auf Konsistenz prüfen. |
+| MSTest-Verhaltenstests | Den C#-Code ausführen und Ergebnisse prüfen, einschließlich echter WPF-Fenster, Bindungen, Benutzeraktionen und nativer Windows-Aufrufe. |
+| PowerShell-Skripttests | VS-Code-Aufgaben und die Build-/Test-/Publish-Aufrufe einschließlich Fehlerbehandlung prüfen. |
+
+Die statischen Prüfungen liegen als `ResourceConsistencyTests` im bestehenden
+Präsentations-Testprojekt und erscheinen damit auch im Visual-Studio-Test-Explorer
+und in den TRX-Berichten. Sie prüfen die kompilierten Sprachressourcen ohne
+Rückgriff auf die Ausgangssprache. XAML, App-Projektdatei und Startbild werden
+als Prüfmaterial in die Testassembly eingebettet; ein bestimmtes Arbeitsverzeichnis
+oder ein danebenliegender Checkout ist zur Testausführung nicht erforderlich.
+Die App erhält dadurch keine zusätzlichen Ressourcen oder Abhängigkeiten.
+
+Das bisherige `tools/check_structure.py` und der separate Python-Schritt in der
+Pipeline entfallen. C#-Klammerprüfungen und einfache Suchen nach Bindungsnamen
+werden durch Compiler und WPF-Verhaltenstests abgedeckt; die bekannten Hashwerte
+prüfen bereits die Core-Tests. Starre Vorgaben zur Projektanzahl und eine
+pauschale Textsuche nach `TODO` werden nicht übernommen. Python wird weder für
+die App noch für Build und Tests benötigt. Die früheren Zahlen im Prüfverlauf
+beziehen sich weiterhin auf den damaligen Python-Check.
+
 ### Optionale Beispieldateien und gemeinsame Einstellungen
 
 Die zusätzlichen Dateien sind dieselben wie bei den optionalen
@@ -262,8 +289,9 @@ prüfen die unterstützten Architekturen:
 | `win-x64` | `windows-2025` | `x64` |
 | `win-arm64` | `windows-11-arm` | `arm64` |
 
-Jeder Job installiert das SDK aus `global.json`, prüft Struktur und Ressourcen
-und führt `Verify.ps1 -Runtime <Runtime> -NoColor` aus. Es wird kein `-SkipUi`
+Jeder Job installiert das SDK aus `global.json` und führt
+`Verify.ps1 -Runtime <Runtime> -NoColor` einschließlich der Ressourcenprüfungen
+aus. Es wird kein `-SkipUi`
 gesetzt: Core, Präsentation, Skripte und WPF laufen auf der jeweiligen nativen
 Windows-Architektur. Ein fehlgeschlagener Job bricht den anderen nicht ab;
 dadurch bleiben beide Ergebnisse verfügbar. Ein neuer Lauf desselben Branches

@@ -1,5 +1,35 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Umstellung: Ressourcenprüfungen in MSTest, ohne Python
+
+Stand: 2026-11-15, Basis `a67fbc4` (`dev`), .NET SDK **10.0.404**.
+
+Die bisherigen statischen Ressourcenprüfungen laufen als elf zusätzliche
+Testfälle im vorhandenen Präsentations-Testprojekt. Sie kontrollieren die
+kompilierten Sprachressourcen ohne Sprach-Fallback sowie eingebettete XAML- und
+Projektdateien und das Startbild. Die Prüfungen benötigen kein WPF und keinen
+Checkout neben der Testassembly. Fünf zusätzliche PowerShell-Prüfbedingungen
+kontrollieren die tatsächlichen VS-Code-Aufgaben. Das Python-Skript und sein
+separater CI-Schritt sind entfernt; Produktivcode und Publish-Verhalten bleiben
+unverändert. Die Aufteilung ist in README und Build-Dokumentation erläutert.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Solution, Release / Any CPU | **0 Warnungen / 0 Fehler** |
+| Präsentations-Testprojekt, `win-x64` und `win-arm64` | Beide Builds mit **0 Warnungen / 0 Fehlern** |
+| Präsentation unter Linux, aus einem fremden Arbeitsverzeichnis | **33 Fälle bestanden**, einschließlich **11** Ressourcenprüfungen |
+| Core unter Linux | **27 Fälle: 22 bestanden, 5 übersprungen** wegen Windows-Voraussetzungen bzw. fehlender optionaler Dateien |
+| PowerShell-Skripte | **61 Prüfbedingungen bestanden** |
+| Gezielte Fehler in Prüfmaterial | Fehlende Übersetzung, falscher Platzhalter, fehlender Palettenschlüssel, unbekannter XAML-Sprachschlüssel, abweichende Spalten-ID und falsche VS-Code-Publish-Architektur jeweils erkannt |
+| Wiederherstellung nach Gegenproben | Quelldateien bytegetreu wiederhergestellt; danach erneut **33 Präsentationstests bestanden** |
+| Dokumentation, Workflow und Patch | Neue interne Verweise und YAML geprüft; `git diff --check` sowie Patchanwendung auf der unveränderten Basis erfolgreich |
+
+Die Anzahl beträgt nun **27 Core-, 33 Präsentations- und 35 UI-Testfälle**,
+zusammen **95 C#-Testfälle**, sowie **61 PowerShell-Prüfbedingungen**. Die
+C#-Tests wurden hier direkt mit dem MSTest-Runner ohne TRX gestartet. Der
+vollständige Windows-/CI-Lauf einschließlich WPF und TRX-Berichten für diesen
+Patch steht noch aus; die Ergebnisse des vorherigen Windows-Stands folgen unten.
+
 ## Bestätigt: MSTest unter Windows x64 und ARM64
 
 Stand: 2026-11-15, geprüfter Commit `42471d6` (`dev`), .NET SDK **10.0.404**.

@@ -45,10 +45,8 @@ jobs:
           global-json-file: global.json
           architecture: ${{ matrix.architecture }}
 
-      - name: Check source structure and resources
-        run: python tools/check_structure.py
-
       # The same script builds and runs all four check groups locally and in CI.
+      # Resource consistency is part of the presentation test project.
       # Each job executes WPF and native Windows checks on its own architecture.
       - name: Build and verify, including WPF
         run: ./Verify.ps1 -Runtime ${{ matrix.runtime }} -NoColor

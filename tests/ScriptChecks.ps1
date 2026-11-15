@@ -85,6 +85,48 @@ $oldNoColor = $env:NO_COLOR
 $oldExitCode = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
 $oldExitCodeValue = if ($null -ne $oldExitCode) { $oldExitCode.Value } else { 0 }
 try {
+    # Validate the actual editor entry points before testing disposable script copies.
+    $workspace = Get-Content -LiteralPath (Join-Path $repository 'FileScope.code-workspace') -Raw | ConvertFrom-Json
+    $tasks = @($workspace.tasks.tasks)
+    $taskPrefix = '${workspaceFolder:FileScope}/'
+    Check (@($workspace.folders | Where-Object { $_.name -eq 'FileScope' -and $_.path -eq '.' }).Count -eq 1) 'workspace tasks resolve the named repository folder'
+
+    $invalidTasks = @($tasks | Where-Object {
+        $fileIndex = [Array]::IndexOf([object[]]$_.args, '-File')
+        if ($fileIndex -lt 0 -or $fileIndex + 1 -ge $_.args.Count) { return $true }
+
+        $scriptPath = [string]$_.args[$fileIndex + 1]
+        if (-not $scriptPath.StartsWith($taskPrefix, [StringComparison]::Ordinal)) { return $true }
+
+        $scriptName = $scriptPath.Substring($taskPrefix.Length)
+        $_.type -ne 'process' -or $_.command -ne 'powershell.exe' -or
+            $_.options.cwd -ne '${workspaceFolder:FileScope}' -or
+            $scriptName -notin @('Build.ps1', 'Verify.ps1') -or
+            -not (Test-Path -LiteralPath (Join-Path $repository $scriptName) -PathType Leaf)
+    })
+    Check ($tasks.Count -gt 0 -and @($tasks.label | Select-Object -Unique).Count -eq $tasks.Count -and
+        $invalidTasks.Count -eq 0) 'workspace tasks have unique labels and invoke existing scripts with the repository working directory'
+
+    $publishTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and $_.args -contains '-Publish' })
+    $publishTargets = @($publishTasks | ForEach-Object {
+        $runtimeIndex = [Array]::IndexOf([object[]]$_.args, '-Runtime')
+        if ($runtimeIndex -lt 0 -or $runtimeIndex + 1 -ge $_.args.Count) { return 'MissingRuntime' }
+        '{0}|{1}' -f $_.args[$runtimeIndex + 1], ($_.args -contains '-SelfContained')
+    })
+    Check ($publishTargets.Count -eq 4 -and @(Compare-Object @('win-x64|False', 'win-x64|True', 'win-arm64|False', 'win-arm64|True') $publishTargets).Count -eq 0) 'workspace publish tasks cover both architectures and deployment variants'
+
+    $verifyTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Verify.ps1') })
+    $verifyTargets = @($verifyTasks | ForEach-Object {
+        $runtimeIndex = [Array]::IndexOf([object[]]$_.args, '-Runtime')
+        if ($runtimeIndex -lt 0) { return 'host' }
+        if ($runtimeIndex + 1 -ge $_.args.Count) { return 'MissingRuntime' }
+        $_.args[$runtimeIndex + 1]
+    })
+    Check ($verifyTargets.Count -eq 3 -and @(Compare-Object @('host', 'win-x64', 'win-arm64') $verifyTargets).Count -eq 0) 'workspace verify tasks cover the host, x64 and ARM64'
+
+    $buildTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and $_.args -notcontains '-Publish' })
+    Check ($buildTasks.Count -eq 1 -and $buildTasks[0].args -notcontains '-Runtime') 'workspace default build keeps the host-independent solution configuration'
+
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'build') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'tests') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'src/FileScope.App') -Force)
