@@ -6,3 +6,6 @@
 artifacts/
 *_wpftmp.csproj
 tests/testdata
+
+TestResults/
+*.local.runsettings

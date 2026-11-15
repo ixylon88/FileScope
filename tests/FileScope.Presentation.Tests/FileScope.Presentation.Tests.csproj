@@ -1,0 +1,23 @@
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FileScope.App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/FileScope.Core/FileScope.Core.csproj" />
+    <!-- Exercise the existing UI-independent sources on every supported host. -->
+    <Compile Include="../../src/FileScope.App/Infrastructure/ObservableObject.cs" Link="App/Infrastructure/ObservableObject.cs" />
+    <Compile Include="../../src/FileScope.App/Infrastructure/Commands.cs" Link="App/Infrastructure/Commands.cs" />
+    <Compile Include="../../src/FileScope.App/Localization/LocalizationService.cs" Link="App/Localization/LocalizationService.cs" />
+    <Compile Include="../../src/FileScope.App/Presentation/*.cs" Link="App/Presentation/%(Filename)%(Extension)" />
+    <Compile Include="../../src/FileScope.App/Services/PreferencesStore.cs" Link="App/Services/PreferencesStore.cs" />
+    <Compile Include="../../src/FileScope.App/Services/IThemeService.cs" Link="App/Services/IThemeService.cs" />
+    <Compile Include="../../src/FileScope.App/ViewModels/Options.cs" Link="App/ViewModels/Options.cs" />
+    <Compile Include="../../src/FileScope.App/ViewModels/ColumnOption.cs" Link="App/ViewModels/ColumnOption.cs" />
+    <Compile Include="../../src/FileScope.App/ViewModels/SignatureOption.cs" Link="App/ViewModels/SignatureOption.cs" />
+    <Compile Include="../../src/FileScope.App/ViewModels/OptionsViewModel.cs" Link="App/ViewModels/OptionsViewModel.cs" />
+    <Compile Include="../../src/FileScope.App/ViewModels/FileRowViewModel.cs" Link="App/ViewModels/FileRowViewModel.cs" />
+    <EmbeddedResource Include="../../src/FileScope.App/Resources/Strings*.resx" Link="Resources/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

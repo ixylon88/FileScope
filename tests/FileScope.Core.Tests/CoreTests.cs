@@ -13,204 +13,318 @@ using FileScope.Core.Signatures;
 using FileScope.Core.Files;
 using FileScope.Core.Export;
 
-internal static class CoreChecks
+namespace FileScope.Core.Tests;
+
+[TestClass]
+public sealed class CoreTests
 {
-    private static int _passed;
-
-    private static async Task<int> Main(string[] args)
+    private static readonly Dictionary<ChecksumAlgorithm, string> KnownDigests = new()
     {
-        var temp = Path.Combine(Path.GetTempPath(), "FileScope-checks-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(temp);
-        try
-        {
-            CheckTimestamps();
-            CheckPeHeaders();
-            CheckNeHeaders();
-            CheckFileNameFilter();
-            CheckFolderScan(temp);
-            CheckFileMoves(temp);
-            await CheckCsvExportAsync(temp);
-            await CheckJsonExportAsync(temp);
-            var algorithms = Enum.GetValues<ChecksumAlgorithm>();
-            var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
-            var abcExpected = new Dictionary<ChecksumAlgorithm, string>
-            {
-                [ChecksumAlgorithm.MD5] = "900150983CD24FB0D6963F7D28E17F72",
-                [ChecksumAlgorithm.SHA1] = "A9993E364706816ABA3E25717850C26C9CD0D89D",
-                [ChecksumAlgorithm.SHA256] = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD",
-                [ChecksumAlgorithm.SHA384] = "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7",
-                [ChecksumAlgorithm.SHA512] = "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F"
-            };
-            using (var stream = new CountingStream(Encoding.ASCII.GetBytes("abc")))
-            {
-                var result = await checksumService.ComputeAsync(stream, algorithms);
-                foreach (var algorithm in algorithms) Equal(abcExpected[algorithm], result[algorithm], $"abc / {algorithm}");
-                Equal(3L, stream.BytesRead, "all five hashes read data only once");
-                Check(stream.CanRead, "checksum service leaves caller-owned stream open");
-            }
-            using (var empty = new MemoryStream())
-            {
-                var result = await checksumService.ComputeAsync(empty, [ChecksumAlgorithm.SHA256]);
-                Equal("E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", result[ChecksumAlgorithm.SHA256], "empty file hash");
-            }
-            using (var stream = new CountingStream(Encoding.ASCII.GetBytes("abc")))
-            {
-                var result = await checksumService.ComputeAsync(stream, []);
-                Equal(0, result.Count, "no algorithms / no hashes");
-                Equal(0L, stream.BytesRead, "no algorithms / no data read");
-            }
-            using (var stream = new MemoryStream(Encoding.ASCII.GetBytes("abc")))
-            {
-                var result = await checksumService.ComputeAsync(stream, [ChecksumAlgorithm.SHA256, ChecksumAlgorithm.SHA256]);
-                Equal(1, result.Count, "repeated algorithm is deduplicated");
-            }
-            var sourceSelection = new List<ChecksumAlgorithm> { ChecksumAlgorithm.SHA256 };
-            var snapshot = new AnalysisOptions(sourceSelection, false);
-            sourceSelection.Clear();
-            Equal(ChecksumAlgorithm.SHA256, snapshot.Algorithms.Single(), "options are an immutable snapshot");
+        [ChecksumAlgorithm.MD5] = "900150983CD24FB0D6963F7D28E17F72",
+        [ChecksumAlgorithm.SHA1] = "A9993E364706816ABA3E25717850C26C9CD0D89D",
+        [ChecksumAlgorithm.SHA256] = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD",
+        [ChecksumAlgorithm.SHA384] = "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7",
+        [ChecksumAlgorithm.SHA512] = "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F"
+    };
 
-            var largeData = Enumerable.Range(0, 2 * 1024 * 1024 + 13).Select(i => (byte)(i % 251)).ToArray();
-            using (var stream = new CountingStream(largeData))
-            {
-                var result = await checksumService.ComputeAsync(stream, algorithms);
-                // Independent whole-buffer API checks chunk boundaries and streaming composition.
-                Equal(Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(largeData)),
-                    result[ChecksumAlgorithm.SHA512], "multi-buffer streaming hash");
-                Equal(largeData.Length, stream.BytesRead, "large file / one pass");
-                Check(stream.ReadCalls > 2, "large file uses bounded chunks");
-            }
-            using (var cancelled = new CancellationTokenSource())
-            using (var stream = new CountingStream(largeData))
-            {
-                cancelled.Cancel();
-                await ExpectCancellationAsync(() => checksumService.ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
-                Equal(0L, stream.BytesRead, "pre-cancelled operation performs no reads");
-            }
-            var factory = new TrackingFactory();
-            using (var cancelled = new CancellationTokenSource())
-            using (var stream = new CountingStream(largeData, cancelled.Cancel))
-            {
-                await ExpectCancellationAsync(() => new StreamChecksumService(factory).ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
-                Equal(5, factory.Disposed, "all strategies disposed after cancellation");
-            }
-            var partialFactory = new TrackingFactory();
-            using (var stream = new MemoryStream())
-            {
-                try
-                {
-                    await new StreamChecksumService(partialFactory).ComputeAsync(stream,
-                        [ChecksumAlgorithm.SHA256, (ChecksumAlgorithm)999]);
-                    throw new Exception("Expected invalid-algorithm failure.");
-                }
-                catch (ArgumentOutOfRangeException) { }
-                Equal(1, partialFactory.Disposed, "partial construction cleans up strategies");
-            }
+    private string _directory = null!;
+    private string _plainFile = null!;
 
-            var path = Path.Combine(temp, "Prüfung 中文 ' sample.bin");
-            await File.WriteAllTextAsync(path, "abc", new UTF8Encoding(false));
-            CheckFileProperties(path);
-            await CheckMetadataPipelineAsync(path, checksumService);
-            var signatures = new StubSignatures();
-            var analyzer = new FileAnalysisService(checksumService, signatures);
-            var analyzed = await analyzer.AnalyzeAsync(path, new AnalysisOptions(algorithms, true));
-            Check(analyzed.Succeeded, "Unicode and apostrophe path");
-            Equal(3L, analyzed.Length!.Value, "file size");
-            Equal(abcExpected[ChecksumAlgorithm.SHA256], analyzed.Checksums[ChecksumAlgorithm.SHA256], "file pipeline hash");
-            Check(analyzed.LastWriteTime.HasValue, "modification timestamp");
-            Equal(1, signatures.Calls, "signature strategy is invoked");
-            Check(signatures.SawReadableHandle, "signature receives the open readable stream");
-            var metadataProgress = new RecordedAnalysisProgress();
-            var metadataOnly = await analyzer.AnalyzeAsync(path, new AnalysisOptions([], false), metadataProgress);
-            Check(metadataProgress.Values.Select(value => value.Stage).SequenceEqual([AnalysisStage.OpeningFile]),
-                "disabled inspections do not advertise checksum, metadata or signature work");
-            Check(metadataOnly.Succeeded && metadataOnly.Checksums.Count == 0, "metadata-only analysis");
-            Equal(1, signatures.Calls, "disabled signatures do not invoke native strategy");
-            Equal(SignatureStatus.NotChecked, metadataOnly.Signature.Status, "not checked is explicit");
-            Equal(AnalysisError.NotFound, (await analyzer.AnalyzeAsync(Path.Combine(temp, "missing.bin"), snapshot)).Error,
-                "missing file becomes a per-file failure");
-            Equal(AnalysisError.DirectoryNotSupported, (await analyzer.AnalyzeAsync(temp, snapshot)).Error,
-                "file analysis rejects directories; traversal belongs to the folder scanner");
+    public TestContext TestContext { get; set; } = null!;
 
-            var native = typeof(WindowsAuthenticodeInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
-            var nativeData = native.GetNestedType("WinTrustData", BindingFlags.NonPublic)!;
-            var nativeFile = native.GetNestedType("WinTrustFileInfo", BindingFlags.NonPublic)!;
-            var nativeSettings = native.GetNestedType("WinTrustSignatureSettings", BindingFlags.NonPublic)!;
-            Equal(IntPtr.Size == 8 ? 88 : 52, Marshal.SizeOf(nativeData), "WINTRUST_DATA ABI size");
-            Equal(IntPtr.Size == 8 ? 32 : 16, Marshal.SizeOf(nativeFile), "WINTRUST_FILE_INFO ABI size");
-            Equal(IntPtr.Size == 8 ? 32 : 24, Marshal.SizeOf(nativeSettings), "WINTRUST_SIGNATURE_SETTINGS ABI size");
+    [TestInitialize]
+    public void Initialize()
+    {
+        _directory = Path.Combine(Path.GetTempPath(), "FileScope-tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_directory);
 
-            var nativeSigner = native.GetNestedType("ProviderSigner", BindingFlags.NonPublic)!;
-            var nativeMessage = native.GetNestedType("MessageSignerInfo", BindingFlags.NonPublic)!;
-            var nativeAttribute = native.GetNestedType("CryptAttribute", BindingFlags.NonPublic)!;
-            Equal(IntPtr.Size == 8 ? 64 : 44, Marshal.SizeOf(nativeSigner), "CRYPT_PROVIDER_SGNR ABI size");
-            Equal(4L, Marshal.OffsetOf(nativeSigner, "VerifyAsOf").ToInt64(), "FILETIME keeps DWORD alignment");
-            Equal(IntPtr.Size == 8 ? 136 : 68, Marshal.SizeOf(nativeMessage), "CMSG_SIGNER_INFO ABI size");
-            Equal(IntPtr.Size == 8 ? 120L : 60L, Marshal.OffsetOf(nativeMessage, "UnauthenticatedAttributes").ToInt64(),
-                "CMSG_SIGNER_INFO unsigned attributes offset");
-            Equal(IntPtr.Size == 8 ? 24 : 12, Marshal.SizeOf(nativeAttribute), "CRYPT_ATTRIBUTE ABI size");
-
-            if (OperatingSystem.IsWindows())
-            {
-                CheckWindowsVersionHandles(temp, path, args);
-                using (var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
-                {
-                    Equal(AnalysisError.ReadFailure, (await analyzer.AnalyzeAsync(path, snapshot)).Error,
-                        "locked file is reported as a read failure");
-                }
-                var nativeAnalyzer = new FileAnalysisService(checksumService, new WindowsAuthenticodeInspector());
-                var unsigned = await nativeAnalyzer.AnalyzeAsync(typeof(FileAnalysisService).Assembly.Location,
-                    new AnalysisOptions([], true));
-                Equal(SignatureStatus.NoEmbeddedSignature, unsigned.Signature.Status, "unsigned PE / native WinVerifyTrust");
-                Check(unsigned.Signature.Certificate is null, "unsigned PE has no signer metadata");
-                Equal(0, unsigned.Signature.Signatures.Count, "unsigned PE has no selectable signature");
-                var signedIndex = Array.IndexOf(args, "--signed-file");
-                if (signedIndex >= 0 && signedIndex + 1 < args.Length)
-                {
-                    var signed = await nativeAnalyzer.AnalyzeAsync(args[signedIndex + 1], new AnalysisOptions([], true));
-                    Check(signed.Succeeded, "signed fixture can be read");
-                    Check(signed.Signature.Certificate is not null, "embedded signer metadata extracted");
-                    Check(signed.Signature.NativeStatusCode.HasValue, "native trust result retained");
-                    Check(signed.Signature.Signatures.Count >= 1, "signed fixture exposes signature entries");
-                    Check(signed.Signature.Signatures.Select(s => s.Index).SequenceEqual(
-                        Enumerable.Range(0, signed.Signature.Signatures.Count).Select(i => (uint)i)),
-                        "signature indices are complete and unique");
-                    foreach (var entry in signed.Signature.Signatures)
-                        Console.WriteLine($"INFO signature {entry.Index + 1}: {entry.Status}, {entry.DigestAlgorithm}, {entry.Timestamp}");
-                    Console.WriteLine($"INFO signed fixture: {signed.Signature.Status}, 0x{signed.Signature.NativeStatusCode:X8}");
-                    // Trust depends on this machine's roots, clock and cached revocation data.
-                    // This does not assert that an arbitrary supplied file is trusted.
-                }
-                else Console.WriteLine("SKIP signed-file check: pass -SignedFile to Verify.ps1.");
-            }
-            else
-            {
-                await using var file = File.OpenRead(path);
-                Equal(SignatureStatus.UnsupportedPlatform,
-                    new WindowsAuthenticodeInspector().Inspect(file, path, RevocationMode.OfflineCache).Status,
-                    "non-Windows signature inspection is explicit");
-                Console.WriteLine("SKIP native Windows checks on this operating system.");
-            }
-            Console.WriteLine();
-            ConsoleColor backgroundBackup = Console.BackgroundColor;
-            ConsoleColor foregroundBackup = Console.ForegroundColor;
-
-            // Match BANNER_GREEN_WHITE in colored_console.ps1; restore colors before the newline.
-            Console.BackgroundColor = ConsoleColor.DarkGreen;
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($"PASS: {_passed} core assertions.");
-
-            Console.BackgroundColor = backgroundBackup;
-            Console.ForegroundColor = foregroundBackup;
-            Console.WriteLine();
-            Console.WriteLine("=======================");
-            Console.WriteLine();
-            return 0;
-        }
-        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-        finally { Directory.Delete(temp, true); }
+        _plainFile = Path.Combine(_directory, "Prüfung 中文 ' sample.bin");
+        File.WriteAllText(_plainFile, "abc", new UTF8Encoding(false));
     }
 
-    private static void CheckFileNameFilter()
+    [TestCleanup]
+    public void Cleanup()
+    {
+        if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
+    }
+
+    [TestMethod]
+    public async Task AllHashesReadTheStreamOnce()
+    {
+        var algorithms = Enum.GetValues<ChecksumAlgorithm>();
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+
+        using var stream = new CountingStream(Encoding.ASCII.GetBytes("abc"));
+
+        var result = await checksumService.ComputeAsync(stream, algorithms);
+        foreach (var algorithm in algorithms) Assert.AreEqual(KnownDigests[algorithm], result[algorithm], $"abc / {algorithm}");
+        Assert.AreEqual(3L, stream.BytesRead, "all five hashes read data only once");
+        Assert.IsTrue(stream.CanRead, "checksum service leaves caller-owned stream open");
+    }
+
+    [TestMethod]
+    public async Task EmptyStreamHasKnownSha256()
+    {
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+
+        using var empty = new MemoryStream();
+
+        var result = await checksumService.ComputeAsync(empty, [ChecksumAlgorithm.SHA256]);
+        Assert.AreEqual("E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", result[ChecksumAlgorithm.SHA256], "empty file hash");
+    }
+
+    [TestMethod]
+    public async Task NoAlgorithmsPerformNoReads()
+    {
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+
+        using var stream = new CountingStream(Encoding.ASCII.GetBytes("abc"));
+
+        var result = await checksumService.ComputeAsync(stream, []);
+        Assert.AreEqual(0, result.Count, "no algorithms / no hashes");
+        Assert.AreEqual(0L, stream.BytesRead, "no algorithms / no data read");
+    }
+
+    [TestMethod]
+    public async Task RepeatedAlgorithmsAreDeduplicated()
+    {
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+
+        using var stream = new MemoryStream(Encoding.ASCII.GetBytes("abc"));
+
+        var result = await checksumService.ComputeAsync(stream, [ChecksumAlgorithm.SHA256, ChecksumAlgorithm.SHA256]);
+        Assert.AreEqual(1, result.Count, "repeated algorithm is deduplicated");
+    }
+
+    [TestMethod]
+    public void AnalysisOptionsSnapshotTheSelection()
+    {
+        var sourceSelection = new List<ChecksumAlgorithm> { ChecksumAlgorithm.SHA256 };
+        var snapshot = new AnalysisOptions(sourceSelection, false);
+        sourceSelection.Clear();
+        Assert.AreEqual(ChecksumAlgorithm.SHA256, snapshot.Algorithms.Single(), "options are an immutable snapshot");
+    }
+
+    [TestMethod]
+    public async Task LargeStreamUsesBoundedBuffersAndOnePass()
+    {
+        var algorithms = Enum.GetValues<ChecksumAlgorithm>();
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+        var largeData = Enumerable.Range(0, 2 * 1024 * 1024 + 13).Select(i => (byte)(i % 251)).ToArray();
+
+        using var stream = new CountingStream(largeData);
+
+        var result = await checksumService.ComputeAsync(stream, algorithms);
+        // Independent whole-buffer API checks chunk boundaries and streaming composition.
+        Assert.AreEqual(Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(largeData)),
+            result[ChecksumAlgorithm.SHA512], "multi-buffer streaming hash");
+        Assert.AreEqual(largeData.Length, stream.BytesRead, "large file / one pass");
+        Assert.IsTrue(stream.ReadCalls > 2, "large file uses bounded chunks");
+    }
+
+    [TestMethod]
+    public async Task PreCancelledHashingPerformsNoReads()
+    {
+        var algorithms = Enum.GetValues<ChecksumAlgorithm>();
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+        var largeData = Enumerable.Range(0, 2 * 1024 * 1024 + 13).Select(i => (byte)(i % 251)).ToArray();
+
+        using var cancelled = new CancellationTokenSource();
+        using var stream = new CountingStream(largeData);
+
+        cancelled.Cancel();
+        await ExpectCancellationAsync(() => checksumService.ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
+        Assert.AreEqual(0L, stream.BytesRead, "pre-cancelled operation performs no reads");
+    }
+
+    [TestMethod]
+    public async Task CancellationDisposesAllHashStrategies()
+    {
+        var algorithms = Enum.GetValues<ChecksumAlgorithm>();
+        var largeData = Enumerable.Range(0, 2 * 1024 * 1024 + 13).Select(i => (byte)(i % 251)).ToArray();
+
+        var factory = new TrackingFactory();
+        using var cancelled = new CancellationTokenSource();
+        using var stream = new CountingStream(largeData, cancelled.Cancel);
+
+        await ExpectCancellationAsync(() => new StreamChecksumService(factory).ComputeAsync(stream, algorithms, cancellationToken: cancelled.Token));
+        Assert.AreEqual(5, factory.Disposed, "all strategies disposed after cancellation");
+    }
+
+    [TestMethod]
+    public async Task FailedStrategyCreationDisposesEarlierStrategies()
+    {
+        var partialFactory = new TrackingFactory();
+        using var stream = new MemoryStream();
+
+        try
+        {
+            await new StreamChecksumService(partialFactory).ComputeAsync(stream,
+                [ChecksumAlgorithm.SHA256, (ChecksumAlgorithm)999]);
+            Assert.Fail("Expected invalid-algorithm failure.");
+        }
+        catch (ArgumentOutOfRangeException) { }
+        Assert.AreEqual(1, partialFactory.Disposed, "partial construction cleans up strategies");
+    }
+
+    [TestMethod]
+    public async Task AnalysisPipelineKeepsResultsAndReportsFileErrors()
+    {
+        var path = _plainFile;
+        var algorithms = Enum.GetValues<ChecksumAlgorithm>();
+        var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
+        var snapshot = new AnalysisOptions([ChecksumAlgorithm.SHA256], false);
+
+        var signatures = new StubSignatures();
+        var analyzer = new FileAnalysisService(checksumService, signatures);
+        var analyzed = await analyzer.AnalyzeAsync(path, new AnalysisOptions(algorithms, true));
+        Assert.IsTrue(analyzed.Succeeded, "Unicode and apostrophe path");
+        Assert.AreEqual(3L, analyzed.Length!.Value, "file size");
+        Assert.AreEqual(KnownDigests[ChecksumAlgorithm.SHA256], analyzed.Checksums[ChecksumAlgorithm.SHA256], "file pipeline hash");
+        Assert.IsTrue(analyzed.LastWriteTime.HasValue, "modification timestamp");
+        Assert.AreEqual(1, signatures.Calls, "signature strategy is invoked");
+        Assert.IsTrue(signatures.SawReadableHandle, "signature receives the open readable stream");
+        var metadataProgress = new RecordedAnalysisProgress();
+        var metadataOnly = await analyzer.AnalyzeAsync(path, new AnalysisOptions([], false), metadataProgress);
+        Assert.IsTrue(metadataProgress.Values.Select(value => value.Stage).SequenceEqual([AnalysisStage.OpeningFile]),
+            "disabled inspections do not advertise checksum, metadata or signature work");
+        Assert.IsTrue(metadataOnly.Succeeded && metadataOnly.Checksums.Count == 0, "metadata-only analysis");
+        Assert.AreEqual(1, signatures.Calls, "disabled signatures do not invoke native strategy");
+        Assert.AreEqual(SignatureStatus.NotChecked, metadataOnly.Signature.Status, "not checked is explicit");
+        Assert.AreEqual(AnalysisError.NotFound, (await analyzer.AnalyzeAsync(Path.Combine(_directory, "missing.bin"), snapshot)).Error,
+            "missing file becomes a per-file failure");
+        Assert.AreEqual(AnalysisError.DirectoryNotSupported, (await analyzer.AnalyzeAsync(_directory, snapshot)).Error,
+            "file analysis rejects directories; traversal belongs to the folder scanner");
+    }
+
+    [TestMethod]
+    public void NativeSignatureStructuresHaveCorrectLayout()
+    {
+        var native = typeof(WindowsAuthenticodeInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
+        var nativeData = native.GetNestedType("WinTrustData", BindingFlags.NonPublic)!;
+        var nativeFile = native.GetNestedType("WinTrustFileInfo", BindingFlags.NonPublic)!;
+        var nativeSettings = native.GetNestedType("WinTrustSignatureSettings", BindingFlags.NonPublic)!;
+        Assert.AreEqual(IntPtr.Size == 8 ? 88 : 52, Marshal.SizeOf(nativeData), "WINTRUST_DATA ABI size");
+        Assert.AreEqual(IntPtr.Size == 8 ? 32 : 16, Marshal.SizeOf(nativeFile), "WINTRUST_FILE_INFO ABI size");
+        Assert.AreEqual(IntPtr.Size == 8 ? 32 : 24, Marshal.SizeOf(nativeSettings), "WINTRUST_SIGNATURE_SETTINGS ABI size");
+
+        var nativeSigner = native.GetNestedType("ProviderSigner", BindingFlags.NonPublic)!;
+        var nativeMessage = native.GetNestedType("MessageSignerInfo", BindingFlags.NonPublic)!;
+        var nativeAttribute = native.GetNestedType("CryptAttribute", BindingFlags.NonPublic)!;
+        Assert.AreEqual(IntPtr.Size == 8 ? 64 : 44, Marshal.SizeOf(nativeSigner), "CRYPT_PROVIDER_SGNR ABI size");
+        Assert.AreEqual(4L, Marshal.OffsetOf(nativeSigner, "VerifyAsOf").ToInt64(), "FILETIME keeps DWORD alignment");
+        Assert.AreEqual(IntPtr.Size == 8 ? 136 : 68, Marshal.SizeOf(nativeMessage), "CMSG_SIGNER_INFO ABI size");
+        Assert.AreEqual(IntPtr.Size == 8 ? 120L : 60L, Marshal.OffsetOf(nativeMessage, "UnauthenticatedAttributes").ToInt64(),
+            "CMSG_SIGNER_INFO unsigned attributes offset");
+        Assert.AreEqual(IntPtr.Size == 8 ? 24 : 12, Marshal.SizeOf(nativeAttribute), "CRYPT_ATTRIBUTE ABI size");
+    }
+
+    [TestMethod]
+    public async Task LockedFileReportsReadFailure()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Windows file sharing is required.");
+
+        var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
+        using var locked = new FileStream(_plainFile, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        Assert.AreEqual(AnalysisError.ReadFailure,
+            (await analyzer.AnalyzeAsync(_plainFile, new AnalysisOptions([ChecksumAlgorithm.SHA256], false))).Error,
+            "locked file is reported as a read failure");
+    }
+
+    [TestMethod]
+    public async Task UnsignedPeHasNoEmbeddedSignature()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Native Authenticode requires Windows.");
+
+        var nativeAnalyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
+        var unsigned = await nativeAnalyzer.AnalyzeAsync(typeof(FileAnalysisService).Assembly.Location,
+            new AnalysisOptions([], true));
+        Assert.AreEqual(SignatureStatus.NoEmbeddedSignature, unsigned.Signature.Status, "unsigned PE / native WinVerifyTrust");
+        Assert.IsTrue(unsigned.Signature.Certificate is null, "unsigned PE has no signer metadata");
+        Assert.AreEqual(0, unsigned.Signature.Signatures.Count, "unsigned PE has no selectable signature");
+    }
+
+    [TestMethod]
+    public async Task OptionalSignedFileExposesSignerMetadata()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Native Authenticode requires Windows.");
+        var path = TestContext.Properties["SignedFile"] as string;
+        if (string.IsNullOrWhiteSpace(path)) Assert.Inconclusive("Set SignedFile in the selected .runsettings file.");
+        Assert.IsTrue(Path.IsPathFullyQualified(path) && File.Exists(path), "SignedFile must name an existing absolute path.");
+
+        var nativeAnalyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
+        var signed = await nativeAnalyzer.AnalyzeAsync(path, new AnalysisOptions([], true));
+        Assert.IsTrue(signed.Succeeded, "signed fixture can be read");
+        Assert.IsTrue(signed.Signature.Certificate is not null, "embedded signer metadata extracted");
+        Assert.IsTrue(signed.Signature.NativeStatusCode.HasValue, "native trust result retained");
+        Assert.IsTrue(signed.Signature.Signatures.Count >= 1, "signed fixture exposes signature entries");
+        Assert.IsTrue(signed.Signature.Signatures.Select(s => s.Index).SequenceEqual(
+            Enumerable.Range(0, signed.Signature.Signatures.Count).Select(i => (uint)i)),
+            "signature indices are complete and unique");
+        foreach (var entry in signed.Signature.Signatures)
+            Console.WriteLine($"INFO signature {entry.Index + 1}: {entry.Status}, {entry.DigestAlgorithm}, {entry.Timestamp}");
+        Console.WriteLine($"INFO signed fixture: {signed.Signature.Status}, 0x{signed.Signature.NativeStatusCode:X8}");
+        // Trust depends on this machine's roots, clock and cached revocation data.
+        // This does not assert that an arbitrary supplied file is trusted.
+    }
+
+    [TestMethod]
+    public void NonWindowsSignatureInspectionIsExplicit()
+    {
+        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test covers the non-Windows result.");
+
+        using var file = File.OpenRead(_plainFile);
+        Assert.AreEqual(SignatureStatus.UnsupportedPlatform,
+            new WindowsAuthenticodeInspector().Inspect(file, _plainFile, RevocationMode.OfflineCache).Status);
+    }
+
+    [TestMethod]
+    public void WindowsVersionHandlesPreservePositions()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Native version handles require Windows.");
+            return;
+        }
+        RequireVersionHandleApi();
+
+        var nePath = Path.Combine(_directory, "version-fixture.exe");
+        File.WriteAllBytes(nePath, NeVersionFixture());
+        var baseline = System.Diagnostics.FileVersionInfo.GetVersionInfo(nePath);
+        Assert.AreEqual("1.2.3.4", baseline.FileVersion, "generated NE fixture contains readable VERSIONINFO");
+
+        CheckVersionHandles([_plainFile, nePath, typeof(FileAnalysisService).Assembly.Location,
+            typeof(object).Assembly.Location, Path.Combine(Environment.SystemDirectory, "kernel32.dll")]);
+    }
+
+    [TestMethod]
+    public void OptionalVersionFilesPreservePositions()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Native version handles require Windows.");
+            return;
+        }
+        RequireVersionHandleApi();
+
+        var json = TestContext.Properties["VersionFiles"] as string ?? "[]";
+        var paths = System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? [];
+        if (paths.Length == 0) Assert.Inconclusive("Set VersionFiles in the selected .runsettings file.");
+        Assert.IsTrue(paths.All(path => !string.IsNullOrWhiteSpace(path) && Path.IsPathFullyQualified(path) && File.Exists(path)),
+            "VersionFiles must contain existing absolute paths.");
+
+        CheckVersionHandles(paths);
+    }
+
+    private static void RequireVersionHandleApi()
+    {
+        if (!OperatingSystem.IsWindows() || !WindowsFileVersionReader.IsAvailable)
+            Assert.Inconclusive("The native Windows version-handle API is unavailable.");
+    }
+
+    [TestMethod]
+    public void FileNameFilter()
     {
         // No fixture files are created: matching needs names, never file contents.
         var names = new[] { "Setup.EXE", "tool.dll", "tool.exe.bak", "debug.dll", "test.dll", "notes.txt", "copy.tmp" };
@@ -218,14 +332,14 @@ internal static class CoreChecks
 
         var all = new FileNameFilter("");
         var (allFiles, allExcluded) = all.Apply(paths);
-        Check(!all.IsActive && allFiles.SequenceEqual(paths) && allExcluded == 0,
+        Assert.IsTrue(!all.IsActive && allFiles.SequenceEqual(paths) && allExcluded == 0,
             "empty intake pattern admits every path in its original order without file access");
 
         void Matches(string pattern, params string[] expected)
         {
             var filter = new FileNameFilter(pattern);
             var (files, excluded) = filter.Apply(paths);
-            Check(filter.IsActive && files.Select(Path.GetFileName).SequenceEqual(expected)
+            Assert.IsTrue(filter.IsActive && files.Select(Path.GetFileName).SequenceEqual(expected)
                 && excluded == paths.Length - expected.Length,
                 "filename intake pattern and excluded count / " + pattern);
         }
@@ -241,22 +355,22 @@ internal static class CoreChecks
         Matches("^(?!.*parent).*$", names);
 
         var (dotFiles, dotExcluded) = new FileNameFilter(@"\.exe$").Apply(["app.exe", "appexe", "appXexe"]);
-        Check(dotFiles.SequenceEqual(["app.exe"]) && dotExcluded == 2,
+        Assert.IsTrue(dotFiles.SequenceEqual(["app.exe"]) && dotExcluded == 2,
             "escaped period matches a literal extension separator");
 
         var (spaceFiles, spaceExcluded) = new FileNameFilter(" ").Apply(["has space.exe", "plain.exe"]);
-        Check(spaceFiles.SequenceEqual(["has space.exe"]) && spaceExcluded == 1,
+        Assert.IsTrue(spaceFiles.SequenceEqual(["has space.exe"]) && spaceExcluded == 1,
             "spaces remain meaningful regex characters");
 
         var (duplicateFiles, duplicateExcluded) = new FileNameFilter(@"\.dll$").Apply(["a.dll", "", " ", "a.dll", "a.txt"]);
-        Check(duplicateFiles.SequenceEqual(["a.dll", "a.dll"]) && duplicateExcluded == 1,
+        Assert.IsTrue(duplicateFiles.SequenceEqual(["a.dll", "a.dll"]) && duplicateExcluded == 1,
             "intake matching leaves deduplication to the caller and ignores empty paths");
 
         var originalCulture = System.Globalization.CultureInfo.CurrentCulture;
         try
         {
             System.Globalization.CultureInfo.CurrentCulture = new("tr-TR");
-            Check(new FileNameFilter("^install").Apply(["INSTALL.EXE"]).Files.Count == 1,
+            Assert.IsTrue(new FileNameFilter("^install").Apply(["INSTALL.EXE"]).Files.Count == 1,
                 "filename matching is case-insensitive independently of application culture");
         }
         finally { System.Globalization.CultureInfo.CurrentCulture = originalCulture; }
@@ -264,9 +378,9 @@ internal static class CoreChecks
         try
         {
             _ = new FileNameFilter("[");
-            throw new Exception("Expected invalid regex rejection.");
+            Assert.Fail("Expected invalid regex rejection.");
         }
-        catch (ArgumentException) { Check(true, "invalid intake patterns are rejected instead of admitting every file"); }
+        catch (ArgumentException) { Console.WriteLine("invalid intake patterns are rejected instead of admitting every file"); }
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -275,29 +389,32 @@ internal static class CoreChecks
             try
             {
                 all.Apply(input, cancellation.Token);
-                throw new Exception("Expected intake cancellation.");
+                Assert.Fail("Expected intake cancellation.");
             }
-            catch (OperationCanceledException) { Check(true, "cancelled filename filtering returns no selection, even for empty input"); }
+            catch (OperationCanceledException) { Console.WriteLine("cancelled filename filtering returns no selection, even for empty input"); }
         }
 
         using var midCancellation = new CancellationTokenSource();
         try
         {
             all.Apply(new CancelAfterFirstList(paths, midCancellation), midCancellation.Token);
-            throw new Exception("Expected mid-intake cancellation.");
+            Assert.Fail("Expected mid-intake cancellation.");
         }
-        catch (OperationCanceledException) { Check(true, "cancellation between filenames does not return a partial selection"); }
+        catch (OperationCanceledException) { Console.WriteLine("cancellation between filenames does not return a partial selection"); }
 
         try
         {
             new FileNameFilter("^(a+)+$").Apply(["a", new string('a', 512) + "!"]);
-            throw new Exception("Expected regex timeout.");
+            Assert.Fail("Expected regex timeout.");
         }
-        catch (RegexMatchTimeoutException) { Check(true, "excessive backtracking times out without returning a partial selection"); }
+        catch (RegexMatchTimeoutException) { Console.WriteLine("excessive backtracking times out without returning a partial selection"); }
     }
 
-    private static void CheckFolderScan(string temp)
+    [TestMethod]
+    public void FolderScan()
     {
+        var temp = _directory;
+
         var root = Path.Combine(temp, "folder-input");
         var nested = Path.Combine(root, "sub", "中文");
         Directory.CreateDirectory(nested);
@@ -310,19 +427,19 @@ internal static class CoreChecks
         if (OperatingSystem.IsWindows()) File.SetAttributes(hidden, FileAttributes.Hidden);
         var scanner = new FolderScanner();
         var found = scanner.Scan(root);
-        Check(found.Files.ToHashSet(StringComparer.Ordinal).SetEquals([first, second, hidden]),
+        Assert.IsTrue(found.Files.ToHashSet(StringComparer.Ordinal).SetEquals([first, second, hidden]),
             "folder scan includes nested, Unicode and hidden files exactly once");
-        Check(found.Issues.Count == 0 && found.SkippedDirectoryLinks == 0, "normal scan has no omissions");
+        Assert.IsTrue(found.Issues.Count == 0 && found.SkippedDirectoryLinks == 0, "normal scan has no omissions");
         var empty = Path.Combine(temp, "empty-folder");
         Directory.CreateDirectory(empty);
-        Check(scanner.Scan(empty).Files.Count == 0, "empty folder is a valid empty result");
-        try { scanner.Scan(Path.Combine(root, "missing")); throw new Exception("Expected missing root failure."); }
-        catch (DirectoryNotFoundException) { Check(true, "missing selected folder is reported"); }
+        Assert.IsTrue(scanner.Scan(empty).Files.Count == 0, "empty folder is a valid empty result");
+        try { scanner.Scan(Path.Combine(root, "missing")); Assert.Fail("Expected missing root failure."); }
+        catch (DirectoryNotFoundException) { Console.WriteLine("missing selected folder is reported"); }
         using (var cancelled = new CancellationTokenSource())
         {
             cancelled.Cancel();
-            try { scanner.Scan(root, cancelled.Token); throw new Exception("Expected scan cancellation."); }
-            catch (OperationCanceledException) { Check(true, "folder enumeration observes cancellation"); }
+            try { scanner.Scan(root, cancelled.Token); Assert.Fail("Expected scan cancellation."); }
+            catch (OperationCanceledException) { Console.WriteLine("folder enumeration observes cancellation"); }
         }
 
         var link = Path.Combine(nested, "back-to-root");
@@ -335,10 +452,10 @@ internal static class CoreChecks
             try
             {
                 found = scanner.Scan(root);
-                Check(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3,
+                Assert.IsTrue(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3,
                     "directory link to an ancestor is counted and never traversed");
                 found = scanner.Scan(link);
-                Check(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3
+                Assert.IsTrue(found.SkippedDirectoryLinks == 1 && found.Files.Count == 3
                     && found.Files.All(path => path.StartsWith(link + Path.DirectorySeparatorChar, StringComparison.Ordinal)),
                     "an explicitly selected directory link is a root, but links below it still cannot form a cycle");
             }
@@ -361,7 +478,7 @@ internal static class CoreChecks
             if (fileLinksCreated)
             {
                 found = scanner.Scan(root);
-                Check(found.Files.ToHashSet().SetEquals([first, second, hidden, fileLink, missingLink])
+                Assert.IsTrue(found.Files.ToHashSet().SetEquals([first, second, hidden, fileLink, missingLink])
                     && found.SkippedDirectoryLinks == 0,
                     "file symlinks, including broken ones, remain file paths for per-row analysis");
             }
@@ -378,7 +495,7 @@ internal static class CoreChecks
             try
             {
                 found = scanner.Scan(root);
-                Check(found.Files.ToHashSet().SetEquals([first, second, hidden, hardLink])
+                Assert.IsTrue(found.Files.ToHashSet().SetEquals([first, second, hidden, hardLink])
                     && found.SkippedDirectoryLinks == 0,
                     "hard links remain separate file paths and do not cause directory traversal");
             }
@@ -387,8 +504,11 @@ internal static class CoreChecks
         else Console.WriteLine("SKIP hard-link fixture: " + Marshal.GetLastWin32Error());
     }
 
-    private static void CheckFileMoves(string temp)
+    [TestMethod]
+    public void FileMoves()
     {
+        var temp = _directory;
+
         var root = Path.Combine(temp, "moves");
         var service = new FileMoveService();
         var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -404,17 +524,17 @@ internal static class CoreChecks
         var first = Source("first");
         var second = Source("second");
         var results = service.MoveToSubfolder([first, second], "unsigned", listed);
-        Check(results.All(result => result.Outcome == FileMoveOutcome.Moved)
+        Assert.IsTrue(results.All(result => result.Outcome == FileMoveOutcome.Moved)
             && results.Select(result => result.DestinationPath).Distinct().Count() == 2,
             "equal filenames from different parents move to separate child folders");
-        Check(!File.Exists(first) && !File.Exists(second)
+        Assert.IsTrue(!File.Exists(first) && !File.Exists(second)
             && File.ReadAllText(results[0].DestinationPath!) == "first" && File.ReadAllText(results[1].DestinationPath!) == "second",
             "moving preserves contents and removes only the original names");
         var already = Move(results[0].DestinationPath!);
-        Check(already.Outcome == FileMoveOutcome.AlreadyInFolder && !Directory.Exists(Path.Combine(Path.GetDirectoryName(already.SourcePath)!, "unsigned")),
+        Assert.IsTrue(already.Outcome == FileMoveOutcome.AlreadyInFolder && !Directory.Exists(Path.Combine(Path.GetDirectoryName(already.SourcePath)!, "unsigned")),
             "repeating a move does not create nested status folders");
         File.WriteAllText(first, "replacement");
-        Check(Move(first).Outcome == FileMoveOutcome.TargetExists
+        Assert.IsTrue(Move(first).Outcome == FileMoveOutcome.TargetExists
             && File.ReadAllText(first) == "replacement" && File.ReadAllText(results[0].DestinationPath!) == "first",
             "an existing destination is never overwritten and its source is retained");
         var blocked = Source("blocked");
@@ -422,30 +542,30 @@ internal static class CoreChecks
         var missing = Path.Combine(root, "missing.bin");
         var next = Source("after-error");
         results = service.MoveToSubfolder([blocked, missing, next], "unsigned", listed);
-        Check(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Failed, FileMoveOutcome.SourceMissing, FileMoveOutcome.Moved])
+        Assert.IsTrue(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Failed, FileMoveOutcome.SourceMissing, FileMoveOutcome.Moved])
             && File.Exists(blocked) && results[0].Detail?.Length > 0,
             "a blocked target and missing source are reported without stopping subsequent files");
         var reserved = Source("listed");
         listed.Add(Path.Combine(Path.GetDirectoryName(reserved)!, "unsigned", Path.GetFileName(reserved)));
-        Check(Move(reserved).Outcome == FileMoveOutcome.TargetListed && File.Exists(reserved),
+        Assert.IsTrue(Move(reserved).Outcome == FileMoveOutcome.TargetListed && File.Exists(reserved),
             "a destination already represented by another result row is reserved even if missing on disk");
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
         results = service.MoveToSubfolder([first, blocked], "unsigned", listed, cancelled.Token);
-        Check(results.All(result => result.Outcome == FileMoveOutcome.Cancelled) && File.Exists(first) && File.Exists(blocked),
+        Assert.IsTrue(results.All(result => result.Outcome == FileMoveOutcome.Cancelled) && File.Exists(first) && File.Exists(blocked),
             "cancellation before a batch reports every unattempted file without moving it");
         using var midBatch = new CancellationTokenSource();
         var partialFirst = Source("partial-first");
         var partialSecond = Source("partial-second");
         results = service.MoveToSubfolder(new CancelAfterFirstList([partialFirst, partialSecond], midBatch), "unsigned", listed, midBatch.Token);
-        Check(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Moved, FileMoveOutcome.Cancelled])
+        Assert.IsTrue(results.Select(result => result.Outcome).SequenceEqual([FileMoveOutcome.Moved, FileMoveOutcome.Cancelled])
             && !File.Exists(partialFirst) && File.Exists(partialSecond),
             "cancellation between files retains the completed move and reports the remaining file");
         var invalid = new[] { "", " ", ".", "..", "../bad", "a/b", "a\\b", "123456789", "bad:", "CON", "nul.txt", "LPT1", "trail.", "trail " };
-        Check(invalid.All(name => !FileMoveService.IsValidFolderName(name)) && FileMoveService.IsValidFolderName("未签名"),
+        Assert.IsTrue(invalid.All(name => !FileMoveService.IsValidFolderName(name)) && FileMoveService.IsValidFolderName("未签名"),
             "subfolders are short literal Windows names and support localized Unicode");
-        try { service.MoveToSubfolder([first], "../bad", listed); throw new Exception("Expected invalid folder rejection."); }
-        catch (ArgumentException) { Check(File.Exists(first), "invalid folder names are rejected before touching source files"); }
+        try { service.MoveToSubfolder([first], "../bad", listed); Assert.Fail("Expected invalid folder rejection."); }
+        catch (ArgumentException) { Assert.IsTrue(File.Exists(first), "invalid folder names are rejected before touching source files"); }
 
         var link = Path.Combine(root, "source-link.bin");
         var targetSource = Source("target-link");
@@ -465,9 +585,9 @@ internal static class CoreChecks
             { Console.WriteLine("SKIP move symlink fixtures: " + ex.Message); }
             if (created)
             {
-                Check(Move(link).Outcome == FileMoveOutcome.SourceLink && File.Exists(link) && File.Exists(first),
+                Assert.IsTrue(Move(link).Outcome == FileMoveOutcome.SourceLink && File.Exists(link) && File.Exists(first),
                     "moving a symbolic file link is skipped without touching its target");
-                Check(Move(targetSource).Outcome == FileMoveOutcome.TargetLink && File.Exists(targetSource) && !Directory.EnumerateFileSystemEntries(outside).Any(),
+                Assert.IsTrue(Move(targetSource).Outcome == FileMoveOutcome.TargetLink && File.Exists(targetSource) && !Directory.EnumerateFileSystemEntries(outside).Any(),
                     "a linked destination folder is not followed");
             }
         }
@@ -483,7 +603,7 @@ internal static class CoreChecks
         if (hardLinkCreated)
         {
             var moved = Move(hardLink);
-            Check(moved.Outcome == FileMoveOutcome.Moved && File.Exists(first) && !File.Exists(hardLink)
+            Assert.IsTrue(moved.Outcome == FileMoveOutcome.Moved && File.Exists(first) && !File.Exists(hardLink)
                 && File.ReadAllText(moved.DestinationPath!) == File.ReadAllText(first),
                 "moving a hardlink renames that path while its other name remains available");
         }
@@ -519,51 +639,54 @@ internal static class CoreChecks
 #pragma warning restore SYSLIB1054
     }
 
-    private static async Task CheckCsvExportAsync(string temp)
+    [TestMethod]
+    public async Task CsvExportAsync()
     {
+        var temp = _directory;
+
         var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
         var path = Path.Combine(temp, "results.csv");
         var table = new ResultExportTable([new("Name", "Name"), new("Notes", "Notes"), new("Hash", "Hash")],
             [["Prüfung 中文, sample.exe", "Line 1\r\n\"quoted\"; line 2", "+///"], ["second", "", "00FF"]]);
         await exporter.ExportAsync(path, table);
         var bytes = await File.ReadAllBytesAsync(path);
-        Check(bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }), "CSV has a UTF-8 BOM for Unicode readers");
-        Equal("\"Name\";\"Notes\";\"Hash\"\r\n\"Prüfung 中文, sample.exe\";\"Line 1\r\n\"\"quoted\"\"; line 2\";\"+///\"\r\n\"second\";\"\";\"00FF\"\r\n",
+        Assert.IsTrue(bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }), "CSV has a UTF-8 BOM for Unicode readers");
+        Assert.AreEqual("\"Name\";\"Notes\";\"Hash\"\r\n\"Prüfung 中文, sample.exe\";\"Line 1\r\n\"\"quoted\"\"; line 2\";\"+///\"\r\n\"second\";\"\";\"00FF\"\r\n",
             await File.ReadAllTextAsync(path), "CSV uses semicolon by default and preserves embedded semicolons");
         await exporter.ExportAsync(path, table, new ResultExportOptions(CsvDelimiter: CsvDelimiter.Comma));
-        Equal("\"Name\",\"Notes\",\"Hash\"\r\n\"Prüfung 中文, sample.exe\",\"Line 1\r\n\"\"quoted\"\"; line 2\",\"+///\"\r\n\"second\",\"\",\"00FF\"\r\n",
+        Assert.AreEqual("\"Name\",\"Notes\",\"Hash\"\r\n\"Prüfung 中文, sample.exe\",\"Line 1\r\n\"\"quoted\"\"; line 2\",\"+///\"\r\n\"second\",\"\",\"00FF\"\r\n",
             await File.ReadAllTextAsync(path), "CSV quotes delimiters, embedded quotes/newlines and empty fields without altering hashes");
 
         var sentinel = "existing export must survive";
         await File.WriteAllTextAsync(path, sentinel);
-        try { await exporter.ExportAsync(path, table, new ResultExportOptions(CsvDelimiter: (CsvDelimiter)999)); throw new Exception("Expected invalid delimiter failure."); }
-        catch (ArgumentOutOfRangeException) { Check(true, "unsupported delimiters are rejected before writing"); }
-        Equal(sentinel, await File.ReadAllTextAsync(path), "an invalid delimiter preserves an existing destination");
+        try { await exporter.ExportAsync(path, table, new ResultExportOptions(CsvDelimiter: (CsvDelimiter)999)); Assert.Fail("Expected invalid delimiter failure."); }
+        catch (ArgumentOutOfRangeException) { Console.WriteLine("unsupported delimiters are rejected before writing"); }
+        Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "an invalid delimiter preserves an existing destination");
         try
         {
             await exporter.ExportAsync(path, new ResultExportTable([new("A", "A"), new("B", "B")], [["1", "2"], ["bad width"]]));
-            throw new Exception("Expected invalid row failure.");
+            Assert.Fail("Expected invalid row failure.");
         }
-        catch (ArgumentException) { Check(true, "CSV rejects inconsistent row lengths"); }
-        Equal(sentinel, await File.ReadAllTextAsync(path), "a failed export preserves an existing destination");
+        catch (ArgumentException) { Console.WriteLine("CSV rejects inconsistent row lengths"); }
+        Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "a failed export preserves an existing destination");
         using (var cancelled = new CancellationTokenSource())
         {
             cancelled.Cancel();
             var absent = Path.Combine(temp, "cancelled.csv");
             await ExpectCancellationAsync(() => exporter.ExportAsync(absent, table, cancellationToken: cancelled.Token));
-            Check(!File.Exists(absent), "pre-cancelled export creates no destination");
+            Assert.IsTrue(!File.Exists(absent), "pre-cancelled export creates no destination");
         }
         using (var cancelled = new CancellationTokenSource())
         {
             await ExpectCancellationAsync(() => exporter.ExportAsync(path,
                 new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), cancellationToken: cancelled.Token));
-            Equal(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
+            Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "cancellation after writing begins preserves the existing destination");
         }
-        try { await exporter.ExportAsync(path, new ResultExportTable([], [])); throw new Exception("Expected empty columns failure."); }
-        catch (ArgumentException) { Check(true, "CSV requires at least one column"); }
+        try { await exporter.ExportAsync(path, new ResultExportTable([], [])); Assert.Fail("Expected empty columns failure."); }
+        catch (ArgumentException) { Console.WriteLine("CSV requires at least one column"); }
         await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], [["replacement"]]));
-        Equal("\"Name\"\r\n\"replacement\"\r\n", await File.ReadAllTextAsync(path), "a successful export replaces the destination completely");
-        Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "successful, failed and cancelled exports clean up temporary files");
+        Assert.AreEqual("\"Name\"\r\n\"replacement\"\r\n", await File.ReadAllTextAsync(path), "a successful export replaces the destination completely");
+        Assert.IsTrue(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "successful, failed and cancelled exports clean up temporary files");
 
         // Parse with a separate BCL CSV reader, not with the writer's escaping logic.
         var many = new ResultExportTable([new("Name", "Name"), new("Comment", "Comment"), new("Hash", "Hash")], Enumerable.Range(0, 1500)
@@ -578,7 +701,7 @@ internal static class CoreChecks
             using var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(path, Encoding.UTF8)
             { HasFieldsEnclosedInQuotes = true, TrimWhiteSpace = false };
             parser.SetDelimiters(delimiter == CsvDelimiter.Semicolon ? ";" : ",");
-            Check(parser.ReadFields()!.SequenceEqual(many.Columns.Select(column => column.Header)), "CSV header imports correctly / " + delimiter);
+            Assert.IsTrue(parser.ReadFields()!.SequenceEqual(many.Columns.Select(column => column.Header)), "CSV header imports correctly / " + delimiter);
             var imported = 0;
             var matches = true;
             while (!parser.EndOfData)
@@ -587,13 +710,16 @@ internal static class CoreChecks
                 matches &= imported < many.Rows.Count && row is not null && row.SequenceEqual(many.Rows[imported]);
                 imported++;
             }
-            Check(matches && imported == 1500,
+            Assert.IsTrue(matches && imported == 1500,
                 "all 1500 rows round-trip with delimiters, quotes, CRLF, Unicode, spaces and leading zeros / " + delimiter);
         }
     }
 
-    private static async Task CheckJsonExportAsync(string temp)
+    [TestMethod]
+    public async Task JsonExportAsync()
     {
+        var temp = _directory;
+
         var exporter = new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]);
         var options = new ResultExportOptions(ResultExportFormat.Json);
         var path = Path.Combine(temp, "results.JSON");
@@ -605,16 +731,16 @@ internal static class CoreChecks
             }).ToArray());
         await exporter.ExportAsync(path, table, options);
         var bytes = await File.ReadAllBytesAsync(path);
-        Check(bytes[0] == (byte)'[', "JSON is UTF-8 without BOM");
+        Assert.IsTrue(bytes[0] == (byte)'[', "JSON is UTF-8 without BOM");
         using (var parsed = System.Text.Json.JsonDocument.Parse(bytes))
         {
             var rows = parsed.RootElement;
-            Check(rows.GetArrayLength() == 1500, "JSON contains all 1500 exported rows");
-            Check(rows.EnumerateArray().Select((row, index) =>
+            Assert.IsTrue(rows.GetArrayLength() == 1500, "JSON contains all 1500 exported rows");
+            Assert.IsTrue(rows.EnumerateArray().Select((row, index) =>
                 row.EnumerateObject().Select(property => property.Name).SequenceEqual(table.Columns.Select(column => column.Id))
                 && row.EnumerateObject().Select(property => property.Value.GetString()).SequenceEqual(table.Rows[index])).All(match => match),
                 "JSON round-trips selected IDs/order, Unicode, quotes, controls, leading zeros and empty strings");
-            Check(rows[0].GetProperty("SHA256").ValueKind == System.Text.Json.JsonValueKind.String,
+            Assert.IsTrue(rows[0].GetProperty("SHA256").ValueKind == System.Text.Json.JsonValueKind.String,
                 "JSON retains display values as strings instead of coercing hashes and versions");
         }
         var sentinel = "existing export must survive";
@@ -622,17 +748,17 @@ internal static class CoreChecks
         try
         {
             await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], [["good"], []]), options);
-            throw new Exception("Expected invalid row failure.");
+            Assert.Fail("Expected invalid row failure.");
         }
-        catch (ArgumentException) { Check(true, "JSON rejects inconsistent row widths"); }
-        Equal(sentinel, await File.ReadAllTextAsync(path), "failed JSON export preserves the destination");
+        catch (ArgumentException) { Console.WriteLine("JSON rejects inconsistent row widths"); }
+        Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "failed JSON export preserves the destination");
         foreach (var precancel in new[] { false, true })
         {
             using var cancelled = new CancellationTokenSource();
             if (precancel) cancelled.Cancel();
             await ExpectCancellationAsync(() => exporter.ExportAsync(path,
                 new ResultExportTable([new("Name", "Name")], new CancellingRows(cancelled)), options, cancelled.Token));
-            Equal(sentinel, await File.ReadAllTextAsync(path), "cancelled JSON preserves the destination / " + precancel);
+            Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "cancelled JSON preserves the destination / " + precancel);
         }
         foreach (var columns in new ResultExportColumn[][]
         {
@@ -642,25 +768,25 @@ internal static class CoreChecks
             try
             {
                 await exporter.ExportAsync(path, new ResultExportTable(columns, []), options);
-                throw new Exception("Expected invalid columns failure.");
+                Assert.Fail("Expected invalid columns failure.");
             }
-            catch (ArgumentException) { Check(true, "JSON rejects missing or duplicate column IDs"); }
+            catch (ArgumentException) { Console.WriteLine("JSON rejects missing or duplicate column IDs"); }
         }
         try
         {
             await exporter.ExportAsync(path, table, new ResultExportOptions((ResultExportFormat)999));
-            throw new Exception("Expected unsupported format failure.");
+            Assert.Fail("Expected unsupported format failure.");
         }
-        catch (ArgumentOutOfRangeException) { Check(true, "unsupported export strategies are rejected"); }
-        Equal(sentinel, await File.ReadAllTextAsync(path), "invalid export options preserve an existing destination");
+        catch (ArgumentOutOfRangeException) { Console.WriteLine("unsupported export strategies are rejected"); }
+        Assert.AreEqual(sentinel, await File.ReadAllTextAsync(path), "invalid export options preserve an existing destination");
         await exporter.ExportAsync(path, new ResultExportTable([new("Name", "Name")], []), options);
         using (var parsed = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(path)))
-            Check(parsed.RootElement.GetArrayLength() == 0, "empty JSON data produces a valid empty array");
-        Check(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "JSON failure/cancellation/success leaves no temporary files");
-        Check(ResultExportFormats.TryFromPath("folder.csv/result.JsOn", out var json) && json == ResultExportFormat.Json
+            Assert.IsTrue(parsed.RootElement.GetArrayLength() == 0, "empty JSON data produces a valid empty array");
+        Assert.IsTrue(!Directory.EnumerateFiles(temp, ".filescope-export-*.tmp").Any(), "JSON failure/cancellation/success leaves no temporary files");
+        Assert.IsTrue(ResultExportFormats.TryFromPath("folder.csv/result.JsOn", out var json) && json == ResultExportFormat.Json
             && ResultExportFormats.TryFromPath("result.json.CSV", out var csv) && csv == ResultExportFormat.Csv,
             "format follows the final extension, case-insensitively");
-        Check(!ResultExportFormats.TryFromPath("result", out _) && !ResultExportFormats.TryFromPath("result.txt", out _),
+        Assert.IsTrue(!ResultExportFormats.TryFromPath("result", out _) && !ResultExportFormats.TryFromPath("result.txt", out _),
             "unsupported or missing extensions cannot silently select a format");
     }
 
@@ -677,7 +803,8 @@ internal static class CoreChecks
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private static void CheckPeHeaders()
+    [TestMethod]
+    public void PeHeaders()
     {
         var inspector = new PeHeaderInspector();
         foreach (var (code, name, plus) in new (ushort, string, bool)[]
@@ -691,10 +818,10 @@ internal static class CoreChecks
             using var stream = new MemoryStream(PeFixture(code, plus));
             stream.Position = 17;
             var result = inspector.Inspect(stream);
-            Check(result is { Diagnostic: null, Header: not null } && result.Header.MachineCode == code
+            Assert.IsTrue(result is { Diagnostic: null, Header: not null } && result.Header.MachineCode == code
                 && result.Header.MachineName == name && result.Header.Format == (plus ? "PE32+" : "PE32")
                 && result.Header.ManagedPlatform == ManagedPlatform.None, "native PE machine and format / " + name);
-            Check(stream.CanRead && stream.Position == 17, "PE inspection preserves stream ownership and position / " + name);
+            Assert.IsTrue(stream.CanRead && stream.Position == 17, "PE inspection preserves stream ownership and position / " + name);
         }
         foreach (var (flags, dll, nativeHeader, expected) in new (uint, bool, bool, ManagedPlatform)[]
         {
@@ -710,11 +837,11 @@ internal static class CoreChecks
         {
             using var stream = new MemoryStream(PeFixture(0x014c, false, flags, dll, nativeHeader));
             var result = inspector.Inspect(stream);
-            Check(result.Diagnostic is null && result.Header?.ManagedPlatform == expected,
+            Assert.IsTrue(result.Diagnostic is null && result.Header?.ManagedPlatform == expected,
                 $"CLR flags / {flags:X} / DLL={dll} / native header={nativeHeader}: {result.Diagnostic}");
         }
         using (var stream = new MemoryStream(PeFixture(0x8664, true, 1)))
-            Equal(ManagedPlatform.MachineSpecific, inspector.Inspect(stream).Header!.ManagedPlatform, "IL-only x64 stays machine-specific");
+            Assert.AreEqual(ManagedPlatform.MachineSpecific, inspector.Inspect(stream).Header!.ManagedPlatform, "IL-only x64 stays machine-specific");
 
         // Verify forwards its target platform to project references, so this DLL
         // is not always AnyCPU. Ask the runtime for the built module's metadata;
@@ -727,7 +854,7 @@ internal static class CoreChecks
         using (var stream = File.OpenRead(coreAssembly.Location))
         {
             var result = inspector.Inspect(stream);
-            Check(result is { Diagnostic: null, Header: { } header }
+            Assert.IsTrue(result is { Diagnostic: null, Header: { } header }
                 && header.MachineCode == (ushort)machine && header.ManagedPlatform == expectedPlatform,
                 $"real SDK-built library agrees with runtime PE metadata / {machine} / {peKind} / {expectedPlatform}");
         }
@@ -740,33 +867,34 @@ internal static class CoreChecks
         foreach (var bytes in new byte[][] { [], "ordinary text"u8.ToArray(), new byte[512], dosOnly, le, hugeOffset })
         {
             using var stream = new MemoryStream(bytes);
-            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: null }, "unsupported header input stays empty without error");
+            Assert.IsTrue(inspector.Inspect(stream) is { Header: null, Diagnostic: null }, "unsupported header input stays empty without error");
         }
         foreach (var bytes in new[] { PeFixture(0x014c, false)[..140], PeFixture(0x014c, false)[..200] })
         {
             using var stream = new MemoryStream(bytes);
             stream.Position = 7;
-            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
+            Assert.IsTrue(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
                 "truncated PE reports a diagnostic and restores the stream");
         }
         using (var stream = new PeCountingStream(new byte[2 * 1024 * 1024]))
         {
             stream.Write(PeFixture(0x014c, false));
             stream.Position = 35;
-            Check(inspector.Inspect(stream).Header?.MachineCode == 0x014c && stream.BytesRead < 64 * 1024,
+            Assert.IsTrue(inspector.Inspect(stream).Header?.MachineCode == 0x014c && stream.BytesRead < 64 * 1024,
                 "PE inspection reads headers without scanning the file payload");
         }
         using (var cancelled = new CancellationTokenSource())
         using (var stream = new PeCountingStream(PeFixture(0x014c, false)))
         {
             cancelled.Cancel();
-            try { inspector.Inspect(stream, cancelled.Token); throw new Exception("Expected PE cancellation."); }
+            try { inspector.Inspect(stream, cancelled.Token); Assert.Fail("Expected PE cancellation."); }
             catch (OperationCanceledException) { }
-            Equal(0L, stream.BytesRead, "cancelled PE inspection performs no reads");
+            Assert.AreEqual(0L, stream.BytesRead, "cancelled PE inspection performs no reads");
         }
     }
 
-    private static void CheckNeHeaders()
+    [TestMethod]
+    public void NeHeaders()
     {
         var inspector = new PeHeaderInspector();
         foreach (var dll in new[] { false, true })
@@ -774,9 +902,9 @@ internal static class CoreChecks
             using var stream = new PeCountingStream(NeFixture(dll));
             stream.Position = 17;
             var result = inspector.Inspect(stream);
-            Check(result is { Diagnostic: null, Header: { MachineCode: null, MachineName: "x86 (16-bit)", Format: "NE (Win16)", ManagedPlatform: ManagedPlatform.None } },
+            Assert.IsTrue(result is { Diagnostic: null, Header: { MachineCode: null, MachineName: "x86 (16-bit)", Format: "NE (Win16)", ManagedPlatform: ManagedPlatform.None } },
                 "Win16 NE header is recognized without a fabricated PE machine code / DLL=" + dll);
-            Check(stream.CanRead && stream.Position == 17 && stream.BytesRead <= 128,
+            Assert.IsTrue(stream.CanRead && stream.Position == 17 && stream.BytesRead <= 128,
                 "NE detection reuses the stream, restores its position and reads only fixed headers / DLL=" + dll);
         }
         foreach (var (target, format, machine) in new (byte, string, string)[]
@@ -787,14 +915,14 @@ internal static class CoreChecks
         {
             using var stream = new MemoryStream(NeFixture(false, target));
             var result = inspector.Inspect(stream);
-            Check(result.Header is { } header && header.Format == format && header.MachineName == machine,
+            Assert.IsTrue(result.Header is { } header && header.Format == format && header.MachineName == machine,
                 "NE target is preserved without assuming every NE image is Win16 / " + target);
         }
         var shortOs2 = NeFixture(true, 1)[..188];
         BinaryPrimitives.WriteUInt16LittleEndian(shortOs2.AsSpan(128 + 6), 0);
         BinaryPrimitives.WriteUInt16LittleEndian(shortOs2.AsSpan(128 + 0x1c), 0);
         using (var stream = new MemoryStream(shortOs2))
-            Check(inspector.Inspect(stream).Header?.Format == "NE (OS/2)", "original 60-byte OS/2 NE header is accepted");
+            Assert.IsTrue(inspector.Inspect(stream).Header?.Format == "NE (OS/2)", "original 60-byte OS/2 NE header is accepted");
         var hugeSegments = NeFixture(false);
         BinaryPrimitives.WriteUInt16LittleEndian(hugeSegments.AsSpan(128 + 0x1c), ushort.MaxValue);
         var overlap = NeFixture(false);
@@ -805,14 +933,14 @@ internal static class CoreChecks
         {
             using var stream = new MemoryStream(bytes);
             stream.Position = 7;
-            Check(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
+            Assert.IsTrue(inspector.Inspect(stream) is { Header: null, Diagnostic: not null } && stream.Position == 7,
                 "truncated NE header or invalid table bounds report a diagnostic and restore the stream");
         }
         using var cancellation = new CancellationTokenSource();
         using var cancelled = new PeCountingStream(NeFixture(false));
         cancellation.Cancel();
-        try { inspector.Inspect(cancelled, cancellation.Token); throw new Exception("Expected NE cancellation."); }
-        catch (OperationCanceledException) { Check(cancelled.BytesRead == 0, "cancelled NE inspection reads nothing"); }
+        try { inspector.Inspect(cancelled, cancellation.Token); Assert.Fail("Expected NE cancellation."); }
+        catch (OperationCanceledException) { Assert.IsTrue(cancelled.BytesRead == 0, "cancelled NE inspection reads nothing"); }
     }
 
     // A small Win16 NE image: one code segment, entry table and DOS stub.
@@ -869,46 +997,38 @@ internal static class CoreChecks
         return bytes;
     }
 
-    private static void CheckFileProperties(string plainFile)
+    [TestMethod]
+    public void FileProperties()
     {
+        var plainFile = _plainFile;
+
         var native = typeof(FilePropertiesInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
         var shellInfo = native.GetNestedType("ShellFileInfo", BindingFlags.NonPublic)!;
-        Equal(IntPtr.Size == 8 ? 696 : 692, Marshal.SizeOf(shellInfo), "SHFILEINFOW ABI size");
+        Assert.AreEqual(IntPtr.Size == 8 ? 696 : 692, Marshal.SizeOf(shellInfo), "SHFILEINFOW ABI size");
         var inspector = new FilePropertiesInspector();
         using var plainStream = File.OpenRead(plainFile);
         var plain = inspector.Inspect(plainStream, plainFile);
-        Check(plain is { Diagnostic: null, Info: not null } && string.IsNullOrEmpty(plain.Info.FileVersion)
+        Assert.IsTrue(plain is { Diagnostic: null, Info: not null } && string.IsNullOrEmpty(plain.Info.FileVersion)
             && string.IsNullOrEmpty(plain.Info.ProductName), "ordinary file has no fabricated version information");
         var assemblyPath = typeof(FileAnalysisService).Assembly.Location;
         using var assemblyStream = File.OpenRead(assemblyPath);
         assemblyStream.Position = 7;
         var assembly = inspector.Inspect(assemblyStream, assemblyPath);
-        Check(assembly is { Diagnostic: null, Info: not null } && !string.IsNullOrWhiteSpace(assembly.Info.FileVersion)
+        Assert.IsTrue(assembly is { Diagnostic: null, Info: not null } && !string.IsNullOrWhiteSpace(assembly.Info.FileVersion)
             && assembly.Info.OriginalFilename == "FileScope.Core.dll", "read VERSIONINFO from the built core assembly");
-        Check(!string.IsNullOrWhiteSpace(assembly.Info?.FileType), "file type is available independently of version fields");
-        Check(assemblyStream.CanRead && assemblyStream.Position == 7, "properties leave the supplied stream open at its original position");
+        Assert.IsTrue(!string.IsNullOrWhiteSpace(assembly.Info?.FileType), "file type is available independently of version fields");
+        Assert.IsTrue(assemblyStream.CanRead && assemblyStream.Position == 7, "properties leave the supplied stream open at its original position");
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
-        try { inspector.Inspect(plainStream, plainFile, cancelled.Token); throw new Exception("Expected properties cancellation."); }
-        catch (OperationCanceledException) { Check(true, "cancelled properties inspection propagates cancellation"); }
+        try { inspector.Inspect(plainStream, plainFile, cancelled.Token); Assert.Fail("Expected properties cancellation."); }
+        catch (OperationCanceledException) { Console.WriteLine("cancelled properties inspection propagates cancellation"); }
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-    private static void CheckWindowsVersionHandles(string directory, string plainFile, string[] args)
+    private void CheckVersionHandles(IEnumerable<string> paths)
     {
-        if (!WindowsFileVersionReader.IsAvailable)
-        {
-            Console.WriteLine("SKIP native version-handle checks: Windows export unavailable; path fallback remains covered.");
-            return;
-        }
-        var nePath = Path.Combine(directory, "version-fixture.exe");
-        File.WriteAllBytes(nePath, NeVersionFixture());
-        var baselineNe = System.Diagnostics.FileVersionInfo.GetVersionInfo(nePath);
-        Equal("1.2.3.4", baselineNe.FileVersion, "generated NE fixture contains readable VERSIONINFO");
-        var paths = new List<string> { plainFile, nePath, typeof(FileAnalysisService).Assembly.Location,
-            typeof(object).Assembly.Location, Path.Combine(Environment.SystemDirectory, "kernel32.dll") };
-        for (var i = 0; i + 1 < args.Length; i++)
-            if (args[i] == "--version-file") paths.Add(Path.GetFullPath(args[++i]));
+        var directory = _directory;
+
         foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var reference = System.Diagnostics.FileVersionInfo.GetVersionInfo(path);
@@ -924,17 +1044,17 @@ internal static class CoreChecks
                 var context = $"{Path.GetFileName(path)}, position {position}, buffered {buffered}";
                 if (buffered)
                 {
-                    Equal(bytes[(int)position], file.ReadByte(), "prime version-test read buffer / " + context);
+                    Assert.AreEqual(bytes[(int)position], file.ReadByte(), "prime version-test read buffer / " + context);
                     file.Position = position;
                 }
                 // Deliberately diverge the raw pointer. The inspector's SafeFileHandle getter
                 // synchronizes it to FileStream.Position before the version API is called.
                 var nativeBeforeBorrow = position == 7 ? Math.Min(19, bytes.Length) : position;
-                Check(VersionTestNative.SetFilePointerEx(handle, nativeBeforeBorrow, out _, 0),
+                Assert.IsTrue(VersionTestNative.SetFilePointerEx(handle, nativeBeforeBorrow, out _, 0),
                     "set native version-test position / " + context);
                 var missingPath = Path.Combine(directory, "does-not-exist" + Path.GetExtension(path));
                 var actual = new FilePropertiesInspector().Inspect(file, missingPath);
-                Check(actual.Diagnostic is null && actual.Info is not null,
+                Assert.IsTrue(actual.Diagnostic is null && actual.Info is not null,
                     "version metadata uses the supplied handle without reopening the supplied path");
                 var expected = new FilePropertiesInfo
                 {
@@ -943,19 +1063,19 @@ internal static class CoreChecks
                     CompanyName = reference.CompanyName, OriginalFilename = reference.OriginalFilename, InternalName = reference.InternalName,
                     Copyright = reference.LegalCopyright, Trademarks = reference.LegalTrademarks, Comments = reference.Comments
                 };
-                Check(actual.Info == expected, "handle version fields match FileVersionInfo / " + context);
+                Assert.IsTrue(actual.Info == expected, "handle version fields match FileVersionInfo / " + context);
                 // Query the cached handle: accessing file.SafeFileHandle here would normalize
                 // the pointer again and could hide a broken restoration in the inspector.
-                Check(VersionTestNative.SetFilePointerEx(handle, 0, out var after, 1),
+                Assert.IsTrue(VersionTestNative.SetFilePointerEx(handle, 0, out var after, 1),
                     "query native version-test position / " + context);
-                Equal(position, after, "version inspection restores the synchronized native file pointer / " + context);
-                Check(file.CanRead && file.Position == position,
+                Assert.AreEqual(position, after, "version inspection restores the synchronized native file pointer / " + context);
+                Assert.IsTrue(file.CanRead && file.Position == position,
                     "version inspection preserves the managed stream position and ownership / " + context);
-                Equal(position < bytes.Length ? bytes[(int)position] : -1, file.ReadByte(),
+                Assert.AreEqual(position < bytes.Length ? bytes[(int)position] : -1, file.ReadByte(),
                     "the next managed read still reads from the original position / " + context);
             }
         }
-    }
+        }
 
     private static byte[] NeVersionFixture()
     {
@@ -1004,8 +1124,12 @@ internal static class CoreChecks
 #pragma warning restore SYSLIB1054
     }
 
-    private static async Task CheckMetadataPipelineAsync(string path, IChecksumService checksums)
+    [TestMethod]
+    public async Task MetadataPipelineAsync()
     {
+        var path = _plainFile;
+        var checksums = new StreamChecksumService(new ChecksumStrategyFactory());
+
         foreach (var flags in new[] { (false, false), (true, false), (false, true), (true, true) })
         {
             var metadata = new StubMetadata();
@@ -1018,21 +1142,21 @@ internal static class CoreChecks
             if (flags.Item1) expectedStages.Add(AnalysisStage.ReadingMetadata);
             if (flags.Item2) expectedStages.Add(AnalysisStage.ReadingPeHeader);
             expectedStages.Add(AnalysisStage.CheckingSignature);
-            Check(progress.Values.Select(value => value.Stage).Distinct().SequenceEqual(expectedStages),
+            Assert.IsTrue(progress.Values.Select(value => value.Stage).Distinct().SequenceEqual(expectedStages),
                 "progress reports each enabled inspection separately and in execution order / " + flags);
-            Check(result.Succeeded && metadata.PropertyCalls == (flags.Item1 ? 1 : 0)
+            Assert.IsTrue(result.Succeeded && metadata.PropertyCalls == (flags.Item1 ? 1 : 0)
                 && metadata.PeCalls == (flags.Item2 ? 1 : 0) && (result.Properties is not null) == flags.Item1
                 && (result.PeHeader is not null) == flags.Item2, "metadata options independently control inspection and results / " + flags);
-            Check(signatures.SawReadableHandle && result.Checksums.Count == 1,
+            Assert.IsTrue(signatures.SawReadableHandle && result.Checksums.Count == 1,
                 "metadata inspection retains hashes and resets the stream for signature verification / " + flags);
-            Check(!flags.Item1 || ReferenceEquals(metadata.File, signatures.File),
+            Assert.IsTrue(!flags.Item1 || ReferenceEquals(metadata.File, signatures.File),
                 "properties and signature strategies receive exactly the same FileStream / " + flags);
         }
         var throwing = new StubMetadata { ThrowProperties = true, ThrowPe = true };
         var service = new FileAnalysisService(checksums, new StubSignatures(), throwing, throwing);
         var partial = await service.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], false,
             inspectFileProperties: true, inspectPeHeader: true));
-        Check(partial.Succeeded && partial.Properties?.Diagnostic == "Properties unavailable"
+        Assert.IsTrue(partial.Succeeded && partial.Properties?.Diagnostic == "Properties unavailable"
             && partial.PeHeader?.Diagnostic == "PE unreadable" && throwing.PeCalls == 1 && partial.Checksums.Count == 1,
             "optional metadata failures preserve hashes and allow the other inspector to run");
         using (var cancelled = new CancellationTokenSource())
@@ -1041,13 +1165,13 @@ internal static class CoreChecks
             service = new FileAnalysisService(checksums, new StubSignatures(), metadata, metadata);
             await ExpectCancellationAsync(() => service.AnalyzeAsync(path, new AnalysisOptions([], false,
                 inspectFileProperties: true, inspectPeHeader: true), cancellationToken: cancelled.Token));
-            Equal(0, metadata.PeCalls, "cancellation during properties does not become a diagnostic or run the next inspector");
+            Assert.AreEqual(0, metadata.PeCalls, "cancellation during properties does not become a diagnostic or run the next inspector");
         }
         // Content, not an extension, identifies the PE header.
         await File.WriteAllBytesAsync(path, PeFixture(0x0184, false));
         var real = await new FileAnalysisService(checksums, new StubSignatures()).AnalyzeAsync(path,
             new AnalysisOptions([], false, inspectPeHeader: true));
-        Check(real.PeHeader?.Header?.MachineName == "Alpha" && real.Properties is null,
+        Assert.IsTrue(real.PeHeader?.Header?.MachineName == "Alpha" && real.Properties is null,
             "real pipeline reads PE from a .bin file with properties disabled");
         foreach (var dll in new[] { false, true })
         {
@@ -1056,7 +1180,7 @@ internal static class CoreChecks
             await File.WriteAllBytesAsync(legacyPath, image);
             var legacy = await new FileAnalysisService(checksums, new StubSignatures()).AnalyzeAsync(legacyPath,
                 new AnalysisOptions([ChecksumAlgorithm.SHA256], false, inspectPeHeader: true));
-            Check(legacy.PeHeader is { Diagnostic: null, Header.Format: "NE (Win16)" }
+            Assert.IsTrue(legacy.PeHeader is { Diagnostic: null, Header.Format: "NE (Win16)" }
                 && legacy.Checksums[ChecksumAlgorithm.SHA256] == Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image)),
                 "real pipeline hashes and recognizes Win16 EXE/DLL without execution / DLL=" + dll);
         }
@@ -1087,7 +1211,7 @@ internal static class CoreChecks
         {
             PeCalls++;
             if (ThrowPe) throw new BadImageFormatException("PE unreadable");
-            Check(stream.Position == 0 && stream.CanRead, "PE strategy receives the original readable stream at offset zero");
+            Assert.IsTrue(stream.Position == 0 && stream.CanRead, "PE strategy receives the original readable stream at offset zero");
             stream.Position = stream.Length;
             return new(new PeHeaderInfo(0x014c, "i386", "PE32", ManagedPlatform.AnyCpu));
         }
@@ -1109,40 +1233,41 @@ internal static class CoreChecks
         }
     }
 
-    private static void CheckTimestamps()
+    [TestMethod]
+    public void Timestamps()
     {
         var time = new DateTimeOffset(2024, 2, 3, 12, 34, 56, TimeSpan.Zero);
         var legacy = LegacyTimestamp(time);
         var rfc = RfcTimestamp(time.AddMilliseconds(123));
-        Equal<DateTimeOffset?>(time, AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid, legacy),
+        Assert.AreEqual<DateTimeOffset?>(time, AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid, legacy),
             "legacy countersignature signing-time decoded");
-        Equal<DateTimeOffset?>(time.AddMilliseconds(123), AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc),
+        Assert.AreEqual<DateTimeOffset?>(time.AddMilliseconds(123), AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc),
             "RFC 3161 genTime decoded with fractional seconds");
-        Check(AuthenticodeTimestampReader.Read("1.2.840.113549.1.9.5", legacy) is null,
+        Assert.IsTrue(AuthenticodeTimestampReader.Read("1.2.840.113549.1.9.5", legacy) is null,
             "self-declared signing time is not accepted as a countersignature");
         foreach (var oid in new[] { AuthenticodeTimestampReader.CounterSignatureOid, AuthenticodeTimestampReader.Rfc3161Oid })
         {
-            Check(AuthenticodeTimestampReader.Read(oid, new byte[] { 0x30, 0x82, 0xff }) is null,
+            Assert.IsTrue(AuthenticodeTimestampReader.Read(oid, new byte[] { 0x30, 0x82, 0xff }) is null,
                 "truncated timestamp is handled / " + oid);
-            Check(AuthenticodeTimestampReader.Read(oid, Array.Empty<byte>()) is null,
+            Assert.IsTrue(AuthenticodeTimestampReader.Read(oid, Array.Empty<byte>()) is null,
                 "empty timestamp is handled / " + oid);
         }
-        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
+        Assert.IsTrue(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
             LegacyTimestamp(time, duplicate: true)) is null, "ambiguous duplicate signing times are rejected");
-        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
+        Assert.IsTrue(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.CounterSignatureOid,
             LegacyTimestamp(time, includeTime: false)) is null, "countersignature without signing-time has no invented date");
-        Check(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc.AsMemory(0, rfc.Length - 10)) is null,
+        Assert.IsTrue(AuthenticodeTimestampReader.Read(AuthenticodeTimestampReader.Rfc3161Oid, rfc.AsMemory(0, rfc.Length - 10)) is null,
             "truncated RFC 3161 container is rejected");
         var confirmed = AuthenticodeTimestampReader.Select([time.AddDays(-1), time], true, time, true);
-        Check(confirmed.Time == time && confirmed.Status == TimestampStatus.Verified,
+        Assert.IsTrue(confirmed.Time == time && confirmed.Status == TimestampStatus.Verified,
             "only the timestamp used by a successful Windows check is confirmed");
-        Equal(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time, false).Status,
+        Assert.AreEqual(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time, false).Status,
             "decoded time alone is not proof of timestamp trust");
-        Equal(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time.AddDays(1), true).Status,
+        Assert.AreEqual(TimestampStatus.Unverified, AuthenticodeTimestampReader.Select([time], true, time.AddDays(1), true).Status,
             "Windows verification time cannot replace a different embedded timestamp");
-        Equal(TimestampStatus.NotPresent, AuthenticodeTimestampReader.Select([], false, DateTimeOffset.UtcNow, true).Status,
+        Assert.AreEqual(TimestampStatus.NotPresent, AuthenticodeTimestampReader.Select([], false, DateTimeOffset.UtcNow, true).Status,
             "current verification time never becomes a missing signing date");
-        Equal(TimestampStatus.Unreadable, AuthenticodeTimestampReader.Select([], true, time, true).Status,
+        Assert.AreEqual(TimestampStatus.Unreadable, AuthenticodeTimestampReader.Select([], true, time, true).Status,
             "unreadable and absent timestamps are distinguished");
     }
 
@@ -1191,19 +1316,11 @@ internal static class CoreChecks
         writer.PushSequence(); writer.WriteObjectIdentifier("2.16.840.1.101.3.4.2.1"); writer.PopSequence();
     }
 
-    private static void Check(bool condition, string label)
-    {
-        if (!condition) throw new Exception("FAIL: " + label);
-        _passed++;
-        Console.WriteLine("PASS: " + label);
-    }
-    private static void Equal<T>(T expected, T actual, string label) =>
-        Check(EqualityComparer<T>.Default.Equals(expected, actual), $"{label} (expected {expected}; actual {actual})");
     private static async Task ExpectCancellationAsync(Func<Task> action)
     {
         try { await action(); }
-        catch (OperationCanceledException) { Check(true, "operation cancels"); return; }
-        throw new Exception("Expected OperationCanceledException.");
+        catch (OperationCanceledException) { Console.WriteLine("operation cancels"); return; }
+        Assert.Fail("Expected OperationCanceledException.");
     }
 
     private sealed class StubSignatures : ISignatureInspector

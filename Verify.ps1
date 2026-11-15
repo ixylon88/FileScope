@@ -1,16 +1,20 @@
 <#
 .SYNOPSIS
-Builds FileScope and executes its checks on the selected Windows architecture.
+Builds FileScope and runs its MSTest projects on the selected architecture.
 .DESCRIPTION
-Without -Runtime, the test processes use the current SDK host architecture.
+Uses the same checked-in test projects as Visual Studio and dotnet test.
+Without -Runtime, test processes use the current SDK host architecture.
 An explicit Windows RID requires a Windows machine that can execute that RID.
 .EXAMPLE
 .\Verify.ps1 -Runtime win-arm64
+.EXAMPLE
+.\Verify.ps1 -Settings .\tests\FileScope.local.runsettings
 #>
 [CmdletBinding()]
 param(
     [string]$SignedFile,
     [string[]]$VersionFile = @(),
+    [string]$Settings,
     [switch]$SkipBuild,
     [switch]$SkipUi,
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
@@ -22,76 +26,86 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'build/ScriptSupport.ps1') -NoColor:$NoColor
 if ($Runtime) { $Runtime = $Runtime.ToLowerInvariant() }
-$coreProject = Join-Path $PSScriptRoot 'src/FileScope.Core/FileScope.Core.csproj'
-$appProject = Join-Path $PSScriptRoot 'src/FileScope.App/FileScope.App.csproj'
-$testDirectory = Join-Path $PSScriptRoot ('artifacts/verify/' + [Guid]::NewGuid().ToString('N'))
+
+# Resolve caller-relative paths before entering the repository. XML serialization
+# preserves quotes, ampersands and Unicode in optional fixture paths.
+$settingsPath = if ($Settings) { (Resolve-Path -LiteralPath $Settings).Path }
+    else { Join-Path $PSScriptRoot 'tests/FileScope.runsettings' }
+$resolvedSignedFile = if ($SignedFile) { (Resolve-Path -LiteralPath $SignedFile).Path } else { '' }
+$resolvedVersionFiles = @($VersionFile | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+$runId = [Guid]::NewGuid().ToString('N')
+$temporaryDirectory = Join-Path $PSScriptRoot "artifacts/verify/$runId"
+$resultsDirectory = Join-Path $PSScriptRoot "artifacts/test-results/$runId"
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-function Invoke-Checks {
-    param([string]$Name, [string]$TargetFramework, [string]$Reference, [bool]$UseWpf, [string[]]$TestArguments)
-    Write-BuildMessage $Name -Kind Phase
-    $harnessDirectory = Join-Path $testDirectory $Name
-    [void](New-Item -ItemType Directory -Path $harnessDirectory -Force)
-    $project = Join-Path $harnessDirectory "$Name.csproj"
-    $referenceXml = [System.Security.SecurityElement]::Escape($Reference)
-    $sourceXml = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot "tests/$Name.cs"))
-    $wpf = if ($UseWpf) { '<UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>' } else { '' }
-    $extraItems = ''
-    if ($Name -eq 'PresentationChecks') {
-        # Compile the UI-independent presentation code without a Windows runtime.
-        $sources = @('Infrastructure/ObservableObject.cs', 'Infrastructure/Commands.cs',
-            'Localization/LocalizationService.cs', 'Presentation/DigestFormatter.cs', 'Presentation/WindowSize.cs', 'Presentation/ResultExportProjection.cs',
-            'Presentation/AnalysisRunSummary.cs', 'Presentation/AnalysisProgressBuffer.cs', 'Presentation/SignatureMoveSelection.cs', 'Presentation/FileMoveReport.cs', 'Presentation/AnalysisStageText.cs', 'Presentation/SignatureGroup.cs',
-            'Services/PreferencesStore.cs', 'Services/IThemeService.cs', 'ViewModels/Options.cs', 'ViewModels/ColumnOption.cs',
-            'ViewModels/SignatureOption.cs', 'ViewModels/OptionsViewModel.cs', 'ViewModels/FileRowViewModel.cs')
-        foreach ($relative in $sources) {
-            $item = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot "src/FileScope.App/$relative"))
-            $extraItems += "<Compile Include=`"$item`" />"
-        }
-        $resources = [System.Security.SecurityElement]::Escape((Join-Path $PSScriptRoot 'src/FileScope.App/Resources/Strings*.resx'))
-        $extraItems += "<EmbeddedResource Include=`"$resources`" Link=`"Resources/%(Filename)%(Extension)`" />"
+function Set-TestParameter {
+    param([xml]$Document, [string]$Name, [string]$Value)
+
+    $parameters = $Document.SelectSingleNode('/RunSettings/TestRunParameters')
+    if ($null -eq $parameters) {
+        $parameters = $Document.CreateElement('TestRunParameters')
+        [void]$Document.DocumentElement.AppendChild($parameters)
     }
-    @"
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType><TargetFramework>$TargetFramework</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
-    <DebugType>portable</DebugType><DebugSymbols>true</DebugSymbols>
-    <RootNamespace>FileScope.App</RootNamespace>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>$wpf
-  </PropertyGroup>
-  <ItemGroup><ProjectReference Include="$referenceXml" /><Compile Include="$sourceXml" />$extraItems</ItemGroup>
-</Project>
-"@ | Set-Content -LiteralPath $project -Encoding UTF8
-    $arguments = @('run', '--project', $project, '--configuration', $Configuration,
-        '--self-contained', 'false', '--no-launch-profile', '--verbosity', $Verbosity, '--tl:off',
-        "-p:Platform=$(Get-BuildPlatform $Runtime)")
-    if ($Runtime) { $arguments += @('--runtime', $Runtime) }
-    Invoke-DotNet -Name $Name -Arguments ($arguments + @('--') + $TestArguments)
+    $parameter = $parameters.SelectSingleNode("Parameter[@name='$Name']")
+    if ($null -eq $parameter) {
+        $parameter = $Document.CreateElement('Parameter')
+        $parameter.SetAttribute('name', $Name)
+        [void]$parameters.AppendChild($parameter)
+    }
+    $parameter.SetAttribute('value', $Value)
 }
 
-# Resolve user-supplied paths relative to the caller, before entering the repository.
-$coreArguments = @()
-if ($SignedFile) { $coreArguments = @('--signed-file', (Resolve-Path -LiteralPath $SignedFile).Path) }
-foreach ($file in $VersionFile) { $coreArguments += @('--version-file', (Resolve-Path -LiteralPath $file).Path) }
+function Invoke-Checks {
+    param([string]$Group)
+
+    $name = "FileScope.$Group.Tests"
+    Write-BuildMessage $name -Kind Phase
+    $project = Join-Path $PSScriptRoot "tests/$name/$name.csproj"
+    $arguments = @('test', '--project', $project, '--configuration', $Configuration,
+        '--verbosity', $Verbosity, "-p:Platform=$(Get-BuildPlatform $Runtime)",
+        '--settings', $settingsPath, '--report-trx', '--report-trx-filename', "$name.trx",
+        '--results-directory', $resultsDirectory)
+
+    # A RID is valid for an individual project, never for the solution build.
+    if ($Runtime) { $arguments += @('--runtime', $Runtime) }
+    if ($NoColor -or $env:NO_COLOR) { $arguments += '--no-ansi' }
+    Invoke-DotNet -Name $name -Arguments $arguments
+}
+
 Push-Location $PSScriptRoot
 try {
     $target = if ($Runtime) { $Runtime } else { 'current SDK host' }
     Write-BuildMessage "FILESCOPE VERIFY | $Configuration | $target" -Kind Header
     Assert-RuntimeExecution -Runtime $Runtime
     Initialize-BuildEnvironment -RepositoryRoot $PSScriptRoot
+
+    if ($SignedFile -or $resolvedVersionFiles.Count -gt 0) {
+        [xml]$document = Get-Content -LiteralPath $settingsPath -Raw
+        if ($SignedFile) { Set-TestParameter $document 'SignedFile' $resolvedSignedFile }
+        if ($resolvedVersionFiles.Count -gt 0) {
+            $json = ConvertTo-Json -InputObject $resolvedVersionFiles -Compress
+            Set-TestParameter $document 'VersionFiles' $json
+        }
+        [void](New-Item -ItemType Directory -Path $temporaryDirectory -Force)
+        $settingsPath = Join-Path $temporaryDirectory 'FileScope.runsettings'
+        $document.Save($settingsPath)
+    }
+
     Write-BuildMessage 'ScriptChecks' -Kind Phase
     & (Join-Path $PSScriptRoot 'tests/ScriptChecks.ps1')
+
     if (-not $SkipBuild) {
         Invoke-SolutionBuild -RepositoryRoot $PSScriptRoot -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
     }
-    else { Write-BuildMessage 'Solution build skipped; test harnesses still build their references.' -Kind Warning }
-    Invoke-Checks -Name 'CoreChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments $coreArguments
-    Invoke-Checks -Name 'PresentationChecks' -TargetFramework 'net10.0' -Reference $coreProject -UseWpf $false -TestArguments @()
+    else { Write-BuildMessage 'Solution build skipped; dotnet test still builds its projects and references.' -Kind Warning }
+
+    Invoke-Checks -Group 'Core'
+    Invoke-Checks -Group 'Presentation'
     if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {
-        Invoke-Checks -Name 'UiChecks' -TargetFramework 'net10.0-windows' -Reference $appProject -UseWpf $true -TestArguments @()
+        Invoke-Checks -Group 'Ui'
     }
-    else { Write-BuildMessage 'Windows UI checks skipped.' -Kind Warning }
+    else { Write-BuildMessage 'Windows UI tests skipped.' -Kind Warning }
+
     Write-BuildMessage 'All requested checks passed.' -Kind Success
 }
 catch {
@@ -100,8 +114,9 @@ catch {
 }
 finally {
     Pop-Location
-    # Only this invocation's generated harness files are removed.
-    Remove-Item -LiteralPath $testDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    # Preserve TRX reports, including failures; remove only this run's settings copy.
+    Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force -ErrorAction SilentlyContinue
     $stopwatch.Stop()
+    Write-BuildMessage "Test reports: $resultsDirectory"
     Write-BuildMessage "Elapsed: $($stopwatch.Elapsed)"
 }

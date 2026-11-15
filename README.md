@@ -15,7 +15,7 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt. Nur die ausdrücklich gewählte Kontextmenü-Aktion zum Verschieben ändert Dateipfade.
 
-Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Bis auf einen Microsoft-Analyzer (Codeanalyse) werden keine Drittanbieter-NuGet-Pakete verwendet.
+Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **zwei Produktionsprojekte und drei MSTest-Projekte**. Der vollständige Quelltext liegt bei. Microsoft-Analyzer und MSTest werden für Entwicklung und Tests verwendet; die App benötigt keine zusätzlichen Bibliothekspakete zur Laufzeit.
 
 ## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
 
@@ -568,24 +568,43 @@ Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injecti
 .\Verify.ps1 -Runtime win-arm64
 ```
 
-Das Skript prüft zunächst die PowerShell-Orchestrierung, baut die Projektmappe und führt Core-, Formatierungs-/Einstellungs- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete. `tests/ScriptChecks.ps1` lässt sich auch separat ohne SDK ausführen; ein Ersatz für `dotnet` prüft Parameterweitergabe, Fehlerabbruch und Aufräumen in temporären Verzeichnissen, ohne echte Windows-Programme zu starten.
+`Verify.ps1` prüft die PowerShell-Skripte, baut die Projektmappe und startet die
+festen MSTest-Projekte für Core, Präsentation und unter Windows WPF. Die drei
+Aufrufe sind Alternativen; ARM64-Tests benötigen Windows ARM64. TRX-Berichte
+bleiben unter `artifacts/test-results/<Lauf-ID>` erhalten und stehen in der CI
+auch bei fehlgeschlagenen Tests als Artefakte bereit.
 
-Die drei Aufrufe sind Alternativen. Ohne `-Runtime` bleibt die bisherige Auswahl durch den SDK-Host erhalten; unter Linux laufen damit Core und Präsentation. Mit `-Runtime` wählt der Lösungsbuild die passende Plattform ohne RID; die einzelnen Testprojekte erhalten zusätzlich den angegebenen Windows-RID. Damit stimmen die Zielarchitekturen überein, ohne den unzulässigen Runtime-Parameter an einen Lösungsbuild zu übergeben. ARM64-Prüfungen müssen unter Windows ARM64 laufen; ein x64-Rechner kann sie nicht durch Cross-Compilation ausführen. x64-Prüfungen auf Windows ARM64 sind gegebenenfalls emuliert und ersetzen keinen nativen ARM64-Lauf. `-Configuration` und `-Verbosity` gelten für Build und Tests. `-SkipBuild` überspringt nur den vorangestellten Lösungsbuild; die temporären Testprojekte bauen weiterhin ihre Referenzen. `-SkipUi` lässt die WPF-Prüfungen ausdrücklich aus.
+In **Visual Studio** lassen sich dieselben C#-Tests im **Test-Explorer** einzeln
+ausführen und debuggen. Auf Windows können alle C#-Tests auch direkt gestartet
+werden:
 
-Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen ViewModels, Bindungen und dem Dispatcher auf einem STA-Thread. Injizierte Testdienste liefern kontrollierte Analyseergebnisse und Dialogantworten. So lassen sich auch Abbruch, Sprachwechsel und Spaltensichtbarkeit automatisiert prüfen.
+```powershell
+dotnet test --solution FileScope.sln -c Release
+```
 
-Dokumentierter Prüfumfang einschließlich Durchlaufstatistik, Theme-Umschaltung, Infodialog und Dateikontextmenü; gezählt werden einzelne Prüfbedingungen (Assertions):
+Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen
+ViewModels, Bindungen und einem STA-Dispatcher. Injizierte Testdienste liefern
+kontrollierte Analyseergebnisse und Dialogantworten. So werden unter anderem
+Abbruch, Sprach- und Designwechsel, Kontextmenüs, Optionsdialog und
+Spaltendarstellung geprüft. Jeder Test kann unabhängig ausgewählt werden;
+verbliebene Fenster werden auch nach einem Fehler geschlossen.
 
-| Gruppe | Anzahl und Ausführungsstand |
+Seit der MSTest-Umstellung zählen die C#-Gruppen **Testfälle einschließlich
+Datenzeilen**. Ein Testfall kann mehrere Prüfbedingungen enthalten. Die früheren
+Assertion-Zahlen sind deshalb nicht direkt mit diesen Zahlen vergleichbar.
+
+| Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
-| PowerShell-Skripte | **51** bestanden; vier Publish-Varianten, Plattformauswahl ohne Solution-RID, passende Build-/Run-Pfade, Test-RIDs, Farb-Resets je Zeile, farblose Ausgabe, Pfade mit Leerzeichen/Sonderzeichen, Exitcodes, Aufräumen und Plattformprüfung. |
-| Core | Jeweils **220** unter Linux mit AnyCPU- und x64-Build bestanden, einschließlich 5 Phasenprüfungen, 13 Prüfungen zum Verschieben und 19 für den Regex-Aufnahmefilter. Im GitHub-Lauf auf Windows x64 und ARM64 jeweils **401** bestanden. Mit denselben zusätzlichen Voraussetzungen wie im früheren lokalen Windows-Lauf weiterhin **509** erwartet. |
-| Präsentation und Einstellungen | **210** bestanden, einschließlich 10 Prüfungen für Fortschrittspuffer/Phasentexte, 19 für Signaturgruppen/Pfade/Verschiebeberichte, 5 zur gespeicherten Pfadbreitenwahl und 11 für feste Statuscodes, Sprache, Export und übereinstimmende Verschiebegruppen. |
-| WPF / UI / MVVM | **474** erwartet, einschließlich 11 Prüfungen für gepufferten Fortschritt/pausierte Filter, 20 für Verschiebeaktion/Bericht, 16 für Menüauswahl/Pfaddarstellung, jeweils 17 für die Tastenkürzelübersicht und den Lebenszyklus der Vorlagenzellen sowie 24 für den Regex-Aufnahmefilter und jeweils 12 für das aufklappbare Menü und den Optionsfuß sowie 4 zusätzliche Assertions durch die Aufteilung der Scrollprüfung und 9 zur Initialisierung fixierter Spalten. Testprogramm mit SDK 10.0.404 für x64 und ARM64 fehlerfrei kompiliert. Windows-Lauf nach der Korrektur noch offen. |
+| PowerShell-Skripte | **56 Prüfbedingungen bestanden**; unter anderem Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
+| Core | **27 Testfälle**; unter Linux **22 bestanden**, **5** wegen Windows-Voraussetzungen übersprungen. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
+| Präsentation und Einstellungen | **22 Testfälle bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen. |
+| WPF / UI / MVVM | **35 Testfälle**, einschließlich zweier Prüfungen für STA-Dispatcher und Aufräumen nach Fehlern. Windows-Ausführung nach der Umstellung noch offen. |
 
-Die UI-Anzahl ergibt sich aus den zuletzt unter Windows bestätigten 223 Prüfungen, 32 Ergänzungen für Diagnoseanzeige und Durchlaufstatistik, 31 Theme-Prüfungen, 19 Prüfungen für den Infodialog, 27 Prüfungen für das Dateikontextmenü, 11 Prüfungen für gepufferten Fortschritt und pausierte Filter sowie 20 Prüfungen für Verschieben und Abschlussbericht und 16 Ergänzungen für Auswahl, Menütrennung, Pfadkopf und Breitenoption sowie jeweils 17 für die Tastenkürzelübersicht und die Bindungen der Vorlagenzellen und 24 für den Regex-Aufnahmefilter sowie jeweils 12 für das aufklappbare Menü und den Optionsfuß und 4 zusätzlichen Assertions durch die Aufteilung der Scrollprüfung sowie 9 zur Initialisierung fixierter Spalten. Letztere prüfen null, eine und zwei fixierte Spalten vor dem ersten Layout, nach einer Umordnung und nach dem Zurücksetzen. Die Optionsprüfungen behandeln den sichtbaren Schließen-Knopf neben Hinweisen und Speicherfehlern bei Standard- und Mindestgröße in allen drei Sprachen. Die Menüprüfungen behandeln die gewonnene Tabellenfläche, die Erreichbarkeit von Optionen, Dateiöffnen und Drop bei eingeklappter Leiste sowie lange Regex-Eingaben und Beschriftungen in allen drei Sprachen. Die UI-Prüfungen des Aufnahmefilters verwenden das echte Textfeld und kontrollierte Dienste für Dateiauswahl, Ordnersuche und gemischte Drops; sie prüfen zudem Fehlermeldungen in drei Sprachen, Zeitlimit, Abbruch und unveränderte bestehende Ergebnisse. Die Zellprüfungen behandeln auch noch nicht eingebaute Presenter, den Wechsel und das Leeren des Zeilenkontexts sowie Filter- und Sichtbarkeitswechsel. Diese verwenden auch den echten WPF-Dienst, geöffnete Fenster und die tatsächlichen Bedienelemente. Beim Infodialog werden unter anderem der modale Aufruf, Version und Offline-Lizenz, drei Sprachen, beide Designs und Fehler beim Browseraufruf geprüft. Das Kontextmenü wird mit echten Menüeinträgen und einem Testdienst für die Shell geprüft, einschließlich Zeilenzuordnung, Mehrfachauswahl, Sonderzeichen in Pfaden, Fehlern und verspäteten Antworten. Die Core-Anzahl kann abhängig von verfügbaren nativen Funktionen, Link-Berechtigungen und zusätzlichen Testdateien variieren. Die Zahlen werden bei Änderungen an den Prüfungen mitgeführt; der detaillierte Ausführungsstand steht in `VALIDATION.md`.
-
-Die Badge-Prüfung ermittelt nach jedem Designwechsel die aktuell angezeigte Analysezelle derselben Ergebniszeile. So hängt sie nicht von der Lebensdauer einer durch WPF möglicherweise neu erzeugten Zellansicht ab. Die Anzahl der Prüfungen bleibt dabei unverändert.
+Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
+Beispieldateien und der Einrichtung stehen in
+[`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md#mstest-in-visual-studio-und-konsole),
+der genaue Ausführungsstand in [`VALIDATION.md`](VALIDATION.md).
+`tests/ScriptChecks.ps1` lässt sich weiterhin separat ohne SDK starten.
 
 **Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
 

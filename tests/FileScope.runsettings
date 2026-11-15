@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <TestRunParameters>
+    <!-- Optional absolute paths; use a local copy for machine-specific fixtures.
+         VersionFiles is a JSON array, e.g. [&quot;D:/Fixtures/Win16.exe&quot;]. -->
+    <Parameter name="SignedFile" value="" />
+    <Parameter name="VersionFiles" value="[]" />
+  </TestRunParameters>
+</RunSettings>

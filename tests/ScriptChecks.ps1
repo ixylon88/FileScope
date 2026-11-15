@@ -25,12 +25,25 @@ function Invoke-Scenario {
         $arguments = [string[]]$args
         $name = $arguments[0]
         $xml = $null
-        if ($name -eq 'run') {
+        if ($name -in @('run', 'test')) {
             $project = $arguments[[Array]::IndexOf($arguments, '--project') + 1]
             $name = [System.IO.Path]::GetFileNameWithoutExtension($project)
             $xml = [xml](Get-Content -LiteralPath $project -Raw)
         }
-        $scenarioState.Calls.Add([pscustomobject]@{ Name = $name; Arguments = $arguments; Project = $xml })
+        $settingsXml = $null
+        $settingsIndex = [Array]::IndexOf($arguments, '--settings')
+        if ($settingsIndex -ge 0) { $settingsXml = [xml](Get-Content -LiteralPath $arguments[$settingsIndex + 1] -Raw) }
+
+        # Simulate a report even for failed tests, so cleanup is checked on disk.
+        $reportPath = ''
+        $resultsIndex = [Array]::IndexOf($arguments, '--results-directory')
+        $reportIndex = [Array]::IndexOf($arguments, '--report-trx-filename')
+        if ($resultsIndex -ge 0 -and $reportIndex -ge 0) {
+            $reportPath = Join-Path $arguments[$resultsIndex + 1] $arguments[$reportIndex + 1]
+            [void](New-Item -ItemType Directory -Path (Split-Path $reportPath -Parent) -Force)
+            Set-Content -LiteralPath $reportPath -Value '<TestRun />'
+        }
+        $scenarioState.Calls.Add([pscustomobject]@{ Name = $name; Arguments = $arguments; Project = $xml; Settings = $settingsXml; ReportPath = $reportPath })
         # Match the SDK restriction instead of accepting invalid solution calls.
         if ($name -eq 'build' -and $arguments[1] -like '*.sln' -and $arguments -contains '--runtime') {
             throw 'NETSDK1134: A solution build cannot specify a runtime identifier.'
@@ -76,7 +89,11 @@ try {
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'tests') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'src/FileScope.App') -Force)
     foreach ($path in @('Build.ps1', 'Verify.ps1', 'global.json', 'build/ScriptSupport.ps1',
-        'build/colored_console.ps1', 'src/FileScope.App/FileScope.App.csproj')) {
+        'build/colored_console.ps1', 'src/FileScope.App/FileScope.App.csproj', 'tests/FileScope.runsettings',
+        'tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj',
+        'tests/FileScope.Presentation.Tests/FileScope.Presentation.Tests.csproj',
+        'tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj')) {
+        [void](New-Item -ItemType Directory -Path (Split-Path (Join-Path $fixture $path) -Parent) -Force)
         Copy-Item -LiteralPath (Join-Path $repository $path) -Destination (Join-Path $fixture $path)
     }
     # Only the disposable copy bypasses platform execution; every dotnet call is fake.
@@ -118,23 +135,27 @@ try {
 
     foreach ($runtime in @('win-x64', 'win-arm64')) {
         $result = Invoke-Scenario 'Verify.ps1' @{ Runtime = $runtime; Configuration = 'Debug' }
-        $work = @($result.Calls | Where-Object { $_.Name -in @('build', 'CoreChecks', 'PresentationChecks', 'UiChecks') })
+        $work = @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests') })
         $platform = if ($runtime -eq 'win-arm64') { 'Arm64' } else { 'x64' }
         Check ($result.Error -eq '' -and $work.Count -eq 4 -and
             @($work | Where-Object { -not (Has-Option $_ '--configuration' 'Debug') -or
                 $_.Arguments -notcontains "-p:Platform=$platform" }).Count -eq 0) "build and all three test processes use the same architecture/configuration: $runtime"
         $build = $work | Where-Object Name -eq 'build'
-        $harnesses = @($work | Where-Object Name -ne 'build')
+        $testProjects = @($work | Where-Object Name -ne 'build')
         Check ($build.Arguments -notcontains '--runtime' -and
-            @($harnesses | Where-Object { -not (Has-Option $_ '--runtime' $runtime) }).Count -eq 0) "verify uses runtime identifiers only for individual test projects: $runtime"
-        $ui = $work | Where-Object Name -eq 'UiChecks'
-        Check ($ui.Project.Project.PropertyGroup.UseWPF -eq 'true') "UI harness still uses actual WPF: $runtime"
-        Check (@(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1 -and $result.LocationRestored) "verify cleans only its temporary harnesses: $runtime"
+            @($testProjects | Where-Object { -not (Has-Option $_ '--runtime' $runtime) }).Count -eq 0) "verify uses runtime identifiers only for individual test projects: $runtime"
+        $ui = $work | Where-Object Name -eq 'FileScope.Ui.Tests'
+        Check ($ui.Project.Project.PropertyGroup.UseWPF -eq 'true') "UI test project still uses actual WPF: $runtime"
+        Check (@($testProjects | Where-Object { $_.Arguments[0] -ne 'test' -or
+            $_.Arguments -notcontains '--report-trx' -or $_.Arguments -notcontains '--no-ansi' -or
+            -not (Has-Option $_ '--settings' (Join-Path $fixture 'tests/FileScope.runsettings')) }).Count -eq 0) "all suites use MSTest, shared settings and persistent reports: $runtime"
+        Check (@(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1 -and $result.LocationRestored -and
+            @($testProjects | Where-Object { -not (Test-Path -LiteralPath $_.ReportPath) }).Count -eq 0) "verify preserves unrelated artifacts and completed test reports: $runtime"
     }
 
     $result = Invoke-Scenario 'Verify.ps1' @{ SkipBuild = $true; SkipUi = $true }
-    Check ($result.Error -eq '' -and @($result.Calls | Where-Object { $_.Name -in @('CoreChecks', 'PresentationChecks') }).Count -eq 2 -and
-        @($result.Calls | Where-Object { $_.Name -in @('build', 'UiChecks') }).Count -eq 0) 'skip switches keep the requested non-UI tests'
+    Check ($result.Error -eq '' -and @($result.Calls | Where-Object { $_.Name -in @('FileScope.Core.Tests', 'FileScope.Presentation.Tests') }).Count -eq 2 -and
+        @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Ui.Tests') }).Count -eq 0) 'skip switches keep the requested non-UI tests'
     Check (-not $result.Log.Contains([string][char]27) -and $result.Log.Contains('[SUCCESS]')) 'plain console output retains readable phase/result labels'
 
     $caller = Join-Path $fixture 'external caller'
@@ -143,13 +164,35 @@ try {
     try {
         Set-Content -LiteralPath 'sample & version.exe' -Value 'test input'
         $result = Invoke-Scenario 'Verify.ps1' @{ SignedFile = './sample & version.exe'; VersionFile = @('./sample & version.exe'); SkipBuild = $true }
-        $core = $result.Calls | Where-Object Name -eq 'CoreChecks'
+        $core = $result.Calls | Where-Object Name -eq 'FileScope.Core.Tests'
         $expected = Join-Path $caller 'sample & version.exe'
-        Check ($result.Error -eq '' -and (Has-Option $core '--signed-file' $expected) -and (Has-Option $core '--version-file' $expected)) 'sample paths with spaces and XML-sensitive characters survive argument forwarding'
+        $parameters = $core.Settings.RunSettings.TestRunParameters.Parameter
+        $signedValue = ($parameters | Where-Object name -eq 'SignedFile').value
+        $versionValues = @(($parameters | Where-Object name -eq 'VersionFiles').value | ConvertFrom-Json)
+        Check ($result.Error -eq '' -and $signedValue -eq $expected -and $versionValues.Count -eq 1 -and $versionValues[0] -eq $expected -and
+            ($parameters | Where-Object name -eq 'VersionFiles').value.StartsWith('[')) 'sample paths with spaces and XML-sensitive characters survive runsettings forwarding'
+        Check ((Get-Content -LiteralPath (Join-Path $fixture 'tests/FileScope.runsettings') -Raw) -eq
+            (Get-Content -LiteralPath (Join-Path $repository 'tests/FileScope.runsettings') -Raw)) 'fixture overrides never modify the shared settings file'
+
+        # A custom configuration is the same input in Visual Studio and Verify.
+        $customSettings = '<RunSettings><TestRunParameters><Parameter name="SignedFile" value="configured.exe" /><Parameter name="VersionFiles" value="[]" /></TestRunParameters></RunSettings>'
+        Set-Content -LiteralPath 'custom.runsettings' -Value $customSettings
+        $result = Invoke-Scenario 'Verify.ps1' @{ Settings = './custom.runsettings'; SkipBuild = $true }
+        $core = $result.Calls | Where-Object Name -eq 'FileScope.Core.Tests'
+        Check ($result.Error -eq '' -and (Has-Option $core '--settings' (Join-Path $caller 'custom.runsettings')) -and
+            ($core.Settings.RunSettings.TestRunParameters.Parameter | Where-Object name -eq 'SignedFile').value -eq 'configured.exe') 'custom runsettings are forwarded unchanged from the caller directory'
+
+        $result = Invoke-Scenario 'Verify.ps1' @{ Settings = './custom.runsettings'; SignedFile = './sample & version.exe'; SkipBuild = $true } 'FileScope.Core.Tests'
+        $core = $result.Calls | Where-Object Name -eq 'FileScope.Core.Tests'
+        Check ($result.Error -like '*exit 23*' -and $result.LocationRestored -and
+            ($core.Settings.RunSettings.TestRunParameters.Parameter | Where-Object name -eq 'SignedFile').value -eq $expected -and
+            (Get-Content -LiteralPath 'custom.runsettings' -Raw).Trim() -eq $customSettings -and
+            (Test-Path -LiteralPath $core.ReportPath) -and
+            @(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1) 'failed test runs remove temporary overrides and preserve the custom configuration'
     }
     finally { Pop-Location }
 
-    foreach ($failure in @('--version', 'build', 'CoreChecks', 'PresentationChecks', 'UiChecks')) {
+    foreach ($failure in @('--version', 'build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests')) {
         $result = Invoke-Scenario 'Verify.ps1' @{} $failure
         Check ($result.Error -like '*exit 23*' -and $result.Calls[-1].Name -eq $failure -and -not $result.Log.Contains('[SUCCESS]')) "failure stops verification immediately: $failure"
         Check ($result.LocationRestored -and @(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1) "failure restores location and cleans temporary files: $failure"

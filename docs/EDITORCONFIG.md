@@ -289,7 +289,7 @@ Gültigkeitsbereich: `[*.{cs,vb}]`.
 
 Gültigkeitsbereich: `[**Test**.cs]`.
 
-Dieses Muster trifft Namen mit "Test"; CoreChecks.cs/UiChecks.cs verwenden stattdessen tests/.editorconfig.
+Dieses Muster trifft Namen mit "Test"; ergänzende Ausnahmen für alle Testquellen stehen in tests/.editorconfig.
 
 | Einstellung | Wert | Wirkung |
 | --- | --- | --- |

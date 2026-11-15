@@ -6,7 +6,7 @@
 ruft diese Skripte mit denselben Parametern wie die lokale Entwicklung
 auf. Es gibt keinen Schalter, der auf dem Build-Server andere App-Eigenschaften
 aktiviert. `build/ScriptSupport.ps1` bündelt Phasenfarben, SDK-Ausgabe,
-Exitcode-Prüfung und den Lösungsbuild. Die zwei Projekte werden beim
+Exitcode-Prüfung und den Lösungsbuild. Die fünf Projekte werden beim
 Lösungsbuild seriell gebaut (`-m:1`); zusätzliche MSBuild-Arbeitsprozesse werden
 dafür weder lokal noch in CI benötigt. Die Darstellung orientiert sich an den
 TinyCamServer-Skripten; Visual-Studio-Pfade, COM-Registrierung und deren
@@ -36,6 +36,104 @@ Fehler werden nicht in Erfolgsmeldungen umgewandelt. Die Skripte wechseln für
 SDK-Auswahl und Build ins Repository und stellen das vorherige Arbeitsverzeichnis
 auch nach einem Fehler wieder her. Externe Beispieldateien für Verify werden
 vorher relativ zum aufrufenden Verzeichnis aufgelöst.
+
+## MSTest in Visual Studio und Konsole
+
+Die Solution enthält `FileScope.Core.Tests`, `FileScope.Presentation.Tests` und
+`FileScope.Ui.Tests`. Alle verwenden `MSTest.Sdk`; dessen Version und der
+Test-Runner `Microsoft.Testing.Platform` sind in `global.json` festgelegt.
+Das SDK liefert Framework, Adapter und Runner. Das Erweiterungsprofil bleibt
+bei `None`; nur die Ausgabe von TRX-Berichten wird zusätzlich aktiviert.
+Eine separate Paketversionsliste für die einzelnen MSTest-Bausteine entfällt.
+
+Die Projekte erscheinen nach Restore/Build im **Test-Explorer** von Visual
+Studio mit .NET-10-Unterstützung. Dort lassen sich Szenarien einzeln ausführen
+und debuggen. Release-Testprojekte behalten dafür portable Debugsymbole.
+Dieselben Testmethoden laufen auf Windows auch direkt in der Konsole:
+
+```powershell
+# Alle C#-Tests, ohne RID an der Solution.
+dotnet test --solution FileScope.sln -c Release
+
+# Ein Szenario, beispielsweise bei der Fehlersuche.
+dotnet test --project tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj --filter "FullyQualifiedName~HorizontalScrolling"
+
+# Ein Testprojekt mit festgelegter Architektur, auf einem passenden Windows-Host.
+dotnet test --project tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj -c Release --runtime win-arm64 -p:Platform=Arm64
+```
+
+`Verify.ps1` ergänzt die PowerShell-Skripttests und den Lösungsbuild. Anschließend
+startet es die drei festen Testprojekte mit `dotnet test`. `-SkipBuild` lässt
+nur den vorangestellten Lösungsbuild aus; die Testaufrufe bauen weiterhin ihre
+Projekte und Referenzen. `-SkipUi` überspringt die WPF-Gruppe. Ohne expliziten
+Windows-RID laufen unter Linux die Core- und Präsentationstests; ein vollständiger
+Solution-Testlauf einschließlich WPF benötigt Windows.
+
+Innerhalb eines Testprojekts laufen die Szenarien seriell. Die WPF-Gruppe nutzt
+eine gemeinsame `Application` mit einem eigenen STA-Thread und Dispatcher.
+Vor jedem Szenario werden Ressourcen und Sprache initialisiert; danach werden
+auch bei Fehlern die verbliebenen Fenster geschlossen und der Ausgangszustand
+wiederhergestellt. Kein Szenario setzt voraus, dass ein anderes zuerst lief.
+Die Präsentationstests binden weiterhin nur die UI-unabhängigen Quelldateien
+ein; dafür wird kein WPF-Fenster benötigt.
+
+### Optionale Beispieldateien und gemeinsame Einstellungen
+
+`tests/FileScope.runsettings` enthält leere Vorgaben für zusätzliche
+Signatur- und Versionsdateien. Ohne Beispieldatei meldet MSTest den betreffenden
+optionalen Test als übersprungen. Betriebssystemspezifische Tests werden auf
+anderen Betriebssystemen ebenfalls ausdrücklich übersprungen.
+
+Für eigene Dateien eine lokale Kopie `tests/FileScope.local.runsettings`
+anlegen; `*.local.runsettings` ist von Git ausgeschlossen. Die Parameter
+verwenden **absolute Pfade**, damit Arbeitsverzeichnisse von Visual Studio,
+Konsole und CI keinen Unterschied machen. `VersionFiles` enthält ein JSON-Array;
+im XML werden dessen Anführungszeichen maskiert:
+
+```xml
+<RunSettings>
+  <TestRunParameters>
+    <Parameter name="SignedFile" value="D:/Fixtures/signed.exe" />
+    <Parameter name="VersionFiles" value="[&quot;D:/Fixtures/VBRUN300.DLL&quot;,&quot;D:/Fixtures/DMSGEW.EXE&quot;]" />
+  </TestRunParameters>
+</RunSettings>
+```
+
+In Visual Studio diese Datei unter **Test → Configure Run Settings → Select
+Solution Wide runsettings File** auswählen. Es gibt bewusst keine feste
+`RunSettingsFilePath`-Projektvorgabe, die diese Auswahl überschreiben würde.
+In der Konsole dieselbe Datei angeben:
+
+```powershell
+.\Verify.ps1 -Settings .\tests\FileScope.local.runsettings
+dotnet test --solution FileScope.sln --settings tests/FileScope.local.runsettings
+
+# Die bisherigen Kurzformen bleiben erhalten; sie dürfen auch relative Pfade verwenden.
+.\Verify.ps1 -SignedFile 'D:\Fixtures\signed.exe'
+.\Verify.ps1 -VersionFile 'D:\Fixtures\VBRUN300.DLL', 'D:\Fixtures\DMSGEW.EXE'
+```
+
+`-SignedFile` und `-VersionFile` überschreiben nur den jeweiligen Parameter in
+einer temporären Kopie der gewählten Einstellungen. Die Quelldatei bleibt
+unverändert; die Kopie wird auch nach Fehlern entfernt. Ohne `-Settings` verwendet
+Verify die gemeinsame Datei im Repository.
+
+### Testergebnisse
+
+Verify schreibt je Testprojekt einen TRX-Bericht nach
+`artifacts/test-results/<Lauf-ID>/`. Diese Berichte bleiben auch nach einem
+Fehlschlag erhalten. Die CI lädt vorhandene Berichte für jede Architektur als
+eigenes Artefakt hoch. Scheitert bereits Restore oder Build, kann für das
+betreffende Projekt noch kein Testbericht vorliegen.
+
+MSTest zählt **Testfälle**, nicht einzelne Assertions innerhalb eines Szenarios.
+Datenzeilen zählen als eigene Fälle. Die früheren Assertion-Zahlen bleiben im
+Prüfverlauf in `VALIDATION.md` erhalten und sind nicht direkt vergleichbar.
+
+Microsoft-Referenzen:
+[MSTest-SDK](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-sdk),
+[MTP ausführen und debuggen](https://learn.microsoft.com/en-us/dotnet/core/testing/microsoft-testing-platform-run-and-debug),
+[Runsettings in Visual Studio](https://learn.microsoft.com/en-us/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file).
 
 ## SDK, Runtime und Reproduzierbarkeit
 

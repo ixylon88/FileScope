@@ -1,5 +1,63 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Umstellung: Feste MSTest-Projekte in der Solution
+
+Stand: 2026-11-15, Basis `41fb5fb` (`dev`), .NET SDK **10.0.404**,
+`MSTest.Sdk` **4.5.3** / Microsoft.Testing.Platform **2.5.3**.
+
+Die bisherigen C#-Konsolenprogramme sind in drei permanente MSTest-Projekte
+überführt. Vorhandene Szenarien und Prüfbedingungen bleiben erhalten; gemeinsame
+`Main`-Abläufe wurden in unabhängig auswählbare Testmethoden aufgeteilt.
+Formatvarianten und die Zahl fixierter Spalten sind Datenzeilen. Die Solution
+enthält jetzt zwei Produktions- und drei Testprojekte. Nur die Testprojekte
+verwenden MSTest; die Runtime-Abhängigkeiten der App bleiben unverändert.
+
+Der WPF-Host hält eine `Application` mit einem eigenen STA-Dispatcher. Er setzt
+Sprache und Ressourcen je Szenario zurück und schließt verbliebene Fenster auch
+bei fehlgeschlagenen Assertions. Zwei zusätzliche UI-Tests prüfen den
+Dispatcher-Kontext und das Aufräumen nach einem absichtlich ausgelösten Fehler.
+Die Szenarien innerhalb eines Testprojekts laufen seriell.
+
+`Verify.ps1` verwendet dieselben Testprojekte wie Visual Studio und `dotnet test`.
+Optionale Signatur-/Versionsdateien werden über `.runsettings` / `TestContext`
+übergeben. Die bisherigen Parameter bleiben als Kurzformen erhalten. TRX-Berichte
+werden unter `artifacts/test-results/<Lauf-ID>/` aufbewahrt; die CI lädt vorhandene
+Berichte auch nach Fehlern hoch. Skripttests prüfen unter anderem Sonderzeichen,
+JSON-Arrays, eigene Einstellungen sowie Aufräumen bei gleichzeitigem Erhalt
+von Quelldatei und Berichten.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Gesamte Solution, Release / Any CPU | Build mit **0 Warnungen / 0 Fehlern** |
+| Alle drei Testprojekte, `win-x64` und `win-arm64` | Sechs Builds einschließlich der App-Referenzen und WPF-XAML mit jeweils **0 Warnungen / 0 Fehlern**; keine Windows-Ausführung |
+| Core, direkter MSTest-Runner unter Linux | **27 Fälle: 22 bestanden, 5 übersprungen**; übersprungen werden die Windows-/nativen Tests |
+| Präsentation, direkter MSTest-Runner unter Linux | **22 Fälle bestanden** |
+| Gezielte Testauswahl | `FullyQualifiedName~KnownDigestFormats`: alle **5** Datenzeilen bestanden |
+| PowerShell-Skripte, PowerShell 7.6.9 | **56 Prüfbedingungen bestanden** |
+| WPF / UI / MVVM | **35 deklarierte Fälle** einschließlich Datenzeilen; kompiliert, Ausführung auf Windows offen |
+| Struktur / Ressourcen | **1495** statische Prüfungen bestanden; **276** Ressourcenschlüssel je Sprache |
+| Workflow | YAML geparst; Berichtsupload mit `if: always()` und passendem TRX-Pfad geprüft |
+
+**Grenze dieser Umgebung:** `dotnet test` und der MTP-TRX-Berichtsprozess können
+hier die benötigten Named Pipes nicht öffnen (`SocketException: Permission
+denied`). Die erfolgreichen C#-Läufe wurden deshalb mit den kompilierten
+MSTest-Programmen direkt, ohne TRX-Option, ausgeführt. Das ist derselbe
+MSTest-Runner; der vollständige CLI-/Berichtsweg wurde hier jedoch nicht
+bestätigt. Die Produktionsskripte enthalten dafür keine Sonderbehandlung.
+Visual Studio, native Windows-APIs und WPF können unter Linux nicht ausgeführt
+werden. Ein vollständiger Lauf auf Windows x64 und ARM64 bleibt erforderlich:
+
+```powershell
+.\Verify.ps1 -Runtime win-x64
+# Auf Windows ARM64:
+.\Verify.ps1 -Runtime win-arm64
+```
+
+Die **84 C#-Testfälle** zählen auswählbare Szenarien/Datenzeilen, nicht jede
+Assertion innerhalb eines Szenarios. Die älteren Zahlen in den folgenden
+Prüfständen beschreiben die damaligen Konsolenprogramme und bleiben als
+Historie erhalten.
+
 ## Korrektur: Fixierte Spalten bei der Initialisierung
 
 Stand: 2026-11-12, Basis `58920d6` (`dev`), .NET SDK **10.0.404**.
@@ -570,13 +628,13 @@ Nach Installation des .NET 10 SDK auf Windows:
 .\Verify.ps1
 ```
 
-Das Skript baut zuerst beide Produktionsprojekte. Anschließend kompiliert und startet es temporäre Testprogramme mit den Dateien aus `tests`:
+Das Skript prüft die PowerShell-Orchestrierung, baut die Solution und startet die drei festen MSTest-Projekte aus `tests`:
 
-| Testdatei | Abgedeckte Fälle |
+| Testprojekt | Abgedeckte Fälle |
 | --- | --- |
-| `CoreChecks.cs` | Fünf bekannte Hashwerte, leere Datei, ein gemeinsamer Lesedurchlauf, nicht-seekbarer Stream, mehrere Puffer, Abbruch vor/während des Lesens, Ressourcenfreigabe bei Fehlern, unveränderliche Optionen, Unicode-Pfade, Dateigröße/-datum, Metadatenmodus, fehlende Datei, Ordner, Dateisperre unter Windows, native ABI-Größen und unsignierte PE-Datei. ASN.1-Metadaten für klassische und RFC-3161-Zeitstempel; beschädigte, leere und mehrdeutige Daten; Trennung von ausgelesenem Datum und bestätigtem Zeitstempel; niemals aktuelle Prüfzeit als Ersatz. PE32/PE32+, verschiedene Maschinen und CLR-Flags, native Dateien und DLLs, echte Versionsdaten, fehlende Metadaten, beschädigte Header, begrenzte Lesezugriffe, Streambesitz, unabhängige Prüfoptionen, Teilergebnisse bei Metadatenfehlern und Abbruch. |
-| `PresentationChecks.cs` | Bekannte Hex-/Base64-/Base64url-Vektoren inklusive führender Nullbytes und Padding; alle Digest-Längen; unveränderte Analysewerte und nicht-Hash-Felder; Details und Suche; Formatwechsel während/nach einer Analyse; Spaltenpermutationen und Grenzen; drei Sprachen; Speichern/Laden; fehlende, doppelte, unbekannte oder ungültige Einstellungen; beschädigte JSON-Datei und Schreibfehler. Mehrere Signaturen mit eigenen Zertifikaten/Status/Zeitstempeln; dasselbe Zertifikat in mehreren Signaturen; fehlende Metadaten ohne Übernahme aus einer anderen Signatur; Fenstermaße, Monitorgrenzen und Erhalt aller übrigen Einstellungen beim Speichern. Alle neun Prüf-Häkchen über JSON speichern/laden; alle ausgeschaltet; fehlende einzelne Felder und ältere Einstellungen ohne Prüfauswahl. Neue Metadaten in Suche/Details, lokalisiertes AnyCPU, Diagnose, Reset und unveränderte Metadaten bei Hashformatwechsel. |
-| `UiChecks.cs` | Reales XAML und Optionsfenster initialisieren, Sprachbindungen, Dateiaufnahme und Deduplizierung, Filter, Clear/Cancel und verspätete Fortschrittsmeldungen. Gespeicherte Prüf-Häkchen im Haupt-ViewModel wiederherstellen, keine Schreibvorgänge beim Laden, direktes Speichern bei Änderung, Spaltensichtbarkeit und Verwendung der Auswahl in der Analyse; Ausgrauen der Online-Sperrprüfung sowie Leeren erhalten die Auswahl. Spalten-Häkchen, vollständige Reihenfolge einschließlich ausgeblendeter Spalten über die Fixierungsgrenze, Formatwechsel über die ComboBox ohne Analyseaufruf, Filteraktualisierung, unveränderte Resultate sowie automatische Breiten innerhalb der Grenzen. Echte Signatur-ComboBox und bedingte Spaltensichtbarkeit; Suche/Statusfilter nach Auswahlwechsel; Reset und Leeren; Fenstermaße und Zustand über Schließen/Neustart einschließlich minimiertem Schließen. Scrollkorrektur am tatsächlichen Fluent-Knopf; gemeldete negative Bruchwerte und Sonderwerte durch eine echte Width-Bindung; fraktionale horizontale Scrollpositionen; aktive Binding-Fehlerprotokollierung sowie Erhalt von Vorlage, Virtualisierung, fixierten Spalten und automatischen Breiten. Tatsächliche Metadaten-Checkbox-Bindings, unabhängige Gruppen-Sichtbarkeit und Weitergabe der Auswahl bei Drop/Neuanalyse. |
+| `FileScope.Core.Tests` | Fünf bekannte Hashwerte, leere Datei, ein gemeinsamer Lesedurchlauf, nicht-seekbarer Stream, mehrere Puffer, Abbruch vor/während des Lesens, Ressourcenfreigabe bei Fehlern, unveränderliche Optionen, Unicode-Pfade, Dateigröße/-datum, Metadatenmodus, fehlende Datei, Ordner, Dateisperre unter Windows, native ABI-Größen und unsignierte PE-Datei. ASN.1-Metadaten für klassische und RFC-3161-Zeitstempel; beschädigte, leere und mehrdeutige Daten; Trennung von ausgelesenem Datum und bestätigtem Zeitstempel; niemals aktuelle Prüfzeit als Ersatz. PE32/PE32+, verschiedene Maschinen und CLR-Flags, native Dateien und DLLs, echte Versionsdaten, fehlende Metadaten, beschädigte Header, begrenzte Lesezugriffe, Streambesitz, unabhängige Prüfoptionen, Teilergebnisse bei Metadatenfehlern und Abbruch. |
+| `FileScope.Presentation.Tests` | Bekannte Hex-/Base64-/Base64url-Vektoren inklusive führender Nullbytes und Padding; alle Digest-Längen; unveränderte Analysewerte und nicht-Hash-Felder; Details und Suche; Formatwechsel während/nach einer Analyse; Spaltenpermutationen und Grenzen; drei Sprachen; Speichern/Laden; fehlende, doppelte, unbekannte oder ungültige Einstellungen; beschädigte JSON-Datei und Schreibfehler. Mehrere Signaturen mit eigenen Zertifikaten/Status/Zeitstempeln; dasselbe Zertifikat in mehreren Signaturen; fehlende Metadaten ohne Übernahme aus einer anderen Signatur; Fenstermaße, Monitorgrenzen und Erhalt aller übrigen Einstellungen beim Speichern. Alle neun Prüf-Häkchen über JSON speichern/laden; alle ausgeschaltet; fehlende einzelne Felder und ältere Einstellungen ohne Prüfauswahl. Neue Metadaten in Suche/Details, lokalisiertes AnyCPU, Diagnose, Reset und unveränderte Metadaten bei Hashformatwechsel. |
+| `FileScope.Ui.Tests` | Reales XAML und Optionsfenster initialisieren, Sprachbindungen, Dateiaufnahme und Deduplizierung, Filter, Clear/Cancel und verspätete Fortschrittsmeldungen. Gespeicherte Prüf-Häkchen im Haupt-ViewModel wiederherstellen, keine Schreibvorgänge beim Laden, direktes Speichern bei Änderung, Spaltensichtbarkeit und Verwendung der Auswahl in der Analyse; Ausgrauen der Online-Sperrprüfung sowie Leeren erhalten die Auswahl. Spalten-Häkchen, vollständige Reihenfolge einschließlich ausgeblendeter Spalten über die Fixierungsgrenze, Formatwechsel über die ComboBox ohne Analyseaufruf, Filteraktualisierung, unveränderte Resultate sowie automatische Breiten innerhalb der Grenzen. Echte Signatur-ComboBox und bedingte Spaltensichtbarkeit; Suche/Statusfilter nach Auswahlwechsel; Reset und Leeren; Fenstermaße und Zustand über Schließen/Neustart einschließlich minimiertem Schließen. Scrollkorrektur am tatsächlichen Fluent-Knopf; gemeldete negative Bruchwerte und Sonderwerte durch eine echte Width-Bindung; fraktionale horizontale Scrollpositionen; aktive Binding-Fehlerprotokollierung sowie Erhalt von Vorlage, Virtualisierung, fixierten Spalten und automatischen Breiten. Tatsächliche Metadaten-Checkbox-Bindings, unabhängige Gruppen-Sichtbarkeit und Weitergabe der Auswahl bei Drop/Neuanalyse. |
 
 Die automatisierten UI-Tests laufen auf einem STA-Thread mit WPF-Dispatcher und echten ViewModels. Die meisten Prüfungen initialisieren die View ohne ein sichtbares Fenster. Die Fensterzustands- und Scrollprüfungen öffnen kurz Testfenster ohne Aktivierung und ohne Taskleisten-Eintrag, um reale RestoreBounds und Zustandwechsel zu prüfen. Sie ersetzen weder einen physischen Drag-and-drop-Test aus Explorer noch eine visuelle Prüfung.
 

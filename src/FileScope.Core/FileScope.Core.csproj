@@ -6,6 +6,6 @@
     <Description>Streaming checksums and Windows Authenticode inspection, independent of the UI.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="CoreChecks" />
+    <InternalsVisibleTo Include="FileScope.Core.Tests" />
   </ItemGroup>
 </Project>

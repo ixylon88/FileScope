@@ -1,0 +1,17 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <!-- Keep source locations and debugging available for Release test runs too. -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+    <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestAssembly.cs" Link="TestAssembly.cs" />
+  </ItemGroup>
+</Project>

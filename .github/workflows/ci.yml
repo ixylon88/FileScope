@@ -53,6 +53,16 @@ jobs:
       - name: Build and verify, including WPF
         run: ./Verify.ps1 -Runtime ${{ matrix.runtime }} -NoColor
 
+      # Keep completed test results even when a later suite fails.
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: FileScope-test-results-${{ matrix.runtime }}
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
       # These must stay sequential: both variants use the same project obj files.
       - name: Publish framework-dependent
         run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -NoColor

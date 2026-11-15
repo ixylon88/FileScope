@@ -32,10 +32,10 @@ for path in files:
             check(False, f'{path.relative_to(ROOT)}: {error}')
 
 projects = [p for p in files if p.suffix == '.csproj']
-check(len(projects) == 2, 'Exactly two permanent projects are required.')
+check(len(projects) == 5, 'Two production and three permanent test projects are required.')
 solution = (ROOT / 'FileScope.sln').read_text(encoding='utf-8-sig')
 project_entries = re.findall(r'Project\([^\n]+?= "[^"]+", "([^"]+\.csproj)"', solution)
-check(len(project_entries) == 2, 'The solution must contain exactly two C# projects.')
+check(len(project_entries) == 5, 'The solution must contain all five C# projects.')
 for relative in project_entries:
     check((ROOT / relative.replace('\\', '/')).is_file(), f'Missing solution project: {relative}')
 for project in projects:
@@ -120,14 +120,14 @@ dynamic_keys = set(re.findall(r'\{DynamicResource ([A-Za-z_]\w*)\}', sources))
 fluent_keys = {'SystemFillColorAttentionBrush', 'SystemFillColorCriticalBrush', 'TextOnAccentFillColorSelectedTextBrush'}
 check(dynamic_keys - fluent_keys <= palette_keys[0], 'Every custom dynamic resource must exist in both palettes.')
 theme_contract = (ROOT / 'src/FileScope.App/Services/IThemeService.cs').read_text(encoding='utf-8')
-verify_script = (ROOT / 'Verify.ps1').read_text(encoding='utf-8-sig')
-check('System.Windows' not in theme_contract and "'Services/IThemeService.cs'" in verify_script
-      and "'Services/ThemeService.cs'" not in verify_script,
+presentation_project = (ROOT / 'tests/FileScope.Presentation.Tests/FileScope.Presentation.Tests.csproj').read_text(encoding='utf-8')
+check('System.Windows' not in theme_contract and 'Services/IThemeService.cs' in presentation_project
+      and 'Services/ThemeService.cs' not in presentation_project,
       'Presentation checks must compile the theme contract without the WPF implementation.')
 controls = (ROOT / 'src/FileScope.App/Styles/Controls.xaml').read_text(encoding='utf-8')
 check('ControlTemplate' not in controls, 'Use native control templates for the application theme.')
 app_theme = ET.parse(ROOT / 'src/FileScope.App/App.xaml').getroot().attrib.get('ThemeMode')
-ui_checks = (ROOT / 'tests/UiChecks.cs').read_text(encoding='utf-8')
+ui_checks = (ROOT / 'tests/FileScope.Ui.Tests/WpfTestHost.cs').read_text(encoding='utf-8')
 check(app_theme is not None and f'ThemeMode = ThemeMode.{app_theme}' in ui_checks,
       'The UI test host must use the same ThemeMode as App.xaml.')
 namespace = '{http://schemas.microsoft.com/winfx/2006/xaml/presentation}'
@@ -185,7 +185,7 @@ check(data.startswith(b'\x89PNG\r\n\x1a\n') and len(data) >= 24 and struct.unpac
       'The splash must remain a small 256px PNG rather than the large source image.')
 
 # Independently check the known-answer constants shipped with the C# harness.
-tests = (ROOT / 'tests/CoreChecks.cs').read_text(encoding='utf-8')
+tests = (ROOT / 'tests/FileScope.Core.Tests/CoreTests.cs').read_text(encoding='utf-8')
 vectors = re.findall(r'\[ChecksumAlgorithm\.(\w+)\] = "([A-F0-9]+)"', tests)
 check(len(vectors) == 5, 'Five abc known-answer vectors are required.')
 for name, expected in vectors:
