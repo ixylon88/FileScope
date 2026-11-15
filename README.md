@@ -592,13 +592,14 @@ verbliebene Fenster werden auch nach einem Fehler geschlossen.
 Seit der MSTest-Umstellung zählen die C#-Gruppen **Testfälle einschließlich
 Datenzeilen**. Ein Testfall kann mehrere Prüfbedingungen enthalten. Die früheren
 Assertion-Zahlen sind deshalb nicht direkt mit diesen Zahlen vergleichbar.
+Der folgende Stand ist in der CI auf **Windows x64 und ARM64** bestätigt:
 
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **56 Prüfbedingungen bestanden**; unter anderem Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
-| Core | **27 Testfälle**; unter Linux **22 bestanden**, **5** wegen Windows-Voraussetzungen oder fehlender optionaler Beispieldateien übersprungen. Fehlende Testparameter werden auch ohne `.runsettings` korrekt behandelt. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
+| Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
 | Präsentation und Einstellungen | **22 Testfälle bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen. |
-| WPF / UI / MVVM | **35 Testfälle**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Ressourceninitialisierung und Beenden des Testhosts korrigiert; Windows-Lauf nach dieser Korrektur noch offen. |
+| WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in
@@ -606,15 +607,25 @@ Beispieldateien und der Einrichtung stehen in
 der genaue Ausführungsstand in [`VALIDATION.md`](VALIDATION.md).
 `tests/ScriptChecks.ps1` lässt sich weiterhin separat ohne SDK starten.
 
-**Optional:** Zusätzlich mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
+**Optional:** Die folgenden Tests verwenden zusätzliche eigene Beispieldateien.
+Dieselben Dateien lassen sich auch für den Visual-Studio-Test-Explorer und
+`dotnet test` hinterlegen. Die Zuordnung der Parameter und die Einrichtung
+beschreibt [Optionale Beispieldateien und gemeinsame Einstellungen](docs/BUILD-RELEASE.md#optionale-beispieldateien-und-gemeinsame-einstellungen).
+Ohne diese Angaben werden die beiden Tests ausdrücklich übersprungen;
+[die Bedeutung der Testmeldungen](docs/BUILD-RELEASE.md#übersprungene-tests-und-visual-studio-meldungen)
+ist dort ebenfalls erklärt.
 
 #### Signatur
+
+Eine bekannte Datei mit eingebetteter Authenticode-Signatur angeben:
 
 ```powershell
 .\Verify.ps1 -SignedFile 'C:\Pfad\zur\signierten-datei.exe'
 ```
 
 Der optionale Test liest diese Datei und prüft, dass Unterzeichnerdaten sowie der native Prüfrückgabecode ermittelt werden. Er verändert und startet sie nicht. Vertrauenswürdigkeit wird nicht pauschal angenommen, weil sie vom Rechner, den Stammzertifikaten und Sperrinformationen abhängt.
+
+Der entsprechende Parameter in der `.runsettings`-Datei heißt ebenfalls `SignedFile`.
 
 #### Version
 
@@ -623,6 +634,9 @@ Der optionale Test liest diese Datei und prüft, dass Unterzeichnerdaten sowie d
 ```powershell
 .\Verify.ps1 -VersionFile "D:\Testdateien\VBRUN300.DLL", "D:\Testdateien\DMSGEW.EXE"
 ```
+
+Der Skriptparameter `-VersionFile` entspricht `VersionFiles` in der
+`.runsettings`-Datei; dort werden die Pfade als JSON-Array hinterlegt.
 
 Der tatsächliche Ausführungsstand der mitgelieferten Version steht in `VALIDATION.md`. Ein zusätzlicher statischer Strukturcheck kann optional mit `python tools/check_structure.py` ausgeführt werden. Er ersetzt keinen .NET-Build.
 

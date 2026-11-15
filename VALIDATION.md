@@ -1,5 +1,49 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Bestätigt: MSTest unter Windows x64 und ARM64
+
+Stand: 2026-11-15, geprüfter Commit `42471d6` (`dev`), .NET SDK **10.0.404**.
+
+Der [CI-Lauf 4](https://github.com/ixylon88/FileScope/actions/runs/43726764438)
+ist für **win-x64 und win-arm64 erfolgreich abgeschlossen**. Beide Jobs
+führen die Tests auf einem Windows-Host der jeweiligen Architektur aus.
+Die folgenden Ergebnisse sind den vollständigen Joblogs entnommen:
+
+| Prüfung | Windows x64 | Windows ARM64 |
+| --- | --- | --- |
+| PowerShell-Skripte | **56 Prüfbedingungen bestanden** | **56 Prüfbedingungen bestanden** |
+| Core | **27 Fälle: 24 bestanden, 3 übersprungen** | **27 Fälle: 24 bestanden, 3 übersprungen** |
+| Präsentation und Einstellungen | **22 Fälle bestanden** | **22 Fälle bestanden** |
+| WPF / UI / MVVM | **35 Fälle bestanden** | **35 Fälle bestanden** |
+| TRX-Berichte | Erstellt und als CI-Artefakt hochgeladen | Erstellt und als CI-Artefakt hochgeladen |
+| Publish, framework-dependent und self-contained | Beide Varianten erstellt und hochgeladen | Beide Varianten erstellt und hochgeladen |
+
+Damit sind auch die zuvor offenen Windows-Prüfungen für Ressourcen/ThemeMode,
+Scrollbar-Hit-Tests und das Beenden des WPF-Testhosts bestätigt. Die drei Skips
+betreffen die beiden optionalen Beispieldateien und den ausdrücklich für andere
+Betriebssysteme vorgesehenen Signaturtest. Insgesamt sind je Architektur
+**84 C#-Testfälle: 81 bestanden, 0 fehlgeschlagen, 3 übersprungen** nachgewiesen.
+Die Publish-Schritte bestätigen die Paketerstellung, nicht deren manuellen
+Start auf einem Zielrechner.
+
+Das bereitgestellte lokale Visual-Studio-Protokoll endet ebenfalls mit
+**84 Tests, 81 bestanden, 0 fehlgeschlagen, 3 übersprungen** in **21,1 Sekunden**.
+Es enthält zusätzlich ältere fehlgeschlagene und abgebrochene Läufe sowie
+Warnungen über ignorierte Runsettings-Abschnitte für andere Testadapter.
+Diese Meldungen ändern das Ergebnis des abschließenden vollständigen Laufs nicht.
+
+Der anschließende Dokumentationspatch verknüpft die vorhandenen
+[`Verify.ps1`-Beispiele](README.md#signatur) mit der
+[Runsettings-Einrichtung und den Erklärungen zu Testmeldungen](docs/BUILD-RELEASE.md#optionale-beispieldateien-und-gemeinsame-einstellungen).
+Er ändert keine Tests oder Produktivdateien; die Anzahl bleibt bei **27 Core-,
+22 Präsentations- und 35 UI-Fällen** sowie **56 PowerShell-Prüfbedingungen**.
+Markdown-Verweise, `git diff --check` und die Patchanwendung auf der unveränderten
+Basis wurden geprüft. Für diese reinen Dokumentationsänderungen wurde kein
+zusätzlicher C#-Testlauf gestartet.
+
+Die folgenden Abschnitte dokumentieren frühere Prüfstände. Damals noch offene
+Windows-/CI-Prüfungen sind durch den oben genannten Lauf abgeschlossen.
+
 ## Korrektur: Optionale Testparameter und WPF-Testhost
 
 Stand: 2026-11-15, Basis `8743d39` (`dev`), .NET SDK **10.0.404**.

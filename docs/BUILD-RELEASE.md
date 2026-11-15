@@ -83,6 +83,16 @@ ein; dafür wird kein WPF-Fenster benötigt.
 
 ### Optionale Beispieldateien und gemeinsame Einstellungen
 
+Die zusätzlichen Dateien sind dieselben wie bei den optionalen
+`Verify.ps1`-Aufrufen in der README. Die Beschreibung der jeweiligen Prüfung
+bleibt dort; die Übergabe an Visual Studio und `dotnet test` erfolgt über
+`TestRunParameters` in einer `.runsettings`-Datei:
+
+| Prüfung und Beispiel in der README | Parameter von `Verify.ps1` | Name unter `TestRunParameters` |
+| --- | --- | --- |
+| [Signatur und Unterzeichnerdaten](../README.md#signatur) | `-SignedFile` | `SignedFile`: ein Dateipfad |
+| [Versionsinformationen und Dateipositionen](../README.md#version) | `-VersionFile` | `VersionFiles`: ein JSON-Array von Dateipfaden |
+
 `tests/FileScope.runsettings` enthält leere Vorgaben für zusätzliche
 Signatur- und Versionsdateien. Ohne Beispieldatei meldet MSTest den betreffenden
 optionalen Test als übersprungen. Betriebssystemspezifische Tests werden auf
@@ -137,10 +147,52 @@ MSTest zählt **Testfälle**, nicht einzelne Assertions innerhalb eines Szenario
 Datenzeilen zählen als eigene Fälle. Die früheren Assertion-Zahlen bleiben im
 Prüfverlauf in `VALIDATION.md` erhalten und sind nicht direkt vergleichbar.
 
+### Übersprungene Tests und Visual-Studio-Meldungen
+
+Im Windows-Lauf ohne zusätzliche Beispieldateien haben die drei übersprungenen
+Tests folgende Bedeutung:
+
+| Test | Grund für `skipped` / `Assert.Inconclusive` |
+| --- | --- |
+| `OptionalSignedFileExposesSignerMetadata` | `SignedFile` fehlt oder ist leer; keine eigene signierte Beispieldatei angegeben. |
+| `OptionalVersionFilesPreservePositions` | `VersionFiles` fehlt oder enthält keine Dateipfade; keine eigenen Versionsdateien angegeben. |
+| `NonWindowsSignatureInspectionIsExplicit` | Prüft das Verhalten außerhalb von Windows und wird deshalb auf Windows übersprungen. |
+
+Für die ersten beiden Tests lassen sich die Dateien wie unter
+[Optionale Beispieldateien und gemeinsame Einstellungen](#optionale-beispieldateien-und-gemeinsame-einstellungen)
+angeben. Der dritte Skip ist auf Windows weiterhin beabsichtigt. Auf anderen
+Betriebssystemen werden stattdessen Tests übersprungen, die native Windows-APIs
+benötigen. Übersprungen bedeutet, dass ein Test nicht ausgeführt wurde; es ist
+weder ein bestandener noch ein fehlgeschlagener Test.
+
+Visual Studio kann außerdem Warnungen zu nicht unterstützten Abschnitten in
+den Runsettings wie `BoostTestInternalSettings`, `Python` und
+`GoogleTestAdapterSettings` ausgeben. Die mitgelieferte
+[`FileScope.runsettings`](../tests/FileScope.runsettings) enthält diese
+Abschnitte nicht. Sie betreffen andere Testadapter; MSTest auf
+Microsoft.Testing.Platform ignoriert sie ausdrücklich. Tauchen sie trotz
+unveränderter Projektdateien auf, liegt die Herkunft vermutlich in der lokalen
+Visual-Studio-Testumgebung oder einer zusätzlich ausgewählten Runsettings-Datei.
+Aus der Warnung allein lässt sich die verursachende Erweiterung nicht bestimmen.
+Für die FileScope-Tests ist wegen dieser Meldungen keine Codeänderung nötig.
+Ein pauschales Unterdrücken aller Warnungen würde auch relevante Hinweise
+verbergen.
+
+Das Visual-Studio-Ausgabefenster sammelt mehrere Läufe. Für einen vollständigen
+neuen Lauf ist dessen abschließendes `Test run finished` mit der erwarteten
+Testanzahl maßgeblich; ältere Fehler und Abbrüche können darüber stehen bleiben.
+`Aborting test discovery because a test run was requested` bedeutet, dass die
+Testsuche zugunsten eines angeforderten Testlaufs beendet wurde. Ein
+`Test run aborted` bezeichnet dagegen einen unvollständigen Testlauf und ist
+kein Erfolgsnachweis. Die aktuelle Anzahl und die bestätigten Ergebnisse stehen
+in [README → Überprüfung](../README.md#überprüfung) und
+[`VALIDATION.md`](../VALIDATION.md).
+
 Microsoft-Referenzen:
 [MSTest-SDK](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-sdk),
 [MTP ausführen und debuggen](https://learn.microsoft.com/en-us/dotnet/core/testing/microsoft-testing-platform-run-and-debug),
-[Runsettings in Visual Studio](https://learn.microsoft.com/en-us/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file).
+[Runsettings in Visual Studio](https://learn.microsoft.com/en-us/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file),
+[MSTest: Warnungen zu nicht unterstützten Runsettings-Abschnitten](https://github.com/microsoft/testfx/blob/v4.5.3/src/Adapter/MSTest.TestAdapter/TestingPlatformAdapter/MSTestRunSettings.cs).
 
 ## SDK, Runtime und Reproduzierbarkeit
 
