@@ -582,6 +582,12 @@ werden:
 dotnet test --solution FileScope.sln -c Release
 ```
 
+**MSTest** passt durch die Integration in Visual Studio und Konsole, eingebaute
+STA-Unterstützung unter Windows und die gebündelte Werkzeugkonfiguration über
+`MSTest.Sdk` zu diesem Projekt. Die
+[Begründung und Aufgaben des eigenen WPF-Testhosts](docs/BUILD-RELEASE.md#mstest-in-visual-studio-und-konsole)
+sind in der weiterführenden Dokumentation erläutert.
+
 Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen
 ViewModels, Bindungen und einem STA-Dispatcher. Injizierte Testdienste liefern
 kontrollierte Analyseergebnisse und Dialogantworten. So werden unter anderem

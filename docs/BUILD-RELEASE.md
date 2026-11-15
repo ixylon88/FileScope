@@ -46,6 +46,15 @@ Das SDK liefert Framework, Adapter und Runner. Das Erweiterungsprofil bleibt
 bei `None`; nur die Ausgabe von TRX-Berichten wird zusätzlich aktiviert.
 Eine separate Paketversionsliste für die einzelnen MSTest-Bausteine entfällt.
 
+**Warum MSTest?** Die Integration in Visual Studio, `dotnet test` und CI sowie
+die gemeinsame SDK-Konfiguration halten die Testinfrastruktur überschaubar.
+Unter Windows bietet das Framework außerdem eingebaute STA-Unterstützung über
+`STATestMethod` und `STATestClass`, ohne zusätzliches STA-Testpaket
+([Microsoft-Dokumentation](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing-tests-controlling-execution#threading-attributes)).
+Die vorhandenen UI-Tests verwenden diese Attribute allerdings nicht:
+`WpfTestHost` stellt den STA-Thread selbst bereit, um eine gemeinsame
+WPF-`Application` samt Dispatcher, Ressourcen und Aufräumen zu verwalten.
+
 Die Projekte erscheinen nach Restore/Build im **Test-Explorer** von Visual
 Studio mit .NET-10-Unterstützung. Dort lassen sich Szenarien einzeln ausführen
 und debuggen. Release-Testprojekte behalten dafür portable Debugsymbole.
