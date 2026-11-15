@@ -2466,7 +2466,8 @@ public sealed partial class UiTests
                 var point = thumb.TranslatePoint(new Point(thumb.ActualWidth / 2, thumb.ActualHeight / 2), viewer);
                 var hit = viewer.InputHitTest(point) as DependencyObject;
                 while (hit is not null and not Thumb) { hit = VisualTreeHelper.GetParent(hit); }
-                Assert.IsTrue(ReferenceEquals(hit, thumb), "scaled thumb remains reachable by mouse hit-testing / " + bar.Orientation);
+                Assert.IsTrue(ReferenceEquals(hit, thumb),
+                    $"scaled thumb remains reachable by mouse hit-testing / {bar.Orientation} (hit: {hit?.GetType().Name ?? "none"})");
             }
             ScrollBar.LineDownCommand.Execute(null, vertical);
             ScrollBar.LineRightCommand.Execute(null, horizontal);

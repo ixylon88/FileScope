@@ -1,5 +1,58 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Korrektur: Optionale Testparameter und WPF-Testhost
+
+Stand: 2026-11-15, Basis `8743d39` (`dev`), .NET SDK **10.0.404**.
+
+Der [CI-Lauf 3](https://github.com/ixylon88/FileScope/actions/runs/43724724400)
+steht bei der Prüfung auf x64 und ARM64 im Schritt **Build and verify, including
+WPF**. Die vollständigen Joblogs sind zu diesem Zeitpunkt noch nicht abrufbar.
+Die lokal gemeldeten Ausnahmen lassen sich auf Fehler der MSTest-Umstellung
+zurückführen:
+
+- `TestContext.Properties` besitzt ohne ausgewählte Runsettings-Datei keine
+  Einträge für `SignedFile` und `VersionFiles`. Beide Zugriffe verwenden jetzt
+  `TryGetValue`. Fehlende oder leere optionale Eingaben führen zu einem
+  übersprungenen Test. Diese Prüfung erfolgt vor dem Windows-Guard, sodass
+  derselbe Fehlerpfad auch unter Linux ausgeführt wird.
+- Der Testhost wählte zuerst `ThemeMode.Light` und ersetzte danach `Resources`.
+  Damit verschwanden die Fluent-Ressourcen und WPF synchronisierte den Modus
+  zurück auf `None`. Jetzt wird zuerst das Ressourcenverzeichnis ersetzt,
+  danach Light gewählt und anschließend werden die App-Stile geladen.
+  Die Hostprüfung kontrolliert Light auch beim Einzelstart. Die bestehende
+  Scrollbar-Hit-Test-Assertion bleibt erhalten und meldet zusätzlich den
+  tatsächlich getroffenen Elementtyp. Ob sie nach der Hostkorrektur auf
+  Windows besteht, muss der nächste Lauf bestätigen.
+- Die Nachrichtenschleife startete mit `Dispatcher.Run()`. WPF beendet beim
+  `Application.Shutdown()` jedoch nur eine von `Application.Run()` selbst
+  gestartete Schleife. Das Assembly-Cleanup wartete deshalb unbegrenzt auf
+  das Threadende; der zuletzt angezeigte Test wirkte weiterhin aktiv. Der
+  Host verwendet nun `Application.Run()`. Sowohl das Warten auf den
+  Shutdown-Aufruf als auch auf das Threadende sind auf jeweils zehn Sekunden
+  begrenzt.
+
+Das Verhalten von Ressourcen, ThemeMode und Dispatcher-Besitz ist im
+[WPF-Quelltext von Application](https://github.com/dotnet/wpf/blob/v10.0.0/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Application.cs)
+nachvollziehbar. Die Produktivlogik bleibt unverändert.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Solution, Release / Any CPU | **0 Warnungen / 0 Fehler** |
+| Core- und UI-Testprojekte, jeweils `win-x64` und `win-arm64` | Vier Builds einschließlich App/Core und WPF-XAML mit **0 Warnungen / 0 Fehlern** |
+| Core unter Linux, ohne Runsettings | **27 Fälle: 22 bestanden, 5 übersprungen**; beide optionalen Tests erreichen nachweislich den Pfad für fehlende Parameter |
+| Beide optionalen Tests mit den mitgelieferten Runsettings | **2 übersprungen**, keine Ausnahme; leere Vorgaben bleiben unterstützt |
+| Präsentation unter Linux | **22 Fälle bestanden** |
+| PowerShell-Skripte | **56 Prüfbedingungen bestanden** |
+| Struktur und Ressourcen | **1495** Prüfungen bestanden; **276** Ressourcenschlüssel je Sprache |
+
+Die Anzahl bleibt bei **27 Core-, 22 Präsentations- und 35 UI-Testfällen**;
+die bestehende Hostprüfung erhielt eine zusätzliche Assertion. C#-Tests
+wurden hier direkt mit dem MSTest-Programm ohne TRX gestartet, weil die
+Umgebung Named Pipes sperrt. Windows/WPF, das tatsächliche Assembly-Cleanup
+unter Windows und die vollständige Pipeline nach der Korrektur sind noch
+nicht ausgeführt. Dafür ist erneut `Verify.ps1 -Runtime win-x64` bzw. auf
+Windows ARM64 `Verify.ps1 -Runtime win-arm64` erforderlich.
+
 ## Umstellung: Feste MSTest-Projekte in der Solution
 
 Stand: 2026-11-15, Basis `41fb5fb` (`dev`), .NET SDK **10.0.404**,

@@ -74,6 +74,10 @@ eine gemeinsame `Application` mit einem eigenen STA-Thread und Dispatcher.
 Vor jedem Szenario werden Ressourcen und Sprache initialisiert; danach werden
 auch bei Fehlern die verbliebenen Fenster geschlossen und der Ausgangszustand
 wiederhergestellt. Kein Szenario setzt voraus, dass ein anderes zuerst lief.
+Der Host startet seine Nachrichtenschleife mit `Application.Run()`, damit
+`Application.Shutdown()` sie beim Assembly-Cleanup auch beendet. Das Warten
+auf den Shutdown-Aufruf und anschließend auf das Threadende ist jeweils auf
+zehn Sekunden begrenzt; ein Fehler hält dadurch nicht den letzten Test endlos offen.
 Die Präsentationstests binden weiterhin nur die UI-unabhängigen Quelldateien
 ein; dafür wird kein WPF-Fenster benötigt.
 
@@ -83,6 +87,9 @@ ein; dafür wird kein WPF-Fenster benötigt.
 Signatur- und Versionsdateien. Ohne Beispieldatei meldet MSTest den betreffenden
 optionalen Test als übersprungen. Betriebssystemspezifische Tests werden auf
 anderen Betriebssystemen ebenfalls ausdrücklich übersprungen.
+Ohne ausgewählte `.runsettings`-Datei fehlen diese Parameter im `TestContext`;
+das wird genauso wie eine leere Vorgabe behandelt. Zum normalen Ausführen im
+Test-Explorer muss daher keine Einstellungsdatei ausgewählt werden.
 
 Für eigene Dateien eine lokale Kopie `tests/FileScope.local.runsettings`
 anlegen; `*.local.runsettings` ist von Git ausgeschlossen. Die Parameter

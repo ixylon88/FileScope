@@ -596,9 +596,9 @@ Assertion-Zahlen sind deshalb nicht direkt mit diesen Zahlen vergleichbar.
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **56 Prüfbedingungen bestanden**; unter anderem Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
-| Core | **27 Testfälle**; unter Linux **22 bestanden**, **5** wegen Windows-Voraussetzungen übersprungen. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
+| Core | **27 Testfälle**; unter Linux **22 bestanden**, **5** wegen Windows-Voraussetzungen oder fehlender optionaler Beispieldateien übersprungen. Fehlende Testparameter werden auch ohne `.runsettings` korrekt behandelt. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
 | Präsentation und Einstellungen | **22 Testfälle bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen. |
-| WPF / UI / MVVM | **35 Testfälle**, einschließlich zweier Prüfungen für STA-Dispatcher und Aufräumen nach Fehlern. Windows-Ausführung nach der Umstellung noch offen. |
+| WPF / UI / MVVM | **35 Testfälle**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Ressourceninitialisierung und Beenden des Testhosts korrigiert; Windows-Lauf nach dieser Korrektur noch offen. |
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

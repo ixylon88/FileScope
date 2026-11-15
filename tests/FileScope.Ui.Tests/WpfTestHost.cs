@@ -57,8 +57,11 @@ internal static class WpfTestHost
         if (pending is null) return;
 
         var host = await pending.ConfigureAwait(false);
-        await host.Application.Dispatcher.InvokeAsync(host.Application.Shutdown).Task.ConfigureAwait(false);
-        await host.Stopped.ConfigureAwait(false);
+        // A broken shutdown must fail assembly cleanup instead of keeping the
+        // final test and the CI job waiting indefinitely.
+        await host.Application.Dispatcher.InvokeAsync(host.Application.Shutdown).Task
+            .WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+        await host.Stopped.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
     }
 
     private static Task<Host> StartAsync()
@@ -77,7 +80,9 @@ internal static class WpfTestHost
                     new DispatcherSynchronizationContext(app.Dispatcher));
 
                 ready.SetResult(new Host(app, stopped.Task));
-                Dispatcher.Run();
+                // Application.Shutdown only stops the dispatcher when Application
+                // started it. A bare Dispatcher.Run would leave Stopped pending.
+                app.Run();
                 stopped.SetResult();
             }
             catch (Exception exception)
@@ -94,10 +99,12 @@ internal static class WpfTestHost
 
     private static void ResetResources(Application app)
     {
+        // Replacing Resources removes Fluent's dictionaries and resets ThemeMode
+        // to None. Select Light afterwards, before resolving BasedOn styles.
+        app.Resources = new ResourceDictionary();
 #pragma warning disable WPF0001 // Match the native theme selected by App.xaml.
         app.ThemeMode = ThemeMode.Light;
 #pragma warning restore WPF0001
-        app.Resources = new ResourceDictionary();
         app.Resources.MergedDictionaries.Add(new ResourceDictionary
         {
             Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)

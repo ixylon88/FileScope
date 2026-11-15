@@ -248,9 +248,13 @@ public sealed class CoreTests
     [TestMethod]
     public async Task OptionalSignedFileExposesSignerMetadata()
     {
-        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Native Authenticode requires Windows.");
-        var path = TestContext.Properties["SignedFile"] as string;
+        // Test Explorer also runs without a selected .runsettings file.
+        // Check optional inputs before the OS guard so this path is tested on every host.
+        TestContext.Properties.TryGetValue("SignedFile", out var parameter);
+        var path = parameter as string;
         if (string.IsNullOrWhiteSpace(path)) Assert.Inconclusive("Set SignedFile in the selected .runsettings file.");
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Native Authenticode requires Windows.");
+
         Assert.IsTrue(Path.IsPathFullyQualified(path) && File.Exists(path), "SignedFile must name an existing absolute path.");
 
         var nativeAnalyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
@@ -301,6 +305,11 @@ public sealed class CoreTests
     [TestMethod]
     public void OptionalVersionFilesPreservePositions()
     {
+        TestContext.Properties.TryGetValue("VersionFiles", out var parameter);
+        var json = parameter as string;
+        var paths = string.IsNullOrWhiteSpace(json) ? [] : System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? [];
+        if (paths.Length == 0) Assert.Inconclusive("Set VersionFiles in the selected .runsettings file.");
+
         if (!OperatingSystem.IsWindows())
         {
             Assert.Inconclusive("Native version handles require Windows.");
@@ -308,9 +317,6 @@ public sealed class CoreTests
         }
         RequireVersionHandleApi();
 
-        var json = TestContext.Properties["VersionFiles"] as string ?? "[]";
-        var paths = System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? [];
-        if (paths.Length == 0) Assert.Inconclusive("Set VersionFiles in the selected .runsettings file.");
         Assert.IsTrue(paths.All(path => !string.IsNullOrWhiteSpace(path) && Path.IsPathFullyQualified(path) && File.Exists(path)),
             "VersionFiles must contain existing absolute paths.");
 

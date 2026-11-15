@@ -12,6 +12,9 @@ public sealed partial class UiTests
             Assert.AreSame(app, Application.Current);
             Assert.AreEqual(ApartmentState.STA, Thread.CurrentThread.GetApartmentState());
             Assert.IsInstanceOfType<DispatcherSynchronizationContext>(SynchronizationContext.Current);
+#pragma warning disable WPF0001 // Resource initialization must retain the native Fluent theme.
+            Assert.AreEqual(ThemeMode.Light, app.ThemeMode);
+#pragma warning restore WPF0001
 
             var currentThread = Environment.CurrentManagedThreadId;
             var dispatchedThread = 0;
