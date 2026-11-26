@@ -131,7 +131,8 @@ public partial class MainWindow : Window
         { MessageBox.Show(this, ex.Message, Strings["Options"]); return; }
 
         var rescan = !_preferences.Roots.SequenceEqual(next.Roots) || !_preferences.Hashes.SequenceEqual(next.Hashes)
-            || _preferences.Embedded != next.Embedded || _preferences.Catalogs != next.Catalogs || _preferences.Online != next.Online;
+            || _preferences.Embedded != next.Embedded || _preferences.Catalogs != next.Catalogs || _preferences.Online != next.Online
+            || _preferences.SizeRange != next.SizeRange;
         var languageChanged = next.Language != _preferences.Language;
         _preferences = next;
         Strings.SetCulture(next.Language);

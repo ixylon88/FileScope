@@ -29,6 +29,12 @@ public partial class OptionsWindow : Window
         _roots = new(preferences.Roots.Select(r => new RootEditor(r.Path, r.Priority.ToString(Strings.Culture))));
         RootsGrid.ItemsSource = _roots;
 
+        MinimumUnit.ItemsSource = MaximumUnit.ItemsSource = FileSizeInput.Units;
+        MinimumUnit.SelectedValue = preferences.MinimumSizeUnit;
+        MaximumUnit.SelectedValue = preferences.MaximumSizeUnit;
+        MinimumSize.Text = FileSizeInput.Format(preferences.SizeRange.MinimumBytes, preferences.MinimumSizeUnit, Strings.Culture);
+        MaximumSize.Text = FileSizeInput.Format(preferences.SizeRange.MaximumBytes, preferences.MaximumSizeUnit, Strings.Culture);
+
         foreach (var hash in Enum.GetValues<ChecksumAlgorithm>())
         {
             HashOptions.Children.Add(new CheckBox
@@ -83,12 +89,29 @@ public partial class OptionsWindow : Window
             roots.Add(new(entry.Path, priority));
         }
 
+        var minUnit = (FileSizeUnit)MinimumUnit.SelectedValue;
+        var maxUnit = (FileSizeUnit)MaximumUnit.SelectedValue;
+        if (!FileSizeInput.TryParse(MinimumSize.Text, minUnit, Strings.Culture, out var min)
+            || !FileSizeInput.TryParse(MaximumSize.Text, maxUnit, Strings.Culture, out var max))
+        {
+            Validation.Text = Strings["BadSize"];
+            return;
+        }
+        if (min > max)
+        {
+            Validation.Text = Strings["ReversedSizes"];
+            return;
+        }
+
         Result = new Preferences
         {
             Roots = roots.ToArray(),
             Language = (string)Languages.SelectedValue,
             Theme = (AppTheme)Themes.SelectedIndex,
             Hashes = HashOptions.Children.OfType<CheckBox>().Where(h => h.IsChecked == true).Select(h => (ChecksumAlgorithm)h.Tag).ToArray(),
+            SizeRange = new FileSizeRange(min, max),
+            MinimumSizeUnit = minUnit,
+            MaximumSizeUnit = maxUnit,
             Embedded = Embedded.IsChecked == true,
             Catalogs = Catalogs.IsChecked == true,
             Online = Online.IsChecked == true

@@ -42,6 +42,8 @@ public sealed unsafe partial class WindowsCatalogIndex
         try
         {
             nint previous = 0;
+            var sawLookupAlias = false;
+            var sawMemberDigest = false;
             while (true)
             {
                 token.ThrowIfCancellationRequested();
@@ -49,6 +51,10 @@ public sealed unsafe partial class WindowsCatalogIndex
                 if (previous == 0)
                 {
                     ThrowIfEnumerationFailed();
+                    if (sawLookupAlias && !sawMemberDigest)
+                    {
+                        throw new InvalidDataException("Catalog contains lookup tags without member digests.");
+                    }
                     return;
                 }
 
@@ -56,6 +62,14 @@ public sealed unsafe partial class WindowsCatalogIndex
                 var member = (MemberPrefix*)previous;
                 var indirect = member->Indirect;
                 var tag = Marshal.PtrToStringUni(member->Tag);
+                // MakeCat V2 can also expose a SHA-1 lookup tag with no indirect
+                // data. Only entries carrying a member digest establish membership.
+                if (indirect == null && member->EncodedIndirect.Length == 0
+                    && tag is { Length: 40 } && tag.All(char.IsAsciiHexDigit))
+                {
+                    sawLookupAlias = true;
+                    continue;
+                }
                 if (indirect == null || tag == null) throw new InvalidDataException("Catalog member data unavailable.");
                 var algorithm = Marshal.PtrToStringAnsi(indirect->Algorithm.Oid) switch
                 {
@@ -77,6 +91,7 @@ public sealed unsafe partial class WindowsCatalogIndex
                     _loose.Add((algorithm, digest), entries = []);
                 }
                 entries.Add(new(path, tag));
+                sawMemberDigest = true;
             }
         }
         finally { _ = CryptCATClose(catalog); }
@@ -147,7 +162,8 @@ public sealed unsafe partial class WindowsCatalogIndex
                 {
                     token.ThrowIfCancellationRequested();
                     // Windows consumes the previous context on the next call, including on exhaustion.
-                    previous = CryptCATAdminEnumCatalogFromHash(admin, digest, size, 0, ref previous);
+                    // The first call takes a null pointer. Later calls take the address of the previous handle.
+                    previous = CryptCATAdminEnumCatalogFromHash(admin, digest, size, 0, previous == 0 ? null : &previous);
                     if (previous == 0) { ThrowIfEnumerationFailed(); break; }
 
                     var info = new CatalogInfo { Size = (uint)sizeof(CatalogInfo) };
@@ -197,7 +213,17 @@ public sealed unsafe partial class WindowsCatalogIndex
     [StructLayout(LayoutKind.Sequential)]
     private struct IndirectData { public Attribute Data; public Attribute Algorithm; public Blob Digest; }
     [StructLayout(LayoutKind.Sequential)]
-    private struct MemberPrefix { public uint Size; public nint Tag, Name; public Guid Subject; public uint Flags; public IndirectData* Indirect; }
+    private struct MemberPrefix
+    {
+        public uint Size;
+        public nint Tag, Name;
+        public Guid Subject;
+        public uint Flags;
+        public IndirectData* Indirect;
+        public uint CertVersion, Reserved;
+        public nint ReservedHandle;
+        public Blob EncodedIndirect;
+    }
     [StructLayout(LayoutKind.Sequential)]
     private struct CatalogInfo { public uint Size; public fixed char Path[260]; }
 
@@ -227,7 +253,7 @@ public sealed unsafe partial class WindowsCatalogIndex
 
     [LibraryImport("wintrust.dll", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static partial nint CryptCATAdminEnumCatalogFromHash(nint admin, byte* hash, uint size, uint flags, ref nint previous);
+    private static partial nint CryptCATAdminEnumCatalogFromHash(nint admin, byte* hash, uint size, uint flags, nint* previous);
 
     [LibraryImport("wintrust.dll", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

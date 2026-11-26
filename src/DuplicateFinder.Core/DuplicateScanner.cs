@@ -28,13 +28,13 @@ public sealed class DuplicateScanner
         IProgress<ScanProgress>? progress = null, CancellationToken token = default)
     {
         var issues = new List<ScanIssue>();
-        var files = Discover(roots, issues, progress, token);
+        var catalogPaths = options.Catalogs && OperatingSystem.IsWindows() ? new Dictionary<FileKey, string>() : null;
+        var files = Discover(roots, options.SizeRange, catalogPaths, issues, progress, token);
         var sizes = files.Where(f => f.Size.HasValue).CountBy(f => f.Size!.Value).ToDictionary();
         var algorithms = options.Hashes.Append(ChecksumAlgorithm.SHA256).Distinct().ToArray();
 
-        var catalogIndex = options.Catalogs && OperatingSystem.IsWindows()
-            ? new WindowsCatalogIndex(files.Where(f => f.Stamp != null && f.Path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase))
-                .Select(f => f.Path), (path, reason) => issues.Add(new(path, reason)), token) : null;
+        var catalogIndex = catalogPaths != null && files.Any(f => f.Stamp != null) && OperatingSystem.IsWindows()
+            ? new WindowsCatalogIndex(catalogPaths.Values, (path, reason) => issues.Add(new(path, reason)), token) : null;
 
         var completed = 0;
         foreach (var file in files)
@@ -75,7 +75,8 @@ public sealed class DuplicateScanner
         return new(files.AsReadOnly(), issues.AsReadOnly());
     }
 
-    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, List<ScanIssue> issues,
+    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes,
+        Dictionary<FileKey, string>? catalogPaths, List<ScanIssue> issues,
         IProgress<ScanProgress>? progress, CancellationToken token)
     {
         // Highest priority first, including roots contained in another selected root.
@@ -105,10 +106,24 @@ public sealed class DuplicateScanner
                         FileAccessChecks.CheckPath(path);
                         using var input = FileAccessChecks.Open(path);
                         entry.Stamp = _facts.Read(input);
+
+                        // A catalog's own size is independent of the files it describes.
+                        if (catalogPaths != null && path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase))
+                        {
+                            catalogPaths.TryAdd(entry.Stamp.Key, path);
+                        }
+
+                        if (!sizes.Includes(entry.Stamp.Length)) continue;
                         if (!identities.Add(entry.Stamp.Key)) continue;
                     }
                     catch (Exception ex) when (FileAccessChecks.Expected(ex))
                     {
+                        if (sizes != default)
+                        {
+                            // A file of unknown size cannot qualify for an active range.
+                            issues.Add(new(path, ex.Message));
+                            continue;
+                        }
                         entry.Diagnostic = ex.Message;
                     }
 

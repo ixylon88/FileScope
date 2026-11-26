@@ -100,4 +100,12 @@
   <data name="Signature_CheckFailed" xml:space="preserve"><value>Signature check failed</value></data>
   <data name="Signature_Valid" xml:space="preserve"><value>Valid</value></data>
   <data name="CatalogUnsigned" xml:space="preserve"><value>Unsigned catalog</value></data>
+  <data name="IntakeSize" xml:space="preserve"><value>File size when scanning</value></data>
+  <data name="SizeFrom" xml:space="preserve"><value>From</value></data>
+  <data name="SizeTo" xml:space="preserve"><value>To</value></data>
+  <data name="MinimumSizeUnit" xml:space="preserve"><value>Minimum file size unit</value></data>
+  <data name="MaximumSizeUnit" xml:space="preserve"><value>Maximum file size unit</value></data>
+  <data name="IntakeSizeHint" xml:space="preserve"><value>Both limits are inclusive. Leave either field empty for an open limit. 1 kB = 1,000 bytes.</value></data>
+  <data name="BadSize" xml:space="preserve"><value>Enter a non-negative size that converts to a whole number of bytes and fits in 64 bits.</value></data>
+  <data name="ReversedSizes" xml:space="preserve"><value>The minimum size must be less than or equal to the maximum.</value></data>
 </root>

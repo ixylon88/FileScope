@@ -1,6 +1,6 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using DuplicateFinder.Core;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
@@ -52,37 +52,43 @@ public sealed partial class WindowsTests
         var root = Directory.CreateTempSubdirectory("DuplicateFinder-catalog-");
         try
         {
-            var members = Directory.CreateDirectory(Path.Combine(root.FullName, "members")).FullName;
-            var member = Path.Combine(members, "unique.txt");
-            File.WriteAllText(member, Guid.NewGuid().ToString());
+            // Fixtures/loose.cat is an unsigned V2 catalog built with the .NET Arcade
+            // CatalogBuilder from precisely these UTF-8 bytes (no BOM or newline).
+            var original = "DuplicateFinder catalog membership regression fixture."u8.ToArray();
+            var member = Path.Combine(root.FullName, "member.txt");
+            File.WriteAllBytes(member, original);
             var cat = Path.Combine(root.FullName, "loose.cat");
-
-            // This built-in Windows PowerShell command creates an unsigned catalog.
-            // Its member must be discoverable, but must never gain trusted status.
-            var shell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-            var start = new ProcessStartInfo(shell) { UseShellExecute = false, CreateNoWindow = true };
-            start.Environment["DF_TEST_MEMBERS"] = members;
-            start.Environment["DF_TEST_CAT"] = cat;
-            start.ArgumentList.Add("-NoProfile");
-            start.ArgumentList.Add("-NonInteractive");
-            start.ArgumentList.Add("-Command");
-            start.ArgumentList.Add("$ErrorActionPreference='Stop'; New-FileCatalog -Path $env:DF_TEST_MEMBERS -CatalogFilePath $env:DF_TEST_CAT -CatalogVersion 2.0 | Out-Null");
-            using var process = Process.Start(start)!;
-            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(1));
-            Assert.AreEqual(0, process.ExitCode);
-
-            var errors = new List<string>();
-            var index = new WindowsCatalogIndex([cat], (path, reason) => errors.Add(reason));
-            using (var file = File.OpenRead(member))
+            using (var resource = typeof(WindowsTests).Assembly.GetManifestResourceStream("DuplicateFinder.Tests.loose.cat"))
+            using (var output = File.Create(cat))
             {
-                var found = index.Inspect(file, RevocationMode.OfflineCache);
-                Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
-                var match = found.Matches.Single(m => m.Path == cat);
-                Assert.IsFalse(match.Registered);
-                Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
+                Assert.IsNotNull(resource);
+                resource.CopyTo(output);
             }
 
-            File.WriteAllText(member, Guid.NewGuid().ToString());
+            // The catalog is outside the intake range and still describes the admitted file.
+            var options = new SearchOptions([], false, true, RevocationMode.OfflineCache)
+            {
+                SizeRange = new(original.Length, original.Length)
+            };
+            var scan = await new DuplicateScanner().ScanAsync([new(root.FullName, 1)], options);
+            Assert.IsEmpty(scan.Issues, string.Join(Environment.NewLine, scan.Issues));
+            var row = scan.Files.Single();
+            Assert.AreEqual(member, row.Path);
+            var found = row.Catalogs;
+            Assert.IsNotNull(found, row.Diagnostic);
+            Assert.IsTrue(found.IndexComplete);
+            Assert.IsEmpty(found.Issues, string.Join(Environment.NewLine, found.Issues));
+            var sha256 = Convert.ToHexString(SHA256.HashData(original));
+            var match = found.Matches.SingleOrDefault(m => m.Path == cat && string.Equals(m.Member, sha256, StringComparison.OrdinalIgnoreCase));
+            Assert.IsNotNull(match, $"Expected SHA-256 catalog member {sha256}. Returned tags: {string.Join(", ", found.Matches.Select(m => m.Member))}");
+            Assert.IsFalse(match.Registered);
+            Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
+
+            original[^1] ^= 1;
+            File.WriteAllBytes(member, original);
+            var errors = new List<string>();
+            var index = new WindowsCatalogIndex([cat], (path, reason) => errors.Add(reason));
+            Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
             using var changed = File.OpenRead(member);
             var absent = index.Inspect(changed, RevocationMode.OfflineCache);
             Assert.IsTrue(absent.IndexComplete);

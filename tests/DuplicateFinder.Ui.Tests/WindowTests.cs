@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
@@ -100,6 +101,50 @@ public sealed class WindowTests
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
         Assert.AreEqual("快捷键", shortcuts.Title);
+    });
+
+    [TestMethod]
+    public Task SizeOptionsValidateAndRestoreIndependentUnits() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        strings.SetCulture("de");
+        var legacy = JsonSerializer.Deserialize<Preferences>("{}")!;
+        var dialog = new OptionsWindow(legacy);
+        var minimum = (TextBox)dialog.FindName("MinimumSize");
+        var maximum = (TextBox)dialog.FindName("MaximumSize");
+        var save = (Button)dialog.FindName("SaveButton");
+        var message = (TextBlock)dialog.FindName("Validation");
+        Assert.AreEqual("", minimum.Text);
+        Assert.AreEqual("", maximum.Text);
+        Assert.AreEqual(default(FileSizeRange), legacy.Search.SizeRange);
+
+        ((ComboBox)dialog.FindName("MinimumUnit")).SelectedValue = FileSizeUnit.Kilobytes;
+        ((ComboBox)dialog.FindName("MaximumUnit")).SelectedValue = FileSizeUnit.Megabytes;
+        minimum.Text = "200";
+        maximum.Text = "x";
+        save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.AreEqual(strings["BadSize"], message.Text);
+
+        maximum.Text = "0,1";
+        save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.AreEqual(strings["ReversedSizes"], message.Text);
+        Assert.AreSame(legacy, dialog.Result);
+
+        maximum.Text = "1,5";
+        dialog.ContentRendered += (_, _) =>
+        {
+            try { save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            finally { if (dialog.IsVisible) dialog.Close(); }
+        };
+        Assert.IsTrue(dialog.ShowDialog());
+
+        var saved = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(dialog.Result))!;
+        Assert.AreEqual(new FileSizeRange(200_000, 1_500_000), saved.Search.SizeRange);
+        var reopened = new OptionsWindow(saved);
+        Assert.AreEqual("200", ((TextBox)reopened.FindName("MinimumSize")).Text);
+        Assert.AreEqual("1,5", ((TextBox)reopened.FindName("MaximumSize")).Text);
+        Assert.AreEqual(FileSizeUnit.Kilobytes, ((ComboBox)reopened.FindName("MinimumUnit")).SelectedValue);
+        Assert.AreEqual(FileSizeUnit.Megabytes, ((ComboBox)reopened.FindName("MaximumUnit")).SelectedValue);
+        reopened.Close();
     });
 
     private static IEnumerable<T> VisualChildren<T>(DependencyObject parent) where T : DependencyObject

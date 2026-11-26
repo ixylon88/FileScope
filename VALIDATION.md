@@ -1,5 +1,15 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder – Katalogtest und Größenfilter
+
+Basis `058980b` auf `dev`, SDK 10.0.404. Im CI-Lauf 10 meldeten x64 und ARM64 denselben Fehler. Jeweils 16 von 17 DuplicateFinder-Tests bestanden, darunter die nativen NTFS- und Papierkorbtests. Im verbleibenden Test beendete sich Windows PowerShell beim Erzeugen des Testkatalogs mit Exitcode 1. Weder das Jobprotokoll noch der TRX-Bericht enthielten die PowerShell-Fehlermeldung. Die nachfolgenden WPF- und Publish-Schritte wurden dadurch nicht erreicht. [GitHub Actions, Lauf 10](https://github.com/ixylon88/FileScope/actions/runs/45855826683)
+
+Der Test verwendet jetzt einen festen, unsignierten V2-Katalog. Er prüft über die Windows-API den SHA-256-Mitgliedseintrag, eine um ein Bit veränderte Datei und einen fehlenden Katalog. Der Katalog liegt bewusst außerhalb der Größenlimits der Testsuche. Die Ausführung dieser Fassung und der fünf DuplicateFinder-WPF-Fälle auf Windows steht aus.
+
+Unter Linux x64 kompilierte die Release-Solution ohne Warnungen. Die direkten MSTest-Läufe bestanden mit 20 DuplicateFinder-, 22 FileScope-Core- und 33 Präsentationsfällen. Acht weitere Fälle benötigen Windows oder optionale Testdateien. Die 66 PowerShell-Prüfbedingungen bestanden ebenfalls. Für den Teststart über `Verify.ps1` fehlte dem lokalen `dotnet test` die Berechtigung zum Anlegen seiner Named Pipe.
+
+`Build.ps1` erzeugte DuplicateFinder für Windows x64 und ARM64 jeweils framework-dependent und self-contained. Geprüft wurden die PE-Architektur, die Laufzeitvariante und die mitgelieferten Sprachressourcen.
+
 ## DuplicateFinder
 
 Stand 26. November 2026, Basis `272f3c9` auf `dev`, SDK 10.0.404.
@@ -12,7 +22,7 @@ Stand 26. November 2026, Basis `272f3c9` auf `dev`, SDK 10.0.404.
 | PowerShell | 66 Skriptprüfungen bestanden. |
 | DuplicateFinder-Publish | `Build.ps1` erzeugte die vier Kombinationen aus x64/ARM64 und framework-dependent/self-contained. PE-Architektur des Apphosts, Laufzeitbestandteile, Lizenz und Sprachressourcen wurden in jedem Ausgabeordner geprüft. |
 
-Die drei plattformübergreifenden MSTest-Projekte liefen über ihre gebauten Test-DLLs. Der Start mit `dotnet test` innerhalb von `Verify.ps1` stieß in dieser Linux-Umgebung beim Anlegen seiner Named Pipe auf fehlende Berechtigungen. Für Windows x64 und ARM64 führt die CI auch die vier neuen WPF-Fälle und die drei nativen Tests aus. Ihr erster Windows-Lauf steht aus. Der Papierkorbtest verwendet eine eigens erzeugte temporäre Datei mit eindeutigem Namen.
+Die drei plattformübergreifenden MSTest-Projekte liefen über ihre gebauten Test-DLLs. Der Start mit `dotnet test` innerhalb von `Verify.ps1` stieß in dieser Linux-Umgebung beim Anlegen seiner Named Pipe auf fehlende Berechtigungen. Für diesen ersten Stand waren vier WPF-Fälle und drei native Tests für Windows vorgesehen. Der Papierkorbtest verwendet eine eigens erzeugte temporäre Datei mit eindeutigem Namen.
 
 ## Umstellung: Ressourcenprüfungen in MSTest, ohne Python
 

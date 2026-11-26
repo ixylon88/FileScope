@@ -100,4 +100,12 @@
   <data name="Signature_CheckFailed" xml:space="preserve"><value>签名检查失败</value></data>
   <data name="Signature_Valid" xml:space="preserve"><value>有效</value></data>
   <data name="CatalogUnsigned" xml:space="preserve"><value>目录未签名</value></data>
+  <data name="IntakeSize" xml:space="preserve"><value>扫描时的文件大小</value></data>
+  <data name="SizeFrom" xml:space="preserve"><value>从</value></data>
+  <data name="SizeTo" xml:space="preserve"><value>到</value></data>
+  <data name="MinimumSizeUnit" xml:space="preserve"><value>最小文件大小的单位</value></data>
+  <data name="MaximumSizeUnit" xml:space="preserve"><value>最大文件大小的单位</value></data>
+  <data name="IntakeSizeHint" xml:space="preserve"><value>包含上下限。相应字段留空表示不设下限或上限。1 kB = 1,000 字节。</value></data>
+  <data name="BadSize" xml:space="preserve"><value>请输入非负数，换算后须为整数字节且在 64 位有符号整数范围内。</value></data>
+  <data name="ReversedSizes" xml:space="preserve"><value>最小文件大小不能大于最大文件大小。</value></data>
 </root>

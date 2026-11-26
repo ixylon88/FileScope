@@ -14,6 +14,10 @@ Unter **Optionen → Ordner hinzufügen** die Suchordner wählen. Neue Suchordne
 
 ## Ergebnisse und Bedienung
 
+Unter **Optionen → Dateigröße beim Einlesen** lassen sich eine Mindest- und eine Höchstgröße für den Hauptdatenstrom setzen. Anfangs sind beide Felder leer und alle Größen zugelassen. Jede Grenze lässt sich einzeln setzen und zählt mit. **Von 200 kB bis 1,5 MB** erfasst beispielsweise 200.000 bis 1.500.000 Byte. **Bis 0 B** findet ausschließlich leere Hauptdatenströme. Pro Feld stehen B, kB, MB und GB zur Wahl (1 kB = 1.000 Byte).
+
+Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einer aufgenommenen Datei liefern.
+
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
 
 Nach der Vorauswahl anhand der Dateigröße berechnet `FileScope.Core` alle gewählten Prüfsummen in einem Lesedurchlauf über den Hauptdatenstrom. Für die Suche genügt SHA-256. Stimmen Größe und Hash überein, vergleicht DuplicateFinder den Hauptdatenstrom der Kandidaten zusätzlich Byte für Byte. Jede bestätigte Gruppe lässt sich aufklappen. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität.

@@ -16,9 +16,15 @@ public sealed record Preferences
     public bool Embedded { get; init; } = true;
     public bool Catalogs { get; init; } = true;
     public bool Online { get; init; }
+    public FileSizeRange SizeRange { get; init; }
+    public FileSizeUnit MinimumSizeUnit { get; init; } = FileSizeUnit.Bytes;
+    public FileSizeUnit MaximumSizeUnit { get; init; } = FileSizeUnit.Bytes;
 
     [System.Text.Json.Serialization.JsonIgnore]
-    public SearchOptions Search => new(Hashes, Embedded, Catalogs, Online ? RevocationMode.Online : RevocationMode.OfflineCache);
+    public SearchOptions Search => new(Hashes, Embedded, Catalogs, Online ? RevocationMode.Online : RevocationMode.OfflineCache)
+    {
+        SizeRange = SizeRange
+    };
 }
 
 public sealed class SettingsStore
@@ -33,7 +39,8 @@ public sealed class SettingsStore
             using var input = File.OpenRead(_path);
             var settings = JsonSerializer.Deserialize<Preferences>(input);
             if (settings?.Roots == null || settings.Hashes == null || settings.Roots.Any(r => r == null || !Path.IsPathFullyQualified(r.Path))
-                || !LocalizationService.Instance.Languages.Any(l => l.CultureName == settings.Language) || !Enum.IsDefined(settings.Theme))
+                || !LocalizationService.Instance.Languages.Any(l => l.CultureName == settings.Language) || !Enum.IsDefined(settings.Theme)
+                || !Enum.IsDefined(settings.MinimumSizeUnit) || !Enum.IsDefined(settings.MaximumSizeUnit))
             {
                 return new();
             }

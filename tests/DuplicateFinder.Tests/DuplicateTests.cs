@@ -26,13 +26,72 @@ public sealed class DuplicateTests
         return path;
     }
 
-    private Task<ScanResult> ScanAsync(IChecksumService? service = null, CancellationToken token = default)
+    private Task<ScanResult> ScanAsync(IChecksumService? service = null, SearchOptions? options = null,
+        CancellationToken token = default)
     {
         var roots = Directory.GetDirectories(_dir).Select(d => new SearchRoot(d, int.Parse(Path.GetFileName(d),
             System.Globalization.CultureInfo.InvariantCulture))).ToArray();
         var scanner = new DuplicateScanner(_facts, service ?? new StreamChecksumService(new ChecksumStrategyFactory()),
             new WindowsAuthenticodeInspector());
-        return scanner.ScanAsync(roots, Options, token: token);
+        return scanner.ScanAsync(roots, options ?? Options, token: token);
+    }
+
+    [TestMethod]
+    public async Task SizeLimitsExcludeFilesBeforeAnalysisAndCleanup()
+    {
+        var admitted = new List<string>();
+        var excluded = new List<string>();
+        foreach (var size in Enumerable.Range(1, 5))
+        {
+            var contents = new string('x', size);
+            var paths = size is >= 2 and <= 4 ? admitted : excluded;
+            paths.Add(Put("9", "keep-" + contents, contents));
+            paths.Add(Put("1", "copy-" + contents, contents));
+        }
+
+        var options = Options with { SizeRange = new(2, 4), Embedded = true };
+        var scan = await ScanAsync(options: options);
+        Assert.IsEmpty(scan.Issues);
+        CollectionAssert.AreEquivalent(admitted, scan.Files.Select(f => f.Path).ToArray());
+        Assert.IsTrue(scan.Files.All(f => f.Hashes.ContainsKey(ChecksumAlgorithm.SHA256) && f.Embedded != SignatureResult.NotChecked));
+        Assert.IsTrue(excluded.All(path => _facts.ReadCount[path] == 1), "Excluded files should only be opened for discovery.");
+
+        var plan = CleanupPlan.Create(scan.Files);
+        CollectionAssert.AreEquivalent(admitted.Where(path => Path.GetFileName(path).StartsWith("copy-", StringComparison.Ordinal)).ToArray(),
+            plan.Items.Select(item => item.File.Path).ToArray());
+    }
+
+    [TestMethod]
+    public async Task EmptyFileAndOpenSizeLimitsWorkDuringDiscovery()
+    {
+        Put("1", "empty", "");
+        Put("1", "one", "x");
+        Put("1", "two", "xx");
+
+        await Check(default, "empty", "one", "two");
+        await Check(new(null, 0), "empty");
+        await Check(new(1, null), "one", "two");
+        await Check(new(1, 1), "one");
+        await Check(new(3, null));
+
+        async Task Check(FileSizeRange range, params string[] expected)
+        {
+            var scan = await ScanAsync(options: Options with { SizeRange = range });
+            CollectionAssert.AreEquivalent(expected, scan.Files.Select(f => f.Name).ToArray());
+        }
+    }
+
+    [TestMethod]
+    public async Task UnknownSizeWithActiveRangeIsReportedOutsideResults()
+    {
+        var unknown = Put("1", "unknown", "file");
+        _facts.UnreadableSize.Add(unknown);
+        var unrestricted = await ScanAsync();
+        Assert.IsNotNull(unrestricted.Files.Single().Diagnostic);
+
+        var filtered = await ScanAsync(options: Options with { SizeRange = new(0, null) });
+        Assert.IsEmpty(filtered.Files);
+        Assert.AreEqual(unknown, filtered.Issues.Single().Path);
     }
 
     [TestMethod]
@@ -262,8 +321,12 @@ public sealed class DuplicateTests
         internal Dictionary<string, uint> Links { get; } = [];
         internal Dictionary<string, IReadOnlyList<NamedStream>> Manifests { get; } = [];
         internal HashSet<string> Unreadable { get; } = [];
+        internal HashSet<string> UnreadableSize { get; } = [];
+        internal Dictionary<string, int> ReadCount { get; } = [];
         public FileStamp Read(FileStream file)
         {
+            ReadCount[file.Name] = ReadCount.GetValueOrDefault(file.Name) + 1;
+            if (UnreadableSize.Contains(file.Name)) throw new IOException("Size unavailable.");
             if (!Keys.TryGetValue(file.Name, out var key)) Keys.Add(file.Name, key = new(1, Guid.NewGuid()));
             return new(key, file.Length, DateTime.UnixEpoch, 1, Links.GetValueOrDefault(file.Name, 1u));
         }

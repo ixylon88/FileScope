@@ -7,7 +7,10 @@ public sealed record SearchRoot(string Path, int Priority);
 public sealed record ScanIssue(string Path, string Reason);
 public sealed record ScanProgress(string Stage, string Path, int Completed, int Total);
 public enum StreamComparison { Unmatched, Identical, Different, Unknown }
-public sealed record SearchOptions(IReadOnlyList<ChecksumAlgorithm> Hashes, bool Embedded, bool Catalogs, RevocationMode Revocation);
+public sealed record SearchOptions(IReadOnlyList<ChecksumAlgorithm> Hashes, bool Embedded, bool Catalogs, RevocationMode Revocation)
+{
+    public FileSizeRange SizeRange { get; init; }
+}
 
 public sealed class FoundFile
 {
