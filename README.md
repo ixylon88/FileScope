@@ -318,10 +318,13 @@ Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktiviert
 
 Die [Statustabelle mit Hexcodes, Farben und Verschiebegruppen](#dateien-nach-signaturergebnis-verschieben) führt alle angezeigten Ergebnisse auf.
 
-Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch werden Dateiintegrität und Vertrauenskette durch Windows beurteilt; ein auslesbares Zertifikat allein wird nie als gültige Signatur gewertet. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
+Mit `WinVerifyTrust` prüft Windows die Integrität der signierten Inhalte und die Vertrauenskette des Unterzeichners nach der Authenticode-Richtlinie. Ein auslesbares Zertifikat allein belegt keine gültige Signatur. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
+
+**Bei PE-Dateien wie EXE und DLL schützt Authenticode nur bestimmte Bereiche.** Unter anderem sind das PE-Prüfsummenfeld und die Zertifikatstabelle vom Signatur-Hash ausgenommen. Zwei gültig signierte EXE-Dateien können sich daher byteweise unterscheiden, etwa durch unterschiedliche Signaturzeitstempel. Die SHA-256-Spalte von FileScope erfasst jedes Byte des Hauptdatenstroms, einschließlich der eingebetteten Signatur. [Microsoft Learn zur Signatur von PE-Dateien](https://learn.microsoft.com/en-us/windows/win32/secbp/understanding-pe-signatures)
 
 - **Gültig · Sperrprüfung aus Cache:** Windows hat unter der lokalen Vertrauensrichtlinie und den vorhandenen Cache-Daten erfolgreich geprüft. Dies ist keine Zusicherung aktueller Online-Sperrinformationen.
 - **Gültig · Online-Sperrprüfung:** Netzwerkzugriff für die Prüfung ist erlaubt. Windows darf trotzdem noch gültige Cache-Daten nutzen; eine frische Netzabfrage wird nicht erzwungen.
+- Meldet Windows `TRUST_E_BAD_DIGEST` (`0x80096010`), weicht der berechnete Hashwert vom signierten Wert ab. FileScope zeigt dafür „Ungültige Signatur / Prüfsumme“ an.
 - **Sperrstatus unbekannt:** Die benötigten Sperrinformationen fehlen oder sind nicht erreichbar. Dies wird nicht als „gültig“ dargestellt.
 - **Keine eingebettete Signatur** und **Signaturformat nicht unterstützt** bleiben getrennte Ergebnisse.
 - Fehlerhafte, nicht vertrauenswürdige, gesperrte und zeitlich ungültige Zertifikate erhalten getrennte Statuswerte. Der originale Windows-Rückgabecode wird als Hexwert angezeigt.
