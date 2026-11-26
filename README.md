@@ -617,10 +617,10 @@ Aktueller Ausführungsstand:
 | Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
 | Präsentation, Einstellungen und Ressourcen | **33 Testfälle unter Linux bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen sowie **11** zusätzliche Konsistenzprüfungen. |
 | WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
-| DuplicateFinder / Core und Windows-Integration | **24 Fälle**, davon 21 unter Linux bestanden. Enthält den Größenfilter und die Hash-Vorauswahl samt Fortschrittsmeldungen. Drei Fälle benötigen Windows und prüfen NTFS, Katalogzuordnung und Papierkorb. |
-| DuplicateFinder / WPF | **7 Fälle** für Filterumfang, Größeneingabe, Markierungen, Bestätigung, Sprachen und Theme sowie kopierbare Dateidetails, Änderungsdatum und das DataGrid während eines Jobs. |
+| DuplicateFinder / Core und Windows-Integration | **24 Fälle** auf Windows x64 und ARM64 bestanden, davon 21 auch unter Linux. Enthält Größenfilter, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
+| DuplicateFinder / WPF | **8 Fälle** für Filterumfang, Größeneingabe, Markierungen, Bestätigung, Sprachen, Theme, kopierbare Dateidetails, Änderungsdatum, die Tabelle während eines Jobs und das Öffnen und Schließen der Gruppen. |
 
-Die Suite umfasst **126 C#-Testfälle**. Der Stand vor der Überarbeitung der DuplicateFinder-Oberfläche bestand die CI auf Windows x64 und ARM64 einschließlich Katalog- und WPF-Tests. Die neuen WPF-Fälle sind für den nächsten Windows-Lauf vorgesehen. [Prüfstand](VALIDATION.md)
+Die Suite umfasst **127 C#-Testfälle**. Der Prüfstand dokumentiert die Ergebnisse je Plattform und den ausstehenden Windows-Lauf für die korrigierte Gruppenansicht. [Prüfstand](VALIDATION.md)
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

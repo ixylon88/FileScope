@@ -1,5 +1,11 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder – Gruppen öffnen und Dateien markieren
+
+Auf `dev` bei `2716d58` kompilierten beide Windows-Jobs. Anschließend scheiterten auf x64 und ARM64 jeweils drei der sieben DuplicateFinder-WPF-Fälle beim Erzeugen der ersten Dateizeile. Die Farbressource für deren Markierung lieferte einen weiteren Ressourcenverweis. Die übrigen vier WPF-Fälle sowie alle 24 DuplicateFinder-Core-Fälle bestanden auf beiden Architekturen. [GitHub Actions, Lauf 12](https://github.com/ixylon88/FileScope/actions/runs/45879227251)
+
+Der neue achte WPF-Fall prüft im hellen und dunklen Theme die Trefferfläche des Gruppenkopfs, das Öffnen und Schließen sowie die Markierung einer Datei in der Namensspalte. Der Release-Build unter Linux umfasste die WPF-Projekte. Die 76 portablen C#-Tests und 66 Skriptprüfbedingungen bestanden. Der Lauf der korrigierten WPF-Oberfläche auf Windows steht aus.
+
 ## DuplicateFinder – Dateidetails, Dunkelmodus und Hash-Vorauswahl
 
 Basis `fcb20b9` auf `dev`, SDK 10.0.404. Der Ausgangsstand mit dem Größenfilter und dem festen Testkatalog bestand beide Windows-Jobs einschließlich WPF und Publish. [GitHub Actions, Lauf 11](https://github.com/ixylon88/FileScope/actions/runs/45868157743)

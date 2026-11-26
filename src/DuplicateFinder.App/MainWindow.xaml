@@ -3,7 +3,15 @@
         Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
         Style="{StaticResource AppWindowStyle}" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
   <Window.Resources>
-    <SolidColorBrush x:Key="MarkedRowBackground" Color="{DynamicResource SystemAccentColor}" Opacity="0.24" />
+    <!-- Fluent's SystemAccentColor is itself a dynamic reference. Ask Windows for the Color directly. -->
+    <SolidColorBrush x:Key="MarkedRowBackground" Color="{DynamicResource {x:Static SystemColors.AccentColorKey}}" Opacity="0.24" />
+    <Style x:Key="FileCells" TargetType="DataGridCellsPanel">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Marked}" Value="True">
+          <Setter Property="Background" Value="{StaticResource MarkedRowBackground}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
     <Style x:Key="BandDivider" TargetType="Border">
       <Setter Property="Width" Value="1" />
       <Setter Property="Margin" Value="6,0,14,6" />
@@ -68,7 +76,7 @@
                 CanUserAddRows="False" CanUserSortColumns="False" SelectionMode="Single" SelectionUnit="FullRow" IsSynchronizedWithCurrentItem="False"
                 HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True"
                 VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="RowClick">
+                ScrollViewer.CanContentScroll="True">
         <DataGrid.GroupStyle>
           <GroupStyle>
             <GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></GroupStyle.Panel>
@@ -76,7 +84,7 @@
               <Style TargetType="GroupItem">
                 <Setter Property="Template"><Setter.Value>
                   <ControlTemplate TargetType="GroupItem">
-                    <Expander IsExpanded="False">
+                    <Expander IsExpanded="False" AutomationProperties.Name="{Binding Name}">
                       <Expander.Header><StackPanel Orientation="Horizontal">
                         <TextBlock FontWeight="SemiBold" Text="{Binding Name}"/>
                         <TextBlock Margin="10,0" Foreground="{DynamicResource MutedBrush}" Text="{Binding ItemCount}"/>
@@ -90,19 +98,31 @@
           </GroupStyle>
         </DataGrid.GroupStyle>
         <DataGrid.RowStyle>
-          <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding Marked}" Value="True"><Setter Property="Background" Value="{StaticResource MarkedRowBackground}"/></DataTrigger>
-            </Style.Triggers>
+          <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
+            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="RowClick" />
+            <!-- The Fluent row border paints its own transparent background. The cells panel draws the mark behind the cells. -->
+            <Setter Property="ItemsPanel">
+              <Setter.Value>
+                <ItemsPanelTemplate>
+                  <DataGridCellsPanel Style="{StaticResource FileCells}" />
+                </ItemsPanelTemplate>
+              </Setter.Value>
+            </Setter>
           </Style>
         </DataGrid.RowStyle>
         <DataGrid.Columns>
-          <DataGridTemplateColumn Header="✓" Width="42"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-            <CheckBox IsChecked="{Binding Marked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                      IsEnabled="{Binding DataContext.CanMark, RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}"
-                      AutomationProperties.Name="{loc:Loc Mark}"/>
-          </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-          <DataGridTextColumn Header="{loc:Loc Name}" Binding="{Binding File.Name, Mode=OneWay}" Width="190" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTemplateColumn Header="{loc:Loc Name}" Width="232" ClipboardContentBinding="{Binding File.Name, Mode=OneWay}">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <DockPanel Margin="9,0,0,0">
+                  <CheckBox MinWidth="32" VerticalAlignment="Center" IsChecked="{Binding Marked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{Binding DataContext.CanMark, RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}"
+                            ToolTip="{loc:Loc Mark}" AutomationProperties.Name="{loc:Loc Mark}" />
+                  <TextBlock Text="{Binding File.Name, Mode=OneWay}" Style="{StaticResource GridText}" />
+                </DockPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
           <DataGridTextColumn Header="{loc:Loc Priority}" Binding="{Binding File.Root.Priority, Mode=OneWay}" Width="75" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Variant}" Binding="{Binding File.Variant, Mode=OneWay}" Width="65" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Bytes}" Binding="{Binding File.Size, Mode=OneWay}" Width="92" ElementStyle="{StaticResource GridText}"/>

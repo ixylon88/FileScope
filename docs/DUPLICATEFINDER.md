@@ -20,9 +20,9 @@ Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **A
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
 
-Jede Duplikatgruppe lässt sich aufklappen. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Der aufklappbare Bereich **Ausgewählte Datei · Details und Kopieren** zeigt den vollständigen Pfad der aktiven Zeile. Im Textfeld lassen sich beispielsweise Prüfsummen oder Katalogpfade markieren und mit **Strg+C** kopieren.
+Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Der aufklappbare Bereich **Ausgewählte Datei · Details und Kopieren** zeigt den vollständigen Pfad der aktiven Zeile. Im Textfeld lassen sich beispielsweise Prüfsummen oder Katalogpfade markieren und mit **Strg+C** kopieren.
 
-Die Häkchen bestimmen die manuelle Auswahl für den Papierkorb. Ein Klick auf eine Zeile oder ihr Kästchen schaltet die Markierung um. Mit den Pfeiltasten lässt sich eine andere Datei ansehen, während die Häkchen erhalten bleiben. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
+Die Kästchen vor den Dateinamen bestimmen die manuelle Auswahl für den Papierkorb. Ein Klick auf eine Dateizeile oder ihr Kästchen schaltet die Markierung um. Die Häkchen bleiben erhalten, wenn man eine Gruppe zuklappt oder mit den Pfeiltasten eine andere Datei ansieht. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
 
 ## Wie die Duplikatsuche arbeitet
 

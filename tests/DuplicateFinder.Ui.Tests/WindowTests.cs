@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using DuplicateFinder.App;
@@ -118,6 +120,83 @@ public sealed class WindowTests
             Assert.IsTrue(VisualChildren<TextBlock>(command).Any(text => text.Text == glyph && text.FontFamily.Source == "Segoe MDL2 Assets"));
         }
     });
+
+    [TestMethod]
+    public Task GroupHeadersOpenAndCloseWithoutMarkingFiles() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        var theme = new ThemeService(app);
+        foreach (var mode in new[] { AppTheme.Light, AppTheme.Dark })
+        {
+            theme.Apply(mode);
+            var model = new ResultsViewModel();
+            model.Replace([
+                FileAt(@"C:\archive\keep.dat", 10),
+                FileAt(@"C:\backup\copy.dat", 1),
+                new FoundFile(@"C:\third\single.dat", new("third", 0))
+            ]);
+            var window = ShowResults(model, theme);
+            var grid = (DataGrid)window.FindName("Files");
+            window.UpdateLayout();
+
+            Assert.AreEqual(strings["Name"], grid.Columns[0].Header);
+            Assert.IsFalse(VisualChildren<Button>(grid).Any(b => b.Command == DataGrid.SelectAllCommand && b.IsVisible));
+            var groups = VisualChildren<Expander>(grid).ToArray();
+            var duplicates = groups.Single(g => AutomationProperties.GetName(g) == model.Rows[0].GroupTitle);
+            var singles = groups.Single(g => AutomationProperties.GetName(g) == strings["Singles"]);
+            Assert.IsFalse(duplicates.IsExpanded || singles.IsExpanded);
+
+            ToggleGroupHeader(grid, duplicates);
+            Assert.IsTrue(duplicates.IsExpanded);
+            Assert.IsFalse(singles.IsExpanded);
+            Assert.AreEqual(0, model.MarkedCount);
+
+            var rows = VisualChildren<DataGridRow>(duplicates).Where(r => r.IsVisible).ToArray();
+            Assert.HasCount(2, rows);
+            var row = rows.Single(r => r.Item == model.Rows[1]);
+            var nameCell = VisualChildren<DataGridCell>(row).Single(c => c.Column == grid.Columns[0]);
+            Assert.IsTrue(VisualChildren<TextBlock>(nameCell).Any(t => t.Text == "copy.dat"));
+            var box = VisualChildren<CheckBox>(nameCell).Single();
+            Assert.AreEqual(strings["Mark"], box.ToolTip);
+            var peer = new CheckBoxAutomationPeer(box);
+            ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)!).Toggle();
+            window.UpdateLayout();
+
+            var cells = VisualChildren<DataGridCellsPanel>(row).Single();
+            var mark = Assert.IsInstanceOfType<SolidColorBrush>(cells.Background);
+            Assert.AreEqual(SystemColors.AccentColor, mark.Color);
+            Assert.IsTrue(model.Rows[1].Marked);
+
+            ToggleGroupHeader(grid, duplicates);
+            Assert.IsFalse(duplicates.IsExpanded);
+            ToggleGroupHeader(grid, duplicates);
+            Assert.IsTrue(duplicates.IsExpanded);
+            Assert.IsTrue(VisualChildren<CheckBox>(duplicates).Single(c => c.DataContext == model.Rows[1]).IsChecked);
+            Assert.AreEqual(1, model.MarkedCount);
+
+            var name = VisualChildren<TextBlock>(duplicates).Single(text => text.Text == "copy.dat");
+            name.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+            {
+                RoutedEvent = Mouse.PreviewMouseDownEvent
+            });
+            Assert.AreEqual(0, model.MarkedCount);
+            window.Close();
+        }
+    });
+
+    private static void ToggleGroupHeader(DataGrid grid, Expander group)
+    {
+        var toggle = (ToggleButton)group.Template.FindName("HeaderSite", group);
+        var title = VisualChildren<TextBlock>(toggle).Single(text => text.Text == AutomationProperties.GetName(group));
+
+        // Hit-test the gap immediately after the title, inside the header and within the visible viewport.
+        var point = title.TranslatePoint(new Point(title.ActualWidth + 3, title.ActualHeight / 2), grid);
+        var hit = grid.InputHitTest(point) as Visual;
+        Assert.IsTrue(hit == toggle || (hit != null && toggle.IsAncestorOf(hit)), "The group header must receive pointer input.");
+
+        var peer = new ToggleButtonAutomationPeer(toggle);
+        ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)!).Toggle();
+        grid.UpdateLayout();
+    }
 
     [TestMethod]
     public Task SelectedFileDetailsSurviveFocusChangesAndFollowTheVisibleSelection() => WpfTestHost.RunAsync((app, strings) =>

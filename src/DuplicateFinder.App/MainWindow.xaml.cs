@@ -75,19 +75,20 @@ public partial class MainWindow : Window
 
     private void RowClick(object sender, MouseButtonEventArgs e)
     {
-        if (_job != null || e.OriginalSource is not DependencyObject element) return;
-        while (element is Visual and not DataGridRow)
+        if (_job != null || sender is not DataGridRow { Item: ResultRow row } || e.OriginalSource is not DependencyObject element) return;
+
+        while (element is Visual && element != sender)
         {
-            // The actual checkbox supports keyboard and UI Automation through its two-way binding.
-            if (element is CheckBox { DataContext: ResultRow checkedRow })
+            // The checkbox handles its own toggle. Select its row for the details pane.
+            if (element is CheckBox)
             {
-                Files.SelectedItem = checkedRow;
-                Files.CurrentCell = new DataGridCellInfo(checkedRow, Files.Columns[0]);
+                Files.SelectedItem = row;
+                Files.CurrentCell = new DataGridCellInfo(row, Files.Columns[0]);
                 return;
             }
             element = VisualTreeHelper.GetParent(element);
         }
-        if (element is not DataGridRow { Item: ResultRow row }) return;
+
         if (e.ClickCount == 1) row.Marked = !row.Marked;
     }
 
