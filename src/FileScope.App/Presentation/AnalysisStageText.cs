@@ -1,4 +1,3 @@
-using FileScope.App.Localization;
 using FileScope.Core.Models;
 
 namespace FileScope.App.Presentation;
@@ -13,6 +12,8 @@ public static class AnalysisStageText
         AnalysisStage.ReadingPeHeader => "ReadingPeHeader",
         AnalysisStage.CheckingSignature when mode == RevocationMode.Online => "CheckingSignatureOnline",
         AnalysisStage.CheckingSignature => "CheckingSignature",
+        AnalysisStage.CheckingCatalogs when mode == RevocationMode.Online => "CheckingCatalogsOnline",
+        AnalysisStage.CheckingCatalogs => "CheckingCatalogs",
         _ => "Processing"
     }];
 }

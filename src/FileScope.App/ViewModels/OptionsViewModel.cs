@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Text.Json;
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
 using FileScope.Core.Export;

@@ -16,8 +16,6 @@ public sealed record UserPreferences
     public AnalysisPreferences? Analysis { get; init; }
 }
 
-public sealed record WindowPreferences(double Width, double Height, bool Maximized);
-
 // Defaults apply only when settings/individual fields have not been saved yet.
 // Explicit false values, including all checks disabled, must survive a restart.
 public sealed record AnalysisPreferences
@@ -28,6 +26,7 @@ public sealed record AnalysisPreferences
     public bool SHA384 { get; init; }
     public bool SHA512 { get; init; }
     public bool InspectCertificates { get; init; } = true;
+    public bool InspectCatalogs { get; init; }
     public bool OnlineRevocation { get; init; }
     public bool InspectFileProperties { get; init; }
     public bool InspectPeHeader { get; init; }

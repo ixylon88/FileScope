@@ -4,8 +4,8 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/DuplicateFinder.App;component/Styles/Controls.xaml" />
-        <ResourceDictionary Source="/DuplicateFinder.App;component/Styles/Themes/LightThemePalette.xaml" />
+        <ResourceDictionary Source="/FileScope.Shared;component/Styles/Controls.xaml" />
+        <ResourceDictionary Source="/FileScope.Shared;component/Styles/Themes/LightThemePalette.xaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

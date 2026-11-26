@@ -1,5 +1,18 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Gemeinsame Oberfläche, Signaturfilter und Katalogprüfung in FileScope
+
+Basis ist `34456cc` auf `dev`. Die Release-Solution wurde mit .NET SDK 10.0.404 unter Linux x64 einschließlich beider WPF-Anwendungen und beider WPF-Testprojekte ohne Warnungen gebaut.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| FileScope Core | 23 von 29 Fällen bestanden. Sechs benötigen Windows oder optionale Dateien. Der Test für unvollständige Katalogprüfungen und erhaltene Prüfsummen bestand. |
+| Präsentation und Ressourcen | Alle 35 Fälle bestanden, einschließlich der zwölf exakten Signaturfilter in drei Sprachen sowie der getrennten Kataloganzeige und des Exports. |
+| DuplicateFinder Core | 21 von 24 Fällen bestanden. Die übrigen drei verwenden Windows-APIs. |
+| Skripte | Alle 66 Prüfbedingungen bestanden. |
+| Windows-Oberfläche und native Katalogprüfung | 36 FileScope- und 10 DuplicateFinder-WPF-Fälle kompiliert. Laufzeitprüfung dieser Fassung auf Windows steht aus. Der FileScope-Core-Test mit dem festen Katalog prüft dort auch ein um ein Bit geändertes Mitglied. |
+| Publish | Beide Anwendungen für win-x64 und win-arm64, jeweils framework-dependent und self-contained. In allen acht Paketen wurden die gemeinsamen WPF-Ressourcen und Sprachassemblies geprüft. Die Icon-Bilder in den EXE-Ressourcen stimmen byteweise mit dem jeweiligen ICO überein. |
+
 ## DuplicateFinder – Gruppen öffnen und Dateien markieren
 
 Auf `dev` bei `2716d58` kompilierten beide Windows-Jobs. Anschließend scheiterten auf x64 und ARM64 jeweils drei der sieben DuplicateFinder-WPF-Fälle beim Erzeugen der ersten Dateizeile. Die Farbressource für deren Markierung lieferte einen weiteren Ressourcenverweis. Die übrigen vier WPF-Fälle sowie alle 24 DuplicateFinder-Core-Fälle bestanden auf beiden Architekturen. [GitHub Actions, Lauf 12](https://github.com/ixylon88/FileScope/actions/runs/45879227251)

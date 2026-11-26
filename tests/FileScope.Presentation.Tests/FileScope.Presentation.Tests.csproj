@@ -6,13 +6,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/FileScope.Core/FileScope.Core.csproj" />
+    <ProjectReference Include="../../src/FileScope.Shared/FileScope.Shared.csproj" />
     <!-- Exercise the existing UI-independent sources on every supported host. -->
-    <Compile Include="../../src/FileScope.App/Infrastructure/ObservableObject.cs" Link="App/Infrastructure/ObservableObject.cs" />
-    <Compile Include="../../src/FileScope.App/Infrastructure/Commands.cs" Link="App/Infrastructure/Commands.cs" />
-    <Compile Include="../../src/FileScope.App/Localization/LocalizationService.cs" Link="App/Localization/LocalizationService.cs" />
     <Compile Include="../../src/FileScope.App/Presentation/*.cs" Link="App/Presentation/%(Filename)%(Extension)" />
     <Compile Include="../../src/FileScope.App/Services/PreferencesStore.cs" Link="App/Services/PreferencesStore.cs" />
-    <Compile Include="../../src/FileScope.App/Services/IThemeService.cs" Link="App/Services/IThemeService.cs" />
     <Compile Include="../../src/FileScope.App/ViewModels/Options.cs" Link="App/ViewModels/Options.cs" />
     <Compile Include="../../src/FileScope.App/ViewModels/ColumnOption.cs" Link="App/ViewModels/ColumnOption.cs" />
     <Compile Include="../../src/FileScope.App/ViewModels/SignatureOption.cs" Link="App/ViewModels/SignatureOption.cs" />
@@ -27,7 +24,12 @@
     <EmbeddedResource Include="../../src/FileScope.App/**/*.xaml"
                       Exclude="../../src/FileScope.App/bin/**;../../src/FileScope.App/obj/**"
                       LogicalName="Source.Xaml.%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/FileScope.Shared/Wpf/*.xaml;../../src/FileScope.Shared/Styles/**/*.xaml"
+                      LogicalName="Source.Xaml.Shared.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../src/FileScope.App/FileScope.App.csproj" LogicalName="Source.AppProject.xml" />
     <EmbeddedResource Include="../../src/FileScope.App/Resources/FileScopeSplash.png" LogicalName="Source.Splash.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="FileScope.Shared" />
   </ItemGroup>
 </Project>

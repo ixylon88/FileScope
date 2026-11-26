@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Resources;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
@@ -190,15 +189,19 @@ public sealed partial class ResourceConsistencyTests
 
     private static Dictionary<string, string> ReadStrings(string culture)
     {
-        var manager = new ResourceManager("FileScope.App.Resources.Strings", typeof(LocalizationService).Assembly);
+        var managers = new[] { new ResourceManager("FileScope.App.Resources.Strings", typeof(ResourceConsistencyTests).Assembly),
+            new ResourceManager("FileScope.Shared.Resources.Strings", typeof(LocalizationService).Assembly) };
         var resourceCulture = culture == "en" ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(culture);
 
         // No parent fallback: a missing translation must not pass as English.
-        using var resources = manager.GetResourceSet(resourceCulture, createIfNotExists: true, tryParents: false);
-        Assert.IsNotNull(resources, $"Missing resource set: {culture}.");
-
-        return resources.Cast<DictionaryEntry>().ToDictionary(entry => (string)entry.Key,
-            entry => (string)entry.Value!, StringComparer.Ordinal);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var manager in managers)
+        {
+            using var resources = manager.GetResourceSet(resourceCulture, createIfNotExists: true, tryParents: false);
+            Assert.IsNotNull(resources, $"Missing resource set: {culture}.");
+            foreach (DictionaryEntry entry in resources) values.Add((string)entry.Key, (string)entry.Value!);
+        }
+        return values;
     }
 
     private static string[] Placeholders(string value) =>

@@ -60,6 +60,9 @@ public sealed partial class UiTests
         WpfTestHost.RunAsync((app, strings) => CheckFileIntake(strings));
 
     [TestMethod]
+    public Task CatalogIntake() => WpfTestHost.RunAsync((app, strings) => CheckCatalogIntake(strings));
+
+    [TestMethod]
     public Task IntakeFilter() =>
         WpfTestHost.RunAsync((app, strings) => CheckIntakeFilter(strings));
 

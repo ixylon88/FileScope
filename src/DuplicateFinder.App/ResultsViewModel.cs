@@ -1,9 +1,6 @@
 using System.ComponentModel;
 using System.Windows.Data;
 using DuplicateFinder.Core;
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
-using FileScope.App.Presentation;
 using FileScope.Core.Models;
 
 namespace DuplicateFinder.App;
@@ -20,18 +17,11 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
     public string Streams => Strings["Streams_" + (CurrentGroup == 0 ? StreamComparison.Unmatched : File.Streams)];
     private static string FormatTrust(SignatureResult trust) =>
         SignatureGroup.From(trust.Status, trust.RevocationMode)?.Format(Strings) ?? Strings["Signature_CheckFailed"];
-    private static string FormatCatalog(SignatureResult trust) => trust.Status == SignatureStatus.NoEmbeddedSignature
-        ? Strings["CatalogUnsigned"] : FormatTrust(trust);
+    public StatusTone SignatureTone => SignatureGroup.ToneFor(File.Embedded.Status);
     public string Signature => FormatTrust(File.Embedded);
     public string Sha256 => File.Hashes.GetValueOrDefault(ChecksumAlgorithm.SHA256) ?? "";
     public string ModifiedText => File.ModifiedUtc is { } utc ? $"{utc.ToString("g", Strings.Culture)} UTC" : "";
-    public string Catalog => File.Catalogs switch
-    {
-        null => Strings["Signature_NotChecked"],
-        { Matches.Count: > 0 } found => string.Join(" · ", found.Matches.Select(m => FormatCatalog(m.Trust)).Distinct()),
-        { IndexComplete: false } or { Issues.Count: > 0 } => Strings["Incomplete"],
-        _ => Strings["NoCatalog"]
-    };
+    public string Catalog => CatalogPresentation.Summary(File.Catalogs, Strings);
 
     public string Details
     {
@@ -47,19 +37,13 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
             if (File.Embedded.Diagnostic != null) lines.Add(File.Embedded.Diagnostic);
             foreach (var sig in File.Embedded.Signatures)
             {
-                lines.Add($"{sig.Index} · {Strings["Signature_" + sig.Status]} · {sig.Certificate?.Publisher} · {sig.Certificate?.ThumbprintSha256}");
+                lines.Add($"{sig.Index} · {SignatureGroup.From(sig.Status, File.Embedded.RevocationMode)?.Format(Strings)} · {sig.Certificate?.Publisher} · {sig.Certificate?.ThumbprintSha256}");
             }
 
             lines.Add($"{Strings["Catalog"]} · {Catalog}");
             if (File.Catalogs is { } lookup)
             {
-                if (!lookup.IndexComplete) lines.Add(Strings["Incomplete"]);
-                lines.AddRange(lookup.Issues);
-                foreach (var match in lookup.Matches)
-                {
-                    lines.Add($"{Strings[match.Registered ? "Registered" : "Loose"]} · {match.Path}");
-                    lines.Add($"{match.Member} · {FormatCatalog(match.Trust)} · {match.Trust.Certificate?.Publisher} · {match.Trust.NativeStatusCode:X8}");
-                }
+                lines.AddRange(CatalogPresentation.Details(lookup, Strings));
             }
 
             lines.AddRange(File.Hashes.Select(pair => $"{pair.Key}  {pair.Value}"));
@@ -76,8 +60,7 @@ public sealed class ResultsViewModel : ObservableObject
     private ListCollectionView _view;
     private string _text = "";
     private int _kind;
-    private SignatureStatus? _signature;
-    private bool _exceptValid;
+    private SignatureFilter _signature;
 
     public ResultsViewModel() => _view = BuildView();
     public ListCollectionView View { get => _view; private set => SetProperty(ref _view, value); }
@@ -137,21 +120,20 @@ public sealed class ResultsViewModel : ObservableObject
         return view;
     }
 
-    public void Filter(string text, int kind, SignatureStatus? signature, bool exceptValid)
+    public void Filter(string text, int kind, SignatureFilter signature)
     {
         _text = text.Trim();
         _kind = kind;
         _signature = signature;
-        _exceptValid = exceptValid;
         View.Refresh();
     }
 
     private bool Matches(ResultRow row) =>
         (_kind != 1 || row.CurrentGroup != 0) && (_kind != 2 || row.CurrentGroup == 0)
         && (_kind != 3 || row.Diagnostic != null || row.File.Streams == StreamComparison.Unknown)
-        && (_signature == null || row.File.Embedded.Status == _signature)
-        && (!_exceptValid || row.File.Embedded.Status != SignatureStatus.Valid)
+        && _signature.Matches(row.File.Embedded.Status, row.File.Embedded.RevocationMode)
         && (_text.Length == 0 || row.File.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)
+            || row.Signature.Contains(_text, StringComparison.CurrentCultureIgnoreCase)
             || row.File.Hashes.Values.Any(hash => hash.Contains(_text, StringComparison.OrdinalIgnoreCase))
             || row.File.Embedded.Certificate?.Publisher.Contains(_text, StringComparison.OrdinalIgnoreCase) == true
             || row.Diagnostic?.Contains(_text, StringComparison.OrdinalIgnoreCase) == true

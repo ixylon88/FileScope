@@ -1,9 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace FileScope.App.Controls;
-
-public enum StatusTone { Neutral, Success, Information, Warning, Error }
+namespace FileScope.Shared;
 
 // A reusable view element: it knows only text and visual tone, not analysis logic.
 public partial class StatusBadge : UserControl

@@ -8,4 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/FileScope.App/FileScope.App.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="FileScope.Shared" />
+    <Using Include="FileScope.App.App" Alias="ApplicationUnderTest" />
+  </ItemGroup>
 </Project>

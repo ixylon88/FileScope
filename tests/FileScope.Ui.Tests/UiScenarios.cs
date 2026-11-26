@@ -15,11 +15,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using FileScope.App.Behaviors;
-using FileScope.App.Controls;
 using FileScope.App.Presentation;
 using System.Windows.Threading;
 using FileScope.App;
-using FileScope.App.Localization;
 using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Abstractions;
@@ -114,7 +112,7 @@ public sealed partial class UiTests
         vm.ResetFiltersCommand.Execute(null);
         vm.SignatureFilterOption = vm.SignatureFilters.Single(x => x.Value == SignatureFilter.Valid);
         Assert.IsTrue(vm.RowsView.Count == 0, "signature filter excludes unsigned files");
-        vm.SignatureFilterOption = vm.SignatureFilters.Single(x => x.Value == SignatureFilter.NoSignature);
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(x => x.Value.Group?.Status == SignatureStatus.NoEmbeddedSignature);
         Assert.IsTrue(vm.RowsView.Count == 2, "signature filter matches unsigned files");
         vm.ResetFiltersCommand.Execute(null);
         vm.StateFilter = vm.StateFilters.Single(x => x.Value == RowStatus.Completed);
@@ -756,7 +754,8 @@ public sealed partial class UiTests
         using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
         var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var links = new RecordingExternalLinks();
-        var about = new AboutWindow(links) { ShowActivated = false };
+        var about = AboutWindow.Create(links);
+        about.ShowActivated = false;
         var errors = new StringWriter();
         using var listener = new TextWriterTraceListener(errors);
         var bindingSource = PresentationTraceSources.DataBindingSource;
@@ -772,14 +771,14 @@ public sealed partial class UiTests
             {
                 // Exercise the real button and its modal event handler, then close
                 // the dialog without following a link or starting an external process.
-                var dialog = app.Windows.OfType<AboutWindow>().SingleOrDefault(window => window.IsVisible);
+                var dialog = app.Windows.OfType<AboutDialog>().SingleOrDefault(window => window.IsVisible);
                 if (dialog == null) return;
                 opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
                 ((Button)dialog.FindName("CloseAboutButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }));
             var button = (Button)main.FindName("AboutButton");
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.IsTrue(opened && !app.Windows.OfType<AboutWindow>().Any(window => window.IsVisible),
+            Assert.IsTrue(opened && !app.Windows.OfType<AboutDialog>().Any(window => window.IsVisible),
                 "the real About button opens an owned modal dialog and its Close button returns to the main window");
 
             var saves = store.SaveCount;
@@ -820,9 +819,9 @@ public sealed partial class UiTests
                     && System.Windows.Automation.AutomationProperties.GetName(button) == expectedTitle,
                     "About title, description, language and accessible button name are localized / " + language.CultureName);
                 var featureKeys = new[] { "AboutFeatureHashes", "AboutFeatureSignatures", "AboutFeatureMetadata", "AboutFeatureFiles", "AboutFeatureExport" };
-                var features = ((StackPanel)about.FindName("FeatureList")).Children.OfType<TextBlock>().ToArray();
+                var features = ((ItemsControl)about.FindName("FeatureList")).Items.Cast<string>().ToArray();
                 Assert.IsTrue(features.Length == featureKeys.Length && features.Zip(featureKeys).All(pair =>
-                        new TextRange(pair.First.ContentStart, pair.First.ContentEnd).Text.Trim() == "• " + strings[pair.Second])
+                        pair.First == strings[pair.Second])
                     && ((TextBlock)about.FindName("EfficiencyText")).Text == strings["AboutEfficiency"]
                     && ((TextBlock)about.FindName("AdditionalReadsText")).Text == strings["AboutAdditionalReads"]
                     && linkError.Text == strings["AboutLinkError"],
@@ -1535,6 +1534,55 @@ public sealed partial class UiTests
         finally { viewNotifications.CollectionChanged -= readView; }
     }
 
+    private static void CheckCatalogIntake(LocalizationService strings)
+    {
+        var directory = Directory.CreateTempSubdirectory("FileScope-catalog-intake-");
+        try
+        {
+            var missing = Path.Combine(directory.FullName, "missing.cat");
+            var member = Path.Combine(directory.FullName, "member.bin");
+            File.WriteAllText(member, "sample");
+
+            var picker = new TestPicker { Files = [missing, member] };
+            var store = new MemoryPreferences();
+            var service = new FileScope.Core.Services.FileAnalysisService(
+                new FileScope.Core.Checksums.StreamChecksumService(new FileScope.Core.Checksums.ChecksumStrategyFactory()),
+                new FileScope.Core.Signatures.WindowsAuthenticodeInspector());
+            using var vm = CreateMainViewModel(service, picker, strings, new OptionsViewModel(strings, store, new RecordingThemeService()));
+            var window = new MainWindow(vm);
+            window.Show();
+            var check = (CheckBox)window.FindName("InspectCatalogsCheckBox");
+            Assert.IsFalse(vm.InspectCatalogs);
+            vm.InspectCertificates = false;
+            check.IsChecked = true;
+            Assert.IsTrue(vm.CanChooseOnlineRevocation && store.Saved.Analysis!.InspectCatalogs);
+
+            vm.IntakePattern = @"\.bin$";
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1 && vm.Rows[0].State == RowStatus.Completed);
+            var row = vm.Rows.Single();
+            Assert.AreEqual(member, row.FullPath);
+            Assert.AreEqual(SignatureStatus.NotChecked, row.SignatureState);
+            StringAssert.Contains(row.CatalogDetails, missing);
+            vm.ClearCommand.Execute(null);
+            picker.Files = [member];
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.Rows.Count == 1 && vm.Rows[0].State == RowStatus.Completed);
+            Assert.IsTrue(vm.Rows[0].Result!.Catalogs!.IndexComplete);
+            Assert.IsFalse(vm.Rows[0].CatalogDetails.Contains(missing));
+
+            vm.ClearCommand.Execute(null);
+            picker.Files = [missing];
+            vm.BrowseCommand.Execute(null);
+            PumpUntil(() => !vm.IsBusy && vm.ClearCommand.CanExecute(null));
+            Assert.IsEmpty(vm.Rows);
+            vm.ClearCommand.Execute(null);
+            Assert.IsFalse(vm.ClearCommand.CanExecute(null));
+            window.Close();
+        }
+        finally { directory.Delete(true); }
+    }
+
     private static void CheckIntakeFilter(LocalizationService strings)
     {
         strings.SetCulture("en");
@@ -1727,7 +1775,7 @@ public sealed partial class UiTests
         var analysis = new ControlledProgressAnalysis();
         using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
         vm.OnlineRevocation = true;
-        vm.SignatureFilterOption = vm.SignatureFilters.Single(option => option.Value == SignatureFilter.NoSignature);
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(option => option.Value.Group?.Status == SignatureStatus.NoEmbeddedSignature);
         vm.RowsView.SortDescriptions.Add(new SortDescription(nameof(FileRowViewModel.FileName), ListSortDirection.Ascending));
         var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var wrongThread = false;

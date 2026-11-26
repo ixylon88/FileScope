@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
+using FileScope.Core.Signatures;
 
 namespace FileScope.Core.Models;
 
 public enum ChecksumAlgorithm { MD5, SHA1, SHA256, SHA384, SHA512 }
 public enum RevocationMode { OfflineCache, Online }
-public enum AnalysisStage { Reading, CheckingSignature, ReadingMetadata, OpeningFile, ReadingPeHeader }
+public enum AnalysisStage { Reading, CheckingSignature, ReadingMetadata, OpeningFile, ReadingPeHeader, CheckingCatalogs }
 public enum AnalysisError { None, InvalidPath, DirectoryNotSupported, NotFound, AccessDenied, ReadFailure, AnalysisFailure }
 public enum SignatureStatus
 {
@@ -20,10 +21,11 @@ public sealed class AnalysisOptions
     public RevocationMode RevocationMode { get; }
     public bool InspectFileProperties { get; }
     public bool InspectPeHeader { get; }
+    public CatalogSearch? Catalogs { get; }
 
     public AnalysisOptions(IEnumerable<ChecksumAlgorithm> algorithms, bool inspectSignature,
         RevocationMode revocationMode = RevocationMode.OfflineCache,
-        bool inspectFileProperties = false, bool inspectPeHeader = false)
+        bool inspectFileProperties = false, bool inspectPeHeader = false, CatalogSearch? catalogs = null)
     {
         ArgumentNullException.ThrowIfNull(algorithms);
         var selected = algorithms.Distinct().ToArray();
@@ -36,6 +38,7 @@ public sealed class AnalysisOptions
         RevocationMode = revocationMode;
         InspectFileProperties = inspectFileProperties;
         InspectPeHeader = inspectPeHeader;
+        Catalogs = catalogs;
     }
 }
 
@@ -79,6 +82,7 @@ public sealed record FileAnalysisResult(
 {
     public FilePropertiesResult? Properties { get; init; }
     public PeHeaderResult? PeHeader { get; init; }
+    public CatalogLookup? Catalogs { get; init; }
     public bool Succeeded => Error == AnalysisError.None;
 
     public static FileAnalysisResult Failure(string path, AnalysisError error, string? diagnostic) =>

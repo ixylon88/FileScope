@@ -1,8 +1,8 @@
 <Window x:Class="DuplicateFinder.App.ShortcutsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:FileScope.App.Localization"
-        Title="{loc:Loc Shortcuts}" Width="580" Height="465" MinWidth="390" MinHeight="280"
+        xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        Title="{loc:Loc Shortcuts}" Width="660" Height="560" MinWidth="480" MinHeight="380"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{StaticResource AppWindowStyle}">
   <Window.Resources>

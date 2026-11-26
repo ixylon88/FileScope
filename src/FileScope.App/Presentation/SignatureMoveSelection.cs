@@ -1,4 +1,3 @@
-using FileScope.App.Localization;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
 

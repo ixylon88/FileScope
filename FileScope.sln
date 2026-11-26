@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileScope.App", "src\FileSc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileScope.Core", "src\FileScope.Core\FileScope.Core.csproj", "{AB527462-7807-45BD-B57C-84AAB3CB6658}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileScope.Shared", "src\FileScope.Shared\FileScope.Shared.csproj", "{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E2BEFB91-ABA6-49D7-9558-9B8E465C6286}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -74,6 +76,22 @@ Global
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|x64.Build.0 = Release|x64
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|x86.ActiveCfg = Release|x86
 		{AB527462-7807-45BD-B57C-84AAB3CB6658}.Release|x86.Build.0 = Release|x86
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|Arm64.ActiveCfg = Debug|Arm64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|Arm64.Build.0 = Debug|Arm64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|x64.ActiveCfg = Debug|x64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|x64.Build.0 = Debug|x64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|x86.ActiveCfg = Debug|x86
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Debug|x86.Build.0 = Debug|x86
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|Arm64.ActiveCfg = Release|Arm64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|Arm64.Build.0 = Release|Arm64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|x64.ActiveCfg = Release|x64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|x64.Build.0 = Release|x64
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|x86.ActiveCfg = Release|x86
+		{FEE15AB4-C6ED-477A-9F20-ACA82B92B356}.Release|x86.Build.0 = Release|x86
 		{7C2C08AB-6470-4EBF-925D-1C75A4F8C3EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7C2C08AB-6470-4EBF-925D-1C75A4F8C3EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C2C08AB-6470-4EBF-925D-1C75A4F8C3EF}.Debug|Arm64.ActiveCfg = Debug|Arm64

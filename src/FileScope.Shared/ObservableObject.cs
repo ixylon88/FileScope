@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace FileScope.App.Infrastructure;
+namespace FileScope.Shared;
 
 public abstract class ObservableObject : INotifyPropertyChanged
 {

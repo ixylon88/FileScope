@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:loc="clr-namespace:FileScope.App.Localization"
+        xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
         xmlns:behaviors="clr-namespace:FileScope.App.Behaviors"
-        xmlns:controls="clr-namespace:FileScope.App.Controls"
+        xmlns:controls="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
-        Title="{loc:Loc WindowTitle}" Width="1600" Height="1024" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
+        Title="{loc:Loc WindowTitle}" Width="1700" Height="1024" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
         WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"
         behaviors:FileDropBehavior.Command="{Binding DropFilesCommand}">
   <Window.Resources>
@@ -117,6 +117,8 @@
             <StackPanel Width="Auto" MaxWidth="350" Margin="0,0,16,0">
               <TextBlock Text="{loc:Loc Group_Certificates}" Style="{StaticResource GroupHeading}" />
               <CheckBox Content="{loc:Loc InspectCertificates}" IsChecked="{Binding InspectCertificates}" IsEnabled="{Binding IsIdle}" Margin="0,4,0,10" ToolTip="{loc:Loc InspectCertificatesTip}" />
+              <CheckBox x:Name="InspectCatalogsCheckBox" Content="{loc:Loc InspectCatalogs}" IsChecked="{Binding InspectCatalogs}"
+                        IsEnabled="{Binding IsIdle}" Margin="0,0,0,10" ToolTip="{loc:Loc InspectCatalogsTip}" />
               <CheckBox Content="{loc:Loc OnlineRevocation}" IsChecked="{Binding OnlineRevocation}" IsEnabled="{Binding CanChooseOnlineRevocation}" ToolTip="{loc:Loc OnlineRevocationTip}" />
               <TextBlock Text="{loc:Loc CertificateScope}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap" />
             </StackPanel>
@@ -239,6 +241,9 @@
                 </DataTemplate>
               </controls:CellBoundTemplateColumn.CellTemplate>
             </controls:CellBoundTemplateColumn>
+            <DataGridTextColumn Header="{loc:Loc Column_Catalog}" Binding="{Binding CatalogText}"
+                                Visibility="{Binding Data.InspectCatalogs, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                behaviors:ColumnLayoutBehavior.Id="Catalog" Width="Auto" MinWidth="160" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Publisher" Width="Auto" MinWidth="150" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}"

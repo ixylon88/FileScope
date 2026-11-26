@@ -1,14 +1,15 @@
 using System.Globalization;
 using System.Resources;
-using FileScope.App.Infrastructure;
+using System.Reflection;
 
-namespace FileScope.App.Localization;
+namespace FileScope.Shared;
 
 public sealed record LanguageOption(string CultureName, string NativeName);
 
 public sealed class LocalizationService : ObservableObject
 {
-    private readonly ResourceManager _resources = new("FileScope.App.Resources.Strings", typeof(LocalizationService).Assembly);
+    private static readonly ResourceManager Shared = new("FileScope.Shared.Resources.Strings", typeof(LocalizationService).Assembly);
+    private ResourceManager? _application;
     public static LocalizationService Instance { get; } = new();
     public event EventHandler? CultureChanged;
     public IReadOnlyList<LanguageOption> Languages { get; } = Array.AsReadOnly(
@@ -17,13 +18,21 @@ public sealed class LocalizationService : ObservableObject
         new LanguageOption("zh-Hans", "简体中文")
     ]);
     public CultureInfo Culture { get; private set; }
-    public string this[string key] => _resources.GetString(key, Culture) ?? $"[{key}]";
+    public string this[string key] => _application?.GetString(key, Culture) ?? Shared.GetString(key, Culture) ?? $"[{key}]";
 
     private LocalizationService()
     {
         var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         Culture = CultureInfo.GetCultureInfo(language == "de" ? "de" : language == "zh" ? "zh-Hans" : "en");
         ApplyCulture();
+    }
+
+    // The composition root selects its own texts; tests can supply their fixture assembly.
+    public void UseApplicationResources(Assembly assembly, string? baseName = null)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        _application = new ResourceManager(baseName ?? assembly.GetName().Name + ".Resources.Strings", assembly);
+        OnPropertyChanged("Item[]");
     }
 
     public void SetCulture(string name)

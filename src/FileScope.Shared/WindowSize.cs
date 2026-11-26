@@ -1,6 +1,7 @@
-using FileScope.App.Services;
 
-namespace FileScope.App.Presentation;
+namespace FileScope.Shared;
+
+public sealed record WindowPreferences(double Width, double Height, bool Maximized);
 
 public sealed record WindowSize(double Width, double Height, double MinWidth, double MinHeight)
 {

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace FileScope.App.Services;
+namespace FileScope.Shared;
 
 public sealed class ThemeService : IThemeService
 {

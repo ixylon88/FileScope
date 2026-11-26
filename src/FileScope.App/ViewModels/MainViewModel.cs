@@ -5,12 +5,11 @@ using System.Text.RegularExpressions;
 using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Threading;
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
 using FileScope.App.Services;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Models;
 using FileScope.Core.Files;
+using FileScope.Core.Signatures;
 using FileScope.Core.Export;
 using FileScope.App.Presentation;
 
@@ -28,11 +27,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private FileRowViewModel[] _selectedRows = [];
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _catalogPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<FileRowViewModel> _multipleSignatures = [];
     private readonly HashSet<FileRowViewModel> _diagnosticRows = [];
     private CancellationTokenSource? _cancellation;
     private bool _clearRequested, _disposed, _inspectCertificates, _onlineRevocation;
-    private bool _inspectFileProperties, _inspectPeHeader;
+    private bool _inspectFileProperties, _inspectPeHeader, _inspectCatalogs;
     private int _processed, _batchTotal, _skipped;
     private string _searchText = "";
     private FileNameFilter? _intakeFilter = new("");
@@ -93,6 +93,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             new ChecksumOption(ChecksumAlgorithm.SHA512, "SHA-512", selection.SHA512)
         ]);
         _inspectCertificates = selection.InspectCertificates;
+        _inspectCatalogs = selection.InspectCatalogs;
         _onlineRevocation = selection.OnlineRevocation;
         _inspectFileProperties = selection.InspectFileProperties;
         _inspectPeHeader = selection.InspectPeHeader;
@@ -105,15 +106,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             new FilterOption<RowStatus?>(RowStatus.Failed, "Row_Failed", strings),
             new FilterOption<RowStatus?>(RowStatus.Cancelled, "Row_Cancelled", strings)
         ]);
-        SignatureFilters = Array.AsReadOnly(
-        [
-            new FilterOption<SignatureFilter>(SignatureFilter.All, "AllSignatures", strings),
-            new FilterOption<SignatureFilter>(SignatureFilter.Valid, "Filter_Valid", strings),
-            new FilterOption<SignatureFilter>(SignatureFilter.ExceptValid, "Filter_ExceptValid", strings),
-            new FilterOption<SignatureFilter>(SignatureFilter.NoSignature, "Signature_NoEmbeddedSignature", strings),
-            new FilterOption<SignatureFilter>(SignatureFilter.Attention, "Filter_Attention", strings),
-            new FilterOption<SignatureFilter>(SignatureFilter.NotChecked, "Signature_NotChecked", strings)
-        ]);
+        SignatureFilters = SignatureFilter.Options(strings);
         _stateFilter = StateFilters[0];
         _signatureFilter = SignatureFilters[0];
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
@@ -128,7 +121,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
             _ => IsIdle && HasRows);
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
-        ClearCommand = new RelayCommand(Clear, () => IsIdle && HasRows && !_clearRequested);
+        ClearCommand = new RelayCommand(Clear, () => IsIdle && (HasRows || _catalogPaths.Count > 0) && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters, () => IsIdle);
         // Commands use the actual selection, never a popup's recyclable row container.
         ShowFilePropertiesCommand = new AsyncRelayCommand(_ =>
@@ -179,6 +172,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             SaveAnalysisPreferences();
         }
     }
+
+    public bool InspectCatalogs
+    {
+        get => _inspectCatalogs;
+        set
+        {
+            if (!SetProperty(ref _inspectCatalogs, value)) return;
+            OnPropertyChanged(nameof(CanChooseOnlineRevocation));
+            SaveAnalysisPreferences();
+        }
+    }
+
     public bool ShowSignatureSelectorColumn => InspectCertificates && _multipleSignatures.Count > 0;
     public int DiagnosticRowCount => _diagnosticRows.Count;
     public bool ShowDiagnosticColumn => DiagnosticRowCount > 0;
@@ -187,7 +192,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         get => _onlineRevocation;
         set { if (SetProperty(ref _onlineRevocation, value)) SaveAnalysisPreferences(); }
     }
-    public bool CanChooseOnlineRevocation => InspectCertificates && IsIdle;
+    public bool CanChooseOnlineRevocation => (InspectCertificates || InspectCatalogs) && IsIdle;
     public bool InspectFileProperties
     {
         get => _inspectFileProperties;
@@ -373,6 +378,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SHA384 = IsChecksumSelected(ChecksumAlgorithm.SHA384),
         SHA512 = IsChecksumSelected(ChecksumAlgorithm.SHA512),
         InspectCertificates = InspectCertificates,
+        InspectCatalogs = InspectCatalogs,
         OnlineRevocation = OnlineRevocation,
         InspectFileProperties = InspectFileProperties,
         InspectPeHeader = InspectPeHeader
@@ -521,6 +527,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 if (result.Outcome != FileMoveOutcome.Moved || result.DestinationPath is null) continue;
                 var row = selected[result.SourcePath];
                 _paths.Remove(row.FullPath);
+                if (_catalogPaths.Remove(row.FullPath)) _catalogPaths.Add(result.DestinationPath);
                 row.Relocate(result.DestinationPath);
                 _paths.Add(row.FullPath);
             }
@@ -569,6 +576,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LastError = warning;
         OnPropertyChanged(nameof(HasError));
         var added = new List<FileRowViewModel>();
+        var catalogs = new List<string>();
+        paths = CollectCatalogs(paths, catalogs);
         _skipped = 0;
         _intakeExcluded = 0;
         var cancelled = false;
@@ -622,6 +631,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         finally { EndFileOperation(); RefreshView(); }
         if (cancelled || _disposed) return;
+        _catalogPaths.UnionWith(catalogs);
+        ClearCommand.NotifyCanExecuteChanged();
+
         if (added.Count == 0)
         {
             SetStatus(_skipped > 0 ? "DuplicatesSkipped" : _intakeExcluded > 0 ? "IntakeNoMatches" : "Ready");
@@ -629,6 +641,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         await RunBatchAsync(added, warning, _intakeExcluded);
+    }
+
+    // A filename filter limits result rows. A .cat outside that filter can still identify an admitted file.
+    private static IEnumerable<string> CollectCatalogs(IEnumerable<string> paths, List<string> catalogs)
+    {
+        foreach (var path in paths)
+        {
+            if (path is null) continue;
+            if (path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase))
+            {
+                try { catalogs.Add(Path.GetFullPath(path)); }
+                catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
+                { /* Invalid inputs still reach normal row-level diagnostics. */ }
+            }
+            yield return path;
+        }
     }
 
     private async Task RunBatchAsync(IReadOnlyList<FileRowViewModel> batch, string warning = "", int intakeExcluded = 0)
@@ -640,7 +668,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LastRunSummary = null;
         var options = new AnalysisOptions(ChecksumOptions.Where(x => x.IsSelected).Select(x => x.Algorithm),
             InspectCertificates, OnlineRevocation ? RevocationMode.Online : RevocationMode.OfflineCache,
-            InspectFileProperties, InspectPeHeader);
+            InspectFileProperties, InspectPeHeader, InspectCatalogs ? new CatalogSearch(_catalogPaths) : null);
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
         _processed = 0;
@@ -719,13 +747,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 var percent = p.Stage switch
                 {
                     AnalysisStage.OpeningFile => 0,
-                    AnalysisStage.Reading => fraction * (options.InspectSignature || options.InspectFileProperties || options.InspectPeHeader ? 90 : 100),
-                    AnalysisStage.ReadingMetadata or AnalysisStage.ReadingPeHeader or AnalysisStage.CheckingSignature => 95,
+                    AnalysisStage.Reading => fraction * (options.InspectSignature || options.InspectFileProperties || options.InspectPeHeader || options.Catalogs is not null ? 90 : 100),
+                    AnalysisStage.ReadingMetadata or AnalysisStage.ReadingPeHeader or AnalysisStage.CheckingSignature or AnalysisStage.CheckingCatalogs => 95,
                     _ => 0
                 };
                 row.SetProgress(p, percent);
                 CurrentFile = row.FileName;
-                IsCheckingSignature = p.Stage == AnalysisStage.CheckingSignature;
+                IsCheckingSignature = p.Stage is AnalysisStage.CheckingSignature or AnalysisStage.CheckingCatalogs;
                 Progress = 100.0 * (_processed + percent / 100.0) / _batchTotal;
             }
             else if (current is null && changed)
@@ -795,6 +823,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         NotifyDiagnosticsChanged();
         Rows.Clear();
         _paths.Clear();
+        _catalogPaths.Clear();
         SetSelectedRows([]);
         SelectedRow = null;
         _clearRequested = false;
@@ -860,17 +889,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (item is not FileRowViewModel row) return false;
         if (StateFilter.Value is RowStatus status && row.State != status) return false;
-        var matchesSignature = SignatureFilterOption.Value switch
-        {
-            SignatureFilter.Valid => row.SignatureState == SignatureStatus.Valid,
-            SignatureFilter.ExceptValid => row.SignatureState != SignatureStatus.Valid,
-            SignatureFilter.NoSignature => row.SignatureState == SignatureStatus.NoEmbeddedSignature,
-            SignatureFilter.NotChecked => row.SignatureState == SignatureStatus.NotChecked,
-            SignatureFilter.Attention => row.SignatureState is not (SignatureStatus.Valid
-                or SignatureStatus.NotChecked or SignatureStatus.NoEmbeddedSignature),
-            SignatureFilter.All => true,
-            _ => true
-        };
+        var matchesSignature = SignatureFilterOption.Value.Matches(row.SignatureState, row.SignatureMode);
         return matchesSignature && row.Matches(SearchText.Trim());
     }
 

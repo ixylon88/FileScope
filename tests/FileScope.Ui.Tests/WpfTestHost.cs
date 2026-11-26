@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using FileScope.App.Localization;
 
 namespace FileScope.Ui.Tests;
 
@@ -75,6 +74,7 @@ internal static class WpfTestHost
             {
                 // A plain Application loads production resources without invoking
                 // App.OnStartup or opening the production composition root.
+                LocalizationService.Instance.UseApplicationResources(typeof(ApplicationUnderTest).Assembly);
                 var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 SynchronizationContext.SetSynchronizationContext(
                     new DispatcherSynchronizationContext(app.Dispatcher));

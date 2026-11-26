@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Models;
 using FileScope.Core.Metadata;
+using FileScope.Core.Signatures;
 
 namespace FileScope.Core.Services;
 
@@ -81,8 +82,18 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
                 signature = signatures.Inspect(stream, fullPath, options.RevocationMode, cancellationToken);
             }
             cancellationToken.ThrowIfCancellationRequested();
+            CatalogLookup? lookup = null;
+            if (options.Catalogs is { } catalogs)
+            {
+                progress?.Report(new AnalysisProgress(AnalysisStage.CheckingCatalogs, length, length));
+                stream.Position = 0;
+                lookup = ReadOptional(() => catalogs.Inspect(stream, options.RevocationMode, cancellationToken),
+                    message => new CatalogLookup([], [message], false));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
             return new FileAnalysisResult(fullPath, length, modified, hashes, signature)
-            { Properties = fileProperties, PeHeader = peHeader };
+            { Properties = fileProperties, PeHeader = peHeader, Catalogs = lookup };
         }
         catch (OperationCanceledException) { throw; }
         catch (FileNotFoundException ex) { return Failure(AnalysisError.NotFound, ex); }
@@ -98,7 +109,7 @@ public sealed class FileAnalysisService(IChecksumService checksums, ISignatureIn
             FileAnalysisResult.Failure(fullPath, error, ex.Message);
     }
 
-    // Optional metadata failures become diagnostics without discarding completed hashes.
+    // Optional inspection failures become diagnostics without discarding completed hashes.
     // Cancellation is deliberately outside this filter and reaches the caller unchanged.
     private static T ReadOptional<T>(Func<T> read, Func<string, T> failure)
     {

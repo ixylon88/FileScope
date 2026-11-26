@@ -1,9 +1,9 @@
 <Window x:Class="DuplicateFinder.App.OptionsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:FileScope.App.Localization"
+        xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
         Title="{loc:Loc Options}" Style="{StaticResource AppWindowStyle}"
-        Width="710" Height="650" MinWidth="520" MinHeight="480" WindowStartupLocation="CenterOwner"
+        Width="730" Height="740" MinWidth="640" MinHeight="600" WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">
   <Grid Margin="24">
     <Grid.RowDefinitions>

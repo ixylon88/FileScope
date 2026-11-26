@@ -3,8 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using FileScope.App.Behaviors;
-using FileScope.App.Presentation;
-using FileScope.App.Services;
 using FileScope.App.ViewModels;
 
 namespace FileScope.App;
@@ -88,7 +86,12 @@ public partial class MainWindow : Window
             new OptionsWindow(viewModel.Options) { Owner = this }.ShowDialog();
     }
 
-    private void OpenAbout(object sender, RoutedEventArgs args) => new AboutWindow { Owner = this }.ShowDialog();
+    private void OpenAbout(object sender, RoutedEventArgs args)
+    {
+        var dialog = AboutWindow.Create();
+        dialog.Owner = this;
+        dialog.ShowDialog();
+    }
 
     private void OpenShortcuts(object sender, ExecutedRoutedEventArgs args)
     {

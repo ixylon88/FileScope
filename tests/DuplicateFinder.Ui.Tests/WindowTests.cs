@@ -9,7 +9,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using DuplicateFinder.App;
 using DuplicateFinder.Core;
-using FileScope.App.Services;
+using FileScope.Core.Models;
+using System.Reflection;
 using FileScope.Ui.Tests;
 
 namespace DuplicateFinder.Ui.Tests;
@@ -21,11 +22,76 @@ public sealed class WindowTests
     { Group = 1, Variant = 1, Streams = StreamComparison.Identical };
 
     [TestMethod]
+    public Task FilterBarDistinguishesOnlineAndCacheAndResetsTheView() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        var online = FileAt("AlphaOnline.bin", 10);
+        var offline = FileAt("AlphaOffline.bin", 0);
+        online.Embedded = new(SignatureStatus.Valid, RevocationMode.Online);
+        offline.Embedded = new(SignatureStatus.Valid, RevocationMode.OfflineCache);
+        var model = new ResultsViewModel();
+        model.Replace([online, offline]);
+        model.Rows[0].Marked = true;
+        var window = ShowResults(model, new ThemeService(app));
+        var text = (TextBox)window.FindName("FilterBox");
+        var kind = (ComboBox)window.FindName("KindBox");
+        var signature = (ComboBox)window.FindName("SignatureBox");
+        var reset = (Button)window.FindName("ResetFiltersButton");
+
+        text.Text = "Alpha";
+        kind.SelectedIndex = 1;
+        signature.SelectedValue = SignatureFilter.Exact(SignatureGroup.From(SignatureStatus.Valid, RevocationMode.OfflineCache)!.Value);
+        Assert.AreSame(offline, model.View.Cast<ResultRow>().Single().File);
+        Assert.IsTrue(model.Rows[0].Marked);
+        reset.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.AreEqual("", text.Text);
+        Assert.AreEqual(0, kind.SelectedIndex);
+        Assert.AreEqual(SignatureFilter.All, signature.SelectedValue);
+        Assert.HasCount(2, model.View.Cast<ResultRow>().ToArray());
+        Assert.AreEqual(1, model.MarkedCount);
+
+        window.Width = 720;
+        window.UpdateLayout();
+        var narrow = text.ActualWidth;
+        window.Width = 1070;
+        window.UpdateLayout();
+        Assert.IsGreaterThan(narrow + 100, text.ActualWidth);
+        var panel = (Grid)window.FindName("FiltersPanel");
+        Assert.AreEqual(panel.ActualWidth, reset.TranslatePoint(new Point(reset.ActualWidth, 0), panel).X, 1.0);
+    });
+
+    [TestMethod]
+    public Task AboutShowsDuplicateFinderBrandVersionAndOfflineLicense() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        var owner = ShowResults(new ResultsViewModel(), new ThemeService(app));
+        var about = AboutWindow.Create();
+        about.Owner = owner;
+        about.Show();
+        Assert.IsNotNull(owner.Icon);
+        Assert.IsNotNull(((Image)about.FindName("ProductIcon")).Source);
+        Assert.AreEqual("DuplicateFinder", ((TextBlock)about.FindName("ProductName")).Text);
+        var version = typeof(MainWindow).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        Assert.AreEqual(version, ((TextBlock)about.FindName("VersionValue")).Text);
+        StringAssert.Contains(((TextBox)about.FindName("LicenseText")).Text, "MIT License");
+
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            about.UpdateLayout();
+            StringAssert.Contains(about.Title, "DuplicateFinder");
+            Assert.AreEqual(strings["AboutTitle"], about.Title);
+            var features = ((ItemsControl)about.FindName("FeatureList")).Items.Cast<string>().ToArray();
+            CollectionAssert.Contains(features, strings["AboutComparison"]);
+            CollectionAssert.Contains(features, strings["AboutRecycle"]);
+            Assert.IsFalse(features.Any(feature => feature.StartsWith('[')));
+        }
+    });
+
+    [TestMethod]
     public Task FilterScopeIncludesCollapsedRowsAndAnInvisibleKeeper() => WpfTestHost.RunAsync((app, strings) =>
     {
         var model = new ResultsViewModel();
         model.Replace([FileAt("archive", 30), FileAt("backup", 20), FileAt("download", 10)]);
-        model.Filter("download", 1, null, false);
+        model.Filter("download", 1, SignatureFilter.All);
         var filtered = model.Plan(true);
         var all = model.Plan(false);
         Assert.AreEqual("archive", filtered.Items.Single().Keeper!.Path);
@@ -44,7 +110,7 @@ public sealed class WindowTests
     {
         var model = new ResultsViewModel();
         model.Replace([FileAt("high", 10), FileAt("low", 0)]);
-        model.Filter("no match", 0, null, false);
+        model.Filter("no match", 0, SignatureFilter.All);
         var dialog = new ScopeWindow(model.Plan(true), model.Plan(false));
         dialog.Show();
         var confirm = (Button)dialog.FindName("Confirm");
@@ -60,7 +126,7 @@ public sealed class WindowTests
         var model = new ResultsViewModel();
         model.Replace([FileAt("high", 10), FileAt("low", 0)]);
         foreach (var row in model.Rows) row.Marked = true;
-        model.Filter("high", 0, null, false);
+        model.Filter("high", 0, SignatureFilter.All);
         Assert.HasCount(2, model.Manual());
         Assert.AreEqual(1, model.LastCopiesSelected());
 
@@ -241,7 +307,7 @@ public sealed class WindowTests
         grid.SelectedItem = model.Rows[1];
         Assert.AreEqual("backup.dat", path.Text);
         Assert.AreEqual("", model.Rows[1].ModifiedText);
-        model.Filter("no matches", 0, null, false);
+        model.Filter("no matches", 0, SignatureFilter.All);
         window.UpdateLayout();
         Assert.AreEqual("", details.Text);
         Assert.AreEqual("", path.Text);

@@ -1,7 +1,5 @@
 using System.Windows;
 using System.Windows.Markup;
-using FileScope.App.Localization;
-using FileScope.App.Presentation;
 
 namespace FileScope.App;
 

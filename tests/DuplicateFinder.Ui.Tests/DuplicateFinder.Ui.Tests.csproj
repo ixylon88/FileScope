@@ -8,4 +8,8 @@
     <ProjectReference Include="../../src/DuplicateFinder.App/DuplicateFinder.App.csproj" />
     <Compile Include="../FileScope.Ui.Tests/WpfTestHost.cs" Link="WpfTestHost.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="FileScope.Shared" />
+    <Using Include="DuplicateFinder.App.App" Alias="ApplicationUnderTest" />
+  </ItemGroup>
 </Project>

@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.Core.Models;
 
@@ -109,14 +107,19 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public string StateText => State == RowStatus.Running
         ? AnalysisStageText.Format(Stage, _runningRevocationMode, strings)
         : strings[$"Row_{State}"];
-    public string SignatureText => SignatureGroup.From(SignatureState,
-        Result?.Signature.RevocationMode ?? RevocationMode.OfflineCache)?.Format(strings) ?? "?";
+    public RevocationMode SignatureMode => Result?.Signature.RevocationMode ?? RevocationMode.OfflineCache;
+    public string SignatureText => SignatureGroup.From(SignatureState, SignatureMode)?.Format(strings) ?? "?";
+    public string CatalogText => CatalogPresentation.Summary(Result?.Catalogs, strings);
+    public string CatalogDetails => Result?.Catalogs is { } lookup
+        ? string.Join(Environment.NewLine, CatalogPresentation.Details(lookup, strings).Prepend(CatalogText)) : "";
+
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
     {
         Result.Error == AnalysisError.None ? null : strings[$"Error_{Result.Error}"],
         Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null),
         MetadataDiagnostic("PropertiesError", Result.Properties?.Diagnostic),
-        MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic)
+        MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic),
+        Result.Catalogs is { IndexComplete: false } or { Issues.Count: > 0 } ? strings["Incomplete"] : null
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details
@@ -136,6 +139,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
 
             Line("Column_SignatureChoice", SignatureChoiceText);
             Line("Column_Signature", SignatureText);
+            Line("Column_Catalog", CatalogDetails);
             Line("Column_SigningTime", SigningTimeText);
             Line("Column_Publisher", Publisher);
             Line("Column_Subject", Subject);
@@ -267,7 +271,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText, MD5, SHA1, SHA256, SHA384, SHA512,
         Publisher, Subject, Issuer, SerialNumber, CertificateSha1, CertificateSha256,
-        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic,
+        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic, CatalogDetails,
         FileDescription, FileLanguage, FileType, FileVersion, ProductName, ProductVersion,
         CompanyName, OriginalFilename, InternalName, FileCopyright, FileTrademarks, FileComments,
         PeMachine, PeFormat, ManagedPlatformText

@@ -5,11 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using DuplicateFinder.Core;
-using FileScope.App.Localization;
-using FileScope.App.Infrastructure;
 using System.Windows.Media;
-using FileScope.App.Services;
-using FileScope.Core.Models;
 
 namespace DuplicateFinder.App;
 
@@ -51,20 +47,43 @@ public partial class MainWindow : Window
         Summary();
     }
 
+    private bool _settingFilters;
+
     private void ReloadFilters()
     {
-        KindBox.ItemsSource = new[] { Strings["All"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
-        SignatureBox.ItemsSource = new[] { Strings["AllSignatures"], Strings["ExceptValid"] }
-            .Concat(Enum.GetValues<SignatureStatus>().Select(s => Strings["Signature_" + s])).ToArray();
-        KindBox.SelectedIndex = 0;
-        SignatureBox.SelectedIndex = 0;
+        var kind = Math.Max(0, KindBox.SelectedIndex);
+        var signature = SignatureBox.SelectedValue is SignatureFilter selected ? selected : SignatureFilter.All;
+        _settingFilters = true;
+        try
+        {
+            KindBox.ItemsSource = new[] { Strings["All"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
+            KindBox.SelectedIndex = kind;
+            SignatureBox.ItemsSource = SignatureFilter.Options(Strings);
+            SignatureBox.SelectedValue = signature;
+        }
+        finally { _settingFilters = false; }
+        ApplyFilters();
     }
 
-    private void FilterChanged(object sender, RoutedEventArgs e)
+    private void ResetFilters(object sender, RoutedEventArgs e)
     {
-        if (SignatureBox == null || KindBox.SelectedIndex < 0 || SignatureBox.SelectedIndex < 0) return;
-        var index = SignatureBox.SelectedIndex;
-        _model.Filter(FilterBox.Text, KindBox.SelectedIndex, index >= 2 ? (SignatureStatus)(index - 2) : null, index == 1);
+        _settingFilters = true;
+        try
+        {
+            FilterBox.Clear();
+            KindBox.SelectedIndex = 0;
+            SignatureBox.SelectedValue = SignatureFilter.All;
+        }
+        finally { _settingFilters = false; }
+        ApplyFilters();
+    }
+
+    private void FilterChanged(object sender, RoutedEventArgs e) => ApplyFilters();
+
+    private void ApplyFilters()
+    {
+        if (_settingFilters || SignatureBox?.SelectedValue is not SignatureFilter filter || KindBox.SelectedIndex < 0) return;
+        _model.Filter(FilterBox.Text, KindBox.SelectedIndex, filter);
         if (_job == null) Summary();
     }
 
@@ -257,7 +276,7 @@ public partial class MainWindow : Window
 
     private void ShowIssues(object sender, RoutedEventArgs e) =>
         ShowOwnedDialog(new ReportWindow(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
-    private void ShowAbout(object sender, RoutedEventArgs e) => ShowOwnedDialog(ReportWindow.About());
+    private void ShowAbout(object sender, RoutedEventArgs e) => ShowOwnedDialog(AboutWindow.Create());
     private void ShowShortcuts(object sender, RoutedEventArgs e) => ShowOwnedDialog(new ShortcutsWindow());
 
     private void ShowOwnedDialog(Window window)

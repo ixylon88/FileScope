@@ -1,122 +1,420 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-  <data name="Menu" xml:space="preserve"><value>Menu</value></data>
-  <data name="Options" xml:space="preserve"><value>Options</value></data>
-  <data name="Scan" xml:space="preserve"><value>Scan folders</value></data>
-  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="Clean" xml:space="preserve"><value>Clean up…</value></data>
-  <data name="Recycle" xml:space="preserve"><value>Move to Recycle Bin</value></data>
-  <data name="Issues" xml:space="preserve"><value>Scan diagnostics</value></data>
-  <data name="Shortcuts" xml:space="preserve"><value>Keyboard shortcuts</value></data>
-  <data name="About" xml:space="preserve"><value>About</value></data>
-  <data name="Filter" xml:space="preserve"><value>Filter</value></data>
-  <data name="FilterHint" xml:space="preserve"><value>Path, name, SHA-256 or publisher</value></data>
-  <data name="Name" xml:space="preserve"><value>Name</value></data>
-  <data name="Priority" xml:space="preserve"><value>Priority</value></data>
-  <data name="Variant" xml:space="preserve"><value>Variant</value></data>
-  <data name="Bytes" xml:space="preserve"><value>Bytes</value></data>
-  <data name="Streams" xml:space="preserve"><value>Data streams</value></data>
-  <data name="Embedded" xml:space="preserve"><value>Embedded signature</value></data>
-  <data name="Catalog" xml:space="preserve"><value>Catalog signature</value></data>
-  <data name="Publisher" xml:space="preserve"><value>Publisher</value></data>
-  <data name="Diagnostics" xml:space="preserve"><value>Diagnostics</value></data>
-  <data name="Path" xml:space="preserve"><value>Path</value></data>
-  <data name="Details" xml:space="preserve"><value>Selected file · details and copy:</value></data>
-  <data name="Mark" xml:space="preserve"><value>Select for recycling</value></data>
-  <data name="Folder" xml:space="preserve"><value>Search folder</value></data>
-  <data name="PriorityHint" xml:space="preserve"><value>Set a retention priority for each search folder. A higher number keeps its copies first. Double-click a priority to edit it.</value></data>
-  <data name="BadPriority" xml:space="preserve"><value>Enter an integer for each priority.</value></data>
-  <data name="Save" xml:space="preserve"><value>Save</value></data>
-  <data name="Add" xml:space="preserve"><value>Add folders…</value></data>
-  <data name="Remove" xml:space="preserve"><value>Remove from list</value></data>
-  <data name="Hashes" xml:space="preserve"><value>Checksums for files of matching size</value></data>
-  <data name="Online" xml:space="preserve"><value>Online revocation check</value></data>
-  <data name="Language" xml:space="preserve"><value>Language</value></data>
-  <data name="Theme" xml:space="preserve"><value>Theme</value></data>
-  <data name="Light" xml:space="preserve"><value>Light</value></data>
-  <data name="Dark" xml:space="preserve"><value>Dark</value></data>
-  <data name="Singles" xml:space="preserve"><value>Files without a confirmed duplicate</value></data>
-  <data name="Duplicates" xml:space="preserve"><value>Duplicate groups</value></data>
-  <data name="All" xml:space="preserve"><value>All files</value></data>
-  <data name="AllSignatures" xml:space="preserve"><value>All embedded signatures</value></data>
-  <data name="ExceptValid" xml:space="preserve"><value>All except valid signatures</value></data>
-  <data name="GroupNumber" xml:space="preserve"><value>Group {0}</value></data>
-  <data name="Streams_Unmatched" xml:space="preserve"><value>No confirmed duplicate</value></data>
-  <data name="Streams_Identical" xml:space="preserve"><value>All data streams identical</value></data>
-  <data name="Streams_Different" xml:space="preserve"><value>Main stream identical · named streams differ</value></data>
-  <data name="Streams_Unknown" xml:space="preserve"><value>Main stream identical · named streams incompletely checked</value></data>
-  <data name="HardLink" xml:space="preserve"><value>Hard link · excluded from automatic cleanup</value></data>
-  <data name="Incomplete" xml:space="preserve"><value>Catalog lookup incomplete</value></data>
-  <data name="NoCatalog" xml:space="preserve"><value>No matching catalog found</value></data>
-  <data name="Registered" xml:space="preserve"><value>Registered catalog</value></data>
-  <data name="Loose" xml:space="preserve"><value>Catalog in search folders</value></data>
-  <data name="ScopePrompt" xml:space="preserve"><value>Which files should be moved to the Recycle Bin?</value></data>
-  <data name="Visible" xml:space="preserve"><value>Only displayed files</value></data>
-  <data name="AllScanned" xml:space="preserve"><value>All scanned files</value></data>
-  <data name="VisibleHint" xml:space="preserve"><value>Includes filter matches in collapsed groups and outside the viewport.</value></data>
-  <data name="KeepHint" xml:space="preserve"><value>Every copy with the highest priority in its identical variant stays in place.</value></data>
-  <data name="Counts" xml:space="preserve"><value>{0:N0} eligible files · {1:N0} groups</value></data>
-  <data name="ManualPrompt" xml:space="preserve"><value>Move these {0:N0} selected files to the Recycle Bin?</value></data>
-  <data name="LastCopy" xml:space="preserve"><value>This selection includes all known copies of {0:N0} contents or stream variants.</value></data>
-  <data name="Close" xml:space="preserve"><value>Close</value></data>
-  <data name="Repo" xml:space="preserve"><value>GitHub repository</value></data>
-  <data name="License" xml:space="preserve"><value>License</value></data>
-  <data name="About1" xml:space="preserve"><value>• Find byte-identical files across prioritized search folders.</value></data>
-  <data name="About2" xml:space="preserve"><value>• Calculate selected checksums in one pass, then compare file bytes and named data streams.</value></data>
-  <data name="About3" xml:space="preserve"><value>• Inspect embedded and catalog signatures. Recycle verified copies or a manual selection.</value></data>
-  <data name="KeyScan" xml:space="preserve"><value>Scan the configured folders</value></data>
-  <data name="KeyFilter" xml:space="preserve"><value>Focus the table filter</value></data>
-  <data name="KeyMark" xml:space="preserve"><value>Toggle the check mark on the focused file</value></data>
-  <data name="KeyCancel" xml:space="preserve"><value>Cancel the current operation</value></data>
-  <data name="KeyHelp" xml:space="preserve"><value>Open keyboard shortcuts</value></data>
-  <data name="Moved" xml:space="preserve"><value>Recycled</value></data>
-  <data name="Skipped" xml:space="preserve"><value>Skipped</value></data>
-  <data name="Unprocessed" xml:space="preserve"><value>{0:N0} files were not processed.</value></data>
-  <data name="RecycledCount" xml:space="preserve"><value>{0:N0} of {1:N0} files moved to the Recycle Bin</value></data>
-  <data name="Cancelled" xml:space="preserve"><value>Cancelled</value></data>
-  <data name="StartHint" xml:space="preserve"><value>Add your search folders under Options to start a scan.</value></data>
-  <data name="Summary" xml:space="preserve"><value>{0:N0} of {1:N0} files · {2:N0} selected · {3:N0} scan diagnostics</value></data>
-  <data name="Stage_Search" xml:space="preserve"><value>Finding files</value></data>
-  <data name="Stage_Hash" xml:space="preserve"><value>Reading checksums</value></data>
-  <data name="Stage_Signature" xml:space="preserve"><value>Checking embedded signatures</value></data>
-  <data name="Stage_Catalog" xml:space="preserve"><value>Checking catalogs</value></data>
-  <data name="Stage_Compare" xml:space="preserve"><value>Comparing bytes</value></data>
-  <data name="Stage_Recycle" xml:space="preserve"><value>Verifying and recycling</value></data>
-  <data name="Signature_NotChecked" xml:space="preserve"><value>Not checked</value></data>
-  <data name="Signature_ValidOnline" xml:space="preserve"><value>Valid · online revocation</value></data>
-  <data name="Signature_ValidOffline" xml:space="preserve"><value>Valid · cached revocation</value></data>
-  <data name="Signature_NoEmbeddedSignature" xml:space="preserve"><value>No embedded signature</value></data>
-  <data name="Signature_InvalidSignature" xml:space="preserve"><value>Invalid signature / digest</value></data>
-  <data name="Signature_Untrusted" xml:space="preserve"><value>Not trusted</value></data>
-  <data name="Signature_Expired" xml:space="preserve"><value>Certificate time invalid</value></data>
-  <data name="Signature_Revoked" xml:space="preserve"><value>Certificate revoked</value></data>
-  <data name="Signature_RevocationUnknown" xml:space="preserve"><value>Revocation status unknown</value></data>
-  <data name="Signature_UnsupportedFormat" xml:space="preserve"><value>Signature format unsupported</value></data>
-  <data name="Signature_UnsupportedPlatform" xml:space="preserve"><value>Requires Windows</value></data>
-  <data name="Signature_CheckFailed" xml:space="preserve"><value>Signature check failed</value></data>
-  <data name="Signature_Valid" xml:space="preserve"><value>Valid</value></data>
-  <data name="CatalogUnsigned" xml:space="preserve"><value>Unsigned catalog</value></data>
-  <data name="IntakeSize" xml:space="preserve"><value>File size when scanning</value></data>
-  <data name="SizeFrom" xml:space="preserve"><value>From</value></data>
-  <data name="SizeTo" xml:space="preserve"><value>To</value></data>
-  <data name="MinimumSizeUnit" xml:space="preserve"><value>Minimum file size unit</value></data>
-  <data name="MaximumSizeUnit" xml:space="preserve"><value>Maximum file size unit</value></data>
-  <data name="IntakeSizeHint" xml:space="preserve"><value>Both limits are inclusive. Leave either field empty for an open limit. 1 kB = 1,000 bytes.</value></data>
-  <data name="BadSize" xml:space="preserve"><value>Enter a non-negative size that converts to a whole number of bytes and fits in 64 bits.</value></data>
-  <data name="ReversedSizes" xml:space="preserve"><value>The minimum size must be less than or equal to the maximum.</value></data>
-  <data name="Modified" xml:space="preserve"><value>Date modified</value></data>
-  <data name="SearchFolders" xml:space="preserve"><value>Search folders</value></data>
-  <data name="Analysis" xml:space="preserve"><value>Analysis</value></data>
-  <data name="Signatures" xml:space="preserve"><value>Signatures</value></data>
-  <data name="ShortcutActions" xml:space="preserve"><value>Commands</value></data>
-  <data name="ShortcutResults" xml:space="preserve"><value>Results and file details</value></data>
-  <data name="KeysFilter" xml:space="preserve"><value>Ctrl+F</value></data>
-  <data name="KeysMark" xml:space="preserve"><value>Space</value></data>
-  <data name="KeysCopy" xml:space="preserve"><value>Ctrl+C</value></data>
-  <data name="KeyCopy" xml:space="preserve"><value>Copy the selected text from the file details</value></data>
-  <data name="Stage_Metadata" xml:space="preserve"><value>Checking file metadata</value></data>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Menu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="Options" xml:space="preserve">
+    <value>Options…</value>
+  </data>
+  <data name="Scan" xml:space="preserve">
+    <value>Scan folders</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Clean" xml:space="preserve">
+    <value>Clean up…</value>
+  </data>
+  <data name="Recycle" xml:space="preserve">
+    <value>Move to Recycle Bin…</value>
+  </data>
+  <data name="Issues" xml:space="preserve">
+    <value>Scan diagnostics</value>
+  </data>
+  <data name="Shortcuts" xml:space="preserve">
+    <value>Shortcuts…</value>
+  </data>
+  <data name="About" xml:space="preserve">
+    <value>About…</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="FilterHint" xml:space="preserve">
+    <value>Path, name, SHA-256 or publisher</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="Variant" xml:space="preserve">
+    <value>Variant</value>
+  </data>
+  <data name="Bytes" xml:space="preserve">
+    <value>Bytes</value>
+  </data>
+  <data name="Streams" xml:space="preserve">
+    <value>Data streams</value>
+  </data>
+  <data name="Embedded" xml:space="preserve">
+    <value>Embedded signature</value>
+  </data>
+  <data name="Catalog" xml:space="preserve">
+    <value>Catalog signature</value>
+  </data>
+  <data name="Publisher" xml:space="preserve">
+    <value>Publisher</value>
+  </data>
+  <data name="Diagnostics" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Selected file · details and copy:</value>
+  </data>
+  <data name="Mark" xml:space="preserve">
+    <value>Select for recycling</value>
+  </data>
+  <data name="Folder" xml:space="preserve">
+    <value>Search folder</value>
+  </data>
+  <data name="PriorityHint" xml:space="preserve">
+    <value>Set a retention priority for each search folder. A higher number keeps its copies first. Double-click a priority to edit it.</value>
+  </data>
+  <data name="BadPriority" xml:space="preserve">
+    <value>Enter an integer for each priority.</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add folders…</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove from list</value>
+  </data>
+  <data name="Hashes" xml:space="preserve">
+    <value>Checksums for files of matching size</value>
+  </data>
+  <data name="Online" xml:space="preserve">
+    <value>Online revocation check</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Singles" xml:space="preserve">
+    <value>Files without a confirmed duplicate</value>
+  </data>
+  <data name="Duplicates" xml:space="preserve">
+    <value>Duplicate groups</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="GroupNumber" xml:space="preserve">
+    <value>Group {0}</value>
+  </data>
+  <data name="Streams_Unmatched" xml:space="preserve">
+    <value>No confirmed duplicate</value>
+  </data>
+  <data name="Streams_Identical" xml:space="preserve">
+    <value>All data streams identical</value>
+  </data>
+  <data name="Streams_Different" xml:space="preserve">
+    <value>Main stream identical · named streams differ</value>
+  </data>
+  <data name="Streams_Unknown" xml:space="preserve">
+    <value>Main stream identical · named streams incompletely checked</value>
+  </data>
+  <data name="HardLink" xml:space="preserve">
+    <value>Hard link · excluded from automatic cleanup</value>
+  </data>
+  <data name="ScopePrompt" xml:space="preserve">
+    <value>Which files should be moved to the Recycle Bin?</value>
+  </data>
+  <data name="Visible" xml:space="preserve">
+    <value>Only displayed files</value>
+  </data>
+  <data name="AllScanned" xml:space="preserve">
+    <value>All scanned files</value>
+  </data>
+  <data name="VisibleHint" xml:space="preserve">
+    <value>Includes filter matches in collapsed groups and outside the viewport.</value>
+  </data>
+  <data name="KeepHint" xml:space="preserve">
+    <value>Every copy with the highest priority in its identical variant stays in place.</value>
+  </data>
+  <data name="Counts" xml:space="preserve">
+    <value>{0:N0} eligible files · {1:N0} groups</value>
+  </data>
+  <data name="ManualPrompt" xml:space="preserve">
+    <value>Move these {0:N0} selected files to the Recycle Bin?</value>
+  </data>
+  <data name="LastCopy" xml:space="preserve">
+    <value>This selection includes all known copies of {0:N0} contents or stream variants.</value>
+  </data>
+  <data name="KeyScan" xml:space="preserve">
+    <value>Scan the configured folders</value>
+  </data>
+  <data name="KeyFilter" xml:space="preserve">
+    <value>Focus the table filter</value>
+  </data>
+  <data name="KeyMark" xml:space="preserve">
+    <value>Toggle the check mark on the focused file</value>
+  </data>
+  <data name="KeyCancel" xml:space="preserve">
+    <value>Cancel the current operation</value>
+  </data>
+  <data name="KeyHelp" xml:space="preserve">
+    <value>Open keyboard shortcuts</value>
+  </data>
+  <data name="Moved" xml:space="preserve">
+    <value>Recycled</value>
+  </data>
+  <data name="Skipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="Unprocessed" xml:space="preserve">
+    <value>{0:N0} files were not processed.</value>
+  </data>
+  <data name="RecycledCount" xml:space="preserve">
+    <value>{0:N0} of {1:N0} files moved to the Recycle Bin</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="StartHint" xml:space="preserve">
+    <value>Add your search folders under Options to start a scan.</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>{0:N0} of {1:N0} files · {2:N0} selected · {3:N0} scan diagnostics</value>
+  </data>
+  <data name="Stage_Search" xml:space="preserve">
+    <value>Finding files</value>
+  </data>
+  <data name="Stage_Hash" xml:space="preserve">
+    <value>Reading checksums</value>
+  </data>
+  <data name="Stage_Signature" xml:space="preserve">
+    <value>Checking embedded signatures</value>
+  </data>
+  <data name="Stage_Catalog" xml:space="preserve">
+    <value>Checking catalogs</value>
+  </data>
+  <data name="Stage_Compare" xml:space="preserve">
+    <value>Comparing bytes</value>
+  </data>
+  <data name="Stage_Recycle" xml:space="preserve">
+    <value>Verifying and recycling</value>
+  </data>
+  <data name="IntakeSize" xml:space="preserve">
+    <value>File size when scanning</value>
+  </data>
+  <data name="SizeFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="SizeTo" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="MinimumSizeUnit" xml:space="preserve">
+    <value>Minimum file size unit</value>
+  </data>
+  <data name="MaximumSizeUnit" xml:space="preserve">
+    <value>Maximum file size unit</value>
+  </data>
+  <data name="IntakeSizeHint" xml:space="preserve">
+    <value>Both limits are inclusive. Leave either field empty for an open limit. 1 kB = 1,000 bytes.</value>
+  </data>
+  <data name="BadSize" xml:space="preserve">
+    <value>Enter a non-negative size that converts to a whole number of bytes and fits in 64 bits.</value>
+  </data>
+  <data name="ReversedSizes" xml:space="preserve">
+    <value>The minimum size must be less than or equal to the maximum.</value>
+  </data>
+  <data name="Modified" xml:space="preserve">
+    <value>Date modified</value>
+  </data>
+  <data name="SearchFolders" xml:space="preserve">
+    <value>Search folders</value>
+  </data>
+  <data name="Analysis" xml:space="preserve">
+    <value>Analysis</value>
+  </data>
+  <data name="Signatures" xml:space="preserve">
+    <value>Signatures</value>
+  </data>
+  <data name="ShortcutActions" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="ShortcutResults" xml:space="preserve">
+    <value>Results and file details</value>
+  </data>
+  <data name="KeysFilter" xml:space="preserve">
+    <value>Ctrl+F</value>
+  </data>
+  <data name="KeysMark" xml:space="preserve">
+    <value>Space</value>
+  </data>
+  <data name="KeysCopy" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+  <data name="KeyCopy" xml:space="preserve">
+    <value>Copy the selected text from the file details</value>
+  </data>
+  <data name="Stage_Metadata" xml:space="preserve">
+    <value>Checking file metadata</value>
+  </data>
+  <data name="ResultKind" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About DuplicateFinder</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Find byte-identical files across search folders and keep the copies that matter to you.</value>
+  </data>
+  <data name="AboutFolders" xml:space="preserve">
+    <value>Set a retention priority for each search folder and an optional range of file sizes.</value>
+  </data>
+  <data name="AboutComparison" xml:space="preserve">
+    <value>Compare files of the same size by SHA-256, then confirm matches byte for byte.</value>
+  </data>
+  <data name="AboutStreams" xml:space="preserve">
+    <value>See when files with the same main data stream have different NTFS alternate data streams.</value>
+  </data>
+  <data name="AboutSignatures" xml:space="preserve">
+    <value>Inspect embedded Authenticode signatures and Windows catalog signatures separately.</value>
+  </data>
+  <data name="AboutRecycle" xml:space="preserve">
+    <value>Move copies to the Recycle Bin by folder priority or confirm a manual selection.</value>
+  </data>
+  <data name="AboutEfficiencyTitle" xml:space="preserve">
+    <value>One read pass for all selected checksums</value>
+  </data>
+  <data name="AboutEfficiency" xml:space="preserve">
+    <value>Files with a unique size skip checksum calculation. For duplicate candidates, all selected checksums share one read pass.</value>
+  </data>
+  <data name="AboutAdditionalReads" xml:space="preserve">
+    <value>Byte comparisons, alternate data streams and signature checks can require further reads.</value>
+  </data>
 </root>

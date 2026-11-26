@@ -3,8 +3,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using DuplicateFinder.Core;
-using FileScope.App.Localization;
-using FileScope.App.Services;
 using FileScope.Core.Models;
 using Microsoft.Win32;
 

@@ -2,8 +2,6 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
 using FileScope.App.ViewModels;
-using FileScope.App.Presentation;
-using FileScope.App.Services;
 
 namespace FileScope.App;
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using FileScope.App.Localization;
 using FileScope.Core.Models;
 
 namespace FileScope.App.Presentation;

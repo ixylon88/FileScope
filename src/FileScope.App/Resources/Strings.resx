@@ -163,7 +163,7 @@
     <value>Inspect embedded signatures</value>
   </data>
   <data name="InspectCertificatesTip" xml:space="preserve">
-    <value>Verify the primary Authenticode signature and read its signer certificate. No catalog or PDF-signature analysis.</value>
+    <value>Check embedded Authenticode signatures and their certificates.</value>
   </data>
   <data name="OnlineRevocation" xml:space="preserve">
     <value>Online revocation check</value>
@@ -172,7 +172,7 @@
     <value>Allow Windows to contact certificate authorities for chain and revocation information. Otherwise only local/cached information is used; unknown revocation status is reported explicitly.</value>
   </data>
   <data name="CertificateScope" xml:space="preserve">
-    <value>Primary Authenticode signature · local cache by default</value>
+    <value>Embedded and catalog results are shown separately. Revocation checks use the local cache by default.</value>
   </data>
   <data name="SearchLabel" xml:space="preserve">
     <value>Search files, checksums or certificates</value>
@@ -183,23 +183,8 @@
   <data name="StateFilterLabel" xml:space="preserve">
     <value>Analysis status</value>
   </data>
-  <data name="SignatureFilterLabel" xml:space="preserve">
-    <value>Signature status</value>
-  </data>
-  <data name="ResetFilters" xml:space="preserve">
-    <value>Reset filters</value>
-  </data>
   <data name="AllStates" xml:space="preserve">
     <value>All statuses</value>
-  </data>
-  <data name="AllSignatures" xml:space="preserve">
-    <value>All signature results</value>
-  </data>
-  <data name="Filter_Valid" xml:space="preserve">
-    <value>Valid signatures</value>
-  </data>
-  <data name="Filter_Attention" xml:space="preserve">
-    <value>Needs attention</value>
   </data>
   <data name="ResultsLabel" xml:space="preserve">
     <value>File analysis results</value>
@@ -281,42 +266,6 @@
   </data>
   <data name="Row_Cancelled" xml:space="preserve">
     <value>Cancelled</value>
-  </data>
-  <data name="Signature_NotChecked" xml:space="preserve">
-    <value>Not checked</value>
-  </data>
-  <data name="Signature_ValidOnline" xml:space="preserve">
-    <value>Valid · online revocation</value>
-  </data>
-  <data name="Signature_ValidOffline" xml:space="preserve">
-    <value>Valid · cached revocation</value>
-  </data>
-  <data name="Signature_NoEmbeddedSignature" xml:space="preserve">
-    <value>No embedded signature</value>
-  </data>
-  <data name="Signature_InvalidSignature" xml:space="preserve">
-    <value>Invalid signature / digest</value>
-  </data>
-  <data name="Signature_Untrusted" xml:space="preserve">
-    <value>Not trusted</value>
-  </data>
-  <data name="Signature_Expired" xml:space="preserve">
-    <value>Certificate time invalid</value>
-  </data>
-  <data name="Signature_Revoked" xml:space="preserve">
-    <value>Certificate revoked</value>
-  </data>
-  <data name="Signature_RevocationUnknown" xml:space="preserve">
-    <value>Revocation status unknown</value>
-  </data>
-  <data name="Signature_UnsupportedFormat" xml:space="preserve">
-    <value>Signature format unsupported</value>
-  </data>
-  <data name="Signature_UnsupportedPlatform" xml:space="preserve">
-    <value>Requires Windows</value>
-  </data>
-  <data name="Signature_CheckFailed" xml:space="preserve">
-    <value>Signature check failed</value>
   </data>
   <data name="Error_InvalidPath" xml:space="preserve">
     <value>Invalid file path</value>
@@ -422,9 +371,6 @@
   </data>
   <data name="OptionsSavedHint" xml:space="preserve">
     <value>Changes apply immediately and are saved for the next start.</value>
-  </data>
-  <data name="Close" xml:space="preserve">
-    <value>Close</value>
   </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>Saved options could not be read. Default options are being used.</value>
@@ -606,9 +552,6 @@
   <data name="IntakeCancelled" xml:space="preserve">
     <value>Adding files cancelled. Added rows can be reanalysed.</value>
   </data>
-  <data name="Filter_ExceptValid" xml:space="preserve">
-    <value>All except valid signatures</value>
-  </data>
   <data name="CsvDelimiterLabel" xml:space="preserve">
     <value>CSV delimiter</value>
   </data>
@@ -661,25 +604,19 @@ Continue? Choosing “No” cancels the entire drop.</value>
     <value>Theme</value>
   </data>
   <data name="AboutButton" xml:space="preserve">
-    <value>About</value>
+    <value>About…</value>
   </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>About FileScope</value>
   </data>
-  <data name="AboutVersion" xml:space="preserve">
-    <value>Version</value>
-  </data>
   <data name="AboutDescription" xml:space="preserve">
     <value>Inspect Windows files without running them.</value>
-  </data>
-  <data name="AboutFeatures" xml:space="preserve">
-    <value>At a glance</value>
   </data>
   <data name="AboutFeatureHashes" xml:space="preserve">
     <value>Calculate MD5, SHA-1, SHA-256, SHA-384 and SHA-512 checksums.</value>
   </data>
   <data name="AboutFeatureSignatures" xml:space="preserve">
-    <value>Verify embedded Authenticode signatures, including multiple signatures and optional online revocation checks.</value>
+    <value>Verify embedded Authenticode signatures and catalog signatures with optional online revocation checks.</value>
   </data>
   <data name="AboutFeatureMetadata" xml:space="preserve">
     <value>Inspect file size, modification time, version information and PE / Win16 NE headers.</value>
@@ -698,24 +635,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="AboutAdditionalReads" xml:space="preserve">
     <value>Header, version and signature inspections can require additional reads. Windows may also access supplementary resources.</value>
-  </data>
-  <data name="AboutProject" xml:space="preserve">
-    <value>Project and license</value>
-  </data>
-  <data name="AboutRepository" xml:space="preserve">
-    <value>Open the FileScope repository</value>
-  </data>
-  <data name="AboutLicenseOnline" xml:space="preserve">
-    <value>MIT license (online)</value>
-  </data>
-  <data name="AboutLicenseText" xml:space="preserve">
-    <value>MIT license and copyright (offline)</value>
-  </data>
-  <data name="AboutLinkError" xml:space="preserve">
-    <value>The link could not be opened in the default browser. The full license is also available below without an internet connection.</value>
-  </data>
-  <data name="AboutCredits" xml:space="preserve">
-    <value>Developed jointly by ixylon88 and ChatGPT, with mutual code review.</value>
   </data>
   <data name="FilePropertiesMenu" xml:space="preserve">
     <value>Properties</value>
@@ -832,7 +751,7 @@ Continue? Choosing “No” cancels the entire drop.</value>
     <value>Keyboard shortcuts</value>
   </data>
   <data name="ShortcutsButton" xml:space="preserve">
-    <value>Shortcuts</value>
+    <value>Shortcuts…</value>
   </data>
   <data name="ShortcutsTip" xml:space="preserve">
     <value>Show keyboard shortcuts (F1)</value>
@@ -950,5 +869,17 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="MenuTitle" xml:space="preserve">
     <value>Menu</value>
+  </data>
+  <data name="InspectCatalogs" xml:space="preserve">
+    <value>Check catalog signatures</value>
+  </data>
+  <data name="InspectCatalogsTip" xml:space="preserve">
+    <value>Search the Windows catalog database and .cat files added directly or found in added folders.</value>
+  </data>
+  <data name="CheckingCatalogs" xml:space="preserve">
+    <value>Checking catalogs…</value>
+  </data>
+  <data name="CheckingCatalogsOnline" xml:space="preserve">
+    <value>Checking catalogs (including online revocation)…</value>
   </data>
 </root>

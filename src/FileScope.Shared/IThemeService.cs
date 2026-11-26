@@ -1,4 +1,4 @@
-namespace FileScope.App.Services;
+namespace FileScope.Shared;
 
 public enum AppTheme { Light, Dark }
 

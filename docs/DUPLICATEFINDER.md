@@ -20,6 +20,10 @@ Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **A
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
 
+**Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Rechts neben dem Suchfeld lässt sich die primäre eingebettete Signatur nach denselben zwölf Codes und vier Sammelfiltern wie in FileScope filtern. Beispielsweise zeigt `2` nur gültige Signaturen mit Sperrprüfung aus dem Cache. Katalogtreffer stehen in einer eigenen Spalte. [Codes, Farben und Bedeutung](../README.md#dateien-nach-signaturergebnis-verschieben)
+
+**Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)
+
 Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Der aufklappbare Bereich **Ausgewählte Datei · Details und Kopieren** zeigt den vollständigen Pfad der aktiven Zeile. Im Textfeld lassen sich beispielsweise Prüfsummen oder Katalogpfade markieren und mit **Strg+C** kopieren.
 
 Die Kästchen vor den Dateinamen bestimmen die manuelle Auswahl für den Papierkorb. Ein Klick auf eine Dateizeile oder ihr Kästchen schaltet die Markierung um. Die Häkchen bleiben erhalten, wenn man eine Gruppe zuklappt oder mit den Pfeiltasten eine andere Datei ansieht. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
@@ -61,7 +65,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 ## Architektur
 
-`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. Beide Anwendungen verwenden die gleichen Fluent-Stile und Farbpaletten.
+`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes und Katalogtexte sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und den Über-Dialog bereit.
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |

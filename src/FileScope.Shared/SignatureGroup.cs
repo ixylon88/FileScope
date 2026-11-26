@@ -1,7 +1,8 @@
-using FileScope.App.Localization;
 using FileScope.Core.Models;
 
-namespace FileScope.App.Presentation;
+namespace FileScope.Shared;
+
+public enum StatusTone { Neutral, Success, Information, Warning, Error }
 
 /// <summary>A signature group shared by the displayed code and the move-selection rule.</summary>
 public readonly record struct SignatureGroup
@@ -37,6 +38,17 @@ public readonly record struct SignatureGroup
         SignatureStatus.UnsupportedPlatform => new(status, 'A'),
         SignatureStatus.CheckFailed => new(status, 'B'),
         _ => null
+    };
+
+    public static StatusTone ToneFor(SignatureStatus status) => status switch
+    {
+        SignatureStatus.Valid => StatusTone.Success,
+        SignatureStatus.Untrusted or SignatureStatus.RevocationUnknown or SignatureStatus.UnsupportedFormat
+            or SignatureStatus.UnsupportedPlatform => StatusTone.Warning,
+        SignatureStatus.InvalidSignature or SignatureStatus.Expired or SignatureStatus.Revoked
+            or SignatureStatus.CheckFailed => StatusTone.Error,
+        SignatureStatus.NotChecked or SignatureStatus.NoEmbeddedSignature => StatusTone.Neutral,
+        _ => StatusTone.Neutral
     };
 
     /// <summary>Prefixes the localized status; valid groups include their revocation-mode detail.</summary>

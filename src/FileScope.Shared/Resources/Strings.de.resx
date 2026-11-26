@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AllSignatures" xml:space="preserve"><value>Alle Signaturergebnisse</value></data>
+  <data name="Filter_Valid" xml:space="preserve"><value>Gültige Signaturen</value></data>
+  <data name="Filter_ExceptValid" xml:space="preserve"><value>Alles außer gültigen Signaturen</value></data>
+  <data name="Filter_Attention" xml:space="preserve"><value>Prüfbedarf</value></data>
+  <data name="SignatureFilterLabel" xml:space="preserve"><value>Eingebettete Signatur</value></data>
+  <data name="ResetFilters" xml:space="preserve"><value>Filter zurücksetzen</value></data>
+  <data name="AboutVersion" xml:space="preserve"><value>Version</value></data>
+  <data name="AboutFeatures" xml:space="preserve"><value>Auf einen Blick</value></data>
+  <data name="AboutProject" xml:space="preserve"><value>Projekt und Lizenz</value></data>
+  <data name="AboutRepository" xml:space="preserve"><value>FileScope-Repository öffnen</value></data>
+  <data name="AboutLicenseOnline" xml:space="preserve"><value>MIT-Lizenz (online)</value></data>
+  <data name="AboutLicenseText" xml:space="preserve"><value>MIT-Lizenz und Copyright (offline)</value></data>
+  <data name="AboutLinkError" xml:space="preserve"><value>Der Link konnte nicht im Standardbrowser geöffnet werden. Der vollständige Lizenztext ist unten auch ohne Internetverbindung verfügbar.</value></data>
+  <data name="AboutCredits" xml:space="preserve"><value>Gemeinsam entwickelt von ixylon88 und ChatGPT – mit gegenseitigem Code-Review.</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Signature_NotChecked" xml:space="preserve"><value>Nicht geprüft</value></data>
+  <data name="Signature_ValidOnline" xml:space="preserve"><value>Gültig · Online-Sperrprüfung</value></data>
+  <data name="Signature_ValidOffline" xml:space="preserve"><value>Gültig · Sperrprüfung aus Cache</value></data>
+  <data name="Signature_NoEmbeddedSignature" xml:space="preserve"><value>Keine eingebettete Signatur</value></data>
+  <data name="Signature_InvalidSignature" xml:space="preserve"><value>Ungültige Signatur / Prüfsumme</value></data>
+  <data name="Signature_Untrusted" xml:space="preserve"><value>Nicht vertrauenswürdig</value></data>
+  <data name="Signature_Expired" xml:space="preserve"><value>Zertifikatszeitraum ungültig</value></data>
+  <data name="Signature_Revoked" xml:space="preserve"><value>Zertifikat gesperrt</value></data>
+  <data name="Signature_RevocationUnknown" xml:space="preserve"><value>Sperrstatus unbekannt</value></data>
+  <data name="Signature_UnsupportedFormat" xml:space="preserve"><value>Signaturformat nicht unterstützt</value></data>
+  <data name="Signature_UnsupportedPlatform" xml:space="preserve"><value>Windows erforderlich</value></data>
+  <data name="Signature_CheckFailed" xml:space="preserve"><value>Signaturprüfung fehlgeschlagen</value></data>
+  <data name="NoCatalog" xml:space="preserve"><value>Kein passender Katalog gefunden</value></data>
+  <data name="CatalogUnsigned" xml:space="preserve"><value>Katalog ohne Signatur</value></data>
+  <data name="Incomplete" xml:space="preserve"><value>Katalogsuche unvollständig</value></data>
+  <data name="Registered" xml:space="preserve"><value>Registrierter Katalog</value></data>
+  <data name="Loose" xml:space="preserve"><value>Mitgegebener Katalog</value></data>
+  <data name="Column_Catalog" xml:space="preserve"><value>Katalogsignatur</value></data>
+</root>

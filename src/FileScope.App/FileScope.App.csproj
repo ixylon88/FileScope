@@ -16,8 +16,13 @@
     <None Remove="Resources\FileScopeSplash.png" />
     <SplashScreen Include="Resources\FileScopeSplash.png" />
     <ProjectReference Include="..\FileScope.Core\FileScope.Core.csproj" />
+    <ProjectReference Include="../FileScope.Shared/FileScope.Shared.csproj" />
+    <Resource Include="Resources/FileScope.ico" />
     <!-- One canonical license: available offline in the dialog and beside published binaries. -->
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="FileScope.App.LICENSE" />
     <None Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="FileScope.Shared" />
   </ItemGroup>
 </Project>

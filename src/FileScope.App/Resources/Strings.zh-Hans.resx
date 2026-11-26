@@ -163,7 +163,7 @@
     <value>检查嵌入式签名</value>
   </data>
   <data name="InspectCertificatesTip" xml:space="preserve">
-    <value>验证主要 Authenticode 签名并读取签名证书。不分析目录签名或 PDF 签名。</value>
+    <value>验证嵌入式 Authenticode 签名及其证书。</value>
   </data>
   <data name="OnlineRevocation" xml:space="preserve">
     <value>在线吊销检查</value>
@@ -172,7 +172,7 @@
     <value>允许 Windows 联系证书颁发机构获取证书链及吊销信息；否则仅使用本地缓存，并明确显示未知的吊销状态。</value>
   </data>
   <data name="CertificateScope" xml:space="preserve">
-    <value>主要 Authenticode 签名 · 默认使用本地缓存</value>
+    <value>嵌入式签名和目录匹配分别显示。吊销检查默认使用本地缓存。</value>
   </data>
   <data name="SearchLabel" xml:space="preserve">
     <value>搜索文件、校验和或证书</value>
@@ -183,23 +183,8 @@
   <data name="StateFilterLabel" xml:space="preserve">
     <value>分析状态</value>
   </data>
-  <data name="SignatureFilterLabel" xml:space="preserve">
-    <value>签名状态</value>
-  </data>
-  <data name="ResetFilters" xml:space="preserve">
-    <value>重置筛选</value>
-  </data>
   <data name="AllStates" xml:space="preserve">
     <value>全部状态</value>
-  </data>
-  <data name="AllSignatures" xml:space="preserve">
-    <value>全部签名结果</value>
-  </data>
-  <data name="Filter_Valid" xml:space="preserve">
-    <value>有效签名</value>
-  </data>
-  <data name="Filter_Attention" xml:space="preserve">
-    <value>需要关注</value>
   </data>
   <data name="ResultsLabel" xml:space="preserve">
     <value>文件分析结果</value>
@@ -281,42 +266,6 @@
   </data>
   <data name="Row_Cancelled" xml:space="preserve">
     <value>已取消</value>
-  </data>
-  <data name="Signature_NotChecked" xml:space="preserve">
-    <value>未检查</value>
-  </data>
-  <data name="Signature_ValidOnline" xml:space="preserve">
-    <value>有效 · 在线吊销检查</value>
-  </data>
-  <data name="Signature_ValidOffline" xml:space="preserve">
-    <value>有效 · 缓存吊销检查</value>
-  </data>
-  <data name="Signature_NoEmbeddedSignature" xml:space="preserve">
-    <value>无嵌入式签名</value>
-  </data>
-  <data name="Signature_InvalidSignature" xml:space="preserve">
-    <value>签名或摘要无效</value>
-  </data>
-  <data name="Signature_Untrusted" xml:space="preserve">
-    <value>不受信任</value>
-  </data>
-  <data name="Signature_Expired" xml:space="preserve">
-    <value>证书有效期无效</value>
-  </data>
-  <data name="Signature_Revoked" xml:space="preserve">
-    <value>证书已吊销</value>
-  </data>
-  <data name="Signature_RevocationUnknown" xml:space="preserve">
-    <value>吊销状态未知</value>
-  </data>
-  <data name="Signature_UnsupportedFormat" xml:space="preserve">
-    <value>不支持此签名格式</value>
-  </data>
-  <data name="Signature_UnsupportedPlatform" xml:space="preserve">
-    <value>需要 Windows</value>
-  </data>
-  <data name="Signature_CheckFailed" xml:space="preserve">
-    <value>签名检查失败</value>
   </data>
   <data name="Error_InvalidPath" xml:space="preserve">
     <value>文件路径无效</value>
@@ -422,9 +371,6 @@
   </data>
   <data name="OptionsSavedHint" xml:space="preserve">
     <value>更改立即生效，并会保存到下次启动。</value>
-  </data>
-  <data name="Close" xml:space="preserve">
-    <value>关闭</value>
   </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>无法读取已保存的选项，正在使用默认值。</value>
@@ -606,9 +552,6 @@
   <data name="IntakeCancelled" xml:space="preserve">
     <value>已取消添加文件。已添加的行可重新分析。</value>
   </data>
-  <data name="Filter_ExceptValid" xml:space="preserve">
-    <value>除有效签名外的全部</value>
-  </data>
   <data name="CsvDelimiterLabel" xml:space="preserve">
     <value>CSV 分隔符</value>
   </data>
@@ -661,25 +604,19 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
     <value>主题</value>
   </data>
   <data name="AboutButton" xml:space="preserve">
-    <value>关于</value>
+    <value>关于…</value>
   </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>关于 FileScope</value>
   </data>
-  <data name="AboutVersion" xml:space="preserve">
-    <value>版本</value>
-  </data>
   <data name="AboutDescription" xml:space="preserve">
     <value>分析 Windows 文件，无需运行文件。</value>
-  </data>
-  <data name="AboutFeatures" xml:space="preserve">
-    <value>功能概览</value>
   </data>
   <data name="AboutFeatureHashes" xml:space="preserve">
     <value>计算 MD5、SHA-1、SHA-256、SHA-384 和 SHA-512 校验和。</value>
   </data>
   <data name="AboutFeatureSignatures" xml:space="preserve">
-    <value>验证嵌入式 Authenticode 签名，支持多重签名和可选的在线吊销检查。</value>
+    <value>验证嵌入式 Authenticode 签名和目录签名，并可选择联机检查证书吊销状态。</value>
   </data>
   <data name="AboutFeatureMetadata" xml:space="preserve">
     <value>读取文件大小、修改时间、版本信息以及 PE / Win16 NE 文件头。</value>
@@ -698,24 +635,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="AboutAdditionalReads" xml:space="preserve">
     <value>文件头、版本和签名检查可能需要额外读取。Windows 也可能访问其他相关资源。</value>
-  </data>
-  <data name="AboutProject" xml:space="preserve">
-    <value>项目与许可证</value>
-  </data>
-  <data name="AboutRepository" xml:space="preserve">
-    <value>打开 FileScope 代码仓库</value>
-  </data>
-  <data name="AboutLicenseOnline" xml:space="preserve">
-    <value>MIT 许可证（在线）</value>
-  </data>
-  <data name="AboutLicenseText" xml:space="preserve">
-    <value>MIT 许可证与版权声明（离线）</value>
-  </data>
-  <data name="AboutLinkError" xml:space="preserve">
-    <value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value>
-  </data>
-  <data name="AboutCredits" xml:space="preserve">
-    <value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value>
   </data>
   <data name="FilePropertiesMenu" xml:space="preserve">
     <value>属性</value>
@@ -832,7 +751,7 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
     <value>键盘快捷键</value>
   </data>
   <data name="ShortcutsButton" xml:space="preserve">
-    <value>快捷键</value>
+    <value>快捷键…</value>
   </data>
   <data name="ShortcutsTip" xml:space="preserve">
     <value>查看键盘快捷键（F1）</value>
@@ -950,5 +869,17 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="MenuTitle" xml:space="preserve">
     <value>菜单</value>
+  </data>
+  <data name="InspectCatalogs" xml:space="preserve">
+    <value>验证目录签名</value>
+  </data>
+  <data name="InspectCatalogsTip" xml:space="preserve">
+    <value>搜索 Windows 目录数据库，以及直接添加或在所选文件夹中找到的 .cat 文件。</value>
+  </data>
+  <data name="CheckingCatalogs" xml:space="preserve">
+    <value>正在验证目录签名…</value>
+  </data>
+  <data name="CheckingCatalogsOnline" xml:space="preserve">
+    <value>正在验证目录签名（包括联机吊销检查）…</value>
   </data>
 </root>

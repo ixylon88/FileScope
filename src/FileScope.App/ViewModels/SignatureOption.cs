@@ -1,5 +1,3 @@
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
 using FileScope.Core.Models;
 
 namespace FileScope.App.ViewModels;

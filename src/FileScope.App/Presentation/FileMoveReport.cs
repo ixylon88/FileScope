@@ -1,5 +1,4 @@
 using System.Text;
-using FileScope.App.Localization;
 using FileScope.Core.Files;
 
 namespace FileScope.App.Presentation;

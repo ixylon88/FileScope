@@ -1,6 +1,5 @@
 using System.Windows;
 using DuplicateFinder.Core;
-using FileScope.App.Localization;
 
 namespace DuplicateFinder.App;
 

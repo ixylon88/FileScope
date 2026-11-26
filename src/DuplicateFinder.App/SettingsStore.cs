@@ -1,8 +1,6 @@
 using System.IO;
 using System.Text.Json;
 using DuplicateFinder.Core;
-using FileScope.App.Localization;
-using FileScope.App.Services;
 using FileScope.Core.Models;
 
 namespace DuplicateFinder.App;

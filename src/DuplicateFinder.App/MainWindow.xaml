@@ -1,6 +1,7 @@
 <Window x:Class="DuplicateFinder.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:FileScope.App.Localization"
-        Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:shared="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        Icon="Resources/DuplicateFinder.ico" Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
         Style="{StaticResource AppWindowStyle}" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
   <Window.Resources>
     <!-- Fluent's SystemAccentColor is itself a dynamic reference. Ask Windows for the Color directly. -->
@@ -64,12 +65,28 @@
       </Expander>
     </Border>
 
-    <WrapPanel Grid.Row="1" Margin="0,0,0,10" VerticalAlignment="Center">
-      <Label Content="{loc:Loc Filter}" Target="{Binding ElementName=FilterBox}" VerticalAlignment="Center" Margin="0,0,6,0" />
-      <TextBox x:Name="FilterBox" Width="220" MinHeight="32" Margin="0,0,10,0" TextChanged="FilterChanged" ToolTip="{loc:Loc FilterHint}" />
-      <ComboBox x:Name="KindBox" MinWidth="125" Margin="0,0,8,0" SelectionChanged="FilterChanged" />
-      <ComboBox x:Name="SignatureBox" MinWidth="170" SelectionChanged="FilterChanged" />
-    </WrapPanel>
+    <Grid x:Name="FiltersPanel" Grid.Row="1" Margin="0,0,0,10">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" /><ColumnDefinition Width="1*" MaxWidth="174" />
+        <ColumnDefinition Width="1.5*" MaxWidth="280" /><ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Text="{loc:Loc Filter}" Style="{StaticResource FieldLabel}" />
+        <TextBox x:Name="FilterBox" MinHeight="34" Padding="9,5" TextChanged="FilterChanged"
+                 ToolTip="{loc:Loc FilterHint}" AutomationProperties.Name="{loc:Loc Filter}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Margin="0,0,12,0">
+        <TextBlock Text="{loc:Loc ResultKind}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="KindBox" MinHeight="34" SelectionChanged="FilterChanged" AutomationProperties.Name="{loc:Loc ResultKind}" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" Margin="0,0,12,0">
+        <TextBlock Text="{loc:Loc SignatureFilterLabel}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="SignatureBox" MinHeight="34" DisplayMemberPath="Label" SelectedValuePath="Value"
+                  SelectionChanged="FilterChanged" AutomationProperties.Name="{loc:Loc SignatureFilterLabel}" />
+      </StackPanel>
+      <Button x:Name="ResetFiltersButton" Grid.Column="3" Content="{loc:Loc ResetFilters}" Click="ResetFilters"
+              VerticalAlignment="Bottom" Padding="12,7" MinHeight="34" />
+    </Grid>
 
     <Border x:Name="ResultsFrame" Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <DataGrid x:Name="Files" BorderThickness="0" GridLinesVisibility="Horizontal" ItemsSource="{Binding View}" AutoGenerateColumns="False" IsReadOnly="True"
@@ -129,7 +146,11 @@
           <DataGridTextColumn Header="{loc:Loc Modified}" Binding="{Binding ModifiedText, Mode=OneWay}" Width="Auto" MinWidth="145"
                               ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Streams}" Binding="{Binding Streams, Mode=OneWay}" Width="240" ElementStyle="{StaticResource GridText}"/>
-          <DataGridTextColumn Header="{loc:Loc Embedded}" Binding="{Binding Signature, Mode=OneWay}" Width="150" ElementStyle="{StaticResource GridText}"/>
+          <shared:CellBoundTemplateColumn Header="{loc:Loc Embedded}" Width="Auto" MinWidth="160" MaxWidth="360" ClipboardContentBinding="{Binding Signature}">
+            <shared:CellBoundTemplateColumn.CellTemplate>
+              <DataTemplate><shared:StatusBadge Text="{Binding Signature}" Tone="{Binding SignatureTone}" /></DataTemplate>
+            </shared:CellBoundTemplateColumn.CellTemplate>
+          </shared:CellBoundTemplateColumn>
           <DataGridTextColumn Header="{loc:Loc Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Publisher}" Binding="{Binding File.Embedded.Certificate.Publisher, Mode=OneWay}" Width="155" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256, Mode=OneWay}" Width="172" ElementStyle="{StaticResource HashText}"/>

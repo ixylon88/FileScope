@@ -7,7 +7,10 @@ using FileScope.Core.Models;
 namespace FileScope.Core.Signatures;
 
 public sealed record CatalogMatch(string Path, string Member, bool Registered, SignatureResult Trust);
-public sealed record CatalogLookup(IReadOnlyList<CatalogMatch> Matches, IReadOnlyList<string> Issues, bool IndexComplete);
+public sealed record CatalogLookup(IReadOnlyList<CatalogMatch> Matches, IReadOnlyList<string> Issues, bool IndexComplete)
+{
+    public IReadOnlyList<string> IndexIssues { get; init; } = [];
+}
 
 /// <summary>Read-only index of loose catalogs in the search roots plus the Windows catalog database.</summary>
 /// <remarks>Member digests come from the subject interface package for the file type. A flat file checksum

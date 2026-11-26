@@ -1,5 +1,3 @@
-using FileScope.App.Infrastructure;
-using FileScope.App.Localization;
 
 namespace FileScope.App.ViewModels;
 
@@ -24,7 +22,9 @@ public sealed class ColumnOption(string id, string label, LocalizationService st
         new("SHA512", "SHA-512", strings, static row => row.SHA512, false),
         new("SignatureChoice", "Column_SignatureChoice", strings, static row => row.SignatureChoiceText),
         new("SigningTime", "Column_SigningTime", strings, static row => row.SigningTimeText),
-        new("Signature", "Column_Signature", strings, static row => row.SignatureText), new("Publisher", "Column_Publisher", strings, static row => row.Publisher),
+        new("Signature", "Column_Signature", strings, static row => row.SignatureText),
+        new("Catalog", "Column_Catalog", strings, static row => row.CatalogDetails),
+        new("Publisher", "Column_Publisher", strings, static row => row.Publisher),
         new("Subject", "Column_Subject", strings, static row => row.Subject), new("Issuer", "Column_Issuer", strings, static row => row.Issuer),
         new("Serial", "Column_Serial", strings, static row => row.SerialNumber), new("ValidFrom", "Column_ValidFrom", strings, static row => row.ValidFrom),
         new("ValidUntil", "Column_ValidUntil", strings, static row => row.ValidUntil), new("CertSha1", "Column_CertSha1", strings, static row => row.CertificateSha1),

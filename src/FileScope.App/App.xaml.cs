@@ -1,5 +1,4 @@
 using System.Windows;
-using FileScope.App.Localization;
 using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Checksums;
@@ -15,6 +14,7 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        LocalizationService.Instance.UseApplicationResources(typeof(App).Assembly);
         base.OnStartup(e);
         // Composition root: concrete dependencies are assembled only here.
         var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());

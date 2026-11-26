@@ -49,6 +49,62 @@ public sealed class CoreTests
     }
 
     [TestMethod]
+    public async Task OptionalCatalogFailuresPreserveCompletedHashes()
+    {
+        var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
+        var uncheckedResult = await analyzer.AnalyzeAsync(_plainFile, new AnalysisOptions([ChecksumAlgorithm.SHA256], false));
+        Assert.IsNull(uncheckedResult.Catalogs);
+
+        var progress = new RecordedAnalysisProgress();
+        var missing = Path.Combine(_directory, "missing.cat");
+        var options = new AnalysisOptions([ChecksumAlgorithm.SHA256], false, catalogs: new CatalogSearch([missing]));
+        var result = await analyzer.AnalyzeAsync(_plainFile, options, progress);
+
+        Assert.IsTrue(result.Succeeded);
+        Assert.AreEqual(KnownDigests[ChecksumAlgorithm.SHA256], result.Checksums[ChecksumAlgorithm.SHA256]);
+        Assert.AreEqual(SignatureStatus.NotChecked, result.Signature.Status);
+        Assert.AreEqual(AnalysisStage.CheckingCatalogs, progress.Values.Last().Stage);
+        Assert.IsNotNull(result.Catalogs);
+        Assert.IsFalse(result.Catalogs.IndexComplete);
+        if (OperatingSystem.IsWindows()) Assert.IsTrue(result.Catalogs.IndexIssues.Single().Contains(missing));
+        else Assert.IsNotEmpty(result.Catalogs.Issues);
+    }
+
+    [TestMethod]
+    public async Task FileScopeFindsOnlyTheSuppliedCatalogMember()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Windows catalog provider.");
+        var member = Path.Combine(_directory, "member.txt");
+        var catalog = Path.Combine(_directory, "loose.cat");
+        using (var source = typeof(CoreTests).Assembly.GetManifestResourceStream("FileScope.Core.Tests.loose.cat"))
+        using (var target = File.Create(catalog))
+        {
+            Assert.IsNotNull(source);
+            source.CopyTo(target);
+        }
+
+        var bytes = "DuplicateFinder catalog membership regression fixture."u8.ToArray();
+        await File.WriteAllBytesAsync(member, bytes);
+        var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
+        var options = new AnalysisOptions([ChecksumAlgorithm.SHA256], false, catalogs: new CatalogSearch([catalog]));
+        var original = await analyzer.AnalyzeAsync(member, options);
+        Assert.IsNotNull(original.Catalogs);
+        Assert.IsTrue(original.Catalogs.IndexComplete);
+        var match = original.Catalogs.Matches.Single(m => m.Path == catalog);
+        Assert.AreEqual(original.Checksums[ChecksumAlgorithm.SHA256], match.Member, true);
+        Assert.IsFalse(match.Registered);
+        Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
+        Assert.AreEqual(SignatureStatus.NotChecked, original.Signature.Status);
+
+        bytes[^1] ^= 1;
+        await File.WriteAllBytesAsync(member, bytes);
+        var changed = await analyzer.AnalyzeAsync(member, options);
+        Assert.IsNotNull(changed.Catalogs);
+        Assert.IsEmpty(changed.Catalogs.Matches.Where(m => m.Path == catalog));
+        Assert.IsEmpty(changed.Catalogs.Issues);
+    }
+
+    [TestMethod]
     public async Task AllHashesReadTheStreamOnce()
     {
         var algorithms = Enum.GetValues<ChecksumAlgorithm>();

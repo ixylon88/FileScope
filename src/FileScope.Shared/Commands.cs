@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace FileScope.App.Infrastructure;
+namespace FileScope.Shared;
 
 public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {
@@ -24,7 +24,7 @@ public sealed class AsyncRelayCommand(
         if (!CanExecute(parameter)) return;
         _executing = true;
         NotifyCanExecuteChanged();
-        try { await execute(parameter); }
+        try { await execute(parameter).ConfigureAwait(true); }
         catch (Exception ex) { onError(ex); }
         finally { _executing = false; NotifyCanExecuteChanged(); }
     }

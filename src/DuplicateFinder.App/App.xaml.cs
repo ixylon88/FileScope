@@ -1,7 +1,5 @@
 using System.Windows;
 using DuplicateFinder.Core;
-using FileScope.App.Localization;
-using FileScope.App.Services;
 
 namespace DuplicateFinder.App;
 
@@ -9,6 +7,7 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        LocalizationService.Instance.UseApplicationResources(typeof(App).Assembly);
         base.OnStartup(e);
 
         var settings = new SettingsStore();

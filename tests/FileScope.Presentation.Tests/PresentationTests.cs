@@ -1,9 +1,9 @@
-using FileScope.App.Localization;
 using FileScope.App.Presentation;
 using FileScope.App.Services;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
 using FileScope.Core.Export;
+using FileScope.Core.Signatures;
 using FileScope.Core.Files;
 
 namespace FileScope.Presentation.Tests;
@@ -11,6 +11,10 @@ namespace FileScope.Presentation.Tests;
 [TestClass]
 public sealed class PresentationTests
 {
+    [AssemblyInitialize]
+    public static void InitializeResources(TestContext _) =>
+        LocalizationService.Instance.UseApplicationResources(typeof(PresentationTests).Assembly, "FileScope.App.Resources.Strings");
+
     [TestInitialize]
     public void Initialize()
     {
@@ -25,6 +29,65 @@ public sealed class PresentationTests
 
     [TestCleanup]
     public void Cleanup() => LocalizationService.Instance.SetCulture("en");
+
+    [TestMethod]
+    public void BothAppsOfferOneExactFilterPerDisplayedCode()
+    {
+        var strings = LocalizationService.Instance;
+        var options = SignatureFilter.Options(strings);
+        var exact = options.Where(option => option.Value.Group.HasValue).ToArray();
+        Assert.HasCount(16, options);
+        Assert.AreEqual("0123456789AB", string.Concat(exact.Select(option => option.Value.Group!.Value.Code)));
+
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            foreach (var status in Enum.GetValues<SignatureStatus>())
+            foreach (var mode in Enum.GetValues<RevocationMode>())
+            {
+                var group = SignatureGroup.From(status, mode)!.Value;
+                var option = exact.Single(option => option.Value.Matches(status, mode));
+                Assert.AreEqual(group.Format(strings), option.Label);
+                Assert.IsTrue(SignatureFilter.All.Matches(status, mode));
+                Assert.AreEqual(status == SignatureStatus.Valid, SignatureFilter.Valid.Matches(status, mode));
+                Assert.AreEqual(status != SignatureStatus.Valid, SignatureFilter.ExceptValid.Matches(status, mode));
+                Assert.AreEqual(group.Code is not ('0' or '1' or '2' or '3'), SignatureFilter.Attention.Matches(status, mode));
+            }
+        }
+    }
+
+    [TestMethod]
+    public void CatalogDetailsDoNotChangeTheEmbeddedFilterOrMoveGroup()
+    {
+        var strings = LocalizationService.Instance;
+        var row = new FileRowViewModel("member.bin", strings);
+        var embedded = new SignatureResult(SignatureStatus.NoEmbeddedSignature, RevocationMode.OfflineCache);
+        var valid = new SignatureResult(SignatureStatus.Valid, RevocationMode.Online, NativeStatusCode: 0);
+        var catalog = new CatalogMatch("pack.cat", "MEMBER", false, valid);
+        var lookup = new CatalogLookup([catalog], [], false) { IndexIssues = ["missing.cat"] };
+        row.Complete(new(row.FullPath, 42, null, new Dictionary<ChecksumAlgorithm, string>(), embedded) { Catalogs = lookup });
+        var field = ColumnOption.CreateDefaults(strings).Single(option => option.Id == "Catalog");
+
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            Assert.AreEqual(SignatureStatus.NoEmbeddedSignature, SignatureMoveSelection.GetStatus([row]));
+            Assert.IsFalse(SignatureFilter.Valid.Matches(row.SignatureState, row.SignatureMode));
+            StringAssert.StartsWith(row.SignatureText, "3 | ");
+            StringAssert.StartsWith(row.CatalogText, "1 | ");
+            StringAssert.Contains(row.CatalogText, strings["Incomplete"]);
+            StringAssert.Contains(row.Diagnostic, strings["Incomplete"]);
+            foreach (var value in new[] { "pack.cat", "MEMBER", "0x00000000", "missing.cat", strings["Loose"] })
+            {
+                Assert.IsTrue(row.Matches(value));
+                StringAssert.Contains(row.Details, value);
+                StringAssert.Contains(field.GetExportValue(row), value);
+            }
+            Assert.AreEqual(strings["NoCatalog"], CatalogPresentation.Summary(new([], [], true), strings));
+            Assert.AreEqual(strings["Signature_NotChecked"], CatalogPresentation.Summary(null, strings));
+            Assert.AreEqual("3 | " + strings["CatalogUnsigned"], CatalogPresentation.Summary(new([catalog with { Trust = embedded }], [], true), strings));
+        }
+    }
 
     [TestMethod]
     public void MovePresentation()
@@ -143,8 +206,9 @@ public sealed class PresentationTests
             {
                 strings.SetCulture(culture);
                 var phases = Enum.GetValues<AnalysisStage>().Select(stage => AnalysisStageText.Format(stage, RevocationMode.OfflineCache, strings)).ToArray();
-                Assert.IsTrue(phases.Distinct().Count() == 5 && phases.All(value => value.Length > 0)
-                    && AnalysisStageText.Format(AnalysisStage.CheckingSignature, RevocationMode.Online, strings) != phases[(int)AnalysisStage.CheckingSignature],
+                Assert.IsTrue(phases.Distinct().Count() == Enum.GetValues<AnalysisStage>().Length && phases.All(value => value.Length > 0)
+                    && AnalysisStageText.Format(AnalysisStage.CheckingSignature, RevocationMode.Online, strings) != phases[(int)AnalysisStage.CheckingSignature]
+                    && AnalysisStageText.Format(AnalysisStage.CheckingCatalogs, RevocationMode.Online, strings) != phases[(int)AnalysisStage.CheckingCatalogs],
                     "all phases are distinct and online revocation has an explicit label / " + culture);
             }
         }
@@ -525,7 +589,7 @@ public sealed class PresentationTests
                 InspectCertificates = false, OnlineRevocation = true, InspectFileProperties = true, InspectPeHeader = true
             };
             options.SaveAnalysisPreferences(selection);
-            Assert.IsTrue(options.Columns.Count == 39 && options.Columns.Select(column => column.Id).Distinct().Count() == 39,
+            Assert.IsTrue(options.Columns.Count == 40 && options.Columns.Select(column => column.Id).Distinct().Count() == 40,
                 "all columns have unique persistent IDs");
             Assert.IsTrue(options.Columns.Take(3).Select(column => column.Id).SequenceEqual(["Name", "Status", "Diagnostic"]),
                 "default column order puts diagnostics immediately after analysis status");
@@ -540,7 +604,7 @@ public sealed class PresentationTests
             options.MoveDownCommand.Execute(null);
             Assert.IsTrue(options.Columns[^1] == selected, "up/down preserve a valid permutation");
             options.SetColumnOrder(["Issuer", "SHA512", "Issuer", "missing-column"]);
-            Assert.IsTrue(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 39,
+            Assert.IsTrue(options.Columns[0].Id == "Issuer" && options.Columns[1].Id == "SHA512" && options.Columns.Count == 40,
                 "restore ignores duplicates/unknown IDs and appends missing columns");
             var widthRevision = options.WidthRevision;
             var formatChanges = 0;
@@ -603,10 +667,10 @@ public sealed class PresentationTests
                 Assert.IsTrue(legacy.PathAutoWidth, "JSON without PathAutoWidth explicitly defaults to automatic sizing");
             File.WriteAllText(path, "{ invalid JSON");
             using (var fallback = new OptionsViewModel(strings, store, new RecordingThemeService()))
-                Assert.IsTrue(fallback.HasSettingsError && fallback.Columns.Count == 39, "corrupt settings fall back without blocking the app");
+                Assert.IsTrue(fallback.HasSettingsError && fallback.Columns.Count == 40, "corrupt settings fall back without blocking the app");
             store.Save(new UserPreferences { Language = "invalid", HashFormat = "999", CsvDelimiter = "999", ColumnOrder = ["SHA256", "SHA256"] });
             using (var normalized = new OptionsViewModel(strings, store, new RecordingThemeService()))
-                Assert.IsTrue(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 39
+                Assert.IsTrue(normalized.SelectedHashFormat.Value == HashFormat.HexUpper && normalized.Columns.Count == 40
                     && normalized.SelectedCsvDelimiter.Value == CsvDelimiter.Semicolon
                     && normalized.AnalysisPreferences == new AnalysisPreferences(),
                     "invalid saved enum and duplicate columns are normalized");
@@ -616,7 +680,7 @@ public sealed class PresentationTests
                 Assert.IsTrue(normalized.Columns.Single(column => column.IsExportSelected).Id == "Name",
                     "unknown/duplicate export IDs do not enable unintended fields");
                 normalized.SelectAllExportColumnsCommand.Execute(null);
-                Assert.IsTrue(store.Load().ExportColumns?.Length == 39, "select all saves every supported export field");
+                Assert.IsTrue(store.Load().ExportColumns?.Length == 40, "select all saves every supported export field");
             }
             var previousOrder = ColumnOption.CreateDefaults(strings).Select(column => column.Id)
                 .Where(id => id != "Diagnostic").Append("Diagnostic").ToArray();
@@ -655,7 +719,7 @@ public sealed class PresentationTests
         failed.Complete(FileAnalysisResult.Failure(failed.FullPath, AnalysisError.NotFound, "missing fixture"));
         var all = ResultExportProjection.Capture([row, failed], columns);
         var ids = columns.Select(column => column.Id).ToList();
-        Assert.IsTrue(all.Columns.Count == 39 && all.Rows.Count == 2 && all.Rows.All(values => values.Count == 39),
+        Assert.IsTrue(all.Columns.Count == 40 && all.Rows.Count == 2 && all.Rows.All(values => values.Count == 40),
             "every registered column can export completed and failed rows");
         Assert.IsTrue(all.Rows[0][ids.IndexOf("SHA256")] == "AP8=" && all.Rows[0][ids.IndexOf("FileVersion")] == "01.02.003"
             && all.Rows[0][ids.IndexOf("PeMachine")] == "AMD64 (x64) (0x8664)"

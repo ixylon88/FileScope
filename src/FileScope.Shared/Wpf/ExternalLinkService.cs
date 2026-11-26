@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Security;
 
-namespace FileScope.App.Services;
+namespace FileScope.Shared;
 
 public interface IExternalLinkService
 {
