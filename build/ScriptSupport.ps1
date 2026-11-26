@@ -79,18 +79,15 @@ function Get-BuildPlatform {
     }
 }
 
-function Invoke-SolutionBuild {
-    param([string]$RepositoryRoot, [string]$Configuration, [string]$Runtime, [string]$Verbosity)
+function Invoke-BuildTarget {
+    param([string]$Path, [string]$Configuration, [string]$Runtime, [string]$Verbosity)
 
-    Write-BuildMessage 'BUILD SOLUTION' -Kind Phase
-    # Solutions select an architecture through Platform; a solution-wide RID
-    # causes NETSDK1134. Runtime identifiers belong to individual project calls.
-    # Solution platform names use "Any CPU"; SDK project properties use "AnyCPU".
-    $platform = if ($Runtime) { Get-BuildPlatform $Runtime } else { 'Any CPU' }
-    $arguments = @('build', (Join-Path $RepositoryRoot 'FileScope.sln'),
-        '--configuration', $Configuration, '--verbosity', $Verbosity, '--tl:off',
-        # A serial solution build keeps the two-project log ordered and avoids
-        # additional MSBuild worker processes on constrained build hosts.
-        '-m:1', '--self-contained', 'false', "-p:Platform=$platform")
-    Invoke-DotNet -Name 'Solution build' -Arguments $arguments
+    $platform = Get-BuildPlatform $Runtime
+    if ($platform -eq 'AnyCPU' -and $Path -like '*.sln') { $platform = 'Any CPU' }
+
+    # MSBuild selects the architecture with Platform. A solution-wide RID would cause NETSDK1134.
+    Write-BuildMessage ("BUILD | " + [System.IO.Path]::GetFileName($Path)) -Kind Phase
+    $arguments = @('build', $Path, '--configuration', $Configuration, '--verbosity', $Verbosity,
+        '--tl:off', '-m:1', '--self-contained', 'false', "-p:Platform=$platform")
+    Invoke-DotNet -Name 'Build' -Arguments $arguments
 }

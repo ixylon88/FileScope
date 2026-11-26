@@ -70,6 +70,14 @@ function Has-Option {
     return $index -ge 0 -and $index + 1 -lt $Call.Arguments.Count -and $Call.Arguments[$index + 1] -eq $Value
 }
 
+function Get-TaskRuntime {
+    param([object]$Task)
+
+    $index = [Array]::IndexOf([object[]]$Task.args, '-Runtime')
+    if ($index -lt 0) { return 'host' }
+    return $Task.args[$index + 1]
+}
+
 function Get-MessageLines {
     param([string]$Message, [string]$Kind = 'Info', [switch]$NoColor)
     $lines = [System.Collections.Generic.List[string]]::new()
@@ -107,25 +115,39 @@ try {
     Check ($tasks.Count -gt 0 -and @($tasks.label | Select-Object -Unique).Count -eq $tasks.Count -and
         $invalidTasks.Count -eq 0) 'workspace tasks have unique labels and invoke existing scripts with the repository working directory'
 
-    $publishTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and $_.args -contains '-Publish' })
-    $publishTargets = @($publishTasks | ForEach-Object {
-        $runtimeIndex = [Array]::IndexOf([object[]]$_.args, '-Runtime')
-        if ($runtimeIndex -lt 0 -or $runtimeIndex + 1 -ge $_.args.Count) { return 'MissingRuntime' }
-        '{0}|{1}' -f $_.args[$runtimeIndex + 1], ($_.args -contains '-SelfContained')
-    })
-    Check ($publishTargets.Count -eq 4 -and @(Compare-Object @('win-x64|False', 'win-x64|True', 'win-arm64|False', 'win-arm64|True') $publishTargets).Count -eq 0) 'workspace publish tasks cover both architectures and deployment variants'
+    $expectedPublish = @('win-x64|False', 'win-x64|True', 'win-arm64|False', 'win-arm64|True')
+    foreach ($product in @('FileScope', 'DuplicateFinder')) {
+        $productTasks = @($tasks | Where-Object { $_.label -like "$($product): *" })
+        $wrongSelector = @($productTasks | Where-Object {
+            $index = [Array]::IndexOf([object[]]$_.args, '-Application')
+            if ($product -eq 'FileScope') { return $index -ge 0 }
+            return $index -lt 0 -or $_.args[$index + 1] -ne $product
+        })
+        Check ($productTasks.Count -gt 0 -and $wrongSelector.Count -eq 0) "$product tasks select the intended application scope"
 
-    $verifyTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Verify.ps1') })
-    $verifyTargets = @($verifyTasks | ForEach-Object {
-        $runtimeIndex = [Array]::IndexOf([object[]]$_.args, '-Runtime')
-        if ($runtimeIndex -lt 0) { return 'host' }
-        if ($runtimeIndex + 1 -ge $_.args.Count) { return 'MissingRuntime' }
-        $_.args[$runtimeIndex + 1]
-    })
-    Check ($verifyTargets.Count -eq 3 -and @(Compare-Object @('host', 'win-x64', 'win-arm64') $verifyTargets).Count -eq 0) 'workspace verify tasks cover the host, x64 and ARM64'
+        $publishTasks = @($productTasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and $_.args -contains '-Publish' })
+        $publishTargets = @($publishTasks | ForEach-Object {
+            '{0}|{1}' -f (Get-TaskRuntime $_), ($_.args -contains '-SelfContained')
+        })
+        Check ($publishTargets.Count -eq 4 -and @(Compare-Object $expectedPublish $publishTargets).Count -eq 0) "$product publish tasks cover both architectures and deployment variants"
 
-    $buildTasks = @($tasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and $_.args -notcontains '-Publish' })
-    Check ($buildTasks.Count -eq 1 -and $buildTasks[0].args -notcontains '-Runtime') 'workspace default build keeps the host-independent solution configuration'
+        $verifyTasks = @($productTasks | Where-Object { $_.args -contains ($taskPrefix + 'Verify.ps1') })
+        $verifyTargets = @($verifyTasks | ForEach-Object { Get-TaskRuntime $_ })
+        Check ($verifyTargets.Count -eq 3 -and @(Compare-Object @('host', 'win-x64', 'win-arm64') $verifyTargets).Count -eq 0) "$product verify tasks cover the host, x64 and ARM64"
+
+        $buildTasks = @($productTasks | Where-Object { $_.args -contains ($taskPrefix + 'Build.ps1') -and
+            $_.args -notcontains '-Publish' -and $_.args -notcontains '-Run' })
+        Check ($buildTasks.Count -eq 1 -and $buildTasks[0].args -notcontains '-Runtime') "$product has a regular build task"
+    }
+
+    $runTasks = @($tasks | Where-Object { $_.args -contains '-Run' })
+    $runTargets = @($runTasks | ForEach-Object { Get-TaskRuntime $_ })
+    Check ($runTasks.Count -eq 2 -and @(Compare-Object @('win-x64', 'win-arm64') $runTargets).Count -eq 0 -and
+        @($runTasks | Where-Object { $_.args -notcontains 'DuplicateFinder' -or $_.args -notcontains ($taskPrefix + 'Build.ps1') }).Count -eq 0) 'DuplicateFinder run tasks start the selected architecture'
+
+    $defaults = @($tasks | Where-Object { $_.group -isnot [string] -and $_.group.isDefault })
+    Check ($defaults.Count -eq 2 -and ($defaults | Where-Object { $_.group.kind -eq 'build' }).label -eq 'FileScope: Build (Release)' -and
+        ($defaults | Where-Object { $_.group.kind -eq 'test' }).label -eq 'FileScope: Verify') 'default build and test tasks still cover the whole solution'
 
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'build') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'tests') -Force)
@@ -149,27 +171,42 @@ try {
     [void](New-Item -ItemType Directory -Path (Split-Path $preserved -Parent) -Force)
     Set-Content -LiteralPath $preserved -Value 'Preserve unrelated artifacts.'
 
-    foreach ($runtime in @('win-x64', 'win-arm64')) {
-        foreach ($selfContained in @($false, $true)) {
-            $name = if ($selfContained) { "${runtime}_self-contained" } else { $runtime }
-            $stale = Join-Path $fixture "artifacts/publish/$name/stale.txt"
-            [void](New-Item -ItemType Directory -Path (Split-Path $stale -Parent) -Force)
-            Set-Content -LiteralPath $stale -Value 'Old publish content.'
-            $result = Invoke-Scenario 'Build.ps1' @{ Publish = $true; Runtime = $runtime; SelfContained = $selfContained }
-            $publish = @($result.Calls | Where-Object Name -eq 'publish')
-            Check ($result.Error -eq '' -and $publish.Count -eq 1 -and -not ($result.Calls | Where-Object Name -eq 'build')) "publish performs one matching restore/build: $name ($($result.Error))"
-            $call = $publish[0]
-            Check ((Has-Option $call '--runtime' $runtime) -and (Has-Option $call '--self-contained' $selfContained.ToString().ToLowerInvariant()) -and
-                ($call.Arguments -contains '-p:PublishTrimmed=false') -and
-                (($call.Arguments -contains '-p:TargetLatestRuntimePatch=true') -eq $selfContained)) "publish uses explicit deployment settings: $name"
-            Check (-not (Test-Path -LiteralPath $stale) -and (Test-Path -LiteralPath $preserved) -and $result.LocationRestored) "publish removes stale output and preserves other files/location: $name"
+    foreach ($product in @('FileScope', 'DuplicateFinder')) {
+        $project = Join-Path $fixture "src/$product.App/$product.App.csproj"
+        $publishRoot = Join-Path $fixture 'artifacts/publish'
+        $otherRoot = Join-Path $publishRoot 'DuplicateFinder'
+        if ($product -eq 'DuplicateFinder') {
+            $otherRoot = $publishRoot
+            $publishRoot = Join-Path $publishRoot 'DuplicateFinder'
+        }
+
+        foreach ($runtime in @('win-x64', 'win-arm64')) {
+            foreach ($selfContained in @($false, $true)) {
+                $name = if ($selfContained) { "${runtime}_self-contained" } else { $runtime }
+                $output = Join-Path $publishRoot $name
+                $stale = Join-Path $output 'stale.txt'
+                $other = Join-Path (Join-Path $otherRoot $name) 'keep.txt'
+                foreach ($path in @($stale, $other)) {
+                    [void](New-Item -ItemType Directory -Path (Split-Path $path -Parent) -Force)
+                    Set-Content -LiteralPath $path -Value 'Existing output.'
+                }
+
+                $parameters = @{ Publish = $true; Runtime = $runtime; SelfContained = $selfContained }
+                if ($product -eq 'DuplicateFinder') { $parameters.Application = $product }
+                $result = Invoke-Scenario 'Build.ps1' $parameters
+                $publish = @($result.Calls | Where-Object Name -eq 'publish')
+                Check ($result.Error -eq '' -and $publish.Count -eq 1 -and $publish[0].Arguments[1] -eq $project -and
+                    (Has-Option $publish[0] '--output' $output) -and -not ($result.Calls | Where-Object Name -eq 'build')) "$product publishes its project to the selected directory: $name"
+
+                $call = $publish[0]
+                Check ((Has-Option $call '--runtime' $runtime) -and (Has-Option $call '--self-contained' $selfContained.ToString().ToLowerInvariant()) -and
+                    $call.Arguments -contains '-p:PublishTrimmed=false' -and
+                    (($call.Arguments -contains '-p:TargetLatestRuntimePatch=true') -eq $selfContained)) "$product publishes the requested deployment: $name"
+                Check (-not (Test-Path -LiteralPath $stale) -and (Test-Path -LiteralPath $other) -and
+                    (Test-Path -LiteralPath $preserved) -and $result.LocationRestored) "$product cleans only its selected publish directory: $name"
+            }
         }
     }
-
-    $result = Invoke-Scenario 'Build.ps1' @{ Application = 'DuplicateFinder'; Runtime = 'win-arm64'; Publish = $true }
-    $publish = $result.Calls | Where-Object Name -eq 'publish'
-    Check ($result.Error -eq '' -and $publish.Arguments[1] -eq (Join-Path $fixture 'src/DuplicateFinder.App/DuplicateFinder.App.csproj') -and
-        (Has-Option $publish '--output' (Join-Path $fixture 'artifacts/publish/DuplicateFinder/win-arm64'))) 'DuplicateFinder publishes independently of FileScope'
 
     foreach ($runtime in @('win-x64', 'win-arm64')) {
         $result = Invoke-Scenario 'Build.ps1' @{ Runtime = $runtime; Configuration = 'Debug'; Run = $true }
@@ -177,10 +214,35 @@ try {
         $run = @($result.Calls | Where-Object Name -eq 'FileScope.App')
         $platform = if ($runtime -eq 'win-arm64') { 'Arm64' } else { 'x64' }
         Check ($result.Error -eq '' -and $build.Count -eq 1 -and $run.Count -eq 1 -and
+            $build[0].Arguments[1] -eq (Join-Path $fixture 'FileScope.sln') -and
             (Has-Option $build[0] '--configuration' 'Debug') -and (Has-Option $run[0] '--configuration' 'Debug') -and
             $build[0].Arguments -contains "-p:Platform=$platform" -and $run[0].Arguments -contains "-p:Platform=$platform") "normal build and run select the same platform/configuration: $runtime"
         Check ($build[0].Arguments -notcontains '--runtime' -and $run[0].Arguments -notcontains '--runtime' -and
             $run[0].Arguments -contains '--no-build') "run reuses the solution output without a different RID directory: $runtime"
+    }
+
+    foreach ($product in @('FileScope', 'DuplicateFinder')) {
+        $project = Join-Path $fixture "src/$product.App/$product.App.csproj"
+        $result = Invoke-Scenario 'Build.ps1' @{ Application = $product.ToLowerInvariant(); Run = $true; Runtime = 'win-arm64' }
+        $commands = @($result.Calls | Where-Object { $_.Arguments[0] -in @('build', 'run') })
+        Check ($result.Error -eq '' -and $commands.Count -eq 2 -and $commands[0].Arguments[1] -ceq $project -and
+            (Has-Option $commands[1] '--project' $project) -and $commands[1].Arguments -contains '--no-build' -and
+            @($commands | Where-Object { $_.Arguments -contains '--runtime' -or $_.Arguments -notcontains '-p:Platform=Arm64' }).Count -eq 0) "$product builds and runs the same project and platform"
+
+        $expectedTests = if ($product -eq 'FileScope') { @('FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests') }
+            else { @('DuplicateFinder.Tests', 'DuplicateFinder.Ui.Tests') }
+        $result = Invoke-Scenario 'Verify.ps1' @{ Application = $product.ToLowerInvariant() }
+        $build = @($result.Calls | Where-Object Name -eq 'build')
+        $suites = @($result.Calls | Where-Object { $_.Arguments[0] -eq 'test' })
+        Check ($result.Error -eq '' -and $build.Count -eq 1 -and $build[0].Arguments[1] -ceq $project -and
+            $build[0].Arguments -contains '-p:Platform=AnyCPU' -and ($suites.Name -join ',') -eq ($expectedTests -join ',')) "$product verification builds its app and runs its own suites"
+
+        $result = Invoke-Scenario 'Verify.ps1' @{ Application = $product; Runtime = 'win-arm64'; SkipUi = $true; SkipBuild = $true }
+        $portable = @($expectedTests | Where-Object { $_ -notlike '*.Ui.Tests' })
+        $suites = @($result.Calls | Where-Object { $_.Arguments[0] -eq 'test' })
+        Check ($result.Error -eq '' -and -not ($result.Calls | Where-Object Name -eq 'build') -and
+            ($suites.Name -join ',') -eq ($portable -join ',') -and
+            @($suites | Where-Object { -not (Has-Option $_ '--runtime' 'win-arm64') }).Count -eq 0) "$product verification respects the requested runtime and skip switches"
     }
 
     foreach ($runtime in @('win-x64', 'win-arm64')) {
@@ -192,7 +254,7 @@ try {
                 $_.Arguments -notcontains "-p:Platform=$platform" }).Count -eq 0) "build and all five test processes use the same architecture/configuration: $runtime"
         $build = $work | Where-Object Name -eq 'build'
         $testProjects = @($work | Where-Object Name -ne 'build')
-        Check ($build.Arguments -notcontains '--runtime' -and
+        Check ($build.Arguments[1] -eq (Join-Path $fixture 'FileScope.sln') -and $build.Arguments -notcontains '--runtime' -and
             @($testProjects | Where-Object { -not (Has-Option $_ '--runtime' $runtime) }).Count -eq 0) "verify uses runtime identifiers only for individual test projects: $runtime"
         $ui = $work | Where-Object Name -eq 'FileScope.Ui.Tests'
         Check ($ui.Project.Project.PropertyGroup.UseWPF -eq 'true') "UI test project still uses actual WPF: $runtime"
@@ -202,6 +264,13 @@ try {
         Check (@(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1 -and $result.LocationRestored -and
             @($testProjects | Where-Object { -not (Test-Path -LiteralPath $_.ReportPath) }).Count -eq 0) "verify preserves unrelated artifacts and completed test reports: $runtime"
     }
+
+    $result = Invoke-Scenario 'Verify.ps1' @{ Application = 'All' }
+    $build = @($result.Calls | Where-Object Name -eq 'build')
+    $suites = @($result.Calls | Where-Object { $_.Arguments[0] -eq 'test' })
+    Check ($result.Error -eq '' -and $build.Count -eq 1 -and $build[0].Arguments[1] -eq (Join-Path $fixture 'FileScope.sln') -and
+        $build[0].Arguments -contains '-p:Platform=Any CPU' -and $suites.Count -eq 5 -and
+        @($suites | Where-Object { $_.Arguments -contains '--runtime' -or $_.Arguments -notcontains '-p:Platform=AnyCPU' }).Count -eq 0) 'host verification builds the Any CPU solution and runs all five projects without a RID'
 
     $result = Invoke-Scenario 'Verify.ps1' @{ SkipBuild = $true; SkipUi = $true }
     Check ($result.Error -eq '' -and @($result.Calls | Where-Object { $_.Name -in @('FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'DuplicateFinder.Tests') }).Count -eq 3 -and

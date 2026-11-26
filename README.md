@@ -69,20 +69,18 @@ Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus 
 
 ### VS-Code-Workspace-Tasks
 
-`FileScope.code-workspace` öffnen. Unter **Terminal → Task ausführen** stehen folgende Aufgaben:
+In `FileScope.code-workspace` unter **Terminal → Task ausführen** nach `FileScope:` oder `DuplicateFinder:` suchen. **Strg+Umschalt+B** baut die gesamte Solution. Der Standard-Testtask **FileScope: Verify** prüft beide Anwendungen.
 
-| Task | Skriptaufruf |
-| --- | --- |
-| `FileScope: Build (Release)` | `Build.ps1 -Configuration Release`; Standard-Build mit Ctrl+Shift+B |
-| `FileScope: Publish (win-x64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
-| `FileScope: Publish (win-arm64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-arm64` |
-| `FileScope: Publish self-contained (win-x64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-x64` |
-| `FileScope: Publish self-contained (win-arm64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-arm64` |
-| `FileScope: Verify` | `Verify.ps1`; prüft mit der Architektur des aktuellen SDK-Hosts |
-| `FileScope: Verify (win-x64)` | `Verify.ps1 -Runtime win-x64`; führt die Tests als Windows-x64-Prozesse aus |
-| `FileScope: Verify (win-arm64)` | `Verify.ps1 -Runtime win-arm64`; benötigt Windows ARM64 und dessen passende .NET-Desktop-Runtime |
+| Task hinter dem App-Namen | `FileScope:` | `DuplicateFinder:` |
+| --- | --- | --- |
+| `Build (Release)` | `.\Build.ps1` | `.\Build.ps1 -Application DuplicateFinder` |
+| `Run (win-x64)` | — | `.\Build.ps1 -Application DuplicateFinder -Run -Runtime win-x64` |
+| `Verify` | `.\Verify.ps1` | `.\Verify.ps1 -Application DuplicateFinder` |
+| `Verify (win-x64)` | `.\Verify.ps1 -Runtime win-x64` | `.\Verify.ps1 -Application DuplicateFinder -Runtime win-x64` |
+| `Publish (win-x64)` | `.\Build.ps1 -Publish -Runtime win-x64` | `.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-x64` |
+| `Publish self-contained (win-x64)` | `.\Build.ps1 -Publish -Runtime win-x64 -SelfContained` | `.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-x64 -SelfContained` |
 
-Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Workspace-Ordner als Arbeitsverzeichnis. Auch Pfade mit Leerzeichen funktionieren, da Argumente getrennt übergeben werden. Das ausgewählte SDK muss über `dotnet` im `PATH` des VS-Code-Prozesses erreichbar sein. Die Skripte sind auch für PowerShell 7 vorgesehen. Gemeinsame Hilfsfunktionen in `build/ScriptSupport.ps1` verwenden die ANSI-Farben aus `build/colored_console.ps1`: Phasen blau, Erfolg grün und Fehler rot. Ein Reset vor jedem Zeilenumbruch verhindert, dass insbesondere die Hintergrundfarbe in die nächste Zeile weiterläuft. `-NoColor` oder `NO_COLOR` schaltet die eigene Farbausgabe ab; die Textkennzeichnungen bleiben erhalten. SDK-Informationen, Befehle und Gesamtdauer erscheinen lokal und in CI gleich; native Fehlercodes führen zum Abbruch.
+Jede Aufgabe mit `win-x64` im Namen gibt es auch für `win-arm64`. Die Tasks starten Windows PowerShell im Repository. Für den Aufruf im Terminal eignet sich auch PowerShell 7. Das SDK aus `global.json` muss über `dotnet` erreichbar sein. Mit `-NoColor` oder `NO_COLOR` lassen sich die Skriptfarben abschalten.
 
 ### GitHub-CI
 
@@ -91,10 +89,7 @@ Er kann außerdem unter **Actions → CI → Run workflow** manuell gestartet we
 `Verify.ps1` läuft auf Windows x64 und Windows ARM64, jeweils einschließlich der
 nativen Prüfungen und WPF-Tests. Das SDK stammt aus `global.json`.
 
-Nach erfolgreicher Prüfung baut `Build.ps1` beide Auslieferungsvarianten je
-Architektur. Die vier ZIP-Downloads liegen als **Artifacts** beim Workflow-Lauf
-und werden 14 Tage aufbewahrt. Dies sind CI-Pakete; tagbasierte GitHub-Releases
-folgen separat. Details stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md).
+Nach erfolgreicher Prüfung baut `Build.ps1` beide Anwendungen für x64 und ARM64, jeweils mit und ohne Runtime. Die acht ZIP-Downloads liegen 14 Tage lang als **Artifacts** beim Workflow-Lauf. [Build und Release-Plan](docs/BUILD-RELEASE.md)
 
 ### Windows-Ausgabe mit und ohne Runtime
 
@@ -105,11 +100,11 @@ folgen separat. Details stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.m
 .\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 ```
 
-Die Ausgabe liegt unter `artifacts/publish/<Runtime>` bzw. `artifacts/publish/<Runtime>_self-contained`. Vor jedem Publish wird ausschließlich dieser Ausgabeordner geleert. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Ohne `-SelfContained` wird explizit framework-dependent veröffentlicht: Auf dem Zielrechner muss die passende **.NET 10 Desktop Runtime** installiert sein. Mit `-SelfContained` ist sie enthalten. Beide Varianten werden nicht getrimmt.
+FileScope schreibt nach `artifacts/publish/<Runtime>` bzw. `artifacts/publish/<Runtime>_self-contained`. Mit `-Application DuplicateFinder` landen dieselben Varianten unter `artifacts/publish/DuplicateFinder/`. Vor jedem Publish wird ausschließlich dieser Ausgabeordner geleert. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Ohne `-SelfContained` wird explizit framework-dependent veröffentlicht: Auf dem Zielrechner muss die passende **.NET 10 Desktop Runtime** installiert sein. Mit `-SelfContained` ist sie enthalten. Beide Varianten werden nicht getrimmt.
 
 Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt wird der vom festgelegten SDK bekannte Runtime-Patchstand. Das ist keine Suche nach einer beliebigen neuesten Online-Version. Ein SDK-Update wird bewusst in `global.json` vorgenommen und anschließend geprüft. Weitere Einzelheiten zu SDK/Runtime, Reproduzierbarkeit und dem geplanten Release-/WiX-Aufbau stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md).
 
-`Build.ps1 -Publish -Runtime win-arm64` kann auch auf Windows x64 bauen. Zum **Ausführen** wird dagegen ein passendes Windows-System benötigt. `-Run` startet nach einem Publish ausdrücklich die erzeugte `FileScope.App.exe`; ohne Publish startet es den normalen Build. Beim Lösungsbuild übersetzt das Skript `-Runtime` ausschließlich in die passende `Platform`; `dotnet build FileScope.sln` erhält keinen RID. Die Plattform trennt die normalen Ausgabeordner, zum Beispiel `src/FileScope.App/bin/Arm64/Release/net10.0-windows`. `-Run` verwendet dieselbe Plattform ohne RID und findet dadurch genau diesen Build. Erst die gezielten Projektaufrufe für Publish und architekturspezifische Tests erhalten `--runtime`. Ohne `-Runtime` verwendet Verify beim Lösungsbuild `Any CPU`.
+`Build.ps1 -Publish -Runtime win-arm64` kann auch auf Windows x64 bauen. Zum **Ausführen** wird dagegen ein passendes Windows-System benötigt. `-Run` startet nach einem Publish die erzeugte `FileScope.App.exe` bzw. `DuplicateFinder.App.exe`. Beim normalen Build startet es die gewählte Anwendung aus ihrem Build-Ordner. Beim Lösungsbuild übersetzt das Skript `-Runtime` ausschließlich in die passende `Platform`; `dotnet build FileScope.sln` erhält keinen RID. Die Plattform trennt die normalen Ausgabeordner, zum Beispiel `src/FileScope.App/bin/Arm64/Release/net10.0-windows`. `-Run` verwendet dieselbe Plattform ohne RID und findet dadurch genau diesen Build. Erst die gezielten Projektaufrufe für Publish und architekturspezifische Tests erhalten `--runtime`. Ohne `-Runtime` verwendet Verify beim Lösungsbuild `Any CPU`.
 
 **Plattformunterstützung**: Windows x64 und Windows ARM64. Die ARM64-Version wurde unter Windows 11 in Parallels Desktop erfolgreich getestet. Weitere Zielarchitekturen können über den Runtime-Parameter gewählt werden.
 
@@ -582,11 +577,7 @@ Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injecti
 .\Verify.ps1 -Runtime win-arm64
 ```
 
-`Verify.ps1` prüft die PowerShell-Skripte, baut die Projektmappe und startet die
-festen MSTest-Projekte für Core, Präsentation und unter Windows WPF. Die drei
-Aufrufe sind Alternativen; ARM64-Tests benötigen Windows ARM64. TRX-Berichte
-bleiben unter `artifacts/test-results/<Lauf-ID>` erhalten und stehen in der CI
-auch bei fehlgeschlagenen Tests als Artefakte bereit.
+Standardmäßig baut `Verify.ps1` die gesamte Projektmappe und startet unter Windows alle fünf MSTest-Projekte. Mit `-Application FileScope` laufen die drei FileScope-Testprojekte, mit `-Application DuplicateFinder` die beiden DuplicateFinder-Testprojekte. Die gemeinsamen PowerShell-Prüfungen gehören zu jedem Lauf. ARM64-Tests benötigen Windows ARM64. TRX-Berichte stehen unter `artifacts/test-results/<Lauf-ID>` und in der CI auch bei fehlgeschlagenen Tests als Artefakte bereit.
 
 In **Visual Studio** lassen sich dieselben C#-Tests im **Test-Explorer** einzeln
 ausführen und debuggen. Auf Windows können alle C#-Tests auch direkt gestartet
@@ -622,7 +613,7 @@ Aktueller Ausführungsstand:
 
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
-| PowerShell-Skripte | **66 Prüfbedingungen unter Linux bestanden**; unter anderem VS-Code-Aufgaben, Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
+| PowerShell-Skripte | **91 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **29 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Zwei neue Fälle prüfen den Katalog über den normalen Analyseweg und den Erhalt der Prüfsummen bei Katalogfehlern. |
 | Präsentation, Einstellungen und Ressourcen | **35 Fälle**, darunter die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und elf Konsistenzprüfungen. |
 | WPF / UI / MVVM | **36 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalogauswahl mit aktivem Einlesefilter. |

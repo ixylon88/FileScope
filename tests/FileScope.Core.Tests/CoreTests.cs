@@ -90,8 +90,15 @@ public sealed class CoreTests
         var original = await analyzer.AnalyzeAsync(member, options);
         Assert.IsNotNull(original.Catalogs);
         Assert.IsTrue(original.Catalogs.IndexComplete);
-        var match = original.Catalogs.Matches.Single(m => m.Path == catalog);
-        Assert.AreEqual(original.Checksums[ChecksumAlgorithm.SHA256], match.Member, true);
+        Assert.IsEmpty(original.Catalogs.Issues);
+
+        // Windows can return multiple member tags from the same V2 catalog.
+        var sha256 = original.Checksums[ChecksumAlgorithm.SHA256];
+        var match = original.Catalogs.Matches.SingleOrDefault(m =>
+            string.Equals(m.Path, catalog, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(m.Member, sha256, StringComparison.OrdinalIgnoreCase));
+        Assert.IsNotNull(match, $"Missing SHA-256 catalog member {sha256}. " +
+            $"Returned tags: {string.Join(", ", original.Catalogs.Matches.Select(m => m.Member))}");
         Assert.IsFalse(match.Registered);
         Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
         Assert.AreEqual(SignatureStatus.NotChecked, original.Signature.Status);
@@ -100,7 +107,9 @@ public sealed class CoreTests
         await File.WriteAllBytesAsync(member, bytes);
         var changed = await analyzer.AnalyzeAsync(member, options);
         Assert.IsNotNull(changed.Catalogs);
-        Assert.IsEmpty(changed.Catalogs.Matches.Where(m => m.Path == catalog));
+        Assert.IsTrue(changed.Catalogs.IndexComplete);
+        Assert.IsEmpty(changed.Catalogs.Matches.Where(m =>
+            string.Equals(m.Path, catalog, StringComparison.OrdinalIgnoreCase)));
         Assert.IsEmpty(changed.Catalogs.Issues);
     }
 

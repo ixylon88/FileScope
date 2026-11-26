@@ -1,10 +1,13 @@
 <#
 .SYNOPSIS
-Builds FileScope and runs its MSTest projects on the selected architecture.
+Builds and verifies both applications or the one selected with -Application.
 .DESCRIPTION
 Uses the same checked-in test projects as Visual Studio and dotnet test.
 Without -Runtime, test processes use the current SDK host architecture.
 An explicit Windows RID requires a Windows machine that can execute that RID.
+-Application All (default) runs the full suite. ScriptChecks run for every selection.
+.EXAMPLE
+.\Verify.ps1 -Application DuplicateFinder -Runtime win-x64
 .EXAMPLE
 .\Verify.ps1 -Runtime win-arm64
 .EXAMPLE
@@ -20,7 +23,8 @@ param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [ValidateSet('win-x64', 'win-arm64', 'win-x86')][string]$Runtime,
     [ValidateSet('quiet', 'minimal', 'normal', 'detailed', 'diagnostic')][string]$Verbosity = 'minimal',
-    [switch]$NoColor
+    [switch]$NoColor,
+    [ValidateSet('All', 'FileScope', 'DuplicateFinder')][string]$Application = 'All'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -33,6 +37,14 @@ $settingsPath = if ($Settings) { (Resolve-Path -LiteralPath $Settings).Path }
     else { Join-Path $PSScriptRoot 'tests/FileScope.runsettings' }
 $resolvedSignedFile = if ($SignedFile) { (Resolve-Path -LiteralPath $SignedFile).Path } else { '' }
 $resolvedVersionFiles = @($VersionFile | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+
+# Select canonical paths even when the caller uses lowercase (ValidateSet ignores case).
+$buildTarget = switch ($Application) {
+    'FileScope'       { Join-Path $PSScriptRoot 'src/FileScope.App/FileScope.App.csproj' }
+    'DuplicateFinder' { Join-Path $PSScriptRoot 'src/DuplicateFinder.App/DuplicateFinder.App.csproj' }
+    'All'             { Join-Path $PSScriptRoot 'FileScope.sln' }
+}
+
 $runId = [Guid]::NewGuid().ToString('N')
 $temporaryDirectory = Join-Path $PSScriptRoot "artifacts/verify/$runId"
 $resultsDirectory = Join-Path $PSScriptRoot "artifacts/test-results/$runId"
@@ -57,23 +69,23 @@ function Set-TestParameter {
 
 function Invoke-Checks {
     param([string]$Name)
-    Write-BuildMessage $name -Kind Phase
-    $project = Join-Path $PSScriptRoot "tests/$name/$name.csproj"
+    Write-BuildMessage $Name -Kind Phase
+    $project = Join-Path $PSScriptRoot "tests/$Name/$Name.csproj"
     $arguments = @('test', '--project', $project, '--configuration', $Configuration,
         '--verbosity', $Verbosity, "-p:Platform=$(Get-BuildPlatform $Runtime)",
-        '--settings', $settingsPath, '--report-trx', '--report-trx-filename', "$name.trx",
+        '--settings', $settingsPath, '--report-trx', '--report-trx-filename', "$Name.trx",
         '--results-directory', $resultsDirectory)
 
     # A RID is valid for an individual project, never for the solution build.
     if ($Runtime) { $arguments += @('--runtime', $Runtime) }
     if ($NoColor -or $env:NO_COLOR) { $arguments += '--no-ansi' }
-    Invoke-DotNet -Name $name -Arguments $arguments
+    Invoke-DotNet -Name $Name -Arguments $arguments
 }
 
 Push-Location $PSScriptRoot
 try {
     $target = if ($Runtime) { $Runtime } else { 'current SDK host' }
-    Write-BuildMessage "FILESCOPE VERIFY | $Configuration | $target" -Kind Header
+    Write-BuildMessage "VERIFY | $Application | $Configuration | $target" -Kind Header
     Assert-RuntimeExecution -Runtime $Runtime
     Initialize-BuildEnvironment -RepositoryRoot $PSScriptRoot
 
@@ -93,18 +105,24 @@ try {
     & (Join-Path $PSScriptRoot 'tests/ScriptChecks.ps1')
 
     if (-not $SkipBuild) {
-        Invoke-SolutionBuild -RepositoryRoot $PSScriptRoot -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
+        Invoke-BuildTarget -Path $buildTarget -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
     }
-    else { Write-BuildMessage 'Solution build skipped; dotnet test still builds its projects and references.' -Kind Warning }
+    else { Write-BuildMessage 'Initial build skipped; dotnet test still builds its projects and references.' -Kind Warning }
 
-    Invoke-Checks -Name 'FileScope.Core.Tests'
-    Invoke-Checks -Name 'DuplicateFinder.Tests'
-    Invoke-Checks -Name 'FileScope.Presentation.Tests'
-    if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {
-        Invoke-Checks -Name 'FileScope.Ui.Tests'
-        Invoke-Checks -Name 'DuplicateFinder.Ui.Tests'
+    $testProjects = @('FileScope.Core.Tests', 'DuplicateFinder.Tests', 'FileScope.Presentation.Tests',
+        'FileScope.Ui.Tests', 'DuplicateFinder.Ui.Tests')
+    if ($Application -ne 'All') {
+        $testProjects = $testProjects -like "${Application}.*"
     }
-    else { Write-BuildMessage 'Windows UI tests skipped.' -Kind Warning }
+
+    if ($SkipUi -or $env:OS -ne 'Windows_NT') {
+        Write-BuildMessage 'Windows UI tests skipped.' -Kind Warning
+        $testProjects = $testProjects -notlike '*.Ui.Tests'
+    }
+
+    foreach ($project in $testProjects) {
+        Invoke-Checks -Name $project
+    }
 
     Write-BuildMessage 'All requested checks passed.' -Kind Success
 }

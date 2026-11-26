@@ -4,11 +4,14 @@ DuplicateFinder findet binär identische Dateien in mehreren frei wählbaren Suc
 
 ## Starten
 
-In Visual Studio lässt sich `DuplicateFinder.App` als Startprojekt wählen. Aus dem Repository startet auf Windows auch dieser Befehl die App.
+In Visual Studio `DuplicateFinder.App` als Startprojekt wählen. In VS Code den Workspace `FileScope.code-workspace` öffnen und unter **Terminal → Task ausführen** den zur Windows-Architektur passenden Task **DuplicateFinder: Run (win-x64)** oder **DuplicateFinder: Run (win-arm64)** wählen. Dieselben Skripte lassen sich im Repository direkt aufrufen.
 
 ```powershell
-dotnet run --project src/DuplicateFinder.App
+.\Build.ps1 -Application DuplicateFinder -Run -Runtime win-x64
+.\Verify.ps1 -Application DuplicateFinder
 ```
+
+Für ARM64 beim Start `-Runtime win-arm64` angeben. Verify verwendet ohne `-Runtime` die Architektur des SDK-Hosts. [Build-, Test- und Publish-Tasks](../README.md#vs-code-workspace-tasks)
 
 Unter **Optionen → Suchordner → Ordner hinzufügen** die Suchordner wählen. Neue Suchordner beginnen gleichrangig bei 0. Ein Doppelklick auf eine Priorität macht sie editierbar. Beispielsweise kann das Archiv die Priorität 10 und der Downloadordner die Priorität 1 erhalten. **Speichern** übernimmt die Einstellungen. **Ordner durchsuchen** oder **F5** startet den Suchlauf. **Strg+F** fokussiert den Tabellenfilter. Die Filterung erfasst unter anderem Pfade, Prüfsummen und Herausgeber.
 

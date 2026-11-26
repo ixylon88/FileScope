@@ -1,5 +1,18 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder-Skripte, VS-Code-Tasks und FileScope-Katalogtest
+
+Basis ist `e9e2163` auf `dev`. Beide Windows-Jobs brachen in `FileScopeFindsOnlyTheSuppliedCatalogMember` ab. Der Test erwartete genau einen Treffer für den gesamten Katalogpfad. Der mitgelieferte V2-Katalog enthält den SHA-256-Mitgliedseintrag und einen SHA-1-Suchschlüssel. Die Prüfung wählt jetzt den eindeutigen Treffer anhand von Pfad und SHA-256-Mitgliedskennung. Bei einer um ein Bit geänderten Datei muss die vollständige Suche für diesen Katalog weiterhin leer bleiben. [CI-Lauf 15](https://github.com/ixylon88/FileScope/actions/runs/45901013141)
+
+| Prüfung unter Linux x64 mit .NET SDK 10.0.404 | Ergebnis |
+| --- | --- |
+| Build | Release-Solution einschließlich beider WPF-Testprojekte und gezielter DuplicateFinder-Build erfolgreich. Das korrigierte Core-Testprojekt kompilierte für `win-x64` und `win-arm64` mit jeweils 0 Warnungen und 0 Fehlern. |
+| Skripte und VS-Code-Tasks | 91 Prüfbedingungen bestanden. Geprüft wurden unter anderem App-Auswahl, Standardtasks für die gesamte Solution, Aufrufe pro Architektur und die Trennung der Publish-Verzeichnisse. |
+| Direkte MSTest-Läufe | 23 FileScope-Core-, 35 Präsentations- und 21 DuplicateFinder-Core-Fälle bestanden. Neun weitere Fälle wurden wegen Plattform oder optionaler Dateien übersprungen. |
+| DuplicateFinder-Publish | Alle vier Pakete erfolgreich erstellt. Für jedes Paket wurden die EXE-Architektur, die Runtime-Konfiguration, Lizenz und Sprachressourcen geprüft. Beide self-contained-Pakete enthalten die Desktop-Runtime. |
+
+`Verify.ps1` erreichte sowohl für DuplicateFinder als auch für die gesamte Solution den Teststart. Die lokale Umgebung blockierte die Named Pipe des Test-Runners. Die drei C#-Testprojekte liefen deshalb direkt mit MSTest und denselben Runsettings ohne TRX. Die native Windows-Katalogprüfung und die 46 WPF-Fälle stehen für diesen Patch auf Windows noch aus.
+
 ## Gemeinsame Oberfläche, Signaturfilter und Katalogprüfung in FileScope
 
 Basis ist `34456cc` auf `dev`. Die Release-Solution wurde mit .NET SDK 10.0.404 unter Linux x64 einschließlich beider WPF-Anwendungen und beider WPF-Testprojekte ohne Warnungen gebaut.

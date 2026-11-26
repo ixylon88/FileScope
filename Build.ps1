@@ -1,6 +1,13 @@
 <#
 .SYNOPSIS
-Builds or publishes FileScope with the same settings locally and in CI.
+Builds the solution, or builds, runs and publishes an individual application.
+.DESCRIPTION
+Without -Application, build the whole solution. Run and publish default to FileScope.
+Use -Application DuplicateFinder to select its project, executable and publish directory.
+.EXAMPLE
+.\Build.ps1 -Application DuplicateFinder -Run
+.EXAMPLE
+.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-arm64 -SelfContained
 .EXAMPLE
 .\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 .EXAMPLE
@@ -22,11 +29,15 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'build/ScriptSupport.ps1') -NoColor:$NoColor
 
 $Runtime = $Runtime.ToLowerInvariant()
-$appProject = Join-Path $PSScriptRoot "src/$Application.App/$Application.App.csproj"
+$product = if ($Application -eq 'DuplicateFinder') { 'DuplicateFinder' } else { 'FileScope' }
+$appProject = Join-Path $PSScriptRoot "src/$product.App/$product.App.csproj"
+$buildTarget = if ($PSBoundParameters.ContainsKey('Application')) { $appProject }
+    else { Join-Path $PSScriptRoot 'FileScope.sln' }
+
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 Push-Location $PSScriptRoot
 try {
-    Write-BuildMessage "$Application BUILD | $Configuration | $Runtime" -Kind Header
+    Write-BuildMessage "$product BUILD | $Configuration | $Runtime" -Kind Header
     if ($SelfContained -and -not $Publish) { throw '-SelfContained requires -Publish.' }
     if ($Run) { Assert-RuntimeExecution -Runtime $Runtime }
     Initialize-BuildEnvironment -RepositoryRoot $PSScriptRoot
@@ -34,7 +45,7 @@ try {
     if ($Publish) {
         $mode = if ($SelfContained) { 'self-contained' } else { 'framework-dependent' }
         $outputName = if ($SelfContained) { "${Runtime}_self-contained" } else { $Runtime }
-        if ($Application -eq 'DuplicateFinder') { $outputName = "DuplicateFinder/$outputName" }
+        if ($product -eq 'DuplicateFinder') { $outputName = "DuplicateFinder/$outputName" }
         $outputPath = Join-Path $PSScriptRoot "artifacts/publish/$outputName"
         Write-BuildMessage "PUBLISH | $mode" -Kind Phase
         # Clean only this generated distribution, preserving the other variants.
@@ -52,19 +63,19 @@ try {
         Write-BuildMessage "Published to $outputPath" -Kind Success
     }
     else {
-        Invoke-SolutionBuild -RepositoryRoot $PSScriptRoot -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
+        Invoke-BuildTarget -Path $buildTarget -Configuration $Configuration -Runtime $Runtime -Verbosity $Verbosity
     }
 
     if ($Run) {
         Write-BuildMessage 'RUN APPLICATION' -Kind Phase
         if ($Publish) {
             # Exercise the distributed apphost and resources, including icon/splash.
-            $executable = Join-Path $outputPath "$Application.App.exe"
+            $executable = Join-Path $outputPath "$product.App.exe"
             & $executable
             if ($LASTEXITCODE -ne 0) { throw "Published app exited with code $LASTEXITCODE." }
         }
         else {
-            # Match the solution's platform-only output path; --runtime would
+            # Match the build's platform-only output path; --runtime would
             # make --no-build look for a different, RID-specific directory.
             Invoke-DotNet -Name 'Application' -Arguments @('run', '--project', $appProject,
                 '--configuration', $Configuration, '--self-contained', 'false',

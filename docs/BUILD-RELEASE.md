@@ -6,9 +6,7 @@
 ruft diese Skripte mit denselben Parametern wie die lokale Entwicklung
 auf. Es gibt keinen Schalter, der auf dem Build-Server andere App-Eigenschaften
 aktiviert. `build/ScriptSupport.ps1` bündelt Phasenfarben, SDK-Ausgabe,
-Exitcode-Prüfung und den Lösungsbuild. Die fünf Projekte werden beim
-Lösungsbuild seriell gebaut (`-m:1`); zusätzliche MSBuild-Arbeitsprozesse werden
-dafür weder lokal noch in CI benötigt. Die Darstellung orientiert sich an den
+Exitcode-Prüfung und den Build. Ein normaler Aufruf von `Build.ps1` baut die ganze Solution seriell (`-m:1`). Mit `-Application FileScope` oder `-Application DuplicateFinder` baut das Skript das gewählte WPF-Projekt samt Referenzen. Die Darstellung orientiert sich an den
 TinyCamServer-Skripten; Visual-Studio-Pfade, COM-Registrierung und deren
 projektspezifische Schritte werden nicht übernommen.
 
@@ -29,7 +27,13 @@ damit Hintergrundfarben nicht in die nächste Zeile weiterlaufen.
 .\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 ```
 
-Für DuplicateFinder wählt `.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-arm64` die zweite App. Die Pakete liegen unter `artifacts/publish/DuplicateFinder/`. Auch hier erzeugt `-SelfContained` ein eigenständig lauffähiges Paket.
+Für DuplicateFinder erhalten Build, Start, Verify und Publish denselben Schalter. Die Pakete liegen unter `artifacts/publish/DuplicateFinder/` in einem eigenen Verzeichnis pro Architektur und Bereitstellungsart.
+
+```powershell
+.\Build.ps1 -Application DuplicateFinder -Run -Runtime win-x64
+.\Verify.ps1 -Application DuplicateFinder -Runtime win-x64
+.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-arm64 -SelfContained
+```
 
 `-NoColor` bzw. die Umgebungsvariable `NO_COLOR` deaktiviert die Farben der
 Skriptmeldungen. Externe Programme steuern ihre eigene Ausgabe. `-Verbosity`
@@ -73,10 +77,7 @@ dotnet test --project tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj --filte
 dotnet test --project tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj -c Release --runtime win-arm64 -p:Platform=Arm64
 ```
 
-`Verify.ps1` ergänzt die PowerShell-Skripttests und den Lösungsbuild. Anschließend
-startet es die fünf Testprojekte mit `dotnet test`. `-SkipBuild` lässt
-nur den vorangestellten Lösungsbuild aus; die Testaufrufe bauen weiterhin ihre
-Projekte und Referenzen. `-SkipUi` überspringt beide WPF-Testprojekte. Ohne expliziten
+`Verify.ps1` führt zuerst die gemeinsamen Skriptprüfungen aus. Standardmäßig baut es die Solution und startet die fünf Testprojekte mit `dotnet test`. Bei Auswahl einer App baut es deren Projekt samt Referenzen und startet die drei FileScope- oder die zwei DuplicateFinder-Testprojekte. `-SkipBuild` überspringt den vorangestellten Build. Die Testaufrufe bauen weiterhin ihre Projekte und Referenzen. `-SkipUi` überspringt die jeweils ausgewählten WPF-Tests. Ohne expliziten
 Windows-RID laufen unter Linux die Core- und Präsentationstests; ein vollständiger
 Solution-Testlauf einschließlich WPF benötigt Windows.
 
@@ -247,7 +248,7 @@ Microsoft-Referenzen:
   Runtime derselben Architektur. Die Runtime-Auswahl beim Start kann auf einen
   neueren installierten Patch weiterrollen. Ein identisches App-Paket garantiert
   daher nicht auf allen Rechnern einen identischen WPF-Runtime-Stand.
-- Alle vier Publish-Varianten erhalten eigene Ausgabeordner. Vor einem Publish
+- Jede Anwendung erhält eigene Ausgabeordner für ihre vier Publish-Varianten. Vor einem Publish
   wird nur dessen eigener Ordner geleert; übrige Varianten bleiben erhalten.
 - Beim Lösungsbuild wählt der Skriptparameter `-Runtime` ausschließlich die
   passende `Platform` (x64, Arm64 oder x86). Ein `--runtime` am Lösungsbuild
@@ -328,8 +329,8 @@ Dieser Abschnitt hält den vereinbarten Vorschlag für die separate
 Release-Pipeline fest. Sie ist noch nicht implementiert.
 
 1. `release.yml`: Ein Versions-Tag wie `v1.0.0` oder `v1.1.0-rc.1` löst die
-   Prüfung genau dieses Commits aus. Anschließend erzeugt `Build.ps1` vier ZIPs:
-   x64/ARM64, jeweils framework-dependent und self-contained. SHA-256-Prüfsummen
+   Prüfung genau dieses Commits aus. Anschließend erzeugt `Build.ps1` vier ZIPs je Anwendung für
+   x64 und ARM64, jeweils framework-dependent und self-contained. SHA-256-Prüfsummen
    gehören zu den Release-Dateien.
 2. Der Vorschlag zur Versionsableitung bleibt **MinVer als reine
    Build-Abhängigkeit** mit `PrivateAssets=all` und Tagpräfix `v`. MinVer ist für

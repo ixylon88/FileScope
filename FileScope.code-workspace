@@ -250,6 +250,324 @@
         "runOptions": {
           "instanceLimit": 1
         }
+      },
+      {
+        "label": "DuplicateFinder: Build (Release)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Run (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Run",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Run (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Run",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Publish (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Publish",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Publish self-contained (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Publish",
+          "-SelfContained",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Publish (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Publish",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Publish self-contained (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Build.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Configuration",
+          "Release",
+          "-Publish",
+          "-SelfContained",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "build",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Verify",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "DuplicateFinder"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Verify (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "DuplicateFinder: Verify (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "DuplicateFinder",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
       }
     ]
   }
