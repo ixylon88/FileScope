@@ -161,15 +161,15 @@ public sealed class WindowTests
         ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)!).Toggle();
         Assert.IsTrue(model.Rows.Single().Marked);
         Assert.IsTrue(button.IsEnabled);
-        Assert.AreEqual("In den Papierkorb", button.Content);
+        Assert.AreEqual("In den Papierkorb…", button.Content);
         var options = new OptionsWindow(settings) { Owner = window };
         options.Show();
-        Assert.AreEqual("Optionen", options.Title);
+        Assert.AreEqual("Optionen…", options.Title);
         strings.SetCulture("zh-Hans");
-        Assert.AreEqual("选项", options.Title);
+        Assert.AreEqual("选项…", options.Title);
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
-        Assert.AreEqual("快捷键", shortcuts.Title);
+        Assert.AreEqual("快捷键…", shortcuts.Title);
 
         var firstTab = (TabItem)options.FindName("SearchTab");
         Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
