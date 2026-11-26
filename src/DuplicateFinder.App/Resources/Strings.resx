@@ -25,7 +25,7 @@
   <data name="Publisher" xml:space="preserve"><value>Publisher</value></data>
   <data name="Diagnostics" xml:space="preserve"><value>Diagnostics</value></data>
   <data name="Path" xml:space="preserve"><value>Path</value></data>
-  <data name="Details" xml:space="preserve"><value>Selected file · details and copy</value></data>
+  <data name="Details" xml:space="preserve"><value>Selected file · details and copy:</value></data>
   <data name="Mark" xml:space="preserve"><value>Select for recycling</value></data>
   <data name="Folder" xml:space="preserve"><value>Search folder</value></data>
   <data name="PriorityHint" xml:space="preserve"><value>Set a retention priority for each search folder. A higher number keeps its copies first. Double-click a priority to edit it.</value></data>
@@ -68,11 +68,11 @@
   <data name="About1" xml:space="preserve"><value>• Find byte-identical files across prioritized search folders.</value></data>
   <data name="About2" xml:space="preserve"><value>• Calculate selected checksums in one pass, then compare file bytes and named data streams.</value></data>
   <data name="About3" xml:space="preserve"><value>• Inspect embedded and catalog signatures. Recycle verified copies or a manual selection.</value></data>
-  <data name="KeyScan" xml:space="preserve"><value>F5   Scan configured folders</value></data>
-  <data name="KeyFilter" xml:space="preserve"><value>Ctrl+F   Focus the table filter</value></data>
-  <data name="KeyMark" xml:space="preserve"><value>Space   Toggle the focused file</value></data>
-  <data name="KeyCancel" xml:space="preserve"><value>Esc   Cancel the current operation</value></data>
-  <data name="KeyHelp" xml:space="preserve"><value>F1   Open keyboard shortcuts</value></data>
+  <data name="KeyScan" xml:space="preserve"><value>Scan the configured folders</value></data>
+  <data name="KeyFilter" xml:space="preserve"><value>Focus the table filter</value></data>
+  <data name="KeyMark" xml:space="preserve"><value>Toggle the check mark on the focused file</value></data>
+  <data name="KeyCancel" xml:space="preserve"><value>Cancel the current operation</value></data>
+  <data name="KeyHelp" xml:space="preserve"><value>Open keyboard shortcuts</value></data>
   <data name="Moved" xml:space="preserve"><value>Recycled</value></data>
   <data name="Skipped" xml:space="preserve"><value>Skipped</value></data>
   <data name="Unprocessed" xml:space="preserve"><value>{0:N0} files were not processed.</value></data>
@@ -108,4 +108,15 @@
   <data name="IntakeSizeHint" xml:space="preserve"><value>Both limits are inclusive. Leave either field empty for an open limit. 1 kB = 1,000 bytes.</value></data>
   <data name="BadSize" xml:space="preserve"><value>Enter a non-negative size that converts to a whole number of bytes and fits in 64 bits.</value></data>
   <data name="ReversedSizes" xml:space="preserve"><value>The minimum size must be less than or equal to the maximum.</value></data>
+  <data name="Modified" xml:space="preserve"><value>Date modified</value></data>
+  <data name="SearchFolders" xml:space="preserve"><value>Search folders</value></data>
+  <data name="Analysis" xml:space="preserve"><value>Analysis</value></data>
+  <data name="Signatures" xml:space="preserve"><value>Signatures</value></data>
+  <data name="ShortcutActions" xml:space="preserve"><value>Commands</value></data>
+  <data name="ShortcutResults" xml:space="preserve"><value>Results and file details</value></data>
+  <data name="KeysFilter" xml:space="preserve"><value>Ctrl+F</value></data>
+  <data name="KeysMark" xml:space="preserve"><value>Space</value></data>
+  <data name="KeysCopy" xml:space="preserve"><value>Ctrl+C</value></data>
+  <data name="KeyCopy" xml:space="preserve"><value>Copy the selected text from the file details</value></data>
+  <data name="Stage_Metadata" xml:space="preserve"><value>Checking file metadata</value></data>
 </root>

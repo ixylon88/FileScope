@@ -617,10 +617,10 @@ Aktueller Ausführungsstand:
 | Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
 | Präsentation, Einstellungen und Ressourcen | **33 Testfälle unter Linux bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen sowie **11** zusätzliche Konsistenzprüfungen. |
 | WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
-| DuplicateFinder / Core und Windows-Integration | **23 Fälle**, davon 20 unter Linux bestanden. Enthält den Größenfilter vor der Analyse. Drei Fälle benötigen Windows und prüfen NTFS, Katalogzuordnung und Papierkorb. |
-| DuplicateFinder / WPF | **5 Fälle** für Filterumfang, Größeneingabe und gespeicherte Einheiten, manuelle Markierungen, Bestätigung, Sprachen und Theme. |
+| DuplicateFinder / Core und Windows-Integration | **24 Fälle**, davon 21 unter Linux bestanden. Enthält den Größenfilter und die Hash-Vorauswahl samt Fortschrittsmeldungen. Drei Fälle benötigen Windows und prüfen NTFS, Katalogzuordnung und Papierkorb. |
+| DuplicateFinder / WPF | **7 Fälle** für Filterumfang, Größeneingabe, Markierungen, Bestätigung, Sprachen und Theme sowie kopierbare Dateidetails, Änderungsdatum und das DataGrid während eines Jobs. |
 
-Die Suite umfasst **123 C#-Testfälle**. Bei DuplicateFinder bestanden die NTFS- und Papierkorbtests auf Windows x64 und ARM64. Die Bestätigung des überarbeiteten Katalogtests und der DuplicateFinder-WPF-Tests steht noch aus. [Prüfstand](VALIDATION.md)
+Die Suite umfasst **126 C#-Testfälle**. Der Stand vor der Überarbeitung der DuplicateFinder-Oberfläche bestand die CI auf Windows x64 und ARM64 einschließlich Katalog- und WPF-Tests. Die neuen WPF-Fälle sind für den nächsten Windows-Lauf vorgesehen. [Prüfstand](VALIDATION.md)
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

@@ -36,31 +36,32 @@ public sealed class DuplicateScanner
         var catalogIndex = catalogPaths != null && files.Any(f => f.Stamp != null) && OperatingSystem.IsWindows()
             ? new WindowsCatalogIndex(catalogPaths.Values, (path, reason) => issues.Add(new(path, reason)), token) : null;
 
-        var completed = 0;
-        foreach (var file in files)
+        for (var index = 0; index < files.Count; index++)
         {
             token.ThrowIfCancellationRequested();
-            progress?.Report(new("Hash", file.Path, completed++, files.Count));
+            var file = files[index];
             if (file.Stamp == null) continue;
 
             try
             {
+                progress?.Report(new("Metadata", file.Path, index, files.Count));
                 using var input = FileAccessChecks.OpenVerified(file, _facts);
                 if (sizes[file.Stamp.Length] > 1)
                 {
+                    progress?.Report(new("Hash", file.Path, index, files.Count));
                     file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
                 }
 
                 if (options.Embedded)
                 {
-                    progress?.Report(new("Signature", file.Path, completed - 1, files.Count));
+                    progress?.Report(new("Signature", file.Path, index, files.Count));
                     input.Position = 0;
                     file.Embedded = _signatures.Inspect(input, file.Path, options.Revocation, token);
                 }
 
                 if (catalogIndex != null && OperatingSystem.IsWindows())
                 {
-                    progress?.Report(new("Catalog", file.Path, completed - 1, files.Count));
+                    progress?.Report(new("Catalog", file.Path, index, files.Count));
                     file.Catalogs = catalogIndex.Inspect(input, options.Revocation, token);
                 }
             }

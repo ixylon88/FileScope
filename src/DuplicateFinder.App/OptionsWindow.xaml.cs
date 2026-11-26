@@ -83,7 +83,7 @@ public partial class OptionsWindow : Window
         {
             if (!int.TryParse(entry.Priority, NumberStyles.Integer, Strings.Culture, out var priority))
             {
-                Validation.Text = Strings["BadPriority"];
+                ShowInputError("BadPriority", RootsGrid);
                 return;
             }
             roots.Add(new(entry.Path, priority));
@@ -91,15 +91,19 @@ public partial class OptionsWindow : Window
 
         var minUnit = (FileSizeUnit)MinimumUnit.SelectedValue;
         var maxUnit = (FileSizeUnit)MaximumUnit.SelectedValue;
-        if (!FileSizeInput.TryParse(MinimumSize.Text, minUnit, Strings.Culture, out var min)
-            || !FileSizeInput.TryParse(MaximumSize.Text, maxUnit, Strings.Culture, out var max))
+        if (!FileSizeInput.TryParse(MinimumSize.Text, minUnit, Strings.Culture, out var min))
         {
-            Validation.Text = Strings["BadSize"];
+            ShowInputError("BadSize", MinimumSize);
+            return;
+        }
+        if (!FileSizeInput.TryParse(MaximumSize.Text, maxUnit, Strings.Culture, out var max))
+        {
+            ShowInputError("BadSize", MaximumSize);
             return;
         }
         if (min > max)
         {
-            Validation.Text = Strings["ReversedSizes"];
+            ShowInputError("ReversedSizes", MinimumSize);
             return;
         }
 
@@ -117,5 +121,12 @@ public partial class OptionsWindow : Window
             Online = Online.IsChecked == true
         };
         DialogResult = true;
+    }
+
+    private void ShowInputError(string messageKey, UIElement field)
+    {
+        SearchTab.IsSelected = true;
+        Validation.Text = Strings[messageKey];
+        field.Focus();
     }
 }

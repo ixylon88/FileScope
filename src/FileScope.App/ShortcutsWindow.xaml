@@ -5,24 +5,6 @@
         Title="{loc:Loc ShortcutsTitle}" Width="660" Height="760" MinWidth="480" MinHeight="380"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{StaticResource AppWindowStyle}">
-  <Window.Resources>
-    <Style x:Key="ShortcutKeyCap" TargetType="Border">
-      <Setter Property="Background" Value="{DynamicResource LineBrush}" />
-      <Setter Property="CornerRadius" Value="5" />
-      <Setter Property="Padding" Value="10,5" />
-      <Setter Property="MinHeight" Value="30" />
-    </Style>
-    <Style x:Key="ShortcutKeys" TargetType="TextBlock">
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style x:Key="ShortcutDescription" TargetType="TextBlock">
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Margin" Value="16,0,0,0" />
-    </Style>
-  </Window.Resources>
   <Grid Margin="24">
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
     <Grid Margin="0,0,0,18">

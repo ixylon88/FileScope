@@ -2,86 +2,139 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:FileScope.App.Localization"
         Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
         Style="{StaticResource AppWindowStyle}" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
+  <Window.Resources>
+    <SolidColorBrush x:Key="MarkedRowBackground" Color="{DynamicResource SystemAccentColor}" Opacity="0.24" />
+    <Style x:Key="BandDivider" TargetType="Border">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Margin" Value="6,0,14,6" />
+      <Setter Property="Background" Value="{DynamicResource LineBrush}" />
+    </Style>
+  </Window.Resources>
   <Grid Margin="18,14,18,10">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="6"/>
-      <RowDefinition Height="120" MinHeight="50"/><RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+      <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
-    <Expander Header="{loc:Loc Menu}" IsExpanded="True" Margin="0,0,0,8">
-      <StackPanel Margin="0,8,0,0">
-        <WrapPanel>
-          <Button x:Name="OptionsButton" Content="{loc:Loc Options}" Style="{StaticResource BandButton}" Click="OpenOptions" />
-          <Button x:Name="ScanButton" Content="{loc:Loc Scan}" Style="{StaticResource BandButton}" />
-          <Button x:Name="CancelButton" Content="{loc:Loc Cancel}" Style="{StaticResource BandButton}" Click="CancelJob" />
-          <Button x:Name="CleanButton" Content="{loc:Loc Clean}" Style="{StaticResource BandButton}" />
-          <Button x:Name="RecycleButton" Content="{loc:Loc Recycle}" Style="{StaticResource BandButton}" />
-          <Button x:Name="IssuesButton" Content="{loc:Loc Issues}" Style="{StaticResource BandButton}" Click="ShowIssues" />
-          <Button x:Name="ShortcutsButton" Content="{loc:Loc Shortcuts}" Style="{StaticResource BandButton}" Click="ShowShortcuts" />
-          <Button x:Name="AboutButton" Content="{loc:Loc About}" Style="{StaticResource BandButton}" Click="ShowAbout" />
-        </WrapPanel>
-        <WrapPanel VerticalAlignment="Center">
-          <TextBlock Text="{loc:Loc Filter}" Margin="0,4,8,0" VerticalAlignment="Center"/>
-          <TextBox x:Name="FilterBox" Width="220" Margin="0,0,10,0" TextChanged="FilterChanged" ToolTip="{loc:Loc FilterHint}"/>
-          <ComboBox x:Name="KindBox" MinWidth="125" Margin="0,0,8,0" SelectionChanged="FilterChanged"/>
-          <ComboBox x:Name="SignatureBox" MinWidth="170" SelectionChanged="FilterChanged"/>
-        </WrapPanel>
-      </StackPanel>
+
+    <Border x:Name="MenuFrame" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10">
+      <Expander x:Name="MenuExpander" Header="{loc:Loc Menu}" IsExpanded="True" Padding="14,8">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="ScanButton" Content="{loc:Loc Scan}" Style="{StaticResource BandButton}" />
+              <Button x:Name="CancelButton" Content="{loc:Loc Cancel}" Style="{StaticResource BandButton}" Click="CancelJob" />
+              <Button x:Name="IssuesButton" Content="{loc:Loc Issues}" Style="{StaticResource BandButton}" Click="ShowIssues" />
+            </StackPanel>
+            <Border Style="{StaticResource BandDivider}" />
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="CleanButton" Content="{loc:Loc Clean}" Style="{StaticResource BandButton}" />
+              <Button x:Name="RecycleButton" Content="{loc:Loc Recycle}" Style="{StaticResource BandButton}" />
+            </StackPanel>
+            <Border Style="{StaticResource BandDivider}" />
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="OptionsButton" Style="{StaticResource BandButton}" Click="OpenOptions" AutomationProperties.Name="{loc:Loc Options}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="ShortcutsButton" Style="{StaticResource BandButton}" Click="ShowShortcuts" AutomationProperties.Name="{loc:Loc Shortcuts}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc Shortcuts}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="AboutButton" Style="{StaticResource BandButton}" Click="ShowAbout" AutomationProperties.Name="{loc:Loc About}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:Loc About}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Expander>
+    </Border>
+
+    <WrapPanel Grid.Row="1" Margin="0,0,0,10" VerticalAlignment="Center">
+      <Label Content="{loc:Loc Filter}" Target="{Binding ElementName=FilterBox}" VerticalAlignment="Center" Margin="0,0,6,0" />
+      <TextBox x:Name="FilterBox" Width="220" MinHeight="32" Margin="0,0,10,0" TextChanged="FilterChanged" ToolTip="{loc:Loc FilterHint}" />
+      <ComboBox x:Name="KindBox" MinWidth="125" Margin="0,0,8,0" SelectionChanged="FilterChanged" />
+      <ComboBox x:Name="SignatureBox" MinWidth="170" SelectionChanged="FilterChanged" />
+    </WrapPanel>
+
+    <Border x:Name="ResultsFrame" Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+      <DataGrid x:Name="Files" BorderThickness="0" GridLinesVisibility="Horizontal" ItemsSource="{Binding View}" AutoGenerateColumns="False" IsReadOnly="True"
+                CanUserAddRows="False" CanUserSortColumns="False" SelectionMode="Single" SelectionUnit="FullRow" IsSynchronizedWithCurrentItem="False"
+                HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="RowClick">
+        <DataGrid.GroupStyle>
+          <GroupStyle>
+            <GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></GroupStyle.Panel>
+            <GroupStyle.ContainerStyle>
+              <Style TargetType="GroupItem">
+                <Setter Property="Template"><Setter.Value>
+                  <ControlTemplate TargetType="GroupItem">
+                    <Expander IsExpanded="False">
+                      <Expander.Header><StackPanel Orientation="Horizontal">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}"/>
+                        <TextBlock Margin="10,0" Foreground="{DynamicResource MutedBrush}" Text="{Binding ItemCount}"/>
+                      </StackPanel></Expander.Header>
+                      <ItemsPresenter/>
+                    </Expander>
+                  </ControlTemplate>
+                </Setter.Value></Setter>
+              </Style>
+            </GroupStyle.ContainerStyle>
+          </GroupStyle>
+        </DataGrid.GroupStyle>
+        <DataGrid.RowStyle>
+          <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Marked}" Value="True"><Setter Property="Background" Value="{StaticResource MarkedRowBackground}"/></DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </DataGrid.RowStyle>
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="✓" Width="42"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+            <CheckBox IsChecked="{Binding Marked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsEnabled="{Binding DataContext.CanMark, RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}"
+                      AutomationProperties.Name="{loc:Loc Mark}"/>
+          </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+          <DataGridTextColumn Header="{loc:Loc Name}" Binding="{Binding File.Name, Mode=OneWay}" Width="190" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Priority}" Binding="{Binding File.Root.Priority, Mode=OneWay}" Width="75" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Variant}" Binding="{Binding File.Variant, Mode=OneWay}" Width="65" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Bytes}" Binding="{Binding File.Size, Mode=OneWay}" Width="92" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Modified}" Binding="{Binding ModifiedText, Mode=OneWay}" Width="Auto" MinWidth="145"
+                              ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Streams}" Binding="{Binding Streams, Mode=OneWay}" Width="240" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Embedded}" Binding="{Binding Signature, Mode=OneWay}" Width="150" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Publisher}" Binding="{Binding File.Embedded.Certificate.Publisher, Mode=OneWay}" Width="155" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256, Mode=OneWay}" Width="172" ElementStyle="{StaticResource HashText}"/>
+          <DataGridTextColumn Header="{loc:Loc Diagnostics}" Binding="{Binding Diagnostic, Mode=OneWay}" Width="180" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Path}" Binding="{Binding File.Path, Mode=OneWay}" Width="300" ElementStyle="{StaticResource GridText}"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
+
+    <Expander x:Name="DetailsExpander" Grid.Row="3" Margin="0,8,0,0" IsExpanded="False" HorizontalContentAlignment="Stretch"
+              DataContext="{Binding SelectedItem, ElementName=Files, Mode=OneWay}">
+      <Expander.Header>
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+          <TextBlock Text="{loc:Loc Details}" VerticalAlignment="Center" />
+          <TextBlock x:Name="DetailsPath" Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                     Text="{Binding File.Path, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
+                     ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+        </Grid>
+      </Expander.Header>
+      <TextBox x:Name="DetailsBox" Text="{Binding Details, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
+               IsReadOnly="True" TextWrapping="NoWrap" MinHeight="90" MaxHeight="160" Padding="12"
+               FontFamily="Cascadia Mono, Consolas, Microsoft YaHei UI" FontSize="12" AutomationProperties.Name="{loc:Loc Details}"
+               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
     </Expander>
-    <DataGrid x:Name="Files" Grid.Row="1" ItemsSource="{Binding View}" AutoGenerateColumns="False" IsReadOnly="True"
-              CanUserAddRows="False" CanUserSortColumns="False" SelectionMode="Single" SelectionUnit="Cell"
-              HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True"
-              VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
-              ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="RowClick" CurrentCellChanged="FocusChanged">
-      <DataGrid.GroupStyle>
-        <GroupStyle>
-          <GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></GroupStyle.Panel>
-          <GroupStyle.ContainerStyle>
-            <Style TargetType="GroupItem">
-              <Setter Property="Template"><Setter.Value>
-                <ControlTemplate TargetType="GroupItem">
-                  <Expander IsExpanded="False">
-                    <Expander.Header><StackPanel Orientation="Horizontal">
-                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}"/>
-                      <TextBlock Margin="10,0" Foreground="{DynamicResource MutedBrush}" Text="{Binding ItemCount}"/>
-                    </StackPanel></Expander.Header>
-                    <ItemsPresenter/>
-                  </Expander>
-                </ControlTemplate>
-              </Setter.Value></Setter>
-            </Style>
-          </GroupStyle.ContainerStyle>
-        </GroupStyle>
-      </DataGrid.GroupStyle>
-      <DataGrid.RowStyle>
-        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-          <Style.Triggers>
-            <DataTrigger Binding="{Binding Marked}" Value="True"><Setter Property="Background" Value="{DynamicResource OnInformationBrush}"/></DataTrigger>
-          </Style.Triggers>
-        </Style>
-      </DataGrid.RowStyle>
-      <DataGrid.Columns>
-        <DataGridTemplateColumn Header="✓" Width="42"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-          <CheckBox IsChecked="{Binding Marked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    AutomationProperties.Name="{loc:Loc Mark}"/>
-        </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-        <DataGridTextColumn Header="{loc:Loc Name}" Binding="{Binding File.Name, Mode=OneWay}" Width="190" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Priority}" Binding="{Binding File.Root.Priority, Mode=OneWay}" Width="75" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Variant}" Binding="{Binding File.Variant, Mode=OneWay}" Width="65" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Bytes}" Binding="{Binding File.Size, Mode=OneWay}" Width="92" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Streams}" Binding="{Binding Streams, Mode=OneWay}" Width="240" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Embedded}" Binding="{Binding Signature, Mode=OneWay}" Width="150" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Publisher}" Binding="{Binding File.Embedded.Certificate.Publisher, Mode=OneWay}" Width="155" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256, Mode=OneWay}" Width="172" ElementStyle="{StaticResource HashText}"/>
-        <DataGridTextColumn Header="{loc:Loc Diagnostics}" Binding="{Binding Diagnostic, Mode=OneWay}" Width="180" ElementStyle="{StaticResource GridText}"/>
-        <DataGridTextColumn Header="{loc:Loc Path}" Binding="{Binding File.Path, Mode=OneWay}" Width="300" ElementStyle="{StaticResource GridText}"/>
-      </DataGrid.Columns>
-    </DataGrid>
-    <GridSplitter Grid.Row="2" HorizontalAlignment="Stretch" Height="5"/>
-    <GroupBox Header="{loc:Loc Details}" Grid.Row="3">
-      <TextBox x:Name="DetailsBox" IsReadOnly="True" TextWrapping="NoWrap" Padding="6"
-               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
-    </GroupBox>
     <DockPanel Grid.Row="4" Margin="0,9,0,0">
       <ProgressBar x:Name="Meter" DockPanel.Dock="Right" Width="115" Height="8" Margin="12,0,0,0"/>
       <TextBlock x:Name="Status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>

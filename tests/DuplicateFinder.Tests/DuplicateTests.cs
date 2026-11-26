@@ -37,6 +37,23 @@ public sealed class DuplicateTests
     }
 
     [TestMethod]
+    public async Task HashProgressOnlyReportsFilesWithAnotherCandidateOfTheSameSize()
+    {
+        var first = Put("1", "first", "ABC");
+        var second = Put("2", "second", "XYZ");
+        var single = Put("1", "single", "longer");
+        var progress = new Stages();
+        var scanner = new DuplicateScanner(_facts, new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
+        var scan = await scanner.ScanAsync([new(_dir, 1)], Options with { Embedded = true }, progress);
+
+        CollectionAssert.AreEquivalent(new[] { first, second }, progress.Paths("Hash"));
+        CollectionAssert.AreEquivalent(new[] { first, second, single }, progress.Paths("Signature"));
+        Assert.IsEmpty(scan.Files.Single(file => file.Path == single).Hashes);
+        Assert.IsTrue(scan.Files.Where(file => file.Path != single).All(file => file.Hashes.Count == 3));
+        Assert.IsTrue(scan.Files.All(file => file.Group == 0));
+    }
+
+    [TestMethod]
     public async Task SizeLimitsExcludeFilesBeforeAnalysisAndCleanup()
     {
         var admitted = new List<string>();
@@ -313,6 +330,13 @@ public sealed class DuplicateTests
             beforeReturn?.Invoke();
             Paths.Add(path);
         }
+    }
+
+    private sealed class Stages : IProgress<ScanProgress>
+    {
+        private readonly List<ScanProgress> _updates = [];
+        public void Report(ScanProgress value) => _updates.Add(value);
+        internal string[] Paths(string stage) => _updates.Where(update => update.Stage == stage).Select(update => update.Path).ToArray();
     }
 
     private sealed class Facts : IFileFacts

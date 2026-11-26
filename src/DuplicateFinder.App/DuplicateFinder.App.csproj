@@ -11,6 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../DuplicateFinder.Core/DuplicateFinder.Core.csproj" />
+    <InternalsVisibleTo Include="DuplicateFinder.Ui.Tests" />
     <!-- Both executables use the same Fluent controls, palettes and language-switching behavior. -->
     <Compile Include="../FileScope.App/Infrastructure/ObservableObject.cs;../FileScope.App/Infrastructure/Commands.cs" Link="Infrastructure/%(Filename)%(Extension)" />
     <Compile Include="../FileScope.App/Presentation/SignatureGroup.cs" Link="Presentation/SignatureGroup.cs" />

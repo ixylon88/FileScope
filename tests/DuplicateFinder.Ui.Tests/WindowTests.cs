@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using DuplicateFinder.App;
 using DuplicateFinder.Core;
@@ -101,7 +102,125 @@ public sealed class WindowTests
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
         Assert.AreEqual("快捷键", shortcuts.Title);
+
+        var firstTab = (TabItem)options.FindName("SearchTab");
+        Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
+        var shortcut = (HeaderedContentControl)shortcuts.FindName("FilterShortcut");
+        strings.SetCulture("de");
+        shortcuts.UpdateLayout();
+        Assert.AreEqual("Suchordner", firstTab.Header);
+        Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == "Strg+F"));
+        Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["KeyFilter"]));
+
+        foreach (var (name, glyph) in new[] { ("OptionsButton", "\uE713"), ("ShortcutsButton", "\uE765"), ("AboutButton", "\uE946") })
+        {
+            var command = (Button)window.FindName(name);
+            Assert.IsTrue(VisualChildren<TextBlock>(command).Any(text => text.Text == glyph && text.FontFamily.Source == "Segoe MDL2 Assets"));
+        }
     });
+
+    [TestMethod]
+    public Task SelectedFileDetailsSurviveFocusChangesAndFollowTheVisibleSelection() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        strings.SetCulture("de");
+        var date = new DateTime(2026, 2, 3, 17, 42, 0, DateTimeKind.Utc);
+        var first = FileAt("archive.dat", 10);
+        first.Stamp = new(new FileKey(1, Guid.Empty), 123, date, 0, 1);
+        var model = new ResultsViewModel();
+        model.Replace([first, FileAt("backup.dat", 1)]);
+        var window = ShowResults(model, new ThemeService(app));
+        var grid = ExpandResults(window);
+        var panel = (Expander)window.FindName("DetailsExpander");
+        var path = (TextBlock)window.FindName("DetailsPath");
+        var details = (TextBox)window.FindName("DetailsBox");
+
+        var row = model.Rows[0];
+        Assert.IsFalse(panel.IsExpanded);
+        grid.SelectedItem = row;
+        grid.CurrentCell = new DataGridCellInfo(row, grid.Columns[1]);
+        panel.IsExpanded = true;
+        window.UpdateLayout();
+        Assert.AreEqual(first.Path, path.Text);
+        var modifiedColumn = grid.Columns.Single(c => Equals(c.Header, strings["Modified"]));
+        grid.ScrollIntoView(row, modifiedColumn);
+        window.UpdateLayout();
+        var expectedTime = date.ToString("g", strings.Culture) + " UTC";
+        var modifiedCell = VisualChildren<DataGridCell>(grid).Single(cell => cell.Column == modifiedColumn && cell.DataContext == row);
+        Assert.AreEqual(expectedTime, ((TextBlock)modifiedCell.Content).Text);
+        Assert.Contains(expectedTime, details.Text);
+
+        details.Focus();
+        grid.CurrentCell = new DataGridCellInfo();
+        details.SelectAll();
+        Assert.AreEqual(row.Details, details.SelectedText);
+        Assert.IsTrue(ApplicationCommands.Copy.CanExecute(null, details));
+        Assert.AreEqual(0, model.MarkedCount);
+        panel.IsExpanded = false;
+        panel.IsExpanded = true;
+        Assert.AreEqual(row.Details, details.Text);
+
+        grid.SelectedItem = model.Rows[1];
+        Assert.AreEqual("backup.dat", path.Text);
+        Assert.AreEqual("", model.Rows[1].ModifiedText);
+        model.Filter("no matches", 0, null, false);
+        window.UpdateLayout();
+        Assert.AreEqual("", details.Text);
+        Assert.AreEqual("", path.Text);
+    });
+
+    [TestMethod]
+    public Task BusyDarkGridKeepsItsSurfaceAndOnlyLocksMarkingAndFileActions() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        var theme = new ThemeService(app);
+        theme.Apply(AppTheme.Dark);
+        var model = new ResultsViewModel();
+        model.Replace([FileAt("keep.dat", 10)]);
+        model.Rows[0].Marked = true;
+        var window = ShowResults(model, theme);
+        var grid = ExpandResults(window);
+        var check = VisualChildren<CheckBox>(grid).Single();
+        var recycle = (Button)window.FindName("RecycleButton");
+        var surface = VisualChildren<Border>(grid).First(border => border.TemplatedParent == grid);
+        var normalColor = ((SolidColorBrush)surface.Background).Color;
+        var line = window.FindResource("LineBrush");
+        Assert.AreSame(line, ((Border)window.FindName("ResultsFrame")).BorderBrush);
+        Assert.AreSame(line, ((Border)window.FindName("MenuFrame")).BorderBrush);
+        Assert.IsTrue(recycle.IsEnabled && check.IsEnabled);
+
+        var cancel = (Button)window.FindName("CancelButton");
+        var header = (TextBlock)window.FindName("DetailsPath");
+        (bool GridEnabled, bool CanMark, bool CanRecycle, bool CanCancel, Color Background, string? Path) busy = default;
+        var job = window.RunJobAsync(_ =>
+        {
+            grid.SelectedItem = model.Rows[0];
+            window.UpdateLayout();
+            busy = (grid.IsEnabled, check.IsEnabled, recycle.IsEnabled, cancel.IsEnabled, ((SolidColorBrush)surface.Background).Color, header.Text);
+            return Task.CompletedTask;
+        });
+
+        Assert.IsTrue(busy.GridEnabled && busy.CanCancel);
+        Assert.IsFalse(busy.CanMark || busy.CanRecycle);
+        Assert.AreEqual(normalColor, busy.Background);
+        Assert.AreEqual("keep.dat", busy.Path);
+        Assert.IsTrue(job.IsCompletedSuccessfully && recycle.IsEnabled && check.IsEnabled);
+        Assert.AreEqual(1, model.MarkedCount);
+    });
+
+    private static MainWindow ShowResults(ResultsViewModel model, IThemeService theme)
+    {
+        var window = new MainWindow(model, new DuplicateScanner(), new CleanupService(new WindowsRecycleBin()), new Preferences(), new SettingsStore(), theme);
+        window.Show();
+        return window;
+    }
+
+    private static DataGrid ExpandResults(MainWindow window)
+    {
+        var grid = (DataGrid)window.FindName("Files");
+        window.UpdateLayout();
+        foreach (var group in VisualChildren<Expander>(grid).ToArray()) group.IsExpanded = true;
+        window.UpdateLayout();
+        return grid;
+    }
 
     [TestMethod]
     public Task SizeOptionsValidateAndRestoreIndependentUnits() => WpfTestHost.RunAsync((app, strings) =>

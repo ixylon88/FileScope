@@ -24,6 +24,7 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
         ? Strings["CatalogUnsigned"] : FormatTrust(trust);
     public string Signature => FormatTrust(File.Embedded);
     public string Sha256 => File.Hashes.GetValueOrDefault(ChecksumAlgorithm.SHA256) ?? "";
+    public string ModifiedText => File.ModifiedUtc is { } utc ? $"{utc.ToString("g", Strings.Culture)} UTC" : "";
     public string Catalog => File.Catalogs switch
     {
         null => Strings["Signature_NotChecked"],
@@ -36,8 +37,10 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
     {
         get
         {
-            var lines = new List<string> { File.Path, $"{Strings["Folder"]} · {File.Root.Path} ({File.Root.Priority})",
-                $"{Streams} · {Strings["Variant"]} {File.Variant}", $"{Strings["Embedded"]} · {Signature}" };
+            var lines = new List<string> { File.Path, $"{Strings["Folder"]} · {File.Root.Path} ({File.Root.Priority})" };
+            if (File.ModifiedUtc.HasValue) lines.Add($"{Strings["Modified"]} · {ModifiedText}");
+            lines.Add($"{Streams} · {Strings["Variant"]} {File.Variant}");
+            lines.Add($"{Strings["Embedded"]} · {Signature}");
             if (File.IsHardLink) lines.Add(Strings["HardLink"]);
             if (File.Diagnostic != null) lines.Add(File.Diagnostic);
             if (RecycleError != null) lines.Add(RecycleError);
@@ -63,6 +66,8 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
             return string.Join(Environment.NewLine, lines);
         }
     }
+
+    internal void Relocalize() => OnPropertyChanged(string.Empty);
 }
 
 public sealed class ResultsViewModel : ObservableObject
@@ -78,10 +83,15 @@ public sealed class ResultsViewModel : ObservableObject
     public ListCollectionView View { get => _view; private set => SetProperty(ref _view, value); }
     public IReadOnlyList<ResultRow> Rows => _rows;
     public int MarkedCount { get; private set; }
+    public bool CanMark { get; internal set => SetProperty(ref field, value); } = true;
 
     public void Replace(IEnumerable<FoundFile> files) => Install(files.Select(f => new ResultRow(f)).ToList());
 
-    public void Relocalize() => Install(_rows.Select(r => new ResultRow(r.File) { Marked = r.Marked, RecycleError = r.RecycleError }).ToList());
+    public void Relocalize()
+    {
+        foreach (var row in _rows) row.Relocalize();
+        View.Refresh();
+    }
 
     public void RemoveMoved(IReadOnlyList<RecycleResult> result)
     {

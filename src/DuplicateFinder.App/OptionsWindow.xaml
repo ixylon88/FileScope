@@ -1,58 +1,98 @@
-<Window x:Class="DuplicateFinder.App.OptionsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:FileScope.App.Localization"
- Title="{loc:Loc Options}" Style="{StaticResource AppWindowStyle}" Width="700" Height="645" MinWidth="520" MinHeight="500"
- WindowStartupLocation="CenterOwner">
-  <DockPanel Margin="18">
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-      <Button Content="{loc:Loc Cancel}" IsCancel="True" Style="{StaticResource BandButton}"/>
-      <Button x:Name="SaveButton" Content="{loc:Loc Save}" IsDefault="True" Click="Save" Style="{StaticResource BandButton}"/>
+<Window x:Class="DuplicateFinder.App.OptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:FileScope.App.Localization"
+        Title="{loc:Loc Options}" Style="{StaticResource AppWindowStyle}"
+        Width="710" Height="650" MinWidth="520" MinHeight="480" WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+      <Border Width="44" Height="44" CornerRadius="10" Margin="0,0,14,0" Background="{DynamicResource SystemFillColorAttentionBrush}">
+        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" />
+      </Border>
+      <TextBlock Text="{loc:Loc Options}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
     </StackPanel>
-    <Grid>
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <TextBlock Text="{loc:Loc PriorityHint}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-      <DataGrid x:Name="RootsGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
-                SelectionMode="Extended">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="{loc:Loc Folder}" Binding="{Binding Path, Mode=OneWay}" Width="*" IsReadOnly="True"/>
-          <DataGridTextColumn Header="{loc:Loc Priority}" Binding="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
-        </DataGrid.Columns>
-      </DataGrid>
-      <StackPanel Grid.Row="2">
-        <WrapPanel Margin="0,8,0,4">
-          <Button Content="{loc:Loc Add}" Click="AddFolders" Style="{StaticResource BandButton}"/>
-          <Button Content="{loc:Loc Remove}" Click="RemoveFolders" Style="{StaticResource BandButton}"/>
-        </WrapPanel>
-        <TextBlock Text="{loc:Loc IntakeSize}" FontWeight="SemiBold"/>
-        <WrapPanel Margin="0,4,0,3">
-          <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
-            <Label Content="{loc:Loc SizeFrom}" Target="{Binding ElementName=MinimumSize}" VerticalAlignment="Center"/>
-            <TextBox x:Name="MinimumSize" Width="104" VerticalContentAlignment="Center"/>
-            <ComboBox x:Name="MinimumUnit" MinWidth="66" Margin="4,0,0,0" DisplayMemberPath="Value" SelectedValuePath="Key"
-                      IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="{loc:Loc MinimumSizeUnit}"/>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <Label Content="{loc:Loc SizeTo}" Target="{Binding ElementName=MaximumSize}" VerticalAlignment="Center"/>
-            <TextBox x:Name="MaximumSize" Width="104" VerticalContentAlignment="Center"/>
-            <ComboBox x:Name="MaximumUnit" MinWidth="66" Margin="4,0,0,0" DisplayMemberPath="Value" SelectedValuePath="Key"
-                      IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="{loc:Loc MaximumSizeUnit}"/>
-          </StackPanel>
-        </WrapPanel>
-        <TextBlock Text="{loc:Loc IntakeSizeHint}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8"/>
-        <TextBlock Text="{loc:Loc Hashes}" FontWeight="SemiBold"/>
-        <WrapPanel x:Name="HashOptions" Margin="0,4,0,7"/>
-        <WrapPanel>
-          <CheckBox x:Name="Embedded" Content="{loc:Loc Embedded}" Margin="0,4,16,4"/>
-          <CheckBox x:Name="Catalogs" Content="{loc:Loc Catalog}" Margin="0,4,16,4"/>
-          <CheckBox x:Name="Online" Content="{loc:Loc Online}" Margin="0,4,0,4"/>
-        </WrapPanel>
-        <WrapPanel Margin="0,8,0,0">
-          <TextBlock Text="{loc:Loc Language}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <ComboBox x:Name="Languages" MinWidth="125" DisplayMemberPath="NativeName" SelectedValuePath="CultureName"/>
-          <TextBlock Text="{loc:Loc Theme}" VerticalAlignment="Center" Margin="18,0,8,0"/>
-          <ComboBox x:Name="Themes" MinWidth="115"/>
-        </WrapPanel>
-        <TextBlock x:Name="Validation" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+
+    <Grid Grid.Row="1" Margin="0,0,0,18">
+      <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,8,0">
+        <TextBlock Text="{loc:Loc Language}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="Languages" DisplayMemberPath="NativeName" SelectedValuePath="CultureName" MinHeight="34"
+                  AutomationProperties.Name="{loc:Loc Language}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Margin="8,0,0,0">
+        <TextBlock Text="{loc:Loc Theme}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="Themes" MinHeight="34" AutomationProperties.Name="{loc:Loc Theme}" />
       </StackPanel>
     </Grid>
-  </DockPanel>
+
+    <TabControl Grid.Row="2">
+      <TabItem x:Name="SearchTab" Header="{loc:Loc SearchFolders}">
+        <Grid Margin="12">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Text="{loc:Loc PriorityHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,10" />
+          <DataGrid x:Name="RootsGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                    HeadersVisibility="Column" SelectionMode="Extended" AutomationProperties.Name="{loc:Loc SearchFolders}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="{loc:Loc Folder}" Binding="{Binding Path, Mode=OneWay}" Width="*" IsReadOnly="True" />
+              <DataGridTextColumn Header="{loc:Loc Priority}" Binding="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+            </DataGrid.Columns>
+          </DataGrid>
+          <WrapPanel Grid.Row="2" Margin="0,8,0,6">
+            <Button Content="{loc:Loc Add}" Click="AddFolders" Style="{StaticResource BandButton}" />
+            <Button Content="{loc:Loc Remove}" Click="RemoveFolders" Style="{StaticResource BandButton}" />
+          </WrapPanel>
+          <StackPanel Grid.Row="3">
+            <TextBlock Text="{loc:Loc IntakeSize}" Style="{StaticResource GroupHeading}" Margin="0,0,0,5" />
+            <WrapPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                <Label Content="{loc:Loc SizeFrom}" Target="{Binding ElementName=MinimumSize}" VerticalAlignment="Center" />
+                <TextBox x:Name="MinimumSize" Width="90" VerticalContentAlignment="Center" />
+                <ComboBox x:Name="MinimumUnit" MinWidth="65" Margin="4,0,0,0" DisplayMemberPath="Value" SelectedValuePath="Key"
+                          IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="{loc:Loc MinimumSizeUnit}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <Label Content="{loc:Loc SizeTo}" Target="{Binding ElementName=MaximumSize}" VerticalAlignment="Center" />
+                <TextBox x:Name="MaximumSize" Width="90" VerticalContentAlignment="Center" />
+                <ComboBox x:Name="MaximumUnit" MinWidth="65" Margin="4,0,0,0" DisplayMemberPath="Value" SelectedValuePath="Key"
+                          IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="{loc:Loc MaximumSizeUnit}" />
+              </StackPanel>
+            </WrapPanel>
+            <TextBlock Text="{loc:Loc IntakeSizeHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+      <TabItem Header="{loc:Loc Analysis}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="12">
+            <TextBlock Text="{loc:Loc Hashes}" Style="{StaticResource GroupHeading}" />
+            <WrapPanel x:Name="HashOptions" />
+            <Separator Margin="0,16" />
+            <TextBlock Text="{loc:Loc Signatures}" Style="{StaticResource GroupHeading}" />
+            <CheckBox x:Name="Embedded" Content="{loc:Loc Embedded}" Margin="0,0,0,8" />
+            <CheckBox x:Name="Catalogs" Content="{loc:Loc Catalog}" Margin="0,0,0,8" />
+            <CheckBox x:Name="Online" Content="{loc:Loc Online}" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <DockPanel Grid.Row="3" Margin="0,14,0,0">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="{loc:Loc Cancel}" IsCancel="True" Style="{StaticResource BandButton}" />
+        <Button x:Name="SaveButton" Content="{loc:Loc Save}" IsDefault="True" Click="Save" Style="{StaticResource BandButton}" Margin="0,0,0,6" />
+      </StackPanel>
+      <TextBlock x:Name="Validation" VerticalAlignment="Center" Margin="0,0,14,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                 TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    </DockPanel>
+  </Grid>
 </Window>

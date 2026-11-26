@@ -7,7 +7,7 @@ namespace DuplicateFinder.App;
 
 public partial class ReportWindow : Window
 {
-    protected static LocalizationService Strings => LocalizationService.Instance;
+    private static LocalizationService Strings => LocalizationService.Instance;
     public ReportWindow(string title, string intro, IEnumerable<string> lines, bool confirm = false)
     {
         InitializeComponent();
@@ -38,6 +38,3 @@ public partial class ReportWindow : Window
         return window;
     }
 }
-
-public sealed class ShortcutsWindow() : ReportWindow(Strings["Shortcuts"], "DuplicateFinder",
-    new[] { Strings["KeyScan"], Strings["KeyFilter"], Strings["KeyMark"], Strings["KeyCancel"], Strings["KeyHelp"] });

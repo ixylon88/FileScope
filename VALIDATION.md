@@ -1,5 +1,13 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder – Dateidetails, Dunkelmodus und Hash-Vorauswahl
+
+Basis `fcb20b9` auf `dev`, SDK 10.0.404. Der Ausgangsstand mit dem Größenfilter und dem festen Testkatalog bestand beide Windows-Jobs einschließlich WPF und Publish. [GitHub Actions, Lauf 11](https://github.com/ixylon88/FileScope/actions/runs/45868157743)
+
+Die überarbeitete Solution kompilierte unter Linux x64 in Release ohne Warnungen. Die direkten MSTest-Läufe bestanden mit 21 DuplicateFinder-Core-, 22 FileScope-Core- und 33 Präsentationsfällen. Der neue Core-Test vergleicht die gemeldeten Hash- und Signaturphasen bei einmaliger und mehrfach vorkommender Größe. Alle 66 Skriptprüfbedingungen bestanden. Die vier Publish-Varianten für x64 und ARM64 enthielten die überarbeiteten WPF-Fenster und die Sprachressourcen.
+
+Die neuen WPF-Fälle prüfen den Fokuswechsel ins kopierbare Detailfeld samt UTC-Änderungsdatum und den Tabellenhintergrund während eines Jobs. Die Ausführung dieser Fassung der WPF-Tests erfordert Windows.
+
 ## DuplicateFinder – Katalogtest und Größenfilter
 
 Basis `058980b` auf `dev`, SDK 10.0.404. Im CI-Lauf 10 meldeten x64 und ARM64 denselben Fehler. Jeweils 16 von 17 DuplicateFinder-Tests bestanden, darunter die nativen NTFS- und Papierkorbtests. Im verbleibenden Test beendete sich Windows PowerShell beim Erzeugen des Testkatalogs mit Exitcode 1. Weder das Jobprotokoll noch der TRX-Bericht enthielten die PowerShell-Fehlermeldung. Die nachfolgenden WPF- und Publish-Schritte wurden dadurch nicht erreicht. [GitHub Actions, Lauf 10](https://github.com/ixylon88/FileScope/actions/runs/45855826683)

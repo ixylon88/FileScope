@@ -81,6 +81,7 @@ public partial class MainWindow : Window
             // The actual checkbox supports keyboard and UI Automation through its two-way binding.
             if (element is CheckBox { DataContext: ResultRow checkedRow })
             {
+                Files.SelectedItem = checkedRow;
                 Files.CurrentCell = new DataGridCellInfo(checkedRow, Files.Columns[0]);
                 return;
             }
@@ -88,11 +89,6 @@ public partial class MainWindow : Window
         }
         if (element is not DataGridRow { Item: ResultRow row }) return;
         if (e.ClickCount == 1) row.Marked = !row.Marked;
-    }
-
-    private void FocusChanged(object? sender, EventArgs e)
-    {
-        if (DetailsBox != null) DetailsBox.Text = (Files.CurrentItem as ResultRow)?.Details ?? "";
     }
 
     private void WindowKeyDown(object sender, KeyEventArgs e)
@@ -202,10 +198,10 @@ public partial class MainWindow : Window
 
         var report = result.Select(r => $"{Strings[r.Moved ? "Moved" : "Skipped"]} · {r.File.Path}  {r.Reason}").ToList();
         if (result.Count < items.Count) report.Add(Strings.Format("Unprocessed", items.Count - result.Count));
-        ShowReport(new(Strings["Recycle"], Strings.Format("RecycledCount", result.Count(r => r.Moved), items.Count), report));
+        ShowOwnedDialog(new ReportWindow(Strings["Recycle"], Strings.Format("RecycledCount", result.Count(r => r.Moved), items.Count), report));
     }
 
-    private async Task RunJobAsync(Func<CancellationToken, Task> work)
+    internal async Task RunJobAsync(Func<CancellationToken, Task> work)
     {
         if (_job != null) return;
         using var job = new CancellationTokenSource();
@@ -232,7 +228,8 @@ public partial class MainWindow : Window
     private void UpdateButtons()
     {
         var idle = _job == null;
-        Files.IsEnabled = idle;
+        // Disable marking only. Fluent paints the entire grid white in its disabled state.
+        _model.CanMark = idle;
         OptionsButton.IsEnabled = idle;
         ScanButton.IsEnabled = idle && _preferences.Roots.Length != 0;
         CancelButton.IsEnabled = !idle;
@@ -258,10 +255,16 @@ public partial class MainWindow : Window
     private void ShowError(Exception ex) => MessageBox.Show(this, ex.Message, "DuplicateFinder", MessageBoxButton.OK, MessageBoxImage.Error);
 
     private void ShowIssues(object sender, RoutedEventArgs e) =>
-        ShowReport(new(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
-    private void ShowAbout(object sender, RoutedEventArgs e) => ShowReport(ReportWindow.About());
-    private void ShowShortcuts(object sender, RoutedEventArgs e) => ShowReport(new ShortcutsWindow());
-    private void ShowReport(ReportWindow window) { window.Owner = this; window.ShowDialog(); }
+        ShowOwnedDialog(new ReportWindow(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
+    private void ShowAbout(object sender, RoutedEventArgs e) => ShowOwnedDialog(ReportWindow.About());
+    private void ShowShortcuts(object sender, RoutedEventArgs e) => ShowOwnedDialog(new ShortcutsWindow());
+
+    private void ShowOwnedDialog(Window window)
+    {
+        window.Owner = this;
+        window.ShowDialog();
+    }
+
     private void CancelJob(object sender, RoutedEventArgs e) => _job?.Cancel();
     private void WindowClosing(object? sender, CancelEventArgs e)
     {

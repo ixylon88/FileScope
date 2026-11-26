@@ -25,7 +25,7 @@
   <data name="Publisher" xml:space="preserve"><value>Herausgeber</value></data>
   <data name="Diagnostics" xml:space="preserve"><value>Diagnose</value></data>
   <data name="Path" xml:space="preserve"><value>Pfad</value></data>
-  <data name="Details" xml:space="preserve"><value>Ausgewählte Datei · Details und Kopieren</value></data>
+  <data name="Details" xml:space="preserve"><value>Ausgewählte Datei · Details und Kopieren:</value></data>
   <data name="Mark" xml:space="preserve"><value>Für den Papierkorb markieren</value></data>
   <data name="Folder" xml:space="preserve"><value>Suchordner</value></data>
   <data name="PriorityHint" xml:space="preserve"><value>Gib jedem Suchordner eine Aufbewahrungspriorität. Je höher die Zahl, desto eher bleiben seine Kopien erhalten. Zum Bearbeiten auf die Zahl doppelklicken.</value></data>
@@ -68,11 +68,11 @@
   <data name="About1" xml:space="preserve"><value>• Findet bytegleiche Dateien in Suchordnern mit Aufbewahrungsprioritäten.</value></data>
   <data name="About2" xml:space="preserve"><value>• Berechnet gewählte Prüfsummen in einem Lesedurchlauf, vergleicht danach Dateiinhalte und Zusatzdatenströme.</value></data>
   <data name="About3" xml:space="preserve"><value>• Prüft eingebettete Signaturen und Katalogsignaturen. Verschiebt bestätigte Kopien oder eine manuelle Auswahl in den Papierkorb.</value></data>
-  <data name="KeyScan" xml:space="preserve"><value>F5   Eingerichtete Suchordner durchsuchen</value></data>
-  <data name="KeyFilter" xml:space="preserve"><value>Strg+F   Tabellenfilter fokussieren</value></data>
-  <data name="KeyMark" xml:space="preserve"><value>Leertaste   Markierung der fokussierten Datei umschalten</value></data>
-  <data name="KeyCancel" xml:space="preserve"><value>Esc   Laufenden Vorgang abbrechen</value></data>
-  <data name="KeyHelp" xml:space="preserve"><value>F1   Tastenkürzel öffnen</value></data>
+  <data name="KeyScan" xml:space="preserve"><value>Eingerichtete Suchordner durchsuchen</value></data>
+  <data name="KeyFilter" xml:space="preserve"><value>Zum Tabellenfilter springen</value></data>
+  <data name="KeyMark" xml:space="preserve"><value>Häkchen bei der fokussierten Datei setzen oder entfernen</value></data>
+  <data name="KeyCancel" xml:space="preserve"><value>Laufenden Vorgang abbrechen</value></data>
+  <data name="KeyHelp" xml:space="preserve"><value>Tastenkürzel öffnen</value></data>
   <data name="Moved" xml:space="preserve"><value>In den Papierkorb verschoben</value></data>
   <data name="Skipped" xml:space="preserve"><value>Übersprungen</value></data>
   <data name="Unprocessed" xml:space="preserve"><value>{0:N0} Dateien wurden nicht bearbeitet.</value></data>
@@ -108,4 +108,15 @@
   <data name="IntakeSizeHint" xml:space="preserve"><value>Beide Grenzen sind einschließlich. Ein leeres Feld lässt die jeweilige Grenze offen. 1 kB = 1.000 Byte.</value></data>
   <data name="BadSize" xml:space="preserve"><value>Bitte eine nichtnegative Größe eingeben, die eine ganze Bytezahl ergibt und in 64 Bit passt.</value></data>
   <data name="ReversedSizes" xml:space="preserve"><value>Die Mindestgröße darf die Höchstgröße nicht überschreiten.</value></data>
+  <data name="Modified" xml:space="preserve"><value>Änderungsdatum</value></data>
+  <data name="SearchFolders" xml:space="preserve"><value>Suchordner</value></data>
+  <data name="Analysis" xml:space="preserve"><value>Analyse</value></data>
+  <data name="Signatures" xml:space="preserve"><value>Signaturen</value></data>
+  <data name="ShortcutActions" xml:space="preserve"><value>Befehle</value></data>
+  <data name="ShortcutResults" xml:space="preserve"><value>Ergebnisliste und Dateidetails</value></data>
+  <data name="KeysFilter" xml:space="preserve"><value>Strg+F</value></data>
+  <data name="KeysMark" xml:space="preserve"><value>Leertaste</value></data>
+  <data name="KeysCopy" xml:space="preserve"><value>Strg+C</value></data>
+  <data name="KeyCopy" xml:space="preserve"><value>Markierten Text aus den Dateidetails kopieren</value></data>
+  <data name="Stage_Metadata" xml:space="preserve"><value>Dateimetadaten prüfen</value></data>
 </root>

@@ -10,19 +10,26 @@ In Visual Studio lässt sich `DuplicateFinder.App` als Startprojekt wählen. Aus
 dotnet run --project src/DuplicateFinder.App
 ```
 
-Unter **Optionen → Ordner hinzufügen** die Suchordner wählen. Neue Suchordner beginnen gleichrangig bei 0. Ein Doppelklick auf eine Priorität macht sie editierbar. Beispielsweise kann das Archiv die Priorität 10 und der Downloadordner die Priorität 1 erhalten. **Speichern** übernimmt die Einstellungen. **Ordner durchsuchen** oder **F5** startet den Suchlauf. **Strg+F** fokussiert den Tabellenfilter. Die Filterung erfasst unter anderem Pfade, Prüfsummen und Herausgeber. In den Dateidetails lassen sich Prüfsummen, Diagnosen und Katalogpfade kopieren.
+Unter **Optionen → Suchordner → Ordner hinzufügen** die Suchordner wählen. Neue Suchordner beginnen gleichrangig bei 0. Ein Doppelklick auf eine Priorität macht sie editierbar. Beispielsweise kann das Archiv die Priorität 10 und der Downloadordner die Priorität 1 erhalten. **Speichern** übernimmt die Einstellungen. **Ordner durchsuchen** oder **F5** startet den Suchlauf. **Strg+F** fokussiert den Tabellenfilter. Die Filterung erfasst unter anderem Pfade, Prüfsummen und Herausgeber.
 
 ## Ergebnisse und Bedienung
 
-Unter **Optionen → Dateigröße beim Einlesen** lassen sich eine Mindest- und eine Höchstgröße für den Hauptdatenstrom setzen. Anfangs sind beide Felder leer und alle Größen zugelassen. Jede Grenze lässt sich einzeln setzen und zählt mit. **Von 200 kB bis 1,5 MB** erfasst beispielsweise 200.000 bis 1.500.000 Byte. **Bis 0 B** findet ausschließlich leere Hauptdatenströme. Pro Feld stehen B, kB, MB und GB zur Wahl (1 kB = 1.000 Byte).
+Unter **Optionen → Suchordner → Dateigröße beim Einlesen** lassen sich eine Mindest- und eine Höchstgröße für den Hauptdatenstrom setzen. Anfangs sind beide Felder leer und alle Größen zugelassen. Jede Grenze lässt sich einzeln setzen und zählt mit. **Von 200 kB bis 1,5 MB** erfasst beispielsweise 200.000 bis 1.500.000 Byte. **Bis 0 B** findet ausschließlich leere Hauptdatenströme. Pro Feld stehen B, kB, MB und GB zur Wahl (1 kB = 1.000 Byte).
 
 Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einer aufgenommenen Datei liefern.
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
 
-Nach der Vorauswahl anhand der Dateigröße berechnet `FileScope.Core` alle gewählten Prüfsummen in einem Lesedurchlauf über den Hauptdatenstrom. Für die Suche genügt SHA-256. Stimmen Größe und Hash überein, vergleicht DuplicateFinder den Hauptdatenstrom der Kandidaten zusätzlich Byte für Byte. Jede bestätigte Gruppe lässt sich aufklappen. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität.
+Jede Duplikatgruppe lässt sich aufklappen. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Der aufklappbare Bereich **Ausgewählte Datei · Details und Kopieren** zeigt den vollständigen Pfad der aktiven Zeile. Im Textfeld lassen sich beispielsweise Prüfsummen oder Katalogpfade markieren und mit **Strg+C** kopieren.
 
-Eine Checkbox am Zeilenanfang, ein Klick auf die Zeile und ihre farbige Hervorhebung bedienen dieselbe manuelle Auswahl. Bei großen Ergebnismengen bestimmen die gefilterten Ergebnisdaten den Umfang der Aktionen. Dadurch können Gruppen zugeklappt bleiben.
+Die Häkchen bestimmen die manuelle Auswahl für den Papierkorb. Ein Klick auf eine Zeile oder ihr Kästchen schaltet die Markierung um. Mit den Pfeiltasten lässt sich eine andere Datei ansehen, während die Häkchen erhalten bleiben. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
+
+## Wie die Duplikatsuche arbeitet
+
+1. **Dateien erfassen.** DuplicateFinder ermittelt Dateigröße, Änderungszeit und Datei-ID und wendet die eingestellten Größengrenzen an. Mehrere Hardlinks auf dieselbe Datei zählen einmal.
+2. **Nach Größe vorsortieren.** Nur wenn mindestens zwei verschiedene Dateien dieselbe Größe in Byte haben, berechnet `FileScope.Core` SHA-256 und alle zusätzlich gewählten Prüfsummen in einem gemeinsamen Lesedurchlauf. Bei einer einmaligen Größe bleiben die Prüfsummenfelder leer. Zwei gleich große Dateien mit unterschiedlichem Inhalt erhalten also beide einen Hash, auch wenn am Ende beide einzeln stehen.
+3. **Signaturen prüfen, falls aktiviert.** Eingebettete Signaturen und Katalogzuordnungen werden für jede aufgenommene, lesbare Datei geprüft, auch bei einmaliger Größe. Windows kann dafür zusätzliche Daten lesen und eigene Kataloghashes berechnen.
+4. **Identität bestätigen.** Bei gleicher Größe und gleichem SHA-256 vergleicht DuplicateFinder den Hauptdatenstrom Byte für Byte. Erst übereinstimmende Inhalte bilden eine Duplikatgruppe. Innerhalb dieser Gruppe prüft die App auch Namen und Inhalte der NTFS-Zusatzdatenströme. Die automatische Bereinigung berücksichtigt die Aufbewahrungsprioritäten innerhalb jeder vollständig geprüften, identischen Variante.
 
 ## Bereinigung
 
