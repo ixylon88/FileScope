@@ -1,5 +1,11 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Produktordner für Publish
+
+Auf `dev` bei `68f3873` brachen beide Windows-Jobs im Skripttest ab, weil er für FileScope noch den früheren Ausgabeordner erwartete. Der vorherige Lauf hatte die nativen Tests und die WPF-Tests auf x64 und ARM64 bestanden. [CI-Lauf 17](https://github.com/ixylon88/FileScope/actions/runs/45903348307) · [CI-Lauf 16](https://github.com/ixylon88/FileScope/actions/runs/45902764988)
+
+Unter Linux x64 mit dem .NET SDK 10.0.404 bestanden alle 91 Skriptprüfungen. Die acht Publish-Aufrufe aus dem Workflow erzeugten ihre Pakete in den konfigurierten Upload-Ordnern. Für jedes Paket wurden EXE-Architektur, Runtime-Konfiguration, Lizenz sowie deutsche und chinesische Sprachressourcen geprüft.
+
 ## DuplicateFinder-Skripte, VS-Code-Tasks und FileScope-Katalogtest
 
 Basis ist `e9e2163` auf `dev`. Beide Windows-Jobs brachen in `FileScopeFindsOnlyTheSuppliedCatalogMember` ab. Der Test erwartete genau einen Treffer für den gesamten Katalogpfad. Der mitgelieferte V2-Katalog enthält den SHA-256-Mitgliedseintrag und einen SHA-1-Suchschlüssel. Die Prüfung wählt jetzt den eindeutigen Treffer anhand von Pfad und SHA-256-Mitgliedskennung. Bei einer um ein Bit geänderten Datei muss die vollständige Suche für diesen Katalog weiterhin leer bleiben. [CI-Lauf 15](https://github.com/ixylon88/FileScope/actions/runs/45901013141)
@@ -856,7 +862,7 @@ Mit `-SignedFile 'C:\Pfad\zur\signierten-datei.exe'` kann zusätzlich eine bekan
 
 18. Verarbeitungs- und Signaturstatus müssen dieselbe abgerundete Form, Abstände und Schrift verwenden. Gültige Signaturen erscheinen grün; fehlendes Vertrauen, unbekannter Sperrstatus und nicht unterstützte Prüfung gelb; ungültige, abgelaufene, gesperrte und fehlgeschlagene Prüfungen rot; ungeprüfte/unsignierte Dateien grau. Bei mehreren Signaturen wechseln Text und Farbe gemeinsam mit der Auswahl. Alle drei Sprachen, lange Beschriftungen mit Tooltip, Sortieren, Kopieren per Ctrl+C, Spaltenausblendung sowie Scrollen mit wiederverwendeten Zeilen kontrollieren.
 
-19. `FileScope.code-workspace` öffnen. Build über Ctrl+Shift+B starten; Publish und Verify über „Terminal → Task ausführen“. Einmal aus einem Pfad mit Leerzeichen prüfen. Publish muss unter `artifacts/publish/win-x64` einschließlich Sprachordnern landen.
+19. `FileScope.code-workspace` öffnen. Build über Ctrl+Shift+B starten; Publish und Verify über „Terminal → Task ausführen“. Einmal aus einem Pfad mit Leerzeichen prüfen. FileScope-Publish muss unter `artifacts/publish/FileScope/win-x64/` einschließlich Sprachordnern landen.
 20. Beide neuen Häkchen zunächst einzeln, dann gemeinsam aktivieren. EXE/DLL mit Versionsressourcen, eine .NET-AnyCPU-DLL, eine native Datei sowie eine Textdatei ablegen. Versionsfelder mit den Windows-Dateieigenschaften vergleichen; Textdateien müssen leere PE-Felder behalten. Eine PE-Datei in `.bin` umbenennen und erneut prüfen: PE-Angaben bleiben gleich, die Windows-Dateitypbezeichnung darf sich ändern.
 21. Beide Metadaten-Häkchen setzen, App neu starten und die Wiederherstellung prüfen. Ausschalten blendet jeweils die zugehörigen Spalten aus. Für bestehende Zeilen nach dem Einschalten „Alle neu prüfen“ verwenden. Neue Spalten unter Optionen umordnen, nach Metadaten suchen und Werte kopieren; Sprach- und Hashformatwechsel dürfen die Originalwerte nicht verändern.
 

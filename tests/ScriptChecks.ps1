@@ -173,12 +173,9 @@ try {
 
     foreach ($product in @('FileScope', 'DuplicateFinder')) {
         $project = Join-Path $fixture "src/$product.App/$product.App.csproj"
-        $publishRoot = Join-Path $fixture 'artifacts/publish'
-        $otherRoot = Join-Path $publishRoot 'DuplicateFinder'
-        if ($product -eq 'DuplicateFinder') {
-            $otherRoot = $publishRoot
-            $publishRoot = Join-Path $publishRoot 'DuplicateFinder'
-        }
+        $otherProduct = if ($product -eq 'FileScope') { 'DuplicateFinder' } else { 'FileScope' }
+        $publishRoot = Join-Path $fixture "artifacts/publish/$product"
+        $otherRoot = Join-Path $fixture "artifacts/publish/$otherProduct"
 
         foreach ($runtime in @('win-x64', 'win-arm64')) {
             foreach ($selfContained in @($false, $true)) {
@@ -186,7 +183,10 @@ try {
                 $output = Join-Path $publishRoot $name
                 $stale = Join-Path $output 'stale.txt'
                 $other = Join-Path (Join-Path $otherRoot $name) 'keep.txt'
-                foreach ($path in @($stale, $other)) {
+
+                $otherVariant = if ($selfContained) { $runtime } else { "${runtime}_self-contained" }
+                $sibling = Join-Path $publishRoot "$otherVariant/keep.txt"
+                foreach ($path in @($stale, $other, $sibling)) {
                     [void](New-Item -ItemType Directory -Path (Split-Path $path -Parent) -Force)
                     Set-Content -LiteralPath $path -Value 'Existing output.'
                 }
@@ -203,7 +203,8 @@ try {
                     $call.Arguments -contains '-p:PublishTrimmed=false' -and
                     (($call.Arguments -contains '-p:TargetLatestRuntimePatch=true') -eq $selfContained)) "$product publishes the requested deployment: $name"
                 Check (-not (Test-Path -LiteralPath $stale) -and (Test-Path -LiteralPath $other) -and
-                    (Test-Path -LiteralPath $preserved) -and $result.LocationRestored) "$product cleans only its selected publish directory: $name"
+                    (Test-Path -LiteralPath $sibling) -and (Test-Path -LiteralPath $preserved) -and
+                    $result.LocationRestored) "$product cleans only its selected publish directory: $name"
             }
         }
     }

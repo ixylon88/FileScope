@@ -27,7 +27,7 @@ damit Hintergrundfarben nicht in die nächste Zeile weiterlaufen.
 .\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 ```
 
-Für DuplicateFinder erhalten Build, Start, Verify und Publish denselben Schalter. Die Pakete liegen unter `artifacts/publish/DuplicateFinder/` in einem eigenen Verzeichnis pro Architektur und Bereitstellungsart.
+Für DuplicateFinder erhalten Build, Start, Verify und Publish denselben Schalter. Die Pakete liegen je nach gewählter App unter `artifacts/publish/FileScope/` oder `artifacts/publish/DuplicateFinder/`. Darunter erhält jede Kombination aus Architektur und Bereitstellungsart ihren eigenen Ordner.
 
 ```powershell
 .\Build.ps1 -Application DuplicateFinder -Run -Runtime win-x64
