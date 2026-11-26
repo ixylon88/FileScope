@@ -29,6 +29,8 @@ damit Hintergrundfarben nicht in die nächste Zeile weiterlaufen.
 .\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
 ```
 
+Für DuplicateFinder wählt `.\Build.ps1 -Application DuplicateFinder -Publish -Runtime win-arm64` die zweite App. Die Pakete liegen unter `artifacts/publish/DuplicateFinder/`. Auch hier erzeugt `-SelfContained` ein eigenständig lauffähiges Paket.
+
 `-NoColor` bzw. die Umgebungsvariable `NO_COLOR` deaktiviert die Farben der
 Skriptmeldungen. Externe Programme steuern ihre eigene Ausgabe. `-Verbosity`
 regelt die .NET-Ausführlichkeit. Alle Meldungen behalten lesbare Phasennamen;
@@ -39,8 +41,8 @@ vorher relativ zum aufrufenden Verzeichnis aufgelöst.
 
 ## MSTest in Visual Studio und Konsole
 
-Die Solution enthält `FileScope.Core.Tests`, `FileScope.Presentation.Tests` und
-`FileScope.Ui.Tests`. Alle verwenden `MSTest.Sdk`; dessen Version und der
+Die Solution enthält `FileScope.Core.Tests`, `FileScope.Presentation.Tests`,
+`FileScope.Ui.Tests`, `DuplicateFinder.Tests` und `DuplicateFinder.Ui.Tests`. Alle verwenden `MSTest.Sdk`; dessen Version und der
 Test-Runner `Microsoft.Testing.Platform` sind in `global.json` festgelegt.
 Das SDK liefert Framework, Adapter und Runner. Das Erweiterungsprofil bleibt
 bei `None`; nur die Ausgabe von TRX-Berichten wird zusätzlich aktiviert.
@@ -72,9 +74,9 @@ dotnet test --project tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj -c 
 ```
 
 `Verify.ps1` ergänzt die PowerShell-Skripttests und den Lösungsbuild. Anschließend
-startet es die drei festen Testprojekte mit `dotnet test`. `-SkipBuild` lässt
+startet es die fünf Testprojekte mit `dotnet test`. `-SkipBuild` lässt
 nur den vorangestellten Lösungsbuild aus; die Testaufrufe bauen weiterhin ihre
-Projekte und Referenzen. `-SkipUi` überspringt die WPF-Gruppe. Ohne expliziten
+Projekte und Referenzen. `-SkipUi` überspringt beide WPF-Testprojekte. Ohne expliziten
 Windows-RID laufen unter Linux die Core- und Präsentationstests; ein vollständiger
 Solution-Testlauf einschließlich WPF benötigt Windows.
 
@@ -300,8 +302,7 @@ oder Pull Requests ersetzt dagegen einen noch laufenden älteren Lauf.
 Erst nach erfolgreichem Verify veröffentlicht `Build.ps1` nacheinander
 framework-dependent und self-contained. Die Upload-Schritte archivieren jeweils
 den vollständigen Publish-Ordner einschließlich Lizenz und Sprachressourcen.
-Die vier Artefakte heißen `FileScope-<Runtime>-framework-dependent` bzw.
-`FileScope-<Runtime>-self-contained` und bleiben 14 Tage verfügbar. Ein fehlender
+Pro App entstehen vier Artefakte. Ihre Namen beginnen mit `FileScope-` oder `DuplicateFinder-`, gefolgt von Runtime und Bereitstellungsart. Sie bleiben 14 Tage verfügbar. Ein fehlender
 Publish-Ordner ist ein Fehler. Die Pipeline erzeugt noch keinen GitHub-Release
 und prüft das sichtbare Erscheinungsbild der veröffentlichten EXEs nicht.
 

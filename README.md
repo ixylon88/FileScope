@@ -15,7 +15,9 @@ FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technis
 
 Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt. Nur die ausdrücklich gewählte Kontextmenü-Aktion zum Verschieben ändert Dateipfade.
 
-Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **zwei Produktionsprojekte und drei MSTest-Projekte**. Der vollständige Quelltext liegt bei. Microsoft-Analyzer und MSTest werden für Entwicklung und Tests verwendet; die App benötigt keine zusätzlichen Bibliothekspakete zur Laufzeit.
+Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **vier Produktionsprojekte und fünf MSTest-Projekte**. Der vollständige Quelltext liegt bei. Microsoft-Analyzer und MSTest werden für Entwicklung und Tests verwendet; die App benötigt keine zusätzlichen Bibliothekspakete zur Laufzeit.
+
+Für den Vergleich mehrerer Suchordner enthält die Projektmappe außerdem **DuplicateFinder**. Die zweite Windows-App findet bytegleiche Kopien, berücksichtigt NTFS-Zusatzdatenströme und kann Kopien anhand von Ordnerprioritäten in den Papierkorb verschieben. [DuplicateFinder starten und bedienen](docs/DUPLICATEFINDER.md)
 
 ## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
 
@@ -611,14 +613,14 @@ Aktueller Ausführungsstand:
 
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
-| PowerShell-Skripte | **61 Prüfbedingungen unter Linux bestanden**; unter anderem VS-Code-Aufgaben, Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
+| PowerShell-Skripte | **66 Prüfbedingungen unter Linux bestanden**; unter anderem VS-Code-Aufgaben, Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
 | Präsentation, Einstellungen und Ressourcen | **33 Testfälle unter Linux bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen sowie **11** zusätzliche Konsistenzprüfungen. |
 | WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
+| DuplicateFinder / Core und Windows-Integration | **17 Fälle**, davon 14 unter Linux bestanden. Drei benötigen Windows und prüfen NTFS, Katalogzuordnung und den Papierkorb. |
+| DuplicateFinder / WPF | **4 Fälle** für Filterumfang, manuelle Markierungen, Bestätigung, Sprachen und Theme. |
 
-Die unveränderten Core- und UI-Testgruppen sind in der CI auf **Windows x64 und
-ARM64** bestätigt. Der Windows-/CI-Lauf mit den erweiterten Ressourcen- und
-Skriptprüfungen steht noch aus. Insgesamt sind **95 C#-Testfälle** vorhanden.
+Die Suite umfasst **116 C#-Testfälle**. Die bisherigen Windows-Ergebnisse in der Tabelle beziehen sich auf FileScope. Der erste native Windows-Lauf der neuen DuplicateFinder-Tests steht aus.
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

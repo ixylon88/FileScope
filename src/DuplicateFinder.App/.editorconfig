@@ -1,0 +1,4 @@
+# WPF: await normally preserves the UI synchronization context. ConfigureAwait(false) is not expected here, while "await myTask.ConfigureAwait(true);" is redundant (equivalent to "await myTask;").
+[*.cs]
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.VSTHRD111.severity = none

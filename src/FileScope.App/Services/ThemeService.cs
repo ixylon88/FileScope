@@ -39,7 +39,7 @@ public sealed class ThemeService : IThemeService
             // Load only when needed, and before replacing: failure keeps the old palette.
             var palette = new ResourceDictionary
             {
-                Source = new Uri($"/FileScope.App;component/Styles/Themes/{theme}ThemePalette.xaml", UriKind.Relative)
+                Source = new Uri($"/{typeof(ThemeService).Assembly.GetName().Name};component/Styles/Themes/{theme}ThemePalette.xaml", UriKind.Relative)
             };
             if (paletteHost == null)
             {

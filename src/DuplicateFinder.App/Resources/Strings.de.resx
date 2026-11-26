@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Menu" xml:space="preserve"><value>Menü</value></data>
+  <data name="Options" xml:space="preserve"><value>Optionen</value></data>
+  <data name="Scan" xml:space="preserve"><value>Ordner durchsuchen</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="Clean" xml:space="preserve"><value>Bereinigen…</value></data>
+  <data name="Recycle" xml:space="preserve"><value>In den Papierkorb</value></data>
+  <data name="Issues" xml:space="preserve"><value>Scandiagnosen</value></data>
+  <data name="Shortcuts" xml:space="preserve"><value>Tastenkürzel</value></data>
+  <data name="About" xml:space="preserve"><value>Über DuplicateFinder</value></data>
+  <data name="Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="FilterHint" xml:space="preserve"><value>Pfad, Name, SHA-256 oder Herausgeber</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Priority" xml:space="preserve"><value>Priorität</value></data>
+  <data name="Variant" xml:space="preserve"><value>Variante</value></data>
+  <data name="Bytes" xml:space="preserve"><value>Bytes</value></data>
+  <data name="Streams" xml:space="preserve"><value>Datenströme</value></data>
+  <data name="Embedded" xml:space="preserve"><value>Eingebettete Signatur</value></data>
+  <data name="Catalog" xml:space="preserve"><value>Katalogsignatur</value></data>
+  <data name="Publisher" xml:space="preserve"><value>Herausgeber</value></data>
+  <data name="Diagnostics" xml:space="preserve"><value>Diagnose</value></data>
+  <data name="Path" xml:space="preserve"><value>Pfad</value></data>
+  <data name="Details" xml:space="preserve"><value>Ausgewählte Datei · Details und Kopieren</value></data>
+  <data name="Mark" xml:space="preserve"><value>Für den Papierkorb markieren</value></data>
+  <data name="Folder" xml:space="preserve"><value>Suchordner</value></data>
+  <data name="PriorityHint" xml:space="preserve"><value>Gib jedem Suchordner eine Aufbewahrungspriorität. Je höher die Zahl, desto eher bleiben seine Kopien erhalten. Zum Bearbeiten auf die Zahl doppelklicken.</value></data>
+  <data name="BadPriority" xml:space="preserve"><value>Bitte für jede Priorität eine ganze Zahl eingeben.</value></data>
+  <data name="Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="Add" xml:space="preserve"><value>Ordner hinzufügen…</value></data>
+  <data name="Remove" xml:space="preserve"><value>Aus Liste entfernen</value></data>
+  <data name="Hashes" xml:space="preserve"><value>Prüfsummen für Dateien gleicher Größe</value></data>
+  <data name="Online" xml:space="preserve"><value>Online-Sperrprüfung</value></data>
+  <data name="Language" xml:space="preserve"><value>Sprache</value></data>
+  <data name="Theme" xml:space="preserve"><value>Design</value></data>
+  <data name="Light" xml:space="preserve"><value>Hell</value></data>
+  <data name="Dark" xml:space="preserve"><value>Dunkel</value></data>
+  <data name="Singles" xml:space="preserve"><value>Dateien ohne bestätigtes Duplikat</value></data>
+  <data name="Duplicates" xml:space="preserve"><value>Duplikatgruppen</value></data>
+  <data name="All" xml:space="preserve"><value>Alle Dateien</value></data>
+  <data name="AllSignatures" xml:space="preserve"><value>Alle eingebetteten Signaturen</value></data>
+  <data name="ExceptValid" xml:space="preserve"><value>Alles außer gültiger Signatur</value></data>
+  <data name="GroupNumber" xml:space="preserve"><value>Gruppe {0}</value></data>
+  <data name="Streams_Unmatched" xml:space="preserve"><value>Kein bestätigtes Duplikat</value></data>
+  <data name="Streams_Identical" xml:space="preserve"><value>Alle Datenströme identisch</value></data>
+  <data name="Streams_Different" xml:space="preserve"><value>Hauptdatenstrom identisch · Zusatzdatenströme unterschiedlich</value></data>
+  <data name="Streams_Unknown" xml:space="preserve"><value>Hauptdatenstrom identisch · Zusatzdatenströme unvollständig geprüft</value></data>
+  <data name="HardLink" xml:space="preserve"><value>Hardlink · von der automatischen Bereinigung ausgenommen</value></data>
+  <data name="Incomplete" xml:space="preserve"><value>Katalogsuche unvollständig</value></data>
+  <data name="NoCatalog" xml:space="preserve"><value>Kein passender Katalog gefunden</value></data>
+  <data name="Registered" xml:space="preserve"><value>Registrierter Katalog</value></data>
+  <data name="Loose" xml:space="preserve"><value>Katalog aus den Suchordnern</value></data>
+  <data name="ScopePrompt" xml:space="preserve"><value>Welche Dateien sollen in den Papierkorb verschoben werden?</value></data>
+  <data name="Visible" xml:space="preserve"><value>Nur angezeigte Dateien</value></data>
+  <data name="AllScanned" xml:space="preserve"><value>Alle gescannten Dateien</value></data>
+  <data name="VisibleHint" xml:space="preserve"><value>Enthält auch Filtertreffer in zugeklappten Gruppen und außerhalb des sichtbaren Tabellenausschnitts.</value></data>
+  <data name="KeepHint" xml:space="preserve"><value>Alle Kopien mit der höchsten Priorität ihrer vollständig identischen Variante bleiben erhalten.</value></data>
+  <data name="Counts" xml:space="preserve"><value>{0:N0} bereinigbare Dateien · {1:N0} Gruppen</value></data>
+  <data name="ManualPrompt" xml:space="preserve"><value>Diese {0:N0} markierten Dateien in den Papierkorb verschieben?</value></data>
+  <data name="LastCopy" xml:space="preserve"><value>Diese Auswahl umfasst für {0:N0} Dateiinhalte oder Datenstromvarianten sämtliche bekannten Kopien.</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Repo" xml:space="preserve"><value>GitHub-Repository</value></data>
+  <data name="License" xml:space="preserve"><value>Lizenz</value></data>
+  <data name="About1" xml:space="preserve"><value>• Findet bytegleiche Dateien in Suchordnern mit Aufbewahrungsprioritäten.</value></data>
+  <data name="About2" xml:space="preserve"><value>• Berechnet gewählte Prüfsummen in einem Lesedurchlauf, vergleicht danach Dateiinhalte und Zusatzdatenströme.</value></data>
+  <data name="About3" xml:space="preserve"><value>• Prüft eingebettete Signaturen und Katalogsignaturen. Verschiebt bestätigte Kopien oder eine manuelle Auswahl in den Papierkorb.</value></data>
+  <data name="KeyScan" xml:space="preserve"><value>F5   Eingerichtete Suchordner durchsuchen</value></data>
+  <data name="KeyFilter" xml:space="preserve"><value>Strg+F   Tabellenfilter fokussieren</value></data>
+  <data name="KeyMark" xml:space="preserve"><value>Leertaste   Markierung der fokussierten Datei umschalten</value></data>
+  <data name="KeyCancel" xml:space="preserve"><value>Esc   Laufenden Vorgang abbrechen</value></data>
+  <data name="KeyHelp" xml:space="preserve"><value>F1   Tastenkürzel öffnen</value></data>
+  <data name="Moved" xml:space="preserve"><value>In den Papierkorb verschoben</value></data>
+  <data name="Skipped" xml:space="preserve"><value>Übersprungen</value></data>
+  <data name="Unprocessed" xml:space="preserve"><value>{0:N0} Dateien wurden nicht bearbeitet.</value></data>
+  <data name="RecycledCount" xml:space="preserve"><value>{0:N0} von {1:N0} Dateien in den Papierkorb verschoben</value></data>
+  <data name="Cancelled" xml:space="preserve"><value>Abgebrochen</value></data>
+  <data name="StartHint" xml:space="preserve"><value>Lege unter Optionen deine Suchordner an, um die Suche zu starten.</value></data>
+  <data name="Summary" xml:space="preserve"><value>{0:N0} von {1:N0} Dateien · {2:N0} markiert · {3:N0} Scandiagnosen</value></data>
+  <data name="Stage_Search" xml:space="preserve"><value>Dateien suchen</value></data>
+  <data name="Stage_Hash" xml:space="preserve"><value>Prüfsummen lesen</value></data>
+  <data name="Stage_Signature" xml:space="preserve"><value>Eingebettete Signaturen prüfen</value></data>
+  <data name="Stage_Catalog" xml:space="preserve"><value>Kataloge prüfen</value></data>
+  <data name="Stage_Compare" xml:space="preserve"><value>Bytes vergleichen</value></data>
+  <data name="Stage_Recycle" xml:space="preserve"><value>Erneut prüfen und in den Papierkorb verschieben</value></data>
+  <data name="Signature_NotChecked" xml:space="preserve"><value>Nicht geprüft</value></data>
+  <data name="Signature_ValidOnline" xml:space="preserve"><value>Gültig · Online-Sperrprüfung</value></data>
+  <data name="Signature_ValidOffline" xml:space="preserve"><value>Gültig · Sperrprüfung aus Cache</value></data>
+  <data name="Signature_NoEmbeddedSignature" xml:space="preserve"><value>Keine eingebettete Signatur</value></data>
+  <data name="Signature_InvalidSignature" xml:space="preserve"><value>Ungültige Signatur / Prüfsumme</value></data>
+  <data name="Signature_Untrusted" xml:space="preserve"><value>Nicht vertrauenswürdig</value></data>
+  <data name="Signature_Expired" xml:space="preserve"><value>Zertifikatszeitraum ungültig</value></data>
+  <data name="Signature_Revoked" xml:space="preserve"><value>Zertifikat gesperrt</value></data>
+  <data name="Signature_RevocationUnknown" xml:space="preserve"><value>Sperrstatus unbekannt</value></data>
+  <data name="Signature_UnsupportedFormat" xml:space="preserve"><value>Signaturformat nicht unterstützt</value></data>
+  <data name="Signature_UnsupportedPlatform" xml:space="preserve"><value>Windows erforderlich</value></data>
+  <data name="Signature_CheckFailed" xml:space="preserve"><value>Signaturprüfung fehlgeschlagen</value></data>
+  <data name="Signature_Valid" xml:space="preserve"><value>Gültig</value></data>
+  <data name="CatalogUnsigned" xml:space="preserve"><value>Katalog ohne Signatur</value></data>
+</root>

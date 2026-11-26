@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>FileScope.App</RootNamespace>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Product>DuplicateFinder</Product>
+    <Description>Find and safely recycle duplicate files across prioritized search folders.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../DuplicateFinder.Core/DuplicateFinder.Core.csproj" />
+    <!-- Both executables use the same Fluent controls, palettes and language-switching behavior. -->
+    <Compile Include="../FileScope.App/Infrastructure/ObservableObject.cs;../FileScope.App/Infrastructure/Commands.cs" Link="Infrastructure/%(Filename)%(Extension)" />
+    <Compile Include="../FileScope.App/Presentation/SignatureGroup.cs" Link="Presentation/SignatureGroup.cs" />
+    <Compile Include="../FileScope.App/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <Compile Include="../FileScope.App/Services/*ThemeService.cs" Link="Services/%(Filename)%(Extension)" />
+    <Page Include="../FileScope.App/Styles/**/*.xaml" Link="Styles/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="DuplicateFinder.LICENSE" />
+  </ItemGroup>
+</Project>

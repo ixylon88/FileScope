@@ -10,8 +10,10 @@ public interface IFolderScanner
     FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default);
 }
 
-public sealed class FolderScanner : IFolderScanner
+public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderScanner
 {
+    public FolderScanner() : this(null) { }
+
     // An explicitly selected root may itself be a directory link. Within that root,
     // directory reparse points are never traversed. File links remain individual paths:
     // hard links cannot create directory cycles, and file symlinks are resolved on opening.
@@ -58,7 +60,7 @@ public sealed class FolderScanner : IFolderScanner
                         // or point back to an ancestor. Never recurse into them.
                         skippedLinks++;
                     }
-                    else
+                    else if (skipDirectory?.Invoke(entry.FullName) != true)
                     {
                         pending.Push(entry.FullName);
                     }

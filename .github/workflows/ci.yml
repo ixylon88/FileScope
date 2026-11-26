@@ -45,7 +45,7 @@ jobs:
           global-json-file: global.json
           architecture: ${{ matrix.architecture }}
 
-      # The same script builds and runs all four check groups locally and in CI.
+      # The same script builds and runs both applications and their test projects locally and in CI.
       # Resource consistency is part of the presentation test project.
       # Each job executes WPF and native Windows checks on its own architecture.
       - name: Build and verify, including WPF
@@ -81,5 +81,28 @@ jobs:
         with:
           name: FileScope-${{ matrix.runtime }}-self-contained
           path: artifacts/publish/${{ matrix.runtime }}_self-contained/
+          if-no-files-found: error
+          retention-days: 14
+
+      # These must stay sequential: both variants use the same project obj files.
+      - name: Publish DuplicateFinder framework-dependent
+        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
+
+      - name: Publish DuplicateFinder self-contained
+        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -SelfContained -NoColor
+
+      - name: Upload DuplicateFinder framework-dependent package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DuplicateFinder-${{ matrix.runtime }}-framework-dependent
+          path: artifacts/publish/DuplicateFinder/${{ matrix.runtime }}/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload DuplicateFinder self-contained package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DuplicateFinder-${{ matrix.runtime }}-self-contained
+          path: artifacts/publish/DuplicateFinder/${{ matrix.runtime }}_self-contained/
           if-no-files-found: error
           retention-days: 14

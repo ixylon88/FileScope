@@ -107,11 +107,11 @@ internal static class WpfTestHost
 #pragma warning restore WPF0001
         app.Resources.MergedDictionaries.Add(new ResourceDictionary
         {
-            Source = new Uri("/FileScope.App;component/Styles/Controls.xaml", UriKind.Relative)
+            Source = new Uri($"/{typeof(LocalizationService).Assembly.GetName().Name};component/Styles/Controls.xaml", UriKind.Relative)
         });
         app.Resources.MergedDictionaries.Add(new ResourceDictionary
         {
-            Source = new Uri("/FileScope.App;component/Styles/Themes/LightThemePalette.xaml", UriKind.Relative)
+            Source = new Uri($"/{typeof(LocalizationService).Assembly.GetName().Name};component/Styles/Themes/LightThemePalette.xaml", UriKind.Relative)
         });
         app.Resources.Add("BoolToVisibility", new BooleanToVisibilityConverter());
     }

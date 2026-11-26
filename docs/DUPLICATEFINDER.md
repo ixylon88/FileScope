@@ -1,10 +1,20 @@
-# DuplicateFinder (Entwurf)
+# DuplicateFinder
 
-DuplicateFinder soll binär identische Dateien in mehreren frei wählbaren Suchordnern finden. Jeder Suchordner erhält eine **Aufbewahrungspriorität**. Eine höhere Zahl bedeutet, dass seine Dateien bevorzugt erhalten bleiben. Fällt ein Pfad in mehrere Suchordner, zählt er einmal mit der höchsten zutreffenden Priorität.
+DuplicateFinder findet binär identische Dateien in mehreren frei wählbaren Suchordnern. Jeder Suchordner erhält eine **Aufbewahrungspriorität**. Eine höhere Zahl bedeutet, dass seine Dateien bevorzugt erhalten bleiben. Fällt ein Pfad in mehrere Suchordner, zählt er einmal mit der höchsten zutreffenden Priorität.
+
+## Starten
+
+In Visual Studio lässt sich `DuplicateFinder.App` als Startprojekt wählen. Aus dem Repository startet auf Windows auch dieser Befehl die App.
+
+```powershell
+dotnet run --project src/DuplicateFinder.App
+```
+
+Unter **Optionen → Ordner hinzufügen** die Suchordner wählen. Neue Suchordner beginnen gleichrangig bei 0. Ein Doppelklick auf eine Priorität macht sie editierbar. Beispielsweise kann das Archiv die Priorität 10 und der Downloadordner die Priorität 1 erhalten. **Speichern** übernimmt die Einstellungen. **Ordner durchsuchen** oder **F5** startet den Suchlauf. **Strg+F** fokussiert den Tabellenfilter. Die Filterung erfasst unter anderem Pfade, Prüfsummen und Herausgeber. In den Dateidetails lassen sich Prüfsummen, Diagnosen und Katalogpfade kopieren.
 
 ## Ergebnisse und Bedienung
 
-Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) erhalten die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
+Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
 
 Nach der Vorauswahl anhand der Dateigröße berechnet `FileScope.Core` alle gewählten Prüfsummen in einem Lesedurchlauf über den Hauptdatenstrom. Für die Suche genügt SHA-256. Stimmen Größe und Hash überein, vergleicht DuplicateFinder den Hauptdatenstrom der Kandidaten zusätzlich Byte für Byte. Jede bestätigte Gruppe lässt sich aufklappen. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität.
 
@@ -33,6 +43,20 @@ Ein benannter NTFS-Datenstrom kann Metadaten wie die Herkunftszone (`Zone.Identi
 
 Die Tabelle unterscheidet „Alle Datenströme identisch“, „Hauptdatenstrom identisch · Zusatzdatenströme unterschiedlich“ und „Hauptdatenstrom identisch · Zusatzdatenströme nicht vollständig geprüft“. Bei unterschiedlichen Zusatzdatenströmen gelten die Aufbewahrungsregeln innerhalb jeder vollständig identischen Variante. Bei unvollständiger Prüfung wird die betroffene Datei bei **Bereinigen** übersprungen.
 
-Die Signaturprüfung übernimmt die eingebetteten Signaturen, Statuswerte und Sperrprüfungsmodi von FileScope. Für DuplicateFinder ist zusätzlich eine Katalogsuche vorgesehen. Windows kann registrierte Kataloge über den Mitgliedshash finden. Lose `.cat`-Dateien in den Suchordnern sollen beim Scan erfasst und direkt geprüft werden, ohne sie zu installieren. [Microsoft Learn zur automatischen und expliziten Katalogprüfung](https://learn.microsoft.com/en-us/windows/win32/seccrypto/using-signtool-to-verify-a-file-signature)
+Die Signaturprüfung übernimmt die eingebetteten Signaturen, Statuswerte und Sperrprüfungsmodi von FileScope. Die zusätzliche Katalogsuche erfasst lose `.cat`-Dateien in den Suchordnern und fragt die registrierten Windows-Kataloge über den Mitgliedshash ab. Für die registrierten Kataloge werden die SHA-1- und SHA-256-Kontexte verwendet. Bei losen Katalogen werden auch SHA-384 und SHA-512 berücksichtigt. Kataloge werden direkt geprüft. Eine Installation ist dafür überflüssig. [Microsoft Learn zur automatischen und expliziten Katalogprüfung](https://learn.microsoft.com/en-us/windows/win32/seccrypto/using-signtool-to-verify-a-file-signature)
 
 Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei zum signierten Eintrag passt und Windows die Vertrauensprüfung des Katalogs erfolgreich abschließt. Die Ergebnisansicht zeigt die Quelle (eingebettet oder Katalog) und bei einem Katalogtreffer den Katalogpfad. Liefert eine abgeschlossene Suche keinen Treffer, erscheint „Kein passender Katalog gefunden“. Die Entscheidung über Duplikate beruht auf dem Binärvergleich. [FileScope zur Signaturprüfung](../README.md#zertifikatsprüfung-genaue-bedeutung)
+
+
+## Architektur
+
+`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. Beide Anwendungen verwenden die gleichen Fluent-Stile und Farbpaletten.
+
+| Native Schnittstelle | Aufgabe |
+| --- | --- |
+| `GetFileInformationByHandleEx` | Liefert Datei-ID, Volume, Linkanzahl, Änderungskennung und die Liste benannter Datenströme. Bei älteren Providern dient der Dateiindex aus `GetFileInformationByHandle` als Alternative. Ohne verlässliche Identität erscheint eine Diagnose. |
+| `CryptCATEnumerateMember` und `CryptCATAdminCalcHashFromFileHandle2` | Lesen Mitgliedseinträge loser Kataloge und berechnen den zum Dateiformat gehörenden Mitgliedshash. Windows kann dafür weitere Dateidaten lesen. |
+| `CryptCATAdminEnumCatalogFromHash` und `WinVerifyTrust` | Finden registrierte Kataloge und prüfen den konkreten Mitgliedseintrag samt Katalogsignatur. Die Detailansicht unterscheidet eingebettete Signaturen, registrierte und lose Kataloge sowie eine unvollständige Suche. |
+| `ITransferSource.RecycleItem` | Übergibt die geprüfte Datei an den bekannten Papierkorbordner der Windows-Shell. Erst ein zurückgeliefertes Papierkorbelement bestätigt das Verschieben. Schlägt der Vorgang fehl, erscheint der Grund im Bericht. |
+
+Zur nativen Papierkorbfunktion beschreibt Microsoft auch den zurückgegebenen Verweis auf die verschobene Datei. [Microsoft Learn zu RecycleItem](https://learn.microsoft.com/windows/win32/api/shobjidl_core/nf-shobjidl_core-itransfersource-recycleitem)

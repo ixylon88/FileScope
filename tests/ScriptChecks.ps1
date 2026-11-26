@@ -134,7 +134,10 @@ try {
         'build/colored_console.ps1', 'src/FileScope.App/FileScope.App.csproj', 'tests/FileScope.runsettings',
         'tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj',
         'tests/FileScope.Presentation.Tests/FileScope.Presentation.Tests.csproj',
-        'tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj')) {
+        'tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj',
+        'src/DuplicateFinder.App/DuplicateFinder.App.csproj',
+        'tests/DuplicateFinder.Tests/DuplicateFinder.Tests.csproj',
+        'tests/DuplicateFinder.Ui.Tests/DuplicateFinder.Ui.Tests.csproj')) {
         [void](New-Item -ItemType Directory -Path (Split-Path (Join-Path $fixture $path) -Parent) -Force)
         Copy-Item -LiteralPath (Join-Path $repository $path) -Destination (Join-Path $fixture $path)
     }
@@ -163,6 +166,11 @@ try {
         }
     }
 
+    $result = Invoke-Scenario 'Build.ps1' @{ Application = 'DuplicateFinder'; Runtime = 'win-arm64'; Publish = $true }
+    $publish = $result.Calls | Where-Object Name -eq 'publish'
+    Check ($result.Error -eq '' -and $publish.Arguments[1] -eq (Join-Path $fixture 'src/DuplicateFinder.App/DuplicateFinder.App.csproj') -and
+        (Has-Option $publish '--output' (Join-Path $fixture 'artifacts/publish/DuplicateFinder/win-arm64'))) 'DuplicateFinder publishes independently of FileScope'
+
     foreach ($runtime in @('win-x64', 'win-arm64')) {
         $result = Invoke-Scenario 'Build.ps1' @{ Runtime = $runtime; Configuration = 'Debug'; Run = $true }
         $build = @($result.Calls | Where-Object Name -eq 'build')
@@ -177,11 +185,11 @@ try {
 
     foreach ($runtime in @('win-x64', 'win-arm64')) {
         $result = Invoke-Scenario 'Verify.ps1' @{ Runtime = $runtime; Configuration = 'Debug' }
-        $work = @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests') })
+        $work = @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests', 'DuplicateFinder.Tests', 'DuplicateFinder.Ui.Tests') })
         $platform = if ($runtime -eq 'win-arm64') { 'Arm64' } else { 'x64' }
-        Check ($result.Error -eq '' -and $work.Count -eq 4 -and
+        Check ($result.Error -eq '' -and $work.Count -eq 6 -and
             @($work | Where-Object { -not (Has-Option $_ '--configuration' 'Debug') -or
-                $_.Arguments -notcontains "-p:Platform=$platform" }).Count -eq 0) "build and all three test processes use the same architecture/configuration: $runtime"
+                $_.Arguments -notcontains "-p:Platform=$platform" }).Count -eq 0) "build and all five test processes use the same architecture/configuration: $runtime"
         $build = $work | Where-Object Name -eq 'build'
         $testProjects = @($work | Where-Object Name -ne 'build')
         Check ($build.Arguments -notcontains '--runtime' -and
@@ -196,8 +204,8 @@ try {
     }
 
     $result = Invoke-Scenario 'Verify.ps1' @{ SkipBuild = $true; SkipUi = $true }
-    Check ($result.Error -eq '' -and @($result.Calls | Where-Object { $_.Name -in @('FileScope.Core.Tests', 'FileScope.Presentation.Tests') }).Count -eq 2 -and
-        @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Ui.Tests') }).Count -eq 0) 'skip switches keep the requested non-UI tests'
+    Check ($result.Error -eq '' -and @($result.Calls | Where-Object { $_.Name -in @('FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'DuplicateFinder.Tests') }).Count -eq 3 -and
+        @($result.Calls | Where-Object { $_.Name -in @('build', 'FileScope.Ui.Tests', 'DuplicateFinder.Ui.Tests') }).Count -eq 0) 'skip switches keep the requested non-UI tests'
     Check (-not $result.Log.Contains([string][char]27) -and $result.Log.Contains('[SUCCESS]')) 'plain console output retains readable phase/result labels'
 
     $caller = Join-Path $fixture 'external caller'
@@ -234,7 +242,7 @@ try {
     }
     finally { Pop-Location }
 
-    foreach ($failure in @('--version', 'build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests')) {
+    foreach ($failure in @('--version', 'build', 'FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests', 'DuplicateFinder.Tests', 'DuplicateFinder.Ui.Tests')) {
         $result = Invoke-Scenario 'Verify.ps1' @{} $failure
         Check ($result.Error -like '*exit 23*' -and $result.Calls[-1].Name -eq $failure -and -not $result.Log.Contains('[SUCCESS]')) "failure stops verification immediately: $failure"
         Check ($result.LocationRestored -and @(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1) "failure restores location and cleans temporary files: $failure"

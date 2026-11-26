@@ -1,5 +1,19 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder
+
+Stand 26. November 2026, Basis `272f3c9` auf `dev`, SDK 10.0.404.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Release-Build der Solution | Vier Produktionsprojekte und fünf Testprojekte kompiliert, 0 Warnungen und 0 Fehler. |
+| DuplicateFinder unter Linux x64 | 14 von 17 Core-Testfällen bestanden. Drei Windows-Integrationsfälle für NTFS, Katalogmitgliedschaft und die Shell sind plattformbedingt übersprungen. |
+| FileScope unter Linux x64 | 22 von 27 Core-Testfällen und alle 33 Präsentationstests bestanden. Fünf Core-Fälle benötigen Windows oder optionale Beispieldateien. |
+| PowerShell | 66 Skriptprüfungen bestanden. |
+| DuplicateFinder-Publish | `Build.ps1` erzeugte die vier Kombinationen aus x64/ARM64 und framework-dependent/self-contained. PE-Architektur des Apphosts, Laufzeitbestandteile, Lizenz und Sprachressourcen wurden in jedem Ausgabeordner geprüft. |
+
+Die drei plattformübergreifenden MSTest-Projekte liefen über ihre gebauten Test-DLLs. Der Start mit `dotnet test` innerhalb von `Verify.ps1` stieß in dieser Linux-Umgebung beim Anlegen seiner Named Pipe auf fehlende Berechtigungen. Für Windows x64 und ARM64 führt die CI auch die vier neuen WPF-Fälle und die drei nativen Tests aus. Ihr erster Windows-Lauf steht aus. Der Papierkorbtest verwendet eine eigens erzeugte temporäre Datei mit eindeutigem Namen.
+
 ## Umstellung: Ressourcenprüfungen in MSTest, ohne Python
 
 Stand: 2026-11-15, Basis `a67fbc4` (`dev`), .NET SDK **10.0.404**.

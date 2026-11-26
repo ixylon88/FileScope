@@ -14,18 +14,19 @@ param(
     [switch]$SelfContained,
     [ValidateSet('win-x64', 'win-arm64', 'win-x86')][string]$Runtime = 'win-x64',
     [ValidateSet('quiet', 'minimal', 'normal', 'detailed', 'diagnostic')][string]$Verbosity = 'minimal',
-    [switch]$NoColor
+    [switch]$NoColor,
+    [ValidateSet('FileScope', 'DuplicateFinder')][string]$Application = 'FileScope'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'build/ScriptSupport.ps1') -NoColor:$NoColor
 
 $Runtime = $Runtime.ToLowerInvariant()
-$appProject = Join-Path $PSScriptRoot 'src/FileScope.App/FileScope.App.csproj'
+$appProject = Join-Path $PSScriptRoot "src/$Application.App/$Application.App.csproj"
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 Push-Location $PSScriptRoot
 try {
-    Write-BuildMessage "FILESCOPE BUILD | $Configuration | $Runtime" -Kind Header
+    Write-BuildMessage "$Application BUILD | $Configuration | $Runtime" -Kind Header
     if ($SelfContained -and -not $Publish) { throw '-SelfContained requires -Publish.' }
     if ($Run) { Assert-RuntimeExecution -Runtime $Runtime }
     Initialize-BuildEnvironment -RepositoryRoot $PSScriptRoot
@@ -33,6 +34,7 @@ try {
     if ($Publish) {
         $mode = if ($SelfContained) { 'self-contained' } else { 'framework-dependent' }
         $outputName = if ($SelfContained) { "${Runtime}_self-contained" } else { $Runtime }
+        if ($Application -eq 'DuplicateFinder') { $outputName = "DuplicateFinder/$outputName" }
         $outputPath = Join-Path $PSScriptRoot "artifacts/publish/$outputName"
         Write-BuildMessage "PUBLISH | $mode" -Kind Phase
         # Clean only this generated distribution, preserving the other variants.
@@ -57,7 +59,7 @@ try {
         Write-BuildMessage 'RUN APPLICATION' -Kind Phase
         if ($Publish) {
             # Exercise the distributed apphost and resources, including icon/splash.
-            $executable = Join-Path $outputPath 'FileScope.App.exe'
+            $executable = Join-Path $outputPath "$Application.App.exe"
             & $executable
             if ($LASTEXITCODE -ne 0) { throw "Published app exited with code $LASTEXITCODE." }
         }

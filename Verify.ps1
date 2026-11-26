@@ -56,9 +56,7 @@ function Set-TestParameter {
 }
 
 function Invoke-Checks {
-    param([string]$Group)
-
-    $name = "FileScope.$Group.Tests"
+    param([string]$Name)
     Write-BuildMessage $name -Kind Phase
     $project = Join-Path $PSScriptRoot "tests/$name/$name.csproj"
     $arguments = @('test', '--project', $project, '--configuration', $Configuration,
@@ -99,10 +97,12 @@ try {
     }
     else { Write-BuildMessage 'Solution build skipped; dotnet test still builds its projects and references.' -Kind Warning }
 
-    Invoke-Checks -Group 'Core'
-    Invoke-Checks -Group 'Presentation'
+    Invoke-Checks -Name 'FileScope.Core.Tests'
+    Invoke-Checks -Name 'DuplicateFinder.Tests'
+    Invoke-Checks -Name 'FileScope.Presentation.Tests'
     if (-not $SkipUi -and $env:OS -eq 'Windows_NT') {
-        Invoke-Checks -Group 'Ui'
+        Invoke-Checks -Name 'FileScope.Ui.Tests'
+        Invoke-Checks -Name 'DuplicateFinder.Ui.Tests'
     }
     else { Write-BuildMessage 'Windows UI tests skipped.' -Kind Warning }
 
