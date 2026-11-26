@@ -45,7 +45,7 @@ try {
     if ($Publish) {
         $mode = if ($SelfContained) { 'self-contained' } else { 'framework-dependent' }
         $outputName = if ($SelfContained) { "${Runtime}_self-contained" } else { $Runtime }
-        if ($product -eq 'DuplicateFinder') { $outputName = "DuplicateFinder/$outputName" }
+        $outputName = "$product/$outputName"
         $outputPath = Join-Path $PSScriptRoot "artifacts/publish/$outputName"
         Write-BuildMessage "PUBLISH | $mode" -Kind Phase
         # Clean only this generated distribution, preserving the other variants.
