@@ -1,9 +1,10 @@
 using System.IO;
 using System.Text.Json;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.Presentation;
+using DuplicateFinder.Core.Models;
 using FileScope.Core.Models;
 
-namespace DuplicateFinder.App;
+namespace DuplicateFinder.App.Services;
 
 public sealed record Preferences
 {

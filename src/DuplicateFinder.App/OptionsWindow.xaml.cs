@@ -4,7 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.Presentation;
+using DuplicateFinder.App.Services;
+using DuplicateFinder.Core.Models;
 using FileScope.Core.Models;
 using Microsoft.Win32;
 

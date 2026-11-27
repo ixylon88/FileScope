@@ -1,6 +1,6 @@
 <Window x:Class="DuplicateFinder.App.MainWindow" x:Name="WindowRoot" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:DuplicateFinder.App"
-        xmlns:shared="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:DuplicateFinder.App.Localization"
+        xmlns:shared="clr-namespace:FileScope.Shared.Controls;assembly=FileScope.Shared"
         Icon="Resources/DuplicateFinder.ico" Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
         Style="{StaticResource AppWindowStyle}" PreviewKeyDown="WindowKeyDown">
   <Window.Resources>

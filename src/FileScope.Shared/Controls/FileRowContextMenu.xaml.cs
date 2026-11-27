@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Controls;
 
 /// <summary>Common Explorer actions, preceded by the application's own file command.</summary>
 public partial class FileRowContextMenu : ContextMenu

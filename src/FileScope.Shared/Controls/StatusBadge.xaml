@@ -1,7 +1,7 @@
-<UserControl x:Class="FileScope.Shared.StatusBadge"
+<UserControl x:Class="FileScope.Shared.Controls.StatusBadge"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:FileScope.Shared"
+             xmlns:presentation="clr-namespace:FileScope.Shared.Presentation"
              x:Name="BadgeRoot"
              Margin="8,5" Padding="8,3" FontSize="12" Foreground="#25384B"
              HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -14,16 +14,16 @@
       <Style TargetType="Border">
         <Setter Property="Background" Value="#E8ECF3" />
         <Style.Triggers>
-          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Success}">
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static presentation:StatusTone.Success}">
             <Setter Property="Background" Value="{DynamicResource OnSuccessBrush}" />
           </DataTrigger>
-          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Information}">
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static presentation:StatusTone.Information}">
             <Setter Property="Background" Value="{DynamicResource OnInformationBrush}" />
           </DataTrigger>
-          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Warning}">
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static presentation:StatusTone.Warning}">
             <Setter Property="Background" Value="{DynamicResource OnWarningBrush}" />
           </DataTrigger>
-          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static controls:StatusTone.Error}">
+          <DataTrigger Binding="{Binding Tone, ElementName=BadgeRoot}" Value="{x:Static presentation:StatusTone.Error}">
             <Setter Property="Background" Value="{DynamicResource OnErrorBrush}" />
           </DataTrigger>
         </Style.Triggers>

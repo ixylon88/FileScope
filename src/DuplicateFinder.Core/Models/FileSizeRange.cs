@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Models;
 
 /// <summary>Inclusive limits on the unnamed data stream, in bytes. A missing bound is open.</summary>
 public readonly record struct FileSizeRange

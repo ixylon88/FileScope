@@ -1,4 +1,4 @@
-namespace FileScope.Shared;
+namespace FileScope.Shared.Abstractions;
 
 public interface IExternalLinkService
 {

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using DuplicateFinder.App;
+using DuplicateFinder.App.ViewModels;
 using FileScope.Ui.Tests;
 using static FileScope.Ui.Tests.FileMenuChecks;
 

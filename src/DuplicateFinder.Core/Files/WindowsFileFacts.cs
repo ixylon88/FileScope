@@ -2,9 +2,11 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
+using DuplicateFinder.Core.Abstractions;
+using DuplicateFinder.Core.Models;
 using Microsoft.Win32.SafeHandles;
 
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Files;
 
 /// <summary>Reads identity, link count and named data streams from the opened Windows file.</summary>
 internal sealed partial class WindowsFileFacts : IFileFacts

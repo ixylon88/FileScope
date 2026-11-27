@@ -1,4 +1,7 @@
-namespace FileScope.Shared;
+using FileScope.Shared.Abstractions;
+using FileScope.Shared.Localization;
+
+namespace FileScope.Shared.Infrastructure;
 
 /// <summary>Resolves a single file from the live selection whenever a Shell action is invoked.</summary>
 public sealed class FileShellCommands<TRow> where TRow : class

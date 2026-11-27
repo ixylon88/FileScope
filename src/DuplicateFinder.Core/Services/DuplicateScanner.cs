@@ -1,11 +1,14 @@
 using System.Diagnostics;
+using DuplicateFinder.Core.Abstractions;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Models;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Files;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
 
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Services;
 
 public sealed class DuplicateScanner
 {

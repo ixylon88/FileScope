@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Security;
+using FileScope.Shared.Abstractions;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Services;
 
 /// <summary>Opens HTTPS project links in the default browser; replaceable without launching a browser in UI checks.</summary>
 public sealed class ExternalLinkService : IExternalLinkService

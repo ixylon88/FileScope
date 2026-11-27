@@ -1,4 +1,7 @@
-namespace DuplicateFinder.Core;
+using DuplicateFinder.Core.Abstractions;
+using DuplicateFinder.Core.Models;
+
+namespace DuplicateFinder.Core.Files;
 
 internal static class FileAccessChecks
 {

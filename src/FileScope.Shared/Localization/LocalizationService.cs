@@ -1,8 +1,9 @@
 using System.Globalization;
-using System.Resources;
 using System.Reflection;
+using System.Resources;
+using FileScope.Shared.Infrastructure;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Localization;
 
 public sealed record LanguageOption(string CultureName, string NativeName);
 

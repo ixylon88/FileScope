@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:loc="clr-namespace:FileScope.App"
         xmlns:behaviors="clr-namespace:FileScope.App.Behaviors"
-        xmlns:controls="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:controls="clr-namespace:FileScope.Shared.Controls;assembly=FileScope.Shared"
         xmlns:infra="clr-namespace:FileScope.App.Infrastructure"
         Title="{loc:Loc WindowTitle}" Width="1700" Height="1024" MinWidth="1080" MinHeight="680" mc:Ignorable="d" 
         WindowStartupLocation="Manual" Language="{Binding UiLanguage}" Style="{StaticResource AppWindowStyle}"

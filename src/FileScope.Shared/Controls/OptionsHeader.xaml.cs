@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Controls;
 
 /// <summary>Arranges the three display settings while each application supplies its own bound selectors.</summary>
 public partial class OptionsHeader : Grid

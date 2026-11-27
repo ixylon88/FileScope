@@ -1,5 +1,4 @@
-
-namespace FileScope.Shared;
+namespace FileScope.Shared.Presentation;
 
 public sealed record WindowPreferences(double Width, double Height, bool Maximized);
 

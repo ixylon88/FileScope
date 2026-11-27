@@ -1,6 +1,7 @@
 using FileScope.Core.Models;
+using FileScope.Shared.Localization;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Presentation;
 
 /// <summary>The same embedded-signature groups drive both filters and the displayed codes.</summary>
 public readonly record struct SignatureFilter

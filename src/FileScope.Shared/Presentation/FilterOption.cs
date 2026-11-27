@@ -1,4 +1,7 @@
-namespace FileScope.Shared;
+using FileScope.Shared.Infrastructure;
+using FileScope.Shared.Localization;
+
+namespace FileScope.Shared.Presentation;
 
 public sealed class FilterOption<T>(T value, Func<string> label) : ObservableObject
 {

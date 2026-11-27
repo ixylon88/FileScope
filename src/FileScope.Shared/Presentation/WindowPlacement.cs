@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Presentation;
 
 /// <summary>Restores the normal size and remembers the last non-minimized state.</summary>
 public sealed class WindowPlacement

@@ -2,8 +2,9 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
+using FileScope.Shared.Localization;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Controls;
 
 /// <summary>Shows the preview hint, the current error and the two options dialog commands.</summary>
 public sealed class OptionsFooterHost : Decorator

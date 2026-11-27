@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Controls;
 
 /// <summary>
 /// Keeps a template cell's content bound to its owning cell, including while the

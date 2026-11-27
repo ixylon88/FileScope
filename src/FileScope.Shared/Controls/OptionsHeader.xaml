@@ -1,7 +1,7 @@
-<Grid x:Class="FileScope.Shared.OptionsHeader"
+<Grid x:Class="FileScope.Shared.Controls.OptionsHeader"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:loc="clr-namespace:FileScope.Shared">
+      xmlns:loc="clr-namespace:FileScope.Shared.Localization">
   <Grid.Resources>
     <Style x:Key="DisplaySelector" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
       <Setter Property="MinHeight" Value="34" />

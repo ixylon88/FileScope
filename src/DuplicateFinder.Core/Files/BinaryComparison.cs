@@ -1,6 +1,7 @@
 using System.Buffers;
+using DuplicateFinder.Core.Models;
 
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Files;
 
 internal static class BinaryComparison
 {

@@ -1,6 +1,8 @@
 using System.Windows;
+using FileScope.Shared.Abstractions;
+using FileScope.Shared.Presentation;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Services;
 
 public sealed class ThemeService : IThemeService
 {

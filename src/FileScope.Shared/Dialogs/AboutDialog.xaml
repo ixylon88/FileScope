@@ -1,9 +1,9 @@
-<Window x:Class="FileScope.Shared.AboutDialog" x:Name="WindowRoot"
+<Window x:Class="FileScope.Shared.Dialogs.AboutDialog" x:Name="WindowRoot"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
-        xmlns:loc="clr-namespace:FileScope.Shared"
+        xmlns:loc="clr-namespace:FileScope.Shared.Localization"
         Title="{loc:Loc AboutTitle}" d:Title="About" Width="660" Height="720" MinWidth="460" MinHeight="420"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{StaticResource AppWindowStyle}">

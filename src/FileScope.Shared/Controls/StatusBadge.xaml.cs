@@ -1,7 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using FileScope.Shared.Presentation;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Controls;
 
 // A reusable view element: it knows only text and visual tone, not analysis logic.
 public partial class StatusBadge : UserControl

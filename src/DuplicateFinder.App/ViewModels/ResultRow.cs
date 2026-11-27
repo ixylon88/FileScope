@@ -1,7 +1,7 @@
-using DuplicateFinder.Core;
+using DuplicateFinder.Core.Models;
 using FileScope.Core.Models;
 
-namespace DuplicateFinder.App;
+namespace DuplicateFinder.App.ViewModels;
 
 public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat.HexUpper) : ObservableObject
 {

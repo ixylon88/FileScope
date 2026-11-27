@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
-using DuplicateFinder.App;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.Presentation;
+using DuplicateFinder.Core.Models;
 
 namespace DuplicateFinder.Tests;
 

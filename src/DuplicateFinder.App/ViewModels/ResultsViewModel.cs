@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Windows.Data;
-using DuplicateFinder.Core;
+using DuplicateFinder.Core.Models;
 
-namespace DuplicateFinder.App;
+namespace DuplicateFinder.App.ViewModels;
 
 public sealed class ResultsViewModel : ObservableObject
 {

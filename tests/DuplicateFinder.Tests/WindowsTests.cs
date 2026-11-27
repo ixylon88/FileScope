@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using DuplicateFinder.Core;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Models;
+using DuplicateFinder.Core.Services;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
 

@@ -1,4 +1,4 @@
-namespace FileScope.Shared;
+namespace FileScope.Shared.Abstractions;
 
 /// <summary>Explicit file actions in Windows Shell, separate from file analysis.</summary>
 public interface IFileShellService

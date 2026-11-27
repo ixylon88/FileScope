@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
-using System.Windows.Markup;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
@@ -10,12 +10,17 @@ using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
 using DuplicateFinder.App;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.Presentation;
+using DuplicateFinder.App.Services;
+using DuplicateFinder.App.ViewModels;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Models;
+using DuplicateFinder.Core.Services;
 using FileScope.Core.Models;
-using System.Reflection;
 using FileScope.Ui.Tests;
 
 namespace DuplicateFinder.Ui.Tests;
@@ -656,8 +661,8 @@ public sealed partial class WindowTests
         strings.UseApplicationResources(typeof(LocalizationService).Assembly);
         try
         {
-            Assert.AreEqual("Ordner durchsuchen", new App.LocExtension("Scan").ProvideValue(target));
-            Assert.AreEqual(strings["Signature_NotChecked"], new App.LocExtension("Signature_NotChecked").ProvideValue(target));
+            Assert.AreEqual("Ordner durchsuchen", new App.Localization.LocExtension("Scan").ProvideValue(target));
+            Assert.AreEqual(strings["Signature_NotChecked"], new App.Localization.LocExtension("Signature_NotChecked").ProvideValue(target));
         }
         finally { strings.UseApplicationResources(typeof(MainWindow).Assembly); }
     });

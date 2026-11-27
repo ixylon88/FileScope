@@ -1,6 +1,7 @@
 using FileScope.Core.Models;
+using FileScope.Shared.Localization;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Presentation;
 
 public enum StatusTone { Neutral, Success, Information, Warning, Error }
 

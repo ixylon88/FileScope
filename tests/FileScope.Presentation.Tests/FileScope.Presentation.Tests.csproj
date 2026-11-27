@@ -36,6 +36,9 @@
     <EmbeddedResource Include="../../src/FileScope.App/Resources/FileScopeSplash.png" LogicalName="Source.Splash.png" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="FileScope.Shared" />
+    <Using Include="FileScope.Shared.Abstractions" />
+    <Using Include="FileScope.Shared.Infrastructure" />
+    <Using Include="FileScope.Shared.Localization" />
+    <Using Include="FileScope.Shared.Presentation" />
   </ItemGroup>
 </Project>

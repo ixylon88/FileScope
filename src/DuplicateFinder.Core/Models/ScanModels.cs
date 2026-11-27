@@ -1,7 +1,7 @@
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
 
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Models;
 
 public sealed record SearchRoot(string Path, int Priority);
 public sealed record ScanIssue(string Path, string Reason);

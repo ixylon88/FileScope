@@ -1,11 +1,15 @@
-using System.Reflection;
 using System.IO;
-using System.Windows.Media.Imaging;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Markup;
+using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using FileScope.Shared.Abstractions;
+using FileScope.Shared.Infrastructure;
+using FileScope.Shared.Localization;
+using FileScope.Shared.Presentation;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Dialogs;
 
 /// <summary>Displays build information and the bundled license.</summary>
 public partial class AboutDialog : Window

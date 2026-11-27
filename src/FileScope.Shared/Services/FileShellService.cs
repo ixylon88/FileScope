@@ -2,8 +2,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using FileScope.Shared.Abstractions;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Services;
 
 /// <summary>Opens Windows properties or selects a file in Explorer; never invokes its default verb.</summary>
 public sealed partial class FileShellService : IFileShellService

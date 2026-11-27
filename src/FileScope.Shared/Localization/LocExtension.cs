@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Markup;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Localization;
 
 [MarkupExtensionReturnType(typeof(object))]
 public class LocExtension(string key) : MarkupExtension

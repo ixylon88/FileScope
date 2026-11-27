@@ -1,4 +1,8 @@
-namespace DuplicateFinder.Core;
+using DuplicateFinder.Core.Abstractions;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Models;
+
+namespace DuplicateFinder.Core.Services;
 
 public sealed class CleanupService
 {

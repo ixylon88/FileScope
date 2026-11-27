@@ -13,7 +13,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="FileScope.Shared" />
+    <Using Include="FileScope.Shared.Abstractions" />
+    <Using Include="FileScope.Shared.Controls" />
+    <Using Include="FileScope.Shared.Dialogs" />
+    <Using Include="FileScope.Shared.Infrastructure" />
+    <Using Include="FileScope.Shared.Localization" />
+    <Using Include="FileScope.Shared.Presentation" />
+    <Using Include="FileScope.Shared.Services" />
   </ItemGroup>
 
   <ItemGroup>

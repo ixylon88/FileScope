@@ -1,7 +1,8 @@
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
+using FileScope.Shared.Localization;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Presentation;
 
 /// <summary>Catalog membership and the catalog's trust result are independent of the embedded signature.</summary>
 public static class CatalogPresentation

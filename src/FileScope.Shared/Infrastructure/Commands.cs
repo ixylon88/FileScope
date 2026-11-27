@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Infrastructure;
 
 public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {

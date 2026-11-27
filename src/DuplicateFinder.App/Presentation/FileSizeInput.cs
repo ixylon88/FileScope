@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace DuplicateFinder.App;
+namespace DuplicateFinder.App.Presentation;
 
 public enum FileSizeUnit { Bytes = 1, Kilobytes = 1_000, Megabytes = 1_000_000, Gigabytes = 1_000_000_000 }
 

@@ -1,6 +1,6 @@
-namespace FileScope.Shared;
+using FileScope.Shared.Presentation;
 
-public enum AppTheme { Light, Dark }
+namespace FileScope.Shared.Abstractions;
 
 /// <summary>Applies the selected appearance without exposing WPF to the view models.</summary>
 public interface IThemeService

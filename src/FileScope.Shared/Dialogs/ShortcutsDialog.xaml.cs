@@ -1,8 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using FileScope.Shared.Infrastructure;
+using FileScope.Shared.Localization;
+using FileScope.Shared.Presentation;
 
-namespace FileScope.Shared;
+namespace FileScope.Shared.Dialogs;
 
 /// <summary>Shows the common table shortcuts together with the commands available in the host application.</summary>
 public partial class ShortcutsDialog : Window

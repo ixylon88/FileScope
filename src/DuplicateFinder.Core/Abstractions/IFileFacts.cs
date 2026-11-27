@@ -1,4 +1,6 @@
-namespace DuplicateFinder.Core;
+using DuplicateFinder.Core.Models;
+
+namespace DuplicateFinder.Core.Abstractions;
 
 internal interface IFileFacts
 {

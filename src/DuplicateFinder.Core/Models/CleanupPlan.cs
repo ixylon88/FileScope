@@ -1,4 +1,4 @@
-namespace DuplicateFinder.Core;
+namespace DuplicateFinder.Core.Models;
 
 public sealed record CleanupItem(FoundFile File, FoundFile? Keeper);
 public sealed record CleanupPlan(IReadOnlyList<CleanupItem> Items)
