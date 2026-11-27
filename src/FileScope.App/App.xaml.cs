@@ -5,6 +5,9 @@ using FileScope.App.ViewModels;
 using FileScope.Core.Checksums;
 using FileScope.Core.Services;
 using FileScope.Core.Signatures;
+using FileScope.Core.Metadata;
+using FileScope.Core.Files;
+using FileScope.Core.Export;
 
 namespace FileScope.App;
 
@@ -15,8 +18,13 @@ public partial class App : Application
         base.OnStartup(e);
         // Composition root: concrete dependencies are assembled only here.
         var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
-        var analysis = new FileAnalysisService(checksumService, new WindowsAuthenticodeInspector());
-        var viewModel = new MainViewModel(analysis, new FilePickerService(), LocalizationService.Instance);
+        var analysis = new FileAnalysisService(checksumService, new WindowsAuthenticodeInspector(),
+            new FilePropertiesInspector(), new PeHeaderInspector());
+        var strings = LocalizationService.Instance;
+        var options = new OptionsViewModel(strings, new PreferencesStore(PreferencesStore.DefaultPath), new ThemeService(this));
+        var viewModel = new MainViewModel(analysis, new FilePickerService(), strings, options,
+            new FolderScanner(), new ResultExporter([new CsvExportStrategy(), new JsonExportStrategy()]),
+            new ConfirmationService(), new FileShellService(), new FileMoveService(), new FileMoveReportService());
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();

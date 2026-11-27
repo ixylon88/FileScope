@@ -1,16 +1,52 @@
 # FileScope
 
-WPF-Dateianalyse für Windows mit .NET 10: Dateien auf das Fenster ziehen, Prüfsummen und eingebettete Authenticode-Signaturen prüfen, Ergebnisse filtern und kopieren.
+FileScope ist eine Windows-App, die Prüfsummen, digitale Signaturen und technische Dateieigenschaften in einer gemeinsamen Übersicht zusammenführt.
 
-Die Projektmappe enthält **genau zwei Projekte**. Der vollständige Quelltext liegt bei. Es werden keine Drittanbieter-NuGet-Pakete verwendet.
+## Auf einen Blick
+
+- **Einzelne Dateien oder ganze Ordner analysieren:** Dateien und Ordner per Drag-and-drop hinzufügen oder auswählen; Ordner werden einschließlich Unterordnern eingelesen. Ein optionaler Regex-Aufnahmefilter begrenzt die Analyse auf passende Dateinamen oder Endungen.
+- **Prüfsummen berechnen:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 frei auswählen und gemeinsam berechnen.
+- **Digitale Signaturen prüfen:** Eingebettete Authenticode-Signaturen einschließlich Mehrfachsignaturen prüfen, optional mit <u>Online-Sperrprüfung</u> der Zertifikate; Unterzeichner, Zertifikatsdaten und Zeitstempel anzeigen.
+- **Programmdateien einordnen:** Versions- und Herstellerangaben, Architektur und .NET-Plattform auslesen; auch ältere NE-/Win16-EXE und -DLL erkennen.
+- **Ergebnisse gezielt auswerten:** Über alle Angaben suchen, nach Analyse- und Signaturstatus filtern, sortieren und Details kopieren.
+- **Ergebnisse weiterverwenden:** Vorhandene Analysewerte mit frei wählbaren Feldern als CSV oder JSON exportieren, ohne die Quelldateien erneut zu analysieren.
+- **Ansicht anpassen:** Spalten und Hashdarstellung konfigurieren; Deutsch, Englisch oder vereinfachtes Chinesisch wählen.
+- **Windows x64** und **Windows on ARM64** wird unterstützt (Letzteres wurde auf Parallels getestet).
+
+Die Quelldateien werden zur Analyse ausschließlich gelesen; untersuchte Programme werden dabei nicht ausgeführt. Nur die ausdrücklich gewählte Kontextmenü-Aktion zum Verschieben ändert Dateipfade.
+
+Die App basiert auf WPF und .NET 10. Die Projektmappe enthält **zwei Produktionsprojekte und drei MSTest-Projekte**. Der vollständige Quelltext liegt bei. Microsoft-Analyzer und MSTest werden für Entwicklung und Tests verwendet; die App benötigt keine zusätzlichen Bibliothekspakete zur Laufzeit.
+
+## Effiziente Dateianalyse – ein Lesedurchlauf für alle Prüfsummen
+
+**FileScope ist darauf ausgelegt, vollständige Lesedurchläufe durch Dateien auf ein Minimum zu reduzieren.** Unabhängig davon, wie viele Prüfsummenalgorithmen aktiviert sind, liest FileScope den Dateiinhalt für die Analyse nur **ein einziges Mal vollständig**. Auf Windows verhindert die gewählte Freigabeart paralleles Schreiben/Löschen während der Analyse. 
+
+- **Ein gemeinsamer Lesedurchlauf:** MD5, SHA-1, SHA-256, SHA-384 und SHA-512 werden gleichzeitig aus denselben eingelesenen Datenblöcken berechnet. Auch bei fünf aktivierten Algorithmen ist nur ein vollständiger Lesedurchlauf erforderlich.
+- **Ein zentral verwalteter Datei-Handle:** Jede Datei wird für die Analyse einmal durch FileScope geöffnet. Der Stream bleibt während der Analyse geöffnet und wird für die Prüfsummenberechnung, die PE-/NE-Header-Analyse, die Windows-Versionsabfrage und die Windows-Signaturprüfung wiederverwendet. Für Versionsinformationen greift nur bei fehlender Handle-API die bisherige Pfad-Abfrage als Kompatibilitätslösung.
+- **Streaming statt vollständigem Laden:** Die Hashberechnung verarbeitet die Datei blockweise mit einem gemeinsamen 128-KiB-Puffer. Dadurch bleibt der Speicherbedarf weitgehend unabhängig von der Dateigröße.
+- **Gezielte zusätzliche Lesezugriffe:** Die optionale PE-/NE-Header-Analyse liest benötigte Headerbereiche erneut. `GetFileVersionInfoByHandle` erhält für Versionsinformationen denselben offenen Handle. Windows kann dabei zusätzliche Ressourcen und gegebenenfalls MUI-Sprachdateien lesen; Handle-Wiederverwendung bedeutet keine Garantie für nur einen Lesezugriff.
+- **Native Signaturprüfung:** Für Authenticode erhält `WinVerifyTrust` den bereits geöffneten Datei-Handle. Windows kann für die kryptografische Prüfung zusätzliche Leseoperationen ausführen, gegebenenfalls auch über den gesamten Dateiinhalt.
+
+**Wichtig:** Die Aussage über den einmaligen vollständigen Lesedurchlauf bezieht sich auf die von FileScope selbst implementierte Prüfsummenberechnung. Optionale Metadaten- und Signaturprüfungen können weitere Lesezugriffe verursachen. Insbesondere lässt sich nicht garantieren, dass Windows intern jede Datei nur einmal liest. Weiterhin kann FileScope beim Einlesen verschiedener Hardlink-Pfade denselben Dateiinhalt mehrfach lesen.
+
+Durch die gemeinsame Verarbeitung eignet sich FileScope besonders für die Prüfsummenberechnung großer Dateien und umfangreicher Dateisammlungen.
 
 ## Starten
 
-Voraussetzung: Windows und ein installiertes **.NET 10 SDK**. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine Version mit .NET-10-Unterstützung verwenden.
+Voraussetzung zum Bauen: Windows und das in [`global.json`](global.json) festgelegte **.NET SDK**. `rollForward: disable` verlangt genau die dort angegebene SDK-Version; andere SDKs können parallel installiert bleiben. Für Visual Studio den Workload **.NET-Desktopentwicklung** sowie eine kompatible Version verwenden. Es wird ein Workspace für Visual Studio Code mit vordefinierten Tasks mitgeliefert. Fertige self-contained Pakete benötigen kein installiertes SDK und keine separate Runtime.
 
-1. Das ZIP vollständig entpacken.
+Visual Studio:
+
+1. Klonen, oder herunterladen und das ZIP vollständig entpacken.
 2. `FileScope.sln` öffnen und `FileScope.App` als Startprojekt festlegen.
 3. Mit F5 starten.
+
+Visual Studio Code:
+
+1. Klonen, oder herunterladen und das ZIP vollständig entpacken.
+1. `FileScope.code-workspace` öffnen
+1. Strg + Umschalt + B startet den vordefinierten Build task (Release); es gibt noch weitere Tasks.
+1. Der Ausgabeordner erscheint in der Konsole, dort die Exe ausführen.
 
 Alternativ im entpackten Hauptordner:
 
@@ -29,70 +65,472 @@ Das SDK stellt bei Bedarf die Microsoft-Framework-Referenzpakete wieder her. Fü
 
 Die App normal ohne Administratorrechte starten. Windows kann Drag-and-drop aus dem Explorer in ein manuell erhöht gestartetes Programm blockieren.
 
+### VS-Code-Workspace-Tasks
+
+`FileScope.code-workspace` öffnen. Unter **Terminal → Task ausführen** stehen folgende Aufgaben:
+
+| Task | Skriptaufruf |
+| --- | --- |
+| `FileScope: Build (Release)` | `Build.ps1 -Configuration Release`; Standard-Build mit Ctrl+Shift+B |
+| `FileScope: Publish (win-x64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-x64` |
+| `FileScope: Publish (win-arm64)` | `Build.ps1 -Configuration Release -Publish -Runtime win-arm64` |
+| `FileScope: Publish self-contained (win-x64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-x64` |
+| `FileScope: Publish self-contained (win-arm64)` | `Build.ps1 -Configuration Release -Publish -SelfContained -Runtime win-arm64` |
+| `FileScope: Verify` | `Verify.ps1`; prüft mit der Architektur des aktuellen SDK-Hosts |
+| `FileScope: Verify (win-x64)` | `Verify.ps1 -Runtime win-x64`; führt die Tests als Windows-x64-Prozesse aus |
+| `FileScope: Verify (win-arm64)` | `Verify.ps1 -Runtime win-arm64`; benötigt Windows ARM64 und dessen passende .NET-Desktop-Runtime |
+
+Die Tasks starten `powershell.exe` ohne Profil und verwenden den benannten Workspace-Ordner als Arbeitsverzeichnis. Auch Pfade mit Leerzeichen funktionieren, da Argumente getrennt übergeben werden. Das ausgewählte SDK muss über `dotnet` im `PATH` des VS-Code-Prozesses erreichbar sein. Die Skripte sind auch für PowerShell 7 vorgesehen. Gemeinsame Hilfsfunktionen in `build/ScriptSupport.ps1` verwenden die ANSI-Farben aus `build/colored_console.ps1`: Phasen blau, Erfolg grün und Fehler rot. Ein Reset vor jedem Zeilenumbruch verhindert, dass insbesondere die Hintergrundfarbe in die nächste Zeile weiterläuft. `-NoColor` oder `NO_COLOR` schaltet die eigene Farbausgabe ab; die Textkennzeichnungen bleiben erhalten. SDK-Informationen, Befehle und Gesamtdauer erscheinen lokal und in CI gleich; native Fehlercodes führen zum Abbruch.
+
+### GitHub-CI
+
+Der Workflow **CI** prüft Pushes und Pull Requests für `dev`, `main` und `master`.
+Er kann außerdem unter **Actions → CI → Run workflow** manuell gestartet werden.
+`Verify.ps1` läuft auf Windows x64 und Windows ARM64, jeweils einschließlich der
+nativen Prüfungen und WPF-Tests. Das SDK stammt aus `global.json`.
+
+Nach erfolgreicher Prüfung baut `Build.ps1` beide Auslieferungsvarianten je
+Architektur. Die vier ZIP-Downloads liegen als **Artifacts** beim Workflow-Lauf
+und werden 14 Tage aufbewahrt. Dies sind CI-Pakete; tagbasierte GitHub-Releases
+folgen separat. Details stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md).
+
+### Windows-Ausgabe mit und ohne Runtime
+
+```powershell
+.\Build.ps1 -Publish -Runtime win-x64
+.\Build.ps1 -Publish -Runtime win-arm64
+.\Build.ps1 -Publish -Runtime win-x64 -SelfContained
+.\Build.ps1 -Publish -Runtime win-arm64 -SelfContained
+```
+
+Die Ausgabe liegt unter `artifacts/publish/<Runtime>` bzw. `artifacts/publish/<Runtime>_self-contained`. Vor jedem Publish wird ausschließlich dieser Ausgabeordner geleert. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Ohne `-SelfContained` wird explizit framework-dependent veröffentlicht: Auf dem Zielrechner muss die passende **.NET 10 Desktop Runtime** installiert sein. Mit `-SelfContained` ist sie enthalten. Beide Varianten werden nicht getrimmt.
+
+Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt wird der vom festgelegten SDK bekannte Runtime-Patchstand. Das ist keine Suche nach einer beliebigen neuesten Online-Version. Ein SDK-Update wird bewusst in `global.json` vorgenommen und anschließend geprüft. Weitere Einzelheiten zu SDK/Runtime, Reproduzierbarkeit und dem geplanten Release-/WiX-Aufbau stehen in [`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md).
+
+`Build.ps1 -Publish -Runtime win-arm64` kann auch auf Windows x64 bauen. Zum **Ausführen** wird dagegen ein passendes Windows-System benötigt. `-Run` startet nach einem Publish ausdrücklich die erzeugte `FileScope.App.exe`; ohne Publish startet es den normalen Build. Beim Lösungsbuild übersetzt das Skript `-Runtime` ausschließlich in die passende `Platform`; `dotnet build FileScope.sln` erhält keinen RID. Die Plattform trennt die normalen Ausgabeordner, zum Beispiel `src/FileScope.App/bin/Arm64/Release/net10.0-windows`. `-Run` verwendet dieselbe Plattform ohne RID und findet dadurch genau diesen Build. Erst die gezielten Projektaufrufe für Publish und architekturspezifische Tests erhalten `--runtime`. Ohne `-Runtime` verwendet Verify beim Lösungsbuild `Any CPU`.
+
+**Plattformunterstützung**: Windows x64 und Windows ARM64. Die ARM64-Version wurde unter Windows 11 in Parallels Desktop erfolgreich getestet. Weitere Zielarchitekturen können über den Runtime-Parameter gewählt werden.
+
 ## Bedienung
 
 | Funktion | Verhalten |
 | --- | --- |
-| Dateien ablegen | Eine oder mehrere Dateien auf einen beliebigen Bereich des Fensters ziehen. Alternativ „Dateien öffnen“ / Ctrl+O. |
-| Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Standard: SHA-256 und Signaturprüfung. |
+| Menü ein-/ausklappen | Die Kopfzeile „Menü“ klappt die Befehlsleiste ein oder aus und schafft mehr Platz für die Ergebnistabelle. „Optionen“ bleibt oben rechts erreichbar. Drag-and-drop und die Fenster-Tastenkürzel funktionieren auch bei eingeklapptem Menü; Analyseauswahl und Aufnahmefilter bleiben erhalten. |
+| Dateien oder Ordner ablegen | Eine oder mehrere Dateien und/oder Ordner auf einen beliebigen Bereich des Fensters ziehen. Für Ordner bestätigt eine gemeinsame Rückfrage die Auswertung einschließlich Unterordnern; „Nein“ verwirft den gesamten Drop. Alternativ „Dateien öffnen“ / Ctrl+O oder „Ordner hinzufügen“. |
+| Ordner hinzufügen | Links oben neben „Dateien öffnen“. Einen Ordner auswählen und darin enthaltene Dateien einschließlich Unterordner analysieren, sofern sie zum Aufnahmefilter passen. Bereits geladene Pfade werden übersprungen. |
+| Dateiaufnahme (Regex) | Vor dem Hinzufügen nach Dateinamen einschließlich Endung auswählen. Gilt für Dateiauswahl, Ordner und Drag-and-drop; ausgeschlossene Dateien erscheinen nicht in der Tabelle und werden nicht analysiert. Leer bedeutet alle Dateien. Beispiele stehen unterhalb dieser Tabelle. |
+| Exportieren | In derselben Dateigruppe. Alle geladenen Dateien über „Speichern unter“ als CSV oder JSON exportieren, einschließlich durch Ansichtsfilter ausgeblendeter Zeilen. Exportiert werden vorhandene Ergebnisse, ohne erneute Analyse. |
+| Exportfelder | Unter Zahnrad → Optionen → Exportieren die gewünschten Felder anhaken. Die Auswahl wird gespeichert und ist unabhängig von der Sichtbarkeit der Tabellenspalten. |
+| CSV-Trennzeichen | Im selben Reiter Semikolon oder Komma wählen. Standard ist Semikolon; die Auswahl wird gespeichert und bleibt beim Sprachwechsel erhalten. |
+| Prüfoptionen | MD5, SHA-1, SHA-256, SHA-384 und SHA-512 separat auswählen. Beim ersten Start: SHA-256 und Signaturprüfung. Danach wird die gespeicherte Auswahl aller Prüf-Häkchen wiederhergestellt. |
+| Sichtbare Spalten | Hashspalten folgen sofort ihren Häkchen. Die Signatur- und Zertifikatsspalten folgen gemeinsam der Signaturprüfung. Dateieigenschaften und PE-Spalten folgen ihren jeweiligen Häkchen. Ausblenden behält bestehende Ergebnisse; neu gewählte Werte lassen sich mit „Alle neu prüfen“ berechnen. |
 | Verarbeitung | Ein Dateistream, ein gemeinsamer Lesedurchlauf für alle gewählten Hashes; Dateien werden nacheinander im Hintergrund bearbeitet. |
-| Zertifikate | Primäre eingebettete Authenticode-Signatur prüfen und Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke anzeigen. |
+| Zertifikate | Von Windows gemeldete primäre und zusätzliche eingebettete Authenticode-Signaturen jeweils prüfen; Unterzeichner, Inhaber, Aussteller, Seriennummer, Gültigkeitsdaten und Fingerabdrücke der gewählten Signatur anzeigen. |
+| Signaturauswahl | Sobald mindestens eine geladene Datei mehrere Signaturen hat, erscheint eine Auswahlspalte pro Zeile. Die Einträge nennen Signaturnummer, Unterzeichner und Dateisignatur-Hashalgorithmus. Auch dasselbe Zertifikat kann mehrfach vorkommen. Status, Zertifikatsdaten, Datum, Details, Suche und Sortierung folgen der Auswahl; keine erneute Analyse. Bei einzelnen Signaturen ist die Auswahl deaktiviert. |
+| Signaturzeitstempel | Authenticode-Gegensignatur oder RFC-3161-Zeitstempel in UTC. Fehlende, nicht auslesbare und nicht bestätigte Zeitstempel sind ausdrücklich beschriftet. |
+| Dateimetadaten | Zwei unabhängig gespeicherte Häkchen: „Dateieigenschaften“ und „PE-Header / Plattform“. Anfangs beide aus. Versionsfelder und Windows-Dateityp beziehungsweise PE-Maschinentyp, PE-Format und .NET-Plattform ermitteln. |
 | Online-Sperrprüfung | Optional. Ohne Häkchen werden ausschließlich lokale/zwischengespeicherte Ketten- und Sperrinformationen verwendet. |
 | Alle neu prüfen | Alle geladenen Dateien mit der aktuellen Auswahl erneut verarbeiten, einschließlich ausgefilterter Dateien. Vorherige Ergebnisse dieser Dateien werden dabei ersetzt. |
-| Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben und Diagnose, ohne Groß-/Kleinschreibung. |
+| Suche | Textsuche über Pfad, Größe, Datum, Hashwerte, Status, Zertifikatsangaben, Dateieigenschaften, PE-Angaben und Diagnose, ohne Groß-/Kleinschreibung. |
 | Filter | Textsuche, Analysestatus und Signaturstatus werden mit UND verknüpft. |
+| Dateikontextmenü | Rechtsklick auf eine Ergebniszeile: „Eigenschaften“ öffnet den Windows-Dateidialog, „Im Explorer anzeigen“ öffnet den übergeordneten Ordner und markiert genau diese Datei. Diese beiden Aktionen sind nur bei genau einer markierten Datei und ohne laufenden Job aktiviert. Über die Menütaste / Umschalt+F10 ist das Menü ebenfalls erreichbar. |
+| Dateien verschieben | Markierte Zeilen mit demselben abgeschlossenen Signatur-Prüfergebnis: Kontextmenü → „Markierte Dateien nach … verschieben“. Jede Datei wird in einen kurzen, lokalisierten Unterordner ihres eigenen übergeordneten Ordners verschoben. Vorhandene Ziele werden übersprungen. Ein Abschlussbericht nennt jedes Ergebnis. |
+| Alles außer gültigen Signaturen | Blendet ausschließlich den Status „gültig“ aus. Enthält auch unsignierte, ungeprüfte, nicht unterstützte und fehlgeschlagene Prüfungen. Bei mehreren Signaturen gilt die aktuelle Auswahl in der Zeile. „Prüfbedarf“ behält seine bisherige engere Bedeutung ohne unsignierte/ungeprüfte Dateien. |
 | Sortierung | Spaltenüberschrift anklicken; bei Bedarf mit Shift weitere Sortierspalten hinzufügen. Größen und Datumsfelder werden nach ihren Werten sortiert. |
-| Tabelle | Schreibgeschützt, verschiebbare/vergrößerbare Spalten, horizontal scrollbar. Die ersten zwei Spalten bleiben links stehen. Jede zweite sichtbare Zeile ist leicht grau. |
-| Kopieren | Zeilen auswählen und Ctrl+C verwenden. Unter „Ausgewählte Datei“ ist der komplette Detailtext markierbar. |
+| Statusfelder | Verarbeitungs- und Signaturstatus verwenden dieselbe abgerundete `StatusBadge`-Komponente. Grün: fertig/gültig; Blau: Verarbeitung läuft; Gelb: abgebrochen oder Warnfall; Rot: Fehler/ungültige Prüfung; Grau: wartend, nicht geprüft oder keine eingebettete Signatur. Die übersetzte Beschriftung und der vollständige Tooltip bleiben maßgeblich. |
+| Tabelle | Schreibgeschützt und horizontal scrollbar. Zeilen ohne wechselnde Hintergrundfarben mit den nativen WPF-Tabellenvorlagen. Die ersten zwei Spalten der gewählten Reihenfolge bleiben links stehen. |
+| Scrollbalken | Beide Richtungen sind doppelt so dick, einschließlich Schieber und Maus-Trefffläche. Die nativen Fluent-Vorlagen werden nur quer zur Scrollrichtung skaliert: 24 statt 12 geräteunabhängige Pixel. Gilt auch für Listen, Detailfeld und Menüband. |
+| Spaltenreihenfolge | Zahnrad → Optionen: Alle 39 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
+| Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, mit Begrenzungen für die normalen Spalten. Der Pfad steht standardmäßig zuletzt und darf automatisch seine volle Inhaltsbreite nutzen. Unter Optionen → Spaltenreihenfolge lässt sich seine Automatik abschalten: dann startet er begrenzt breit und lässt sich manuell anpassen. |
+| Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
+| Kopieren | Zeilen auswählen und Ctrl+C verwenden. Bei genau einer markierten Datei zeigt der Detailkopf nach „Kopieren:“ mit Abstand den vollständigen Pfad; der Detailtext ist markierbar. Bei keiner oder mehreren markierten Dateien bleiben Pfad und Detailtext leer. |
+| Tastaturnavigation in der Tabelle | **Strg+Pos1 / Strg+Ende** springen zur ersten bzw. letzten Tabellenzelle. **BildAuf / BildAb** bewegen sich um eine sichtbare Tabellenseite nach oben bzw. unten. Pos1 / Ende allein wechseln innerhalb der aktuellen Zeile zur ersten bzw. letzten Spalte. Die Ergebnisliste muss den Tastaturfokus haben. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
-| Leeren / Clear | Ctrl+L oder „Leeren“. Bricht einen laufenden Durchlauf ab und leert danach alle Zeilen und Filter. |
-| Sprachen | Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
+| Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Ansichtsfilter, sobald kein Vorgang mehr läuft. Der Aufnahmefilter bleibt erhalten. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
+| Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
+| Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
+| Design | Hell/Dunkel unter **Optionen → Design** umschalten; die Auswahl wird gespeichert. Native Fluent-Controls ohne eigene Vorlagen für Zeilen/Zellen. |
+| Über FileScope | Info-Knopf im aufklappbaren Menü: Programmversion, Funktionsübersicht, Erklärung des gemeinsamen Lesedurchlaufs sowie Repository und MIT-Lizenz. |
+| Tastenkürzel | Tastatursymbol unter „Über“ oder **F1**: kompakte Übersicht für Aktionen, Navigation, Auswahl und Kopieren. Mit **Esc**, **Enter** oder „Schließen“ schließen. |
 
-Während der Verarbeitung sind neue Dateiaufnahmen und Prüfoptionen gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ und „Leeren“ warten auf deren Rückkehr. Das Fenster bleibt bedienbar.
+### Dateien beim Hinzufügen filtern (Regex)
 
-Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden als eigene Fehlerzeilen gemeldet und nicht rekursiv eingelesen. Ohne gewählten Hash und ohne Signaturprüfung werden nur Dateimetadaten ermittelt.
+Das Feld **„Dateiaufnahme (Regex)“** in der Dateigruppe entscheidet, welche neuen Dateien in FileScope aufgenommen werden. Geprüft wird nur der **Dateiname einschließlich Endung**, ohne Ordnerpfad; Groß- und Kleinschreibung werden ignoriert. Das gilt für **„Dateien öffnen“**, **„Ordner hinzufügen“** und **Drag-and-drop**, einschließlich Dateien in Unterordnern. Ordnernamen selbst werden nicht gefiltert. Ausgeschlossene Dateien werden nicht zur Analyse geöffnet und erscheinen weder in der Liste noch im Export.
 
-Die gewählten Optionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprachwechsel verändert keine Analysewerte. Einstellungen und Ergebnisse werden derzeit nur für die laufende Sitzung gehalten.
+Ein **leeres Feld** nimmt alle Dateien auf. Der Aufnahmefilter gilt für die aktuelle Sitzung und bleibt beim Leeren der Liste sowie beim Zurücksetzen der Ansichtsfilter erhalten. Zum Abschalten den Inhalt dieses Feldes löschen. Eine Änderung betrifft nur künftige Aufnahmen; vorhandene Zeilen bleiben erhalten, und „Alle neu prüfen“ verarbeitet weiterhin alle geladenen Dateien. Während eines Vorgangs ist das Feld gesperrt.
 
-## Projekte und Entwurfsmuster
+Die **Suche** über der Tabelle bleibt eine einfache Textsuche in bereits geladenen Ergebnissen. Sie und die Statusfilter beeinflussen nur die Ansicht.
+
+| Gewünschte Aufnahme | Regex zum Einfügen |
+| --- | --- |
+| Nur EXE-Dateien | `\.exe$` |
+| EXE- oder DLL-Dateien | `\.(exe\|dll)$` |
+| Dateiname enthält „setup“ | `setup` |
+| Dateiname beginnt mit „setup“ oder „install“ | `^(setup\|install)` |
+| Alle außer Dateinamen mit „setup“ | `^(?!.*setup).*$` |
+| Alle außer TMP- und BAK-Dateien | `^(?!.*\.(tmp\|bak)$).*$` |
+| Nur DLL-Dateien, deren Name weder „debug“ noch „test“ enthält | `^(?!.*(debug\|test)).*\.dll$` |
+
+Kurz erklärt: `\.` steht für einen echten Punkt, `$` für das Ende und `^` für den Anfang des Dateinamens. `.*` bedeutet beliebig viele Zeichen, `|` trennt Alternativen. Der negative Ausblick `(?!...)` schließt das darin beschriebene Muster aus. `\.exe$` passt deshalb auf `SETUP.EXE`, aber nicht auf `setup.exe.bak`. Das Feld verwendet .NET-Regulärausdrücke, keine Explorer-Platzhalter: statt `*.exe` wird `\.exe$` eingegeben. Auch Leerzeichen im Muster sind wirksam.
+
+Ein ungültiges Muster wird direkt am Feld gemeldet; die Dateiaufnahme bleibt bis zur Korrektur gesperrt. Dauert eine Prüfung zu lange, wird die neue Aufnahme abgebrochen, ohne einen Teil ihrer Treffer hinzuzufügen. Bereits vorhandene Ergebnisse bleiben erhalten. Nach einer erfolgreichen Aufnahme nennt die Statusleiste auch die Zahl der durch den Filter ausgeschlossenen Kandidaten.
+
+## Funktionen im Detail
+
+### Startanzeige
+
+Beim Start erscheint das orange FS-Symbol als kleiner Splashscreen. Sobald das Hauptfenster bereitsteht, blendet WPF ihn automatisch in etwa 300 ms aus. Es gibt keine künstliche Mindestanzeigedauer und keine zusätzliche Initialisierung für ein eigenes Splash-Fenster. Ein animiertes Einblenden ist beim eingebauten WPF-Splash nicht vorgesehen.
+
+Ein langsamer erster Start kann unter anderem vom Laden der Runtime und der Assemblies sowie von JIT-Kompilierung abhängen; daraus allein lässt sich die Ursache in einer ARM64-VM nicht ableiten. Erst mehrere Kalt- und Warmstarts vergleichen. Der Splash macht den Start sichtbar, verkürzt ihn aber nicht. `ReadyToRun` kann JIT-Arbeit beim Start reduzieren, vergrößert dafür die Programmdateien; die Publish-Einstellungen bleiben unverändert. Siehe [WPF-Splashscreen](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/app-development/how-to-add-a-splash-screen-to-a-wpf-application) und [ReadyToRun](https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run).
+
+### Dateien im Explorer untersuchen
+
+Das Kontextmenü einer Ergebniszeile verwendet die nativen Fluent-Menüs und folgt dem gewählten Design und der Sprache. „Verschieben“ steht, sofern verfügbar, als erster Eintrag über einer Trennlinie. „Eigenschaften“ und „Im Explorer anzeigen“ sind nur bei genau einer markierten Datei aktiviert: Sie zeigen deren Windows-Eigenschaften bzw. springen direkt zum richtigen Ordner und markieren die Datei. Die Aktion startet die untersuchte Datei nicht. Freie Tabellenflächen und Spaltenüberschriften haben kein Dateimenü.
+
+Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows die Aktion, erscheint ein eigener Hinweis mit dem Pfad unter dem Analysestatus. Analyseergebnisse und Durchlaufstatistik bleiben erhalten. Ein erfolgreicher erneuter Aufruf oder „Leeren“ entfernt diesen Hinweis. Die Explorer-Anfrage läuft im Hintergrund; eine noch laufende Anfrage kann nicht doppelt gestartet werden. Windows darf für diese ausdrücklich angeforderten Shell-Aktionen eigene zusätzliche Dateizugriffe durchführen.
+
+### Dateien nach Signaturergebnis verschieben
+
+Eine oder mehrere Ergebniszeilen markieren und das Kontextmenü öffnen. Der erste Menüeintrag und seine Trennlinie sind nur vorhanden, wenn alle markierten Zeilen eine abgeschlossene Analyse und **dasselbe angezeigte Signaturergebnis** besitzen. Bei mehreren Signaturen zählt die aktuelle Signaturauswahl jeder Zeile. „Gültig (online)“ und „Gültig (offline)“ bilden getrennte Gruppen. Gemischte, ungeprüfte, wartende, abgebrochene oder insgesamt fehlgeschlagene Analysen bieten die Aktion nicht an. Ein Rechtsklick auf eine noch nicht markierte Zeile wählt diese allein aus; innerhalb einer bestehenden Mehrfachauswahl bleibt die Auswahl erhalten.
+
+Der Signaturstatus beginnt mit einem **festen einstelligen Hexcode von `0` bis `B`**, zum Beispiel `1 | Gültig · Online-Sperrprüfung` oder `2 | Gültig · Sperrprüfung aus Cache`. Die elf Signaturzustände ergeben durch die getrennten gültigen Online-/Cache-Ergebnisse zwölf Anzeigegruppen. Der Code bleibt in allen Sprachen gleich und erscheint auch in Details, Kopierausgabe, Suche und im Signaturfeld des CSV-/JSON-Exports. Dies sind FileScope-Gruppencodes; der ursprüngliche Windows-Rückgabecode bleibt separat in „Windows-Vertrauenscode“ erhalten.
+
+**Gleiche Codes von `1` bis `B` bedeuten dieselbe Verschiebegruppe.** Dafür müssen alle markierten Analysen abgeschlossen sein und FileScope muss sich im Leerlauf befinden. Verschiedene Codes werden nicht gemeinsam verschoben; `0` bedeutet „nicht geprüft“ und bietet kein Verschieben an. Die Farbe zeigt nur eine gröbere Bewertung. Die beiden grünen Gruppen `1` und `2` verwenden zwar denselben Zielordner, bleiben aber getrennte Verschiebegruppen.
+
+Jede Datei kommt in einen Unterordner **ihres bisherigen direkten Elternordners**, etwa `C:\Pruefung\Unterordner\datei.exe` → `C:\Pruefung\Unterordner\widerruf\datei.exe`. Gleichnamige Dateien aus verschiedenen Ordnern bleiben damit getrennt. Die App-Sprache beim Start der Aktion bestimmt den Namen; jeder Name umfasst höchstens acht Zeichen. Das ist eine Begrenzung der Ordnernamen, keine Zusage zum DOS-8.3-Format.
+
+| Code | Farbe | Signaturstatus | Zielordner Deutsch | Englisch | 简体中文 |
+| --- | --- | --- | --- | --- | --- |
+| `0` | Grau | Nicht geprüft | — | — | — |
+| `1` | Grün | Gültig · Online-Sperrprüfung | `gueltig` | `valid` | `有效` |
+| `2` | Grün | Gültig · Sperrprüfung aus Cache | `gueltig` | `valid` | `有效` |
+| `3` | Grau | Keine eingebettete Signatur | `ohnesig` | `unsigned` | `未签名` |
+| `4` | Rot | Ungültige Signatur / Prüfsumme | `unguelt` | `invalid` | `无效` |
+| `5` | Gelb | Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
+| `6` | Rot | Zertifikatszeitraum ungültig | `abgelauf` | `expired` | `已过期` |
+| `7` | Rot | Zertifikat gesperrt | `widerruf` | `revoked` | `已吊销` |
+| `8` | Gelb | Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
+| `9` | Gelb | Signaturformat nicht unterstützt | `format` | `format` | `不支持格式` |
+| `A` | Gelb | Windows erforderlich | `system` | `platform` | `不支持平台` |
+| `B` | Rot | Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
+
+**Vorhandene Ziele werden niemals überschrieben.** Auch ein Zielpfad, der bereits als andere Ergebniszeile geladen ist, bleibt reserviert. Dateien, die bereits unmittelbar im passenden Unterordner liegen, werden übersprungen; es entstehen keine wiederholten Status-Unterordner. Symbolische Dateilinks und andere Datei-Reparse-Points werden mit Hinweis übersprungen, ebenso verlinkte Zielordner. Ein gewöhnlicher Hardlink wird als einzelner Pfad verschoben; seine anderen Namen bleiben erhalten.
+
+Die Aktion läuft im Hintergrund und lässt sich zwischen Dateien abbrechen. Bereits ausgeführte Verschiebungen bleiben bestehen; es gibt kein automatisches Zurückverschieben. Erfolgreiche Zeilen erhalten sofort nach Abschluss des Vorgangs den neuen Pfad, behalten aber Analysewerte und ausgewählte Signatur. Explorer, Details, Suche und CSV/JSON-Export verwenden anschließend diesen Pfad. Zugriffsfehler betreffen nur die jeweilige Datei. Der skalierbare Abschlussdialog enthält Anzahl, Erfolge, übersprungene bzw. abgebrochene Einträge und Fehler mit Quell-/Zielpfaden; sein Text lässt sich markieren und kopieren. Dafür werden die Quelldateien nicht neu analysiert.
+
+### Über FileScope
+
+Der **Über**-Knopf mit Info-Symbol öffnet einen Dialog über dem Hauptfenster. Er zeigt die Version des laufenden Programms einschließlich vorhandener Versionszusätze, eine kurze Funktionsliste und die genaue Bedeutung des gemeinsamen Dateizugriffs: FileScope öffnet jede Datei pro Analyse einmal; alle ausgewählten Hashes teilen sich einen vollständigen Lesedurchlauf. Header-, Versions- und Signaturprüfungen können zusätzlich lesen, Windows gegebenenfalls auch ergänzende Ressourcen.
+
+Repository und Online-Lizenz werden erst beim Anklicken im Standardbrowser geöffnet. Der vollständige englische MIT-Lizenztext einschließlich Copyright ist außerdem aufklappbar und offline les- und kopierbar. Er stammt direkt aus der `LICENSE` im Repository, wird in die Anwendung eingebettet und zusätzlich in den Build-/Publish-Ordner kopiert. Kann der Browser nicht geöffnet werden, erscheint ein Hinweis im Dialog. Sprache und Design folgen der Anwendung; der Inhalt bleibt auch bei kleiner Fenstergröße scrollbar. **Schließen** oder Escape schließen den Dialog.
+
+### Tastenkürzel
+
+Der Knopf **Tastenkürzel** unter „Über“ im aufklappbaren Menü sowie **F1** öffnen dieselbe kleine Übersicht. F1 funktioniert auch bei eingeklapptem Menü. Sie gruppiert zwölf Einträge in Aktionen, Tabellennavigation und Auswahl/Kopieren. Tastenkombinationen stehen in abgesetzten Feldern neben ihrer Erklärung. Die Liste lässt sich bei einem kleinen Fenster scrollen; der Schließen-Knopf bleibt erreichbar. Die Übersicht folgt Sprache und Design, auch während sie geöffnet ist, und verändert keine Einstellungen.
+
+Enthalten sind **Strg+O**, **Strg+L**, **Esc**, **F1**, **Strg+Pos1 / Strg+Ende**, **BildAuf / BildAb**, **Pos1 / Ende**, **Pfeil auf/ab**, **Umschalt+Pfeil auf/ab**, **Strg+A**, **Strg+C** sowie **Umschalt+F10 / Menütaste**. Tabellenkürzel beziehen sich auf die aktuelle gefilterte Ansicht und setzen den Tastaturfokus in der Ergebnisliste voraus. In Textfeldern gelten die üblichen Textkürzel. „Leeren“ ist während laufender Jobs deaktiviert; Esc schließt in der Übersicht zunächst den Dialog.
+
+### Helles und dunkles Design
+
+Unter **Optionen → Design** lässt sich während der Sitzung zwischen Hell und Dunkel wechseln. Die geöffneten Fenster, Hinweisfarben und Status-Badges passen sich an. Die Auswahl wird sofort gespeichert und beim nächsten Start wiederhergestellt; Analyseergebnisse, Filter und Spaltenreihenfolge bleiben erhalten. Fehlt in älteren Einstellungen ein gültiger Designwert, bleibt das aktuelle Anwendungsdesign erhalten, beim regulären Start standardmäßig Hell.
+
+### Ordnersuche und Export
+
+Die Ordnersuche berücksichtigt auch versteckte Dateien. Verzeichnisverknüpfungen (Junctions und symbolische Links) innerhalb des ausgewählten Ordners werden übersprungen, damit keine Schleifen entstehen. Nicht lesbare Unterordner werden gemeldet; lesbare Geschwisterordner werden weiter durchsucht. Bereits vorhandene Pfade werden nicht erneut analysiert. „Abbrechen“ beendet die Suche ohne neue Zeilen; beim späteren Hinzufügen oder Analysieren bleiben bereits hinzugefügte Zeilen erhalten und können mit „Alle neu prüfen“ verarbeitet werden. „Leeren“ ist erst nach Abschluss oder beendetem Abbruch verfügbar und entfernt dann alle Zeilen.
+
+Beim Ablegen von Ordnern zeigt eine MessageBox vor Beginn der Suche deren Anzahl und bis zu fünf Pfade an. „Ja“ bestätigt die rekursive Auswertung aller abgelegten Ordner, „Nein“ verwirft den gesamten Drop einschließlich direkt mit abgelegter Dateien. Reine Datei-Drops benötigen keine Rückfrage. Mehrfach abgelegte oder überlappende Pfade erzeugen keine doppelten Ergebniszeilen.
+
+#### Symbolische Links, Junctions und Hardlinks
+
+| Linkart | Verhalten bei der Ordnersuche |
+| --- | --- |
+| Verzeichnis-Symlink, Junction oder anderer Verzeichnis-Reparse-Point innerhalb eines Startordners | Wird gezählt und übersprungen. Damit werden auch Links zurück auf übergeordnete Ordner nicht rekursiv verfolgt. |
+| Ein ausdrücklich ausgewählter oder abgelegter Startordner ist selbst ein Verzeichnislink | Sein Ziel wird als Startordner durchsucht; Verzeichnislinks innerhalb dieses Baums werden weiterhin übersprungen. |
+| Symbolischer Link auf eine Datei | Bleibt ein eigener Dateipfad. Beim Analysieren wird sein Ziel geöffnet; ein nicht erreichbares oder zyklisch verlinktes Ziel erhält die übliche Fehlerdiagnose in seiner Zeile. |
+| Hardlink auf eine Datei | Jeder unterschiedliche Pfad bleibt eine eigene Zeile und wird separat analysiert. Eine Zusammenfassung anhand der physischen Datei-ID findet nicht statt. |
+
+Unter Windows können Hardlinks keine Verzeichnisse referenzieren und daher keine rekursiven Verzeichnisschleifen erzeugen. Der Windows-Komponentenspeicher `WinSxS` verwendet viele solcher Dateiverknüpfungen. Beim Einlesen verschiedener Hardlink-Pfade kann FileScope denselben Dateiinhalt mehrfach lesen; die Größen dieser Zeilen dürfen deshalb nicht als tatsächlich zusätzlich belegter Speicherplatz interpretiert werden. Siehe [Microsoft: Hardlinks und Junctions](https://learn.microsoft.com/en-us/windows/win32/fileio/hard-links-and-junctions) und [Windows-Komponentenspeicher](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/manage-the-component-store).
+
+#### Diagnosedetails
+
+Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist ausgeblendet, solange keine geladene Zeile Diagnosedetails enthält, und erscheint bei der ersten Diagnose automatisch. Maßgeblich sind die Diagnosen aller geladenen Zeilen, einschließlich ausgefilterter Zeilen und der jeweils ausgewählten Signatur. Die Statusleiste ergänzt die Anzahl betroffener Zeilen und bricht längere Meldungen um, damit der Hinweis sichtbar bleibt. Eine erneute Prüfung ohne Diagnosen oder „Leeren“ entfernt Spalte und Hinweis wieder. Gespeicherte Spaltenpositionen bleiben erhalten; **Optionen → Spaltenreihenfolge → Reihenfolge zurücksetzen** übernimmt die neue Standardposition. CSV-/JSON-Exportauswahl und Diagnosewerte bleiben von der automatischen Sichtbarkeit unabhängig.
+
+#### Durchlaufstatistik
+
+Die laufende Statusanzeige wird höchstens alle 100 ms aus einem Puffer aktualisiert. Sie nennt die aktuelle Datei und die Phase: Datei öffnen, gemeinsame Prüfsummenberechnung, Dateieigenschaften, EXE-Header oder Signaturprüfung. Bei aktivierter Online-Sperrprüfung nennt die Signaturphase diese ausdrücklich. Windows liefert innerhalb dieses nativen Aufrufs keinen zuverlässigen Prozentwert oder getrennte OCSP-/CRL-Fortschrittsmeldungen; der Balken ist dann unbestimmt. Sehr kurze Phasen dürfen zwischen zwei Anzeigezeitpunkten liegen und werden nicht nachträglich abgespielt.
+
+Filter und Sortierung pausieren während eines Jobs; die bestehende Auswahl bleibt erhalten und wird am Ende erneut angewendet. Abschluss und Abbruch übernehmen alle bis dahin fertigen Ergebnisse sofort, ohne auf den nächsten Anzeigetakt zu warten. Alle gewählten Hashes bleiben Teil desselben Lesedurchlaufs; pro Datenblock werden sie nacheinander berechnet, weshalb die Anzeige sie als eine Phase zusammenfasst.
+
+Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen. Der Mittelpunkt ` · ` trennt sowohl die Durchlaufwerte als auch den optionalen Diagnosehinweis vom vorherigen Meldungsteil.
+
+Beim Hinzufügen weiterer Dateien zählt nur der neue Durchlauf; „Alle neu prüfen“ bildet die Statistik für sämtliche geladenen Zeilen neu, unabhängig von Tabellenfiltern. Ein Abbruch zeigt die bis dahin abgeschlossenen Dateiergebnisse einschließlich Fehlerergebnissen an. Noch nicht abgeschlossene Dateien gehen nicht in die Summe ein. Fehlt eine Dateigröße, nennt die Statusleiste zusätzlich die Anzahl dieser Dateien. „Leeren“ entfernt die Statistik.
+
+Die Größen stammen aus den bereits ermittelten Ergebnissen; die Dateien werden dafür nicht erneut geöffnet. Die Summe zählt pro analysiertem Pfad und beschreibt weder den tatsächlich belegten Speicherplatz noch die insgesamt gelesenen I/O-Bytes. Unterschiedliche Hardlink-Pfade zählen daher jeweils mit ihrer Dateigröße.
+
+#### Langsame Dateien im Debugger eingrenzen
+
+Die Phase „Prüfsummen werden berechnet“ umfasst sowohl das Lesen als auch alle ausgewählten Hashalgorithmen. Der Text allein unterscheidet diese Zeiten nicht. Der Anzeigetakt verzögert den Worker nicht; er ersetzt keine Laufzeitmessung.
+
+| Haltepunkt | Was sich damit eingrenzen lässt |
+| --- | --- |
+| `FileAnalysisService.AnalyzeAsync`: `new FileStream(...)` | Öffnen der Datei; danach werden Länge und Änderungszeit abgefragt. |
+| `StreamChecksumService.ComputeAsync`: `await stream.ReadAsync(...)` | Warten auf den nächsten gelesenen Block. |
+| Direkt danach: `strategy.Append(...)` | Berechnen der ausgewählten Prüfsummen für diesen Block. |
+| `FileAnalysisService.AnalyzeAsync`: `properties.Inspect(...)`, `peHeaders.Inspect(...)`, `signatures.Inspect(...)` | Versions-/Dateieigenschaften, Programmheader oder native Signaturprüfung einschließlich gegebenenfalls Online-Sperrprüfung. |
+
+Für Dateien von 200–300 KiB lässt sich der Haltepunkt auf der `ReadAsync`-Zeile bedingen mit `bytesRead == 0 && stream.Length >= 200 * 1024 && stream.Length <= 300 * 1024`. Für eine bestimmte Datei ist ein bedingter Haltepunkt im Analysedienst auf `fullPath == @"C:\Pfad\datei.exe"` eindeutiger. Mit F10 über die jeweilige Anweisung gehen, um den wartenden Aufruf zu identifizieren. Vergleichsmessungen anschließend ohne angehaltenen Debugger und mit denselben Prüfoptionen durchführen. Wenn weitere Programme dieselben Dateien langsam lesen, ist das ein Hinweis, auch den gemeinsamen Dateizugriff außerhalb FileScopes zu untersuchen; daraus allein folgt noch keine Ursache.
+
+Die native Tabellen-Navigation ist unter [Microsoft: Tastatur- und Mausverhalten des WPF-DataGrid](https://learn.microsoft.com/de-de/dotnet/desktop/wpf/controls/default-keyboard-and-mouse-behavior-in-the-datagrid-control) beschrieben. FileScope behält die eingebauten Strg+Pos1-/Strg+Ende-Kombinationen bei.
+
+#### Exportformate
+
+Der vorgeschlagene Dateiname enthält die UTC-Zeit beim Öffnen des Speichern-Dialogs, beispielsweise `FileScope_2026-11-08T16-25-13Z.csv` beziehungsweise `.json`. `Z` kennzeichnet UTC; die Uhrzeit verwendet Bindestriche, weil Doppelpunkte in Windows-Dateinamen nicht zulässig sind. Das Format bleibt bei jedem Sprachwechsel gleich. Der Vorschlag kann im Dialog geändert werden.
+
+Der Exportdialog bietet CSV (`*.csv`, Standard) und JSON (`*.json`) als Dateitypen an. Ohne eingegebene Endung ergänzt der Dialog die Endung des gewählten Dateityps. Eine explizite Endung `.csv` oder `.json` bestimmt das Format, unabhängig von Groß-/Kleinschreibung. Andere Endungen werden mit einem Hinweis abgewiesen. Die Überschreibabfrage gilt für den tatsächlich zurückgegebenen Dateinamen; danach wird nichts umbenannt. Eine geladene Quelldatei darf nicht als Exportziel verwendet werden. Zunächst wird eine temporäre Datei im Zielordner geschrieben; erst nach erfolgreichem Abschluss ersetzt sie die Zieldatei. Abbruch und Schreibfehler erhalten eine schon vorhandene Exportdatei.
+
+Alle **39 Felder** des Spaltenkatalogs sind auswählbar, auch PE-Maschinentyp, PE-Format und .NET-Plattform. Beim ersten Start sind alle Exportfelder gewählt. Die Auswahl wird als `ExportColumns` mit stabilen Spalten-IDs in der vorhandenen `settings.json` gespeichert; eine vollständig leere Auswahl bleibt leer und deaktiviert den Exportknopf. Reihenfolge, Sprache und Hashformat folgen den aktuellen Optionen. Pro Datei werden die Daten der jeweils ausgewählten Signatur exportiert. Es werden alle geladenen Zeilen in der Reihenfolge des Hinzufügens ausgegeben; Tabellenfilter und die Sortierung der Ansicht ändern diese Auswahl nicht. Fehlende Messergebnisse bleiben leer, Status und Diagnose bleiben erhalten.
+
+Das CSV-Format verwendet **UTF-8 mit BOM**, standardmäßig **Semikolon** als Trennzeichen und CRLF als Zeilenenden. Unter Optionen → Exportieren lässt sich auch Komma wählen. `CsvDelimiter` wird in `settings.json` gespeichert; ältere Einstellungen ohne dieses Feld verwenden Semikolon. Die Wahl wird vor dem Export zusammen mit den Daten festgehalten, sodass ein späterer Optionswechsel eine laufende Ausgabe nicht verändert. Alle Felder stehen in doppelten Anführungszeichen; enthaltene Anführungszeichen werden verdoppelt. Zeilenumbrüche, Umlaute, chinesische Zeichen und Hashwerte bleiben erhalten.
+
+Excel berücksichtigt beim direkten Öffnen einer CSV regionale Einstellungen. Wenn die Spalten nicht richtig getrennt werden, über **Daten → Aus Text/CSV** importieren und das beim Export gewählte Trennzeichen einstellen. Für Hashes, Seriennummern sowie Versionsfelder den Datentyp Text wählen, damit Excel führende Nullen oder Versionsnummern nicht automatisch umformatiert. Siehe [Microsoft: Text- und CSV-Dateien importieren](https://support.microsoft.com/en-us/excel/get-started/import-or-export-text-txt-or-csv-files).
+
+JSON wird als eingerücktes Array von Objekten in **UTF-8 ohne BOM** geschrieben, ein Objekt pro geladener Datei. Die Eigenschaftsnamen sind stabile Spalten-IDs (z. B. `Name`, `SHA256`, `PeMachine`), unabhängig von der gewählten Sprache. Auswahl und Reihenfolge der Felder entsprechen CSV. Alle Werte sind Zeichenketten mit denselben Anzeigewerten wie im CSV-Export; fehlende Werte sind `""`. Damit bleiben führende Nullen, Versionsnummern und das gewählte Hashformat erhalten. Der CSV-Trennzeichenwähler beeinflusst JSON nicht.
+
+```json
+[
+  { "Name": "Beispiel.exe", "SHA256": "0000ABCDEF", "PeMachine": "AMD64 (x64) (0x8664)" }
+]
+```
+
+### Dateieigenschaften und Programm-Header
+
+**Dateieigenschaften** liest die vorhandenen `VERSIONINFO`-Felder: Dateibeschreibung, Sprache, Datei- und Produktversion, Produktname, Hersteller, Originaldateiname, interner Name, Copyright, Marken und Kommentare. Fehlende Felder bleiben leer. „Dateityp“ kommt aus der Windows-Zuordnung der Dateiendung; es ist keine Inhaltsprüfung und kann von der tatsächlichen Datei abweichen. Ohne Windows wird die Endung angezeigt. Versionsfelder, Dateisprache und Windows-Typbezeichnung bleiben in ihrer Original-/Systemsprache; die Spaltenüberschriften wechseln mit der App-Sprache. Allgemeine Office-/PDF-Dokumenteigenschaften oder Bild-EXIF sind nicht Teil dieser Auswertung.
+
+**EXE-Header / Plattform** prüft DOS-/PE-/NE-Kennung und liest den COFF-Maschinentyp, beispielsweise `i386 (0x014C)`, `AMD64 (x64)`, `ARM`, `ARM64` oder `Alpha`. Unbekannte Werte bleiben als Hexcode sichtbar. Die Erkennung richtet sich nach dem Dateiinhalt, nicht nach `.exe` oder `.dll`. Dateien ohne unterstützten PE- oder NE-Header liefern leere Header-Felder; beschädigte erkannte Header erhalten eine Diagnose.
+
+Die zusätzlichen Spalten zeigen `PE32`/`PE32+` und bei vorhandenen CLR-Headern die .NET-Plattform. Ein IL-only-i386-PE kann `AnyCPU`, `AnyCPU (32 Bit bevorzugt)` oder explizit `i386` sein. Native Dateien haben keine .NET-Plattform. Maschinentyp und CLR-Flags beschreiben die Header und sind keine Garantie für Lauffähigkeit auf einem bestimmten Windows-System. Es wird ausschließlich gelesen; keine Assembly wird geladen oder ausgeführt.
+
+**Windows-16-Bit-Dateien** verwenden NE (New Executable), nicht „PE16“. EXE und DLL werden als `NE (Win16)` mit `x86 (16-bit)` erkannt. NE enthält keinen COFF-Maschinentyp; deshalb wird kein PE-Hexcode erfunden. OS/2-, DOS-4.x- und Windows/386-Ziele bleiben unterscheidbar; bei Windows/386 und unbekannten Zielwerten wird keine 16-Bit-Codebreite unterstellt. Ein bloßes `MZ` am Dateianfang reicht nicht zur Win16-Erkennung, da auch PE, LE und LX einen DOS-Stub besitzen. Reine DOS-MZ-, LE- und LX-Dateien liefern weiterhin keine PE-/NE-Metadaten; ihre Prüfsummen sind davon unabhängig.
+
+Die Werte erscheinen auch in Details, Kopierausgabe und Textsuche. Neu aktivierte Prüfungen gelten für den nächsten Durchlauf; für vorhandene Zeilen „Alle neu prüfen“ verwenden. Ein erwarteter Lesefehler einer optionalen Metadatenprüfung wird in der Diagnosespalte ergänzt; bereits berechnete Hashes und die übrigen Prüfungen bleiben erhalten. Die Verarbeitungsanzeige kann deshalb „Fertig“ zeigen, während eine optionale Auswertung eine Diagnose enthält.
+
+### Zertifikatsprüfung: genaue Bedeutung
+
+Die [Statustabelle mit Hexcodes, Farben und Verschiebegruppen](#dateien-nach-signaturergebnis-verschieben) führt alle angezeigten Ergebnisse auf.
+
+Mit `WinVerifyTrust` prüft Windows die Integrität der signierten Inhalte und die Vertrauenskette des Unterzeichners nach der Authenticode-Richtlinie. Ein auslesbares Zertifikat allein belegt keine gültige Signatur. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
+
+**Bei PE-Dateien wie EXE und DLL schützt Authenticode nur bestimmte Bereiche.** Unter anderem sind das PE-Prüfsummenfeld und die Zertifikatstabelle vom Signatur-Hash ausgenommen. Zwei gültig signierte EXE-Dateien können sich daher byteweise unterscheiden, etwa durch unterschiedliche Signaturzeitstempel. Die SHA-256-Spalte von FileScope erfasst jedes Byte des Hauptdatenstroms, einschließlich der eingebetteten Signatur. [Microsoft Learn zur Signatur von PE-Dateien](https://learn.microsoft.com/en-us/windows/win32/secbp/understanding-pe-signatures)
+
+- **Gültig · Sperrprüfung aus Cache:** Windows hat unter der lokalen Vertrauensrichtlinie und den vorhandenen Cache-Daten erfolgreich geprüft. Dies ist keine Zusicherung aktueller Online-Sperrinformationen.
+- **Gültig · Online-Sperrprüfung:** Netzwerkzugriff für die Prüfung ist erlaubt. Windows darf trotzdem noch gültige Cache-Daten nutzen; eine frische Netzabfrage wird nicht erzwungen.
+- Meldet Windows `TRUST_E_BAD_DIGEST` (`0x80096010`), weicht der berechnete Hashwert vom signierten Wert ab. FileScope zeigt dafür „Ungültige Signatur / Prüfsumme“ an.
+- **Sperrstatus unbekannt:** Die benötigten Sperrinformationen fehlen oder sind nicht erreichbar. Dies wird nicht als „gültig“ dargestellt.
+- **Keine eingebettete Signatur** und **Signaturformat nicht unterstützt** bleiben getrennte Ergebnisse.
+- Fehlerhafte, nicht vertrauenswürdige, gesperrte und zeitlich ungültige Zertifikate erhalten getrennte Statuswerte. Der originale Windows-Rückgabecode wird als Hexwert angezeigt.
+
+Der Umfang sind **die primäre und alle zusätzlichen eingebetteten Authenticode-Signaturen, die Windows über `WINTRUST_SIGNATURE_SETTINGS` meldet**. Jede wird separat geprüft, auch wenn die primäre Prüfung fehlschlägt. Text und Farbe des Signaturstatus folgen der ausgewählten Signatur. Die Tabelle zeigt deren Prüfstatus, kein pauschales „alle Signaturen gültig“. Zertifikate aus der Vertrauenskette und Zeitstempel-Unterzeichner werden nicht als zusätzliche Dateisignaturen angeboten. Separate `.cat`-Zuordnungen, Signaturen innerhalb von Archiven, PDF-/Office-Signaturen sowie der Import eigenständiger CER/PFX-Zertifikate sind nicht implementiert. Hashwerte können unabhängig davon für beliebige lesbare Dateien berechnet werden. „Keine eingebettete Signatur“ bedeutet deshalb nicht, dass eine Datei niemals anderweitig signiert ist.
+
+**Zum Datum:** „Gültig ab“ ist der Gültigkeitsbeginn des Zertifikats. Ein X.509-Zertifikat enthält kein allgemeines separates Feld für das Datum seiner eigenen Unterzeichnung. Die Spalte zeigt stattdessen die Zeit aus dem Zeitstempel der Dateisignatur: ältere PKCS#9-Gegensignaturen oder RFC-3161-Token. Ein Zeitstempel bestätigt bei erfolgreicher Prüfung, dass die Signatur zu dieser Zeit bereits vorlag; er ist nicht zwingend der exakte Moment der ursprünglichen Unterzeichnung. Selbst angegebene `signingTime`-Attribute des Dateisignierers, die aktuelle Uhrzeit und der Gültigkeitsbeginn werden nicht als Ersatz verwendet.
+
+Die Beschriftung „bestätigt“ verlangt einen erfolgreichen Windows-Prüfstatus, einen fehlerfrei geprüften Gegensignierer und einen ausgelesenen Zeitstempel, der zur von Windows verwendeten Prüfzeit passt. Andernfalls bleibt ein lesbares Datum „nicht bestätigt“; das ist keine Behauptung, dass der Zeitstempel ungültig sei. Offline fehlende Vertrauens-/Sperrinformationen können eine Bestätigung verhindern.
+
+Die angezeigten Zertifikatsfingerabdrücke beziehen sich auf das Zertifikat; die Hashspalten beziehen sich auf die Datei. Der Zertifikatssignaturalgorithmus ist ebenfalls der Algorithmus des Zertifikats und nicht automatisch der Dateisignatur. MD5/SHA-1 sind für den Vergleich vorhandener/älterer Prüfsummen enthalten; SHA-256 ist voreingestellt.
+
+Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offen; auf Windows verhindert die Freigabeart paralleles Schreiben/Löschen. Der native Prüfer erhält denselben Handle. Die untersuchten Programme werden nicht gestartet, Archive nicht entpackt und Zertifikate nicht installiert. Bei eingeschalteter Online-Sperrprüfung kann Windows Zertifizierungsstellen kontaktieren.
+
+## Architektur
+
+### KISS: einfache Infrastruktur
+
+FileScope orientiert sich am KISS-Prinzip („Keep It Simple“): Die Infrastruktur bleibt dem überschaubaren Aufgabenbereich der Anwendung angemessen. Schnittstellen und Entwurfsmuster erfüllen konkrete Aufgaben, etwa austauschbare Analyseverfahren, die Trennung von WPF und Geschäftslogik oder gezielte Tests.
+
+- **Abhängigkeiten:** Konstruktor-Injektion und die direkte Zusammenstellung in `App.OnStartup` machen die Abhängigkeiten sichtbar. Dafür werden weder ein DI-Container noch ein Generic Host benötigt.
+- **Einstellungen:** `UserPreferences`, `AnalysisPreferences` und `WindowPreferences` sind bereits die Datenmodelle. `PreferencesStore` übernimmt über `IPreferencesStore` das Laden und Speichern dieser Daten als JSON mit `System.Text.Json`; `OptionsViewModel` koordiniert die Bedienung und Speicherung. Für die lokale Einstellungsdatei genügt diese Aufteilung. Eine zusätzliche Konfigurationsschicht mit `Microsoft.Extensions.Configuration` oder weitere Vermittler im Composition Root bringen für den aktuellen Funktionsumfang keinen erkennbaren Nutzen.
+- **Fehlerdiagnose:** Ein Logging-Framework wird derzeit nicht verwendet. Analysefehler und optionale Metadatenprobleme erscheinen in den Ergebniszeilen und Diagnosedetails; Einstellungsfehler werden im Optionsfenster gemeldet. So bleiben diese Fehler unmittelbar bei der betreffenden Aktion sichtbar.
+
+Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prüfen bekannte Fälle und schützen vor Regressionen. Ein Laufzeitprotokoll kann zusätzlich helfen, zeitabhängige oder rechnerspezifische Fehler nachzuvollziehen, die sich in der Testumgebung nicht reproduzieren lassen. Auch umfangreiche Tests ersetzen diese Beobachtungsmöglichkeit nicht. Gezieltes Logging lässt sich ergänzen, sobald ein konkreter Diagnosebedarf dies rechtfertigt.
+
+### Projekte und Entwurfsmuster
 
 | Projekt / Komponente | Aufgabe |
 | --- | --- |
 | `FileScope.App` | WPF-Fenster, gruppiertes Menüband aus nativen Controls, DataGrid, ViewModels, Commands, Lokalisierung, Dateiauswahldialog und Drag-and-drop-Behavior. |
-| `FileScope.Core` | Geschäftslogik: Modelle, Analysevertrag, Streaming-Prüfsummen, Strategiefabrik und Windows-Signaturprüfung. Keine WPF-Abhängigkeit. |
+| `FileScope.Core` | Geschäftslogik: Modelle, Analysevertrag, Streaming-Prüfsummen, Strategiefabrik, Dateieigenschaften, PE-Header und Windows-Signaturprüfung. Keine WPF-Abhängigkeit. |
 | `MainViewModel` | Koordiniert Benutzeraktionen, Status und gefilterte Ergebnisansicht. Berechnet selbst keine Hashwerte. |
-| `FileAnalysisService` | Orchestriert Dateizugriff, Prüfsummen und Signaturstrategie. Liefert typisierte Resultate ohne UI-Texte zurück. |
+| `FileAnalysisService` | Orchestriert Dateizugriff, Prüfsummen, optionale Metadatenprüfer und Signaturstrategie. Liefert typisierte Resultate ohne UI-Texte zurück. |
 | `IChecksumStrategy` / Factory | Strategy und Factory für inkrementelle Hashberechnungen. Pro Datei werden neue, anschließend entsorgte Strategieinstanzen erzeugt. |
+| `IFilePropertiesInspector` / `IPeHeaderInspector` | Getrennte, injizierte Strategien für VERSIONINFO/Dateityp und PE-/CLR-Header. Ergebnisse sind UI-unabhängige Core-Modelle. |
 | `ISignatureInspector` | Austauschschnittstelle für Signaturprüfung; implementiert durch `WindowsAuthenticodeInspector`. |
 | `App.xaml.cs` | Composition Root: Abhängigkeiten werden per Konstruktor injiziert. Kein Service Locator und kein DI-Container erforderlich. |
 | `RelayCommand` / `AsyncRelayCommand` | Command Pattern; asynchrone Ausführung mit Fehlerbehandlung und Schutz vor Mehrfachstart. |
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
+| `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
+| `AboutWindow` / `IExternalLinkService` | Reine Programminformationen, Version aus der App-Assembly und eingebetteter Lizenztext. Ein kleiner austauschbarer Dienst öffnet HTTPS-Projektlinks; UI-Prüfungen ersetzen ihn, ohne einen Browser zu starten. |
+| `ShortcutsWindow` | Lokalisierte, reine Informationsansicht für vorhandene Tastenkürzel. Knopf und F1 verwenden denselben WPF-Befehl `ApplicationCommands.Help`; kein zusätzliches ViewModel und keine neuen Dienste. |
+| `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
+| `IFileMoveService` / `FileMoveService` | Verschiebt Dateien ohne Überschreiben und liefert pro Datei ein sprachneutrales Ergebnis; keine WPF-Abhängigkeit. |
+| `SignatureMoveSelection` / `FileMoveReport` | Prüfen die Signaturgruppe und formatieren Zielnamen sowie Bericht in der gewählten Sprache. |
+| `SignatureGroup` | Gemeinsame, WPF-unabhängige Zuordnung für feste Statuscodes, lokalisierte Anzeige und Verschiebegruppen; unterscheidet gültige Online-/Cache-Ergebnisse. |
+| `IFileMoveReportService` / `FileMoveReportWindow` | Kleine Grenze zum modalen Abschlussdialog, im UI-Test durch einen aufzeichnenden Dienst ersetzbar. |
+| `IFileShellService` / `FileShellService` | Öffnet auf ausdrücklichen Benutzerwunsch Windows-Dateieigenschaften oder markiert die Datei im Explorer. UI-Prüfungen ersetzen den Dienst, ohne Shell-Fenster zu starten. |
+| `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
+| `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
+| `DigestFormatter` | Formatiert die vorhandenen Digest-Bytes; `FileRowViewModel` hält die dargestellten Werte im Cache. Die Core-Ergebnisse bleiben unverändert. |
+| `IPreferencesStore` / `PreferencesStore` | Speichert kleine Benutzereinstellungen über eine temporäre Datei mit anschließendem Ersetzen der Zieldatei. |
+| `BindingProxy` | Liefert den Fenster-DataContext an DataGrid-Spalten, die selbst keinen DataContext erben. Damit bleibt die Sichtbarkeit per Binding an die Prüfoptionen gekoppelt. |
+| `CellBoundTemplateColumn` | Bindet den Inhalt der drei Vorlagenspalten ausdrücklich an den `DataContext` der jeweiligen Zelle. Die Bindung benötigt dadurch keine Suche nach einem übergeordneten Element und folgt dem Zeilenwechsel beim Recycling. Native Templates, Sortierung und Kopierbindungen bleiben erhalten. |
 
-MVVM trennt View, ViewModel und Domänenmodelle. Der kleine Code-behind-Teil setzt nur den DataContext und behandelt den Fensterlebenszyklus. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
+MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Darstellungsaufgaben: Fensterlebenszyklus einschließlich Größenwiederherstellung, Öffnen der Options- und Infodialoge, Anzeige fester Programminformationen und Sichtbarhalten der ausgewählten Listenzeile. Der Infodialog benötigt dafür kein zusätzliches ViewModel; Browseraufrufe liegen hinter `IExternalLinkService`. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
 Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kein zusätzlicher Ribbon-Control-Anbieter**. Der WPF-Tabellentyp heißt `DataGrid`; `DataGridView` gehört zu Windows Forms.
 
 Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik lässt sich auch ohne Windows verwenden. Die WPF-App zielt auf `net10.0-windows`. Die native Authenticode-Strategie meldet außerhalb von Windows ausdrücklich „UnsupportedPlatform“.
 
-## Zertifikatsprüfung: genaue Bedeutung
+### Dateiaufnahme und Verarbeitung
 
-Verwendet wird `WinVerifyTrust` mit der Windows-Authenticode-Richtlinie. Dadurch werden Dateiintegrität und Vertrauenskette durch Windows beurteilt; ein auslesbares Zertifikat allein wird nie als gültige Signatur gewertet. Windows berücksichtigt dabei auch unterstützte Signaturzeitstempel. Ein aktuell abgelaufenes Unterzeichnerzertifikat kann bei gültigem Zeitstempel trotzdem zu einer gültigen Signatur gehören.
+`FileNameFilter` prüft Dateinamen im Core ohne Inhaltszugriff. Das Haupt-ViewModel verwendet für Dateiauswahl, Ordnersuche und Drag-and-drop denselben Aufnahmeweg. Ein aktives Muster wird einmal erstellt und für die ganze Aufnahme unverändert verwendet: ohne Groß-/Kleinschreibung, kulturunabhängig und mit 100 ms Zeitlimit pro Abgleich. Negative Ausblicke ermöglichen Ausschlüsse. Die Prüfung läuft im Hintergrund vor dem Anlegen neuer Zeilen; ein Abbruch oder Regex-Timeout während dieser Prüfung liefert keine Teilauswahl. Die anschließende Pfadnormalisierung, Deduplizierung und Analyse bleiben getrennte Arbeitsschritte. Ohne Muster bleibt die bestehende, portionsweise Dateiaufnahme erhalten.
 
-- **Gültig · Sperrprüfung aus Cache:** Windows hat unter der lokalen Vertrauensrichtlinie und den vorhandenen Cache-Daten erfolgreich geprüft. Dies ist keine Zusicherung aktueller Online-Sperrinformationen.
-- **Gültig · Online-Sperrprüfung:** Netzwerkzugriff für die Prüfung ist erlaubt. Windows darf trotzdem noch gültige Cache-Daten nutzen; eine frische Netzabfrage wird nicht erzwungen.
-- **Sperrstatus unbekannt:** Die benötigten Sperrinformationen fehlen oder sind nicht erreichbar. Dies wird nicht als „gültig“ dargestellt.
-- **Keine eingebettete Signatur** und **Signaturformat nicht unterstützt** bleiben getrennte Ergebnisse.
-- Fehlerhafte, nicht vertrauenswürdige, gesperrte und zeitlich ungültige Zertifikate erhalten getrennte Statuswerte. Der originale Windows-Rückgabecode wird als Hexwert angezeigt.
+Ein Hintergrund-Task verarbeitet den gesamten Analysedurchlauf. `AnalysisProgressBuffer` hält unter einer kurzen Sperre alle noch nicht übernommenen Resultate und nur den letzten Fortschrittsstand der aktuellen Datei. `Report` stellt keine Dispatcher-Aufträge ein. Ein `DispatcherTimer` mit Hintergrundpriorität leert den Puffer in `MainViewModel.StatusUpdateInterval` (100 ms); alle Änderungen an Zeilen, Bindungen und Status bleiben auf dem WPF-Thread. Die Taktzeit ist ein Mindestabstand, keine Echtzeitgarantie. Bei Abschluss oder Abbruch wird der Puffer unmittelbar übernommen; ein geschlossener Puffer verwirft verspätete Meldungen. Die gefilterte/sortierte Ansicht wird am Ende einmal erneuert, statt nach jeder Datei die gesamte Liste zu durchsuchen.
 
-Der Umfang ist **die primäre eingebettete Authenticode-Signatur und ihr Unterzeichnerzertifikat**. Separate `.cat`-Zuordnungen, sämtliche Zusatz-/Gegensignaturen, Signaturen innerhalb von Archiven, PDF-/Office-Signaturen sowie der Import eigenständiger CER/PFX-Zertifikate sind nicht implementiert. Hashwerte können unabhängig davon für beliebige lesbare Dateien berechnet werden. „Keine eingebettete Signatur“ bedeutet deshalb nicht, dass eine Datei niemals anderweitig signiert ist.
+Während der Verarbeitung sind neue Dateiaufnahmen, Prüfoptionen und „Leeren“ gesperrt. Eine aktive native Windows-Signaturprüfung ist nicht mitten im Aufruf abbrechbar; „Abbrechen“ wartet auf deren Rückkehr. Danach ist „Leeren“ wieder verfügbar. Das Fenster bleibt bedienbar.
 
-Die angezeigten Zertifikatsfingerabdrücke beziehen sich auf das Zertifikat; die Hashspalten beziehen sich auf die Datei. Der Zertifikatssignaturalgorithmus ist ebenfalls der Algorithmus des Zertifikats und nicht automatisch der Dateisignatur. MD5/SHA-1 sind für den Vergleich vorhandener/älterer Prüfsummen enthalten; SHA-256 ist voreingestellt.
+Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung der Groß-/Kleinschreibung dedupliziert. Unterschiedliche Pfade mit demselben Dateiinhalt bleiben separate Zeilen. Ordner werden über „Ordner hinzufügen“ oder nach Bestätigung per Drag-and-drop mit derselben `IFolderScanner`-Strategie rekursiv eingelesen. `IConfirmationService` kapselt die MessageBox außerhalb des ViewModels und wird im Composition Root injiziert. Bei einem gemischten Drop werden erst nach abgeschlossener Suche Dateien hinzugefügt; ein Suchabbruch verwirft auch die direkt mit abgelegten Dateien. Ein nicht mehr zugänglicher Startordner wird gemeldet, während die übrigen Startordner weiter durchsucht werden. Sind sämtliche Prüf-Häkchen abgewählt, werden nur Pfad, Dateigröße und Änderungsdatum ermittelt.
 
-Dateien werden nur gelesen. Während der Analyse bleibt derselbe Lesehandle offen; auf Windows verhindert die Freigabeart paralleles Schreiben/Löschen. Der native Prüfer erhält denselben Handle. Es werden keine Programme gestartet, keine Archive entpackt und keine Zertifikate installiert. Bei eingeschalteter Online-Sperrprüfung kann Windows Zertifizierungsstellen kontaktieren.
+`MainViewModel` misst jeden Analysedurchlauf mit `Stopwatch` und hält dessen Abschlusswerte als unveränderliche `AnalysisRunSummary` fest. Die UI-unabhängige Präsentationsklasse summiert vorhandene Ergebnisse, unterscheidet unbekannte Größen von leeren Dateien und formatiert den Abschluss in der gewählten Sprache. `decimal` erhält ganzzahlige Bytesummen auch oberhalb der `Int64`-Grenze exakt. Ein Sprachwechsel formatiert denselben Schnappschuss neu, ohne Zeit oder Größen erneut zu ermitteln.
 
-## Sprachressourcen
+### Prüfoptionen und Einstellungen
 
-Alle 90 Oberflächentexte stehen in `src/FileScope.App/Resources`:
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, Signaturprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header werden bei jeder Änderung zusammen mit Sprache, Design, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+
+Auch eine vollständig abgewählte Prüfauswahl wird gespeichert. Die Online-Sperrprüfung behält ihren gewählten Wert, wenn sie durch abgeschaltete Signaturprüfung ausgegraut ist; sie wird erst bei aktivierter Signaturprüfung verwendet. „Leeren“ setzt die Prüf-Häkchen nicht zurück.
+
+Im Code liegen die Bindungswerte in `MainViewModel`: `ChecksumOptions[*].IsSelected`, `InspectCertificates`, `OnlineRevocation`, `InspectFileProperties` und `InspectPeHeader`. Die Startwerte sind zentral in `AnalysisPreferences` in `Services/PreferencesStore.cs` definiert. Ältere Einstellungen ohne den Abschnitt `Analysis` verwenden die bisherigen Standards. Fehlende neue Metadaten-Häkchen sind ausgeschaltet; alle bisherigen Einstellungen bleiben erhalten. `OptionsViewModel` speichert alle Bereiche gemeinsam, damit eine Änderung der Prüf-Häkchen keine anderen Einstellungen überschreibt.
+
+#### Fenstergröße der Optionen
+
+Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
+
+#### Theme-Umschaltung
+
+`IThemeService` und `AppTheme` liegen getrennt von der WPF-Implementierung. Dadurch können die Präsentationstests `OptionsViewModel` mit einem kontrollierten Testdienst ausführen, ohne WPF einzubinden. `ThemeService` ersetzt auf dem UI-Dispatcher ausschließlich die eigene Palette und aktualisiert zugleich `Application.ThemeMode`; die übrigen Ressourcen bleiben erhalten. Auch beim ersten Einsatz ohne Palette werden beide Teile synchronisiert. Ein erneuter Aufruf mit demselben bereits initialisierten Design erzeugt keine neuen Ressourcen.
+
+Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `DynamicResource` aktualisiert bestehende Text- und Badge-Farben beim Austausch. `OptionsViewModel` wendet eine neue Auswahl zuerst an und speichert sie danach gemeinsam mit den übrigen Einstellungen. Scheitert das Anwenden, bleiben Auswahl und gespeicherter Wert erhalten. Scheitert nur das Speichern, bleibt das neue Design in der Sitzung aktiv und das Optionsfenster zeigt den Speicherfehler.
+
+### Tabellendarstellung
+
+`MainViewModel` hält die Zeilen mit Diagnosedetails in einer eigenen Menge. Änderungen am Analyseergebnis und an der Signaturauswahl aktualisieren diese Menge, ohne für jede Änderung die ganze Tabelle zu durchsuchen. `ShowDiagnosticColumn` steuert die Spaltensichtbarkeit über den vorhandenen `BindingProxy`; `DiagnosticRowCount` liefert die Anzahl für den lokalisierten Statustext. Die Filteransicht verändert diese Menge nicht.
+
+Neue Spalten werden bei einer bereits gespeicherten Reihenfolge hinten ergänzt und lassen sich unter Optionen einsortieren. Die Signaturauswahlspalte bleibt bei aktiver Signaturprüfung sichtbar, solange irgendeine geladene Datei mehrere Signaturen hat, auch wenn diese gerade ausgefiltert ist. Nach Leeren oder einer erneuten Analyse ohne Mehrfachsignaturen verschwindet sie.
+
+Die Breitenautomatik misst den sichtbaren Inhalt und wächst bei Bedarf bis zur jeweiligen Obergrenze. Die Pfadspalte bildet eine ausdrücklich einstellbare Ausnahme: `PathAutoWidth` ist standardmäßig aktiv und erlaubt ihre volle Inhaltsbreite. Ausgeschaltet startet die Spalte bei 320 geräteunabhängigen Pixeln, bleibt auf 600 begrenzt und ist mit der Maus anpassbar. `ColumnLayoutBehavior` reagiert unmittelbar auf das Häkchen, ohne die Breiten anderer Spalten zurückzusetzen. Die Wahl wird gespeichert; ältere Einstellungen ohne dieses Feld aktivieren die Automatik.
+
+Ein Sprach-/Formatwechsel, „Leeren“ oder „Breiten neu anpassen“ startet die automatische Messung neu und erlaubt auch schmalere Spalten. Eine Pfadspalte mit ausgeschalteter Automatik behält dabei ihre manuelle Breite. Das Filtern allein setzt manuell gewählte Breiten nicht zurück. Der Pfad steht sowohl im XAML als auch im Standard-Spaltenkatalog zuletzt. Bereits gespeicherte Reihenfolgen bleiben erhalten; „Reihenfolge zurücksetzen“ stellt die Standardposition wieder her. Auch die ausgeschaltete Breitenautomatik bleibt beim Zurücksetzen der Reihenfolge erhalten.
+
+Das Dateikontextmenü liegt im `DataGridRow`-Stil und verwendet die nativen WPF-Vorlagen. Der vorhandene `BindingProxy` bindet den Popup-DataContext direkt an das Haupt-ViewModel. Die Commands lesen die vom DataGrid synchronisierte Auswahl; sie erhalten keinen Zeilencontainer als Parameter. So kann ein Sprachwechsel mit `RowsView.Refresh()` einen offenen Menüeintrag nicht durch einen wiederverwendeten `PlacementTarget.DataContext` an eine falsche oder getrennte Zeile binden. Die Verschiebeaktion verwendet die markierte Gruppe; `SingleSelectedRow` erlaubt die beiden Shell-Aktionen und den Detailbereich nur für genau eine Datei. Rechtsklick auf eine bisher nicht markierte Zeile wählt diese allein, innerhalb einer vorhandenen Mehrfachauswahl bleibt die Gruppe erhalten. Shell-Fehler werden getrennt vom Analysestatus gehalten. Eine verspätete Explorer-Antwort wird nach Entfernen der Zeile oder Schließen des Fensters verworfen.
+
+Beim horizontalen Scrollen kann WPF für `CellsPanelHorizontalOffset` einen geringfügig negativen Wert berechnen. Die Fluent-Vorlage bindet diesen Wert direkt an die Breite ihres internen „Alles auswählen“-Knopfs, auch bei ausgeblendeten Zeilenüberschriften. `DataGridScrollFix` ergänzt beim Laden der Tabelle ausschließlich für diese Bindung eine Begrenzung auf null. Positive Breiten bleiben erhalten; die native Vorlage, fixierte Spalten, Virtualisierung und automatische Spaltenbreiten bleiben bestehen. Die Binding-Fehlerausgabe wird nicht abgeschaltet.
+
+### Ordnersuche und Exportstrategien
+
+Die Exportarchitektur verwendet **Strategy**: `ResultExporter` implementiert `IResultExporter`, wählt die registrierte `IResultExportStrategy` anhand des Formats und übernimmt temporäre Datei, atomaren Austausch, Abbruch und Aufräumen. `CsvExportStrategy` und `JsonExportStrategy` schreiben nur in den bereitgestellten Stream. Die Strategien werden in `App.OnStartup` zusammengestellt. `ResultExportTable` enthält stabile IDs, übersetzte Überschriften und Werte, ohne WPF-Abhängigkeit; `ResultExportProjection` erstellt die Momentaufnahme vor dem Hintergrundexport. Neue Exportfelder werden im zentralen Katalog `ColumnOption.CreateDefaults` ergänzt. Die Ordnersuche liegt getrennt in `IFolderScanner` / `FolderScanner`.
+
+### Verschieben und Abschlussbericht
+
+`MainViewModel` erhält die Mehrfachauswahl aus den Ereignissen der Tabelle und prüft sie mit der WPF-unabhängigen Klasse `SignatureMoveSelection`. Beim Start hält es Auswahl, Zielordner und bereits geladene Pfade als Momentaufnahme fest. `IFileMoveService` verarbeitet diese Daten im Hintergrund; `FileMoveService` nutzt `File.Move(..., overwrite: false)`. Die Prüfung auf ein vorhandenes Ziel ist nur eine Vorprüfung: Auch der eigentliche Verschiebeaufruf erlaubt kein Ersetzen. Der Dienst behandelt erwartete Dateisystemfehler pro Datei und liefert bei Abbruch bereits ausgeführte sowie noch nicht ausgeführte Einträge gemeinsam zurück.
+
+`SignatureGroup.From` bildet den angezeigten Signaturstatus und den Prüfmodus auf eine gemeinsame Gruppe ab. Sowohl `FileRowViewModel.SignatureText` als auch `SignatureMoveSelection` verwenden diese Zuordnung. Nur bei gültigen Signaturen gehört der Online-/Cache-Modus zur Gruppengleichheit; andere Ergebnisse werden unabhängig vom Modus gruppiert. Die Codes sind ausdrücklich zugewiesen und hängen weder von der Reihenfolge des Core-Enums noch von einem nativen Fehlercode ab. Unbekannte Werte erhalten keine Gruppe und bieten kein Verschieben an.
+
+Nach der Rückkehr aktualisiert `FileRowViewModel.Relocate` ausschließlich den Pfad der Zeile und ihres Analyseergebnisses. Hashes und Signaturauswahl bleiben erhalten; die Pfadmenge zur Duplikaterkennung wird mitgeführt. `IFileMoveReportService` öffnet den Bericht erst nach Ende des Jobs auf dem UI-Thread. Die kleine Informationsansicht braucht kein eigenes ViewModel: `FileMoveReport` formatiert ihre unveränderlichen Ergebnisse, während Sprache und Fluent-Design auch im geöffneten Dialog umschaltbar bleiben. Die konkreten Dienste werden wie die bestehenden Abhängigkeiten in `App.OnStartup` zusammengestellt.
+
+### Programmheader
+
+Die NE-Erweiterung liest den festen Header und prüft die Grenzen von Segment- und Einsprungtabellen. Sie durchsucht weder Nutzdaten noch Ressourcen und übernimmt den vorhandenen Stream samt Positionswiederherstellung. `NeHeaderReader` kapselt das NE-Layout getrennt vom vorhandenen PE-/CLR-Parser. Die internen Namen `InspectPeHeader`, `PeMachine` und `PeFormat` bleiben für gespeicherte Einstellungen und Exporte bestehen. Die sichtbaren Bezeichnungen sind nun „EXE-Header / Plattform“, „Architektur“ und „Programmformat“. CSV und JSON enthalten die erkannten NE-Werte automatisch. VERSIONINFO wird getrennt durch die Windows-API ausgewertet; ein eigener Parser für Win16-Versionsressourcen ist nicht erforderlich.
+
+### Native Windows-API-Anbindung (P/Invoke)
+
+Die Windows-Anbindung besteht aus C#-Deklarationen und Aufrufen nativer Systemfunktionen über P/Invoke. Die verschachtelten `Native`-Klassen bündeln die Importdeklarationen und Speicherlayouts; die Inspector-Klassen übersetzen deren Ergebnisse in die Core-Modelle. Die untersuchten EXE-/DLL-Dateien werden dabei als Daten gelesen. Geladen werden die benötigten Windows-Systembibliotheken aus `System32`.
+
+| Aufgabe | Windows-API / Systembibliothek | Zuständige Klasse |
+| --- | --- | --- |
+| Eingebettete Signaturen prüfen | `WinVerifyTrust` in `wintrust.dll` | `WindowsAuthenticodeInspector` |
+| Unterzeichner, Zertifikate und Zeitstempelattribute aus dem Prüfzustand lesen | `WTHelperProvDataFromStateData`, `WTHelperGetProvSignerFromChain`, `WTHelperGetProvCertFromChain` in `wintrust.dll` | `WindowsAuthenticodeInspector` |
+| Versionsressourcen vom offenen Handle lesen und Felder abfragen | `GetFileVersionInfoByHandle`, `VerQueryValueW` in `version.dll` | `WindowsFileVersionReader` |
+| Sprachname, Dateizeiger und Freigabe des Versionspuffers | `VerLanguageNameW`, `SetFilePointerEx`, `LocalFree` in `kernel32.dll` | `WindowsFileVersionReader` |
+| Registrierte Bezeichnung einer Dateiendung abfragen | `SHGetFileInfoW` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FilePropertiesInspector` |
+| Dateieigenschaften anzeigen und Datei im Explorer markieren | `SHObjectProperties`, `SHParseDisplayName`, `SHOpenFolderAndSelectItems` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FileShellService` in der WPF-App |
+
+Die meisten Importe verwenden `LibraryImport` mit zur Übersetzungszeit erzeugtem Marshalling-Code. `SHGetFileInfoW` verwendet bewusst `DllImport`, weil `SHFILEINFOW` die beiden Zeichenfelder direkt in der Struktur enthält und deren `ByValTStr`-Marshalling hier nicht vom Quellcodegenerator unterstützt wird. `GetFileVersionInfoByHandle` wird einmalig mit `NativeLibrary.TryLoad` / `TryGetExport` aufgelöst und als Delegate zwischengespeichert; so bleibt ein fehlender Export als Kompatibilitätsfall behandelbar.
+
+#### Besitz und Lebensdauer nativer Ressourcen
+
+| Ressource | Besitz und Freigabe |
+| --- | --- |
+| `FileStream` und sein Datei-Handle | `FileAnalysisService` öffnet und schließt den Stream. Die Strategien leihen ihn nur aus und laufen nacheinander. Der Aufrufer darf ihn während einer Prüfung weder schließen noch gleichzeitig anderweitig verwenden. |
+| `WINTRUST_FILE_INFO`, dessen UTF-16-Pfad und `WINTRUST_SIGNATURE_SETTINGS` | `WindowsAuthenticodeInspector` reserviert die Eingabeblöcke. Im `finally` räumt `DestroyStructure` den marshalierten Pfad auf; `FreeHGlobal` gibt die selbst reservierten Blöcke frei. |
+| WinTrust-Prüfzustand und daraus geliehene Zeiger | Windows besitzt die Unterzeichner- und Zertifikatsstrukturen. Nach jeder Signatur schließt `WTD_STATEACTION_CLOSE` den Prüfzustand, auch nach einer fehlgeschlagenen Prüfung. Bis dahin werden benötigte Werte in verwaltete Strings, Bytearrays und Modelle kopiert. |
+| Versionspuffer und Zeiger aus `VerQueryValueW` | Der von Windows gelieferte Puffer wird nach dem Kopieren mit `LocalFree` freigegeben, auch wenn ein fehlgeschlagener Aufruf Speicher geliefert hat. Zeiger auf einzelne Felder gehören zum Gesamtpuffer und werden nicht einzeln freigegeben. |
+| Geladene `version.dll` für den zwischengespeicherten Delegate | Eine Bibliotheksreferenz bleibt für die Prozesslebensdauer erhalten. Fehlt der Export oder scheitert die Einrichtung des Delegates, wird diese Referenz wieder freigegeben. |
+| Shell-Elementliste (PIDL) für den Explorer-Aufruf | `SHParseDisplayName` liefert den Speicher. `FileShellService` gibt ihn im `finally` mit `Marshal.FreeCoTaskMem` frei und gleicht erfolgreiche COM-Initialisierung auf demselben Thread mit `CoUninitialize` aus. |
+
+`WINTRUST_FILE_INFO` enthält einen rohen Handle-Wert. `GC.KeepAlive(stream)` hält deshalb den verwalteten Besitzer bis nach dem nativen Aufruf und dem Aufräumen erreichbar; gegen ein ausdrückliches, gleichzeitiges `Dispose` durch einen anderen Aufrufer schützt dies nicht. Die Lebensdauer des WinTrust-Prüfzustands und die des Datei-Handles sind getrennt. Siehe [WINTRUST_DATA: Prüfzustand schließen](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data) und [GetFileVersionInfoByHandle: Pufferfreigabe](https://learn.microsoft.com/en-us/windows/win32/menurc/getfileversioninfobyhandle).
+
+#### Datenlayout, Rückgabewerte und Abbruch
+
+Die Interop-Strukturen verwenden `LayoutKind.Sequential` und die native Standardausrichtung. `DWORD` und Windows-`BOOL` bleiben 32 Bit breit, Handles und Zeiger folgen der Prozessarchitektur. `FILETIME` wird durch zwei `DWORD`-Felder abgebildet, damit seine Ausrichtung erhalten bleibt. Die Strukturgrößen und wichtige Feldabstände werden in `CoreChecks` kontrolliert. Vor dem Kopieren von Versionsstrings werden Zeiger und Längen gegen den zurückgegebenen Puffer geprüft; bei `VerQueryValueW` zählen Stringlängen UTF-16-Zeichen, die Länge der Übersetzungstabelle dagegen Bytes. Siehe [VerQueryValueW](https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluew).
+
+`WinVerifyTrust` liefert seinen Prüfstatus unmittelbar als `LONG`; ausschließlich `0` bedeutet Erfolg. Der Code verwendet dafür weder `GetLastError` noch einen allgemeinen HRESULT-Erfolgstest. Bei der Versionsabfrage und den Dateizeigerfunktionen gilt dagegen der BOOL-/LastError-Vertrag: Ein Fehlercode wird direkt nach dem fehlgeschlagenen Aufruf gesichert. Erwartete Fehler optionaler Metadaten werden als Diagnose zurückgegeben, während bereits berechnete Hashes erhalten bleiben. Siehe [WinVerifyTrust: Rückgabewert](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust).
+
+Native Prüfaufrufe laufen synchron. Abbruchwünsche werden an den vorgesehenen Grenzen vor bzw. nach diesen Aufrufen ausgewertet; ein laufender Windows-Aufruf wird nicht gewaltsam unterbrochen. Die Freigabe eigener Speicherblöcke, das Schließen des Prüfzustands und die Wiederherstellung der Position nach Versionsabfragen liegen deshalb in `finally`-Blöcken.
+
+#### Signaturmetadaten und Online-Sperrprüfung
+
+`WINTRUST_SIGNATURE_SETTINGS` wählt die eingebetteten Signaturen einzeln aus. Die erste Prüfung ermittelt zusätzlich die Anzahl weiterer Signaturen; jede Prüfung erhält einen eigenen WinTrust-Zustand. Das Auslesen eines Zertifikats hebt einen negativen Prüfstatus nicht auf. `AuthenticodeTimestampReader` verarbeitet ausschließlich kopierte ASN.1-Metadaten; die Vertrauensentscheidung stammt weiterhin aus der Windows-Prüfung.
+
+Die Sperrprüfung bleibt in beiden Modi aktiv. Für `OfflineCache` setzt der Inspector zusätzlich `WTD_CACHE_ONLY_URL_RETRIEVAL` (`0x1000`). Im Online-Modus entfällt dieses Flag: Windows darf Netzwerkzugriffe ausführen und weiterhin gültige Cache-Daten verwenden. Die gesetzten Provider-Flags prüfen die Zertifikatskette ohne Stammzertifikat und schließen MD2-/MD4-Signaturen aus. Siehe [WINTRUST_DATA: Provider-Flags](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data).
+
+#### Versionsressourcen
+
+`IFilePropertiesInspector` erhält denselben `FileStream` wie die Prüfsummen- und Signaturprüfung. `WindowsFileVersionReader` kapselt `GetFileVersionInfoByHandle`, die Auswertung des zurückgegebenen Puffers und dessen Freigabe. Die Auswahl der Sprach-/Codepage-Tabelle und die MUI-Flags folgen der bisherigen .NET-Abfrage. Normale Dateien ohne Versionsressourcen bleiben ohne Metadatenfehler. Native Lesefehler erhalten eine Diagnose; sie lösen keine zweite Pfad-Abfrage aus. Auf anderen Betriebssystemen oder bei fehlendem Windows-Export bleibt `FileVersionInfo.GetVersionInfo(path)` als Kompatibilitätslösung erhalten.
+
+Bei NE-Dateien kann Windows den nativen Dateizeiger verschieben, obwohl `FileStream.Position` unverändert bleibt. Beim Ausleihen über `SafeFileHandle` synchronisiert .NET zunächst den nativen Dateizeiger mit der verwalteten Position. Der Inspector sichert diesen synchronisierten Zustand und stellt beide Positionen nach der Versionsabfrage wieder her, auch beim Abbruch oder einem Lesefehler. Der geliehene Stream bleibt geöffnet.
+
+#### Dateityp und COM-Initialisierung
+
+Für die Dateitypbezeichnung kombiniert `ReadWindowsType` `SHGFI_TYPENAME` mit `SHGFI_USEFILEATTRIBUTES` und übergibt nur die Endung sowie `FILE_ATTRIBUTE_NORMAL`. Damit wird die registrierte Zuordnung abgefragt; der Aufruf benötigt weder die Quelldatei noch ein Dateisymbol. Die COM-Initialisierung gilt für den aufrufenden Thread. Sowohl `S_OK` als auch `S_FALSE` werden durch `CoUninitialize` ausgeglichen. Bei `RPC_E_CHANGED_MODE` nutzt der Code den vorhandenen COM-Kontext, ohne eine eigene erfolgreiche Initialisierung zu behaupten oder diesen fremden Kontext herunterzufahren. Siehe [SHGetFileInfoW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shgetfileinfow) und [CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex).
+
+#### Dateikontextmenü und Explorer
+
+Die Dateieigenschaften werden mit `SHObjectProperties` (`SHOP_FILEPATH`) auf dem WPF-Thread und mit dem Hauptfenster als Besitzer geöffnet. Die Pfadauflösung für den Explorer läuft dagegen zusammen mit der Auswahl auf einem COM-initialisierten Hintergrundthread. Bei `SHOpenFolderAndSelectItems` bedeutet `cidl = 0`, dass die PIDL die auszuwählende Datei bezeichnet; Windows öffnet deren übergeordneten Ordner. Damit entfällt das Zusammensetzen einer Explorer-Befehlszeile. Die Importe verwenden `LibraryImport`, UTF-16-Pfade und `System32`-Suchpfade; `IntPtr` bleibt für x64 und ARM64 passend. Siehe [SHObjectProperties](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shobjectproperties), [SHParseDisplayName](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shparsedisplayname) und [SHOpenFolderAndSelectItems](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shopenfolderandselectitems).
+
+Die einzelnen Aufrufe haben folgende Verträge:
+
+| Aufruf | Verwendung in FileScope | Rückgabe und Lebensdauer |
+| --- | --- | --- |
+| `SHObjectProperties` | Geliehener Fenster-Handle, `SHOP_FILEPATH = 0x2`, vollständiger Dateipfad und `null` für die Standard-Eigenschaftsseite. | Windows-`BOOL` mit 32 Bit: ungleich null bedeutet, dass der Eigenschaften-Befehl erfolgreich aufgerufen wurde. Der Fenster-Handle bleibt Eigentum von WPF. |
+| `SHParseDisplayName` | Löst den Pfad in eine absolute Shell-Elementliste (PIDL) auf. Bindungskontext und Attributmaske sind null bzw. `0`; es werden keine Attribute abgefragt. | `HRESULT`; bei Erfolg erhält der Aufrufer den PIDL-Speicher und muss ihn freigeben. |
+| `SHOpenFolderAndSelectItems` | Erhält die Datei-PIDL, `cidl = 0`, kein Array von Unterelementen und Flags `0` für die normale Auswahl. | `HRESULT`; die PIDL wird nur ausgeliehen und bleibt bis zum Ende des Aufrufs gültig. |
+| `CoInitializeEx` | Initialisiert COM auf dem ausführenden Hintergrundthread mit `COINIT_MULTITHREADED = 0` (MTA); der reservierte Parameter ist null. | `S_OK = 0` und `S_FALSE = 1` gelten als Erfolg. Auch `S_FALSE` muss durch einen eigenen `CoUninitialize`-Aufruf ausgeglichen werden. |
+| `CoUninitialize` | Gleicht die erfolgreiche Initialisierung im `finally` auf demselben Thread aus. | Kein Rückgabewert; wird auch nach fehlgeschlagener Pfadauflösung oder Auswahl ausgeführt, jedoch nicht nach fehlgeschlagener Initialisierung. |
+| `Marshal.FreeCoTaskMem` | Verwalteter Aufruf der COM-Speicherfreigabe für die PIDL im `finally`, vor `CoUninitialize`. | Gibt den COM-Speicher frei; `IntPtr.Zero` ist zulässig. Dies schließt weder eine Datei noch das Explorer-Fenster. |
+
+Der gesamte Explorer-Auftrag läuft in einem synchronen `Task.Run`-Delegaten ohne `await` im Inneren. Damit bleiben COM-Initialisierung, Pfadauflösung, Auswahl und Freigabe auf demselben Thread. Der Dienst behandelt jedes negative `HRESULT` als Fehlschlag und gibt `false` zurück. Dies gilt hier auch für `RPC_E_CHANGED_MODE`: Anders als die oben beschriebene Dateitypabfrage setzt dieser Auftrag einen erfolgreich initialisierten MTA-Kontext voraus. Nach gescheiterter Initialisierung wird kein `CoUninitialize` aufgerufen. Die Shell-Importe verwenden keinen `GetLastError`-Vertrag. Siehe [CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex) und [CoUninitialize](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-couninitialize).
+
+Die PIDL enthält die Shell-Identität des Elements und ist kein geöffneter Datei-Handle. Ihr Speicher stammt aus dem COM-Task-Allocator; deshalb wird er mit `Marshal.FreeCoTaskMem` freigegeben. Der gemeinsame Analyse-Handle wird für diese Benutzeraktionen nicht übernommen. Die Shell darf zusätzliche Dateizugriffe durchführen. Ein erfolgreicher Dienstaufruf bestätigt das native Ergebnis; FileScope überwacht anschließend nicht, ob oder wie lange die Auswahl im Explorer sichtbar bleibt. Siehe [PIDL-Speicherfreigabe](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-ilfree#remarks) und [Marshal.FreeCoTaskMem](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal.freecotaskmem).
+
+### Splashscreen und Bildressourcen
+
+`Resources/FileScopeSplash.png` ist die unveränderte 256-Pixel-PNG-Variante aus dem vorhandenen App-Icon; dessen Vorlage ist `docs/Oranges FS-App-Symbol.png`. Die Build-Aktion `SplashScreen` bettet das Bild ein und lässt WPF den frühen Aufruf `Show(true)` vor `App.InitializeComponent()` erzeugen. Es braucht weder eine lose PNG-Datei neben der EXE noch einen eigenen Startup-Thread. Die automatische Ausblendung übernimmt WPF; Verzögerungen vor dem verwalteten Programmeinstieg kann dieser Splash noch nicht überbrücken.
+
+Icon und Splash lassen sich aus derselben Vorlage erneuern:
+
+```powershell
+.\docs\build-icon.ps1 -InputPng '.\docs\Oranges FS-App-Symbol.png' -OutputIco '.\src\FileScope.App\Resources\FileScope.ico' -OutputSplash '.\src\FileScope.App\Resources\FileScopeSplash.png'
+```
+
+### Sprachressourcen
+
+Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 | Datei | Sprache |
 | --- | --- |
@@ -102,7 +540,22 @@ Alle 90 Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 `LocExtension` bindet XAML-Texte an den `LocalizationService`. Status- und Fehlercodes bleiben in der Kernbibliothek sprachneutral. Vorhandene Zeilen und Filterauswahlen werden beim Umschalten aktualisiert. Technische Ausnahmebeschreibungen von Betriebssystem/.NET und originale Zertifikatsfelder bleiben unverändert. Der Start verwendet die Windows-UI-Sprache, sofern unterstützt, sonst Englisch.
 
+### Verwendete Entwurfsmuster
+
+| Entwurfsmuster | Umsetzung in FileScope | Zweck |
+| --- | --- | --- |
+| **Strategy** | `IChecksumStrategy`, `ISignatureInspector`, `IFilePropertiesInspector`, `IPeHeaderInspector` sowie `IResultExportStrategy` mit `CsvExportStrategy` und `JsonExportStrategy` | Analyse- und Exportverfahren lassen sich hinter gemeinsamen Verträgen austauschen. Die Orchestrierung muss ihre Einzelheiten nicht kennen. |
+| **Factory (einfache Fabrik)** | `IChecksumStrategyFactory` / `ChecksumStrategyFactory.Create` | Erzeugt für den gewählten Hashalgorithmus eine neue, passend konfigurierte Strategie. Der zustandsbehaftete Hash wird nicht zwischen Dateien geteilt. |
+| **Command** | `RelayCommand` und `AsyncRelayCommand` implementieren `ICommand` | Buttons, Tastenkürzel und Drag-and-drop lösen ViewModel-Aktionen aus. Ausführbarkeit und Schutz vor parallelem Mehrfachstart liegen im Command. |
+| **Observer** | `INotifyPropertyChanged`, `ObservableCollection` und Ereignisse wie `CultureChanged`, `ColumnOrderChanged` und `SignatureSelectionChanged` | Oberfläche und abhängige Komponenten reagieren auf Zustandsänderungen. Auch die Diagnoseanzeige wird aus den Zeilenereignissen aktualisiert. |
+| **Adapter** | `WindowsAuthenticodeInspector`, `FilePropertiesInspector`, `FilePickerService` und `ConfirmationService` | Übersetzen Windows-/WPF-Aufrufe und deren Ergebnisse in die von der Anwendung verwendeten Schnittstellen und Modelle. |
+| **Fassade** | `IFileAnalysisService` / `FileAnalysisService.AnalyzeAsync` | Bietet einen gemeinsamen Einstieg für Dateizugriff, Hashberechnung, Metadaten und Signaturprüfung und führt deren Ergebnisse zusammen. |
+
+Ergänzend strukturieren **MVVM** als Architekturmuster und **Dependency Injection über Konstruktoren** die Anwendung. `App.OnStartup` bildet den **Composition Root**, an dem die konkreten Komponenten zusammengestellt werden; die Tests können dort eingesetzte Dienste durch Testimplementierungen ersetzen.
+
 ## Erweitern
+
+### Code
 
 **Weiterer Hash:** `ChecksumAlgorithm` erweitern, die Factory um eine passende `IChecksumStrategy` ergänzen und eine Option/Spalte im App-Projekt hinzufügen. `StreamChecksumService` muss dabei nicht geändert werden.
 
@@ -110,15 +563,80 @@ Alle 90 Oberflächentexte stehen in `src/FileScope.App/Resources`:
 
 **Weitere Sprache:** Gleichnamige Schlüssel in `Strings.<culture>.resx` ergänzen, die Sprache in `LocalizationService.Languages` aufnehmen und gegebenenfalls die Startsprachauswahl erweitern.
 
-## Überprüfung
+### Überprüfung
 
 ```powershell
 .\Verify.ps1
+.\Verify.ps1 -Runtime win-x64
+.\Verify.ps1 -Runtime win-arm64
 ```
 
-Das Skript baut die Projektmappe und führt Core- sowie unter Windows WPF/MVVM-Prüfungen aus. Es erstellt dafür temporäre Test-Harness-Projekte im ignorierten `artifacts/verify`-Ordner und entfernt diese danach. **Die eigentliche Projektmappe bleibt bei zwei Projekten.** Die Tests benötigen keine Testframework-NuGet-Pakete.
+`Verify.ps1` prüft die PowerShell-Skripte, baut die Projektmappe und startet die
+festen MSTest-Projekte für Core, Präsentation und unter Windows WPF. Die drei
+Aufrufe sind Alternativen; ARM64-Tests benötigen Windows ARM64. TRX-Berichte
+bleiben unter `artifacts/test-results/<Lauf-ID>` erhalten und stehen in der CI
+auch bei fehlgeschlagenen Tests als Artefakte bereit.
 
-Optional mit einer bekannten Datei, die tatsächlich eine eingebettete Authenticode-Signatur besitzt:
+In **Visual Studio** lassen sich dieselben C#-Tests im **Test-Explorer** einzeln
+ausführen und debuggen. Auf Windows können alle C#-Tests auch direkt gestartet
+werden:
+
+```powershell
+dotnet test --solution FileScope.sln -c Release
+```
+
+**MSTest** passt durch die Integration in Visual Studio und Konsole, eingebaute
+STA-Unterstützung unter Windows und die gebündelte Werkzeugkonfiguration über
+`MSTest.Sdk` zu diesem Projekt. Die
+[Begründung und Aufgaben des eigenen WPF-Testhosts](docs/BUILD-RELEASE.md#mstest-in-visual-studio-und-konsole)
+sind in der weiterführenden Dokumentation erläutert.
+
+Die UI-Prüfungen laden echtes WPF-XAML und arbeiten mit den tatsächlichen
+ViewModels, Bindungen und einem STA-Dispatcher. Injizierte Testdienste liefern
+kontrollierte Analyseergebnisse und Dialogantworten. So werden unter anderem
+Abbruch, Sprach- und Designwechsel, Kontextmenüs, Optionsdialog und
+Spaltendarstellung geprüft. Jeder Test kann unabhängig ausgewählt werden;
+verbliebene Fenster werden auch nach einem Fehler geschlossen.
+
+Zusätzlich prüfen statische MSTest-Tests Übersetzungsschlüssel und Platzhalter,
+Theme-Ressourcen, Spaltenzuordnung und Startbild, ohne ein WPF-Fenster zu öffnen.
+Sie laufen mit den Präsentationstests; Python wird dafür nicht mehr benötigt.
+Die [Aufteilung zwischen Build, Konsistenz- und Verhaltenstests](docs/BUILD-RELEASE.md#build-konsistenz-und-verhalten)
+beschreibt die Zuständigkeiten der einzelnen Prüfungen.
+
+Seit der MSTest-Umstellung zählen die C#-Gruppen **Testfälle einschließlich
+Datenzeilen**. Ein Testfall kann mehrere Prüfbedingungen enthalten. Die früheren
+Assertion-Zahlen sind deshalb nicht direkt mit diesen Zahlen vergleichbar.
+Aktueller Ausführungsstand:
+
+| Gruppe | Testfälle und aktueller Ausführungsstand |
+| --- | --- |
+| PowerShell-Skripte | **61 Prüfbedingungen unter Linux bestanden**; unter anderem VS-Code-Aufgaben, Plattformen, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
+| Core | **27 Testfälle: 24 bestanden, 3 übersprungen**; zwei benötigen optionale Beispieldateien, einer prüft ausdrücklich das Verhalten außerhalb von Windows. Enthält Hashes, Dateisuche und -verschieben, Filter, Exporte sowie PE-/NE- und native Metadatenprüfungen. |
+| Präsentation, Einstellungen und Ressourcen | **33 Testfälle unter Linux bestanden**; Formatierung, Übersetzungen, Statusgruppen, Fortschritt, Exportprojektion und gespeicherte Einstellungen sowie **11** zusätzliche Konsistenzprüfungen. |
+| WPF / UI / MVVM | **35 Testfälle bestanden**, einschließlich zweier Prüfungen für STA-Dispatcher, Fluent-Design und Aufräumen nach Fehlern. Auch die Scrollbar-Hit-Tests und das Beenden des Testhosts sind bestätigt. |
+
+Die unveränderten Core- und UI-Testgruppen sind in der CI auf **Windows x64 und
+ARM64** bestätigt. Der Windows-/CI-Lauf mit den erweiterten Ressourcen- und
+Skriptprüfungen steht noch aus. Insgesamt sind **95 C#-Testfälle** vorhanden.
+
+Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
+Beispieldateien und der Einrichtung stehen in
+[`docs/BUILD-RELEASE.md`](docs/BUILD-RELEASE.md#mstest-in-visual-studio-und-konsole),
+der genaue Ausführungsstand in [`VALIDATION.md`](VALIDATION.md).
+`tests/ScriptChecks.ps1` lässt sich weiterhin separat ohne SDK starten.
+
+**Optional:** Die folgenden Tests verwenden zusätzliche eigene Beispieldateien.
+Dieselben Dateien lassen sich auch für den Visual-Studio-Test-Explorer und
+`dotnet test` hinterlegen. Die Zuordnung der Parameter und die Einrichtung
+beschreibt [Optionale Beispieldateien und gemeinsame Einstellungen](docs/BUILD-RELEASE.md#optionale-beispieldateien-und-gemeinsame-einstellungen).
+Ohne diese Angaben werden die beiden Tests ausdrücklich übersprungen;
+[die Bedeutung der Testmeldungen](docs/BUILD-RELEASE.md#übersprungene-tests-und-visual-studio-meldungen)
+ist dort ebenfalls erklärt.
+
+#### Signatur
+
+Eine bekannte Datei mit eingebetteter Authenticode-Signatur angeben:
 
 ```powershell
 .\Verify.ps1 -SignedFile 'C:\Pfad\zur\signierten-datei.exe'
@@ -126,21 +644,41 @@ Optional mit einer bekannten Datei, die tatsächlich eine eingebettete Authentic
 
 Der optionale Test liest diese Datei und prüft, dass Unterzeichnerdaten sowie der native Prüfrückgabecode ermittelt werden. Er verändert und startet sie nicht. Vertrauenswürdigkeit wird nicht pauschal angenommen, weil sie vom Rechner, den Stammzertifikaten und Sperrinformationen abhängt.
 
-Der tatsächliche Ausführungsstand der mitgelieferten Version steht in `VALIDATION.md`. Ein zusätzlicher statischer Strukturcheck kann optional mit `python tools/check_structure.py` ausgeführt werden. Er ersetzt keinen .NET-Build.
+Der entsprechende Parameter in der `.runsettings`-Datei heißt ebenfalls `SignedFile`.
 
-## Eigenständige Windows-Ausgabe
+#### Version
+
+`Verify.ps1` vergleicht unter Windows die neue Abfrage mit `FileVersionInfo`, einschließlich Sprache, PE-/NE-Ressourcen und fehlenden Versionsdaten. Die Prüfungen verwenden absichtlich einen nicht existierenden Dateinamen, um einen unbemerkten Rückgriff auf diesen Pfad auszuschließen, und kontrollieren beide Dateipositionen sowie den nächsten Lesezugriff. Eigene Dateien können zusätzlich angegeben werden:
 
 ```powershell
-.\Build.ps1 -Publish -Runtime win-x64
+.\Verify.ps1 -VersionFile "D:\Testdateien\VBRUN300.DLL", "D:\Testdateien\DMSGEW.EXE"
 ```
 
-Die Ausgabe liegt unter `artifacts/publish/win-x64`. Den **gesamten** Ordner weitergeben, einschließlich `de` und `zh-Hans`; diese enthalten die Sprachressourcen. Durch `--self-contained true` ist auf dem Zielrechner keine separate .NET-Desktop-Runtime erforderlich. Die Ausgabe wird nicht getrimmt, da WPF und dynamische Ressourcen Reflection verwenden. ARM64 bzw. x86 können über den Runtime-Parameter gewählt werden.
+Der Skriptparameter `-VersionFile` entspricht `VersionFiles` in der
+`.runsettings`-Datei; dort werden die Pfade als JSON-Array hinterlegt.
 
-## Technische Referenzen
+Der tatsächliche Ausführungsstand der mitgelieferten Version steht in [`VALIDATION.md`](VALIDATION.md).
+
+### Code-Stil
+
+Die `.editorconfig` ist nach Themen und Regel-IDs geordnet; jede Einstellung trägt einen kurzen Kommentar. [Einstellungen und Erklärungen nebeneinander](docs/EDITORCONFIG.md). Die engeren Testausnahmen stehen in `tests/.editorconfig`.
+
+### Technische Referenzen
 
 - [.NET-Supportübersicht](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core)
 - [WPF in .NET 10](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net100)
 - [Fluent-Theme und ThemeMode](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net90)
+- [Mehrere Signaturen: WINTRUST_SIGNATURE_SETTINGS](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_signature_settings)
+- [Authenticode-Zeitstempel](https://learn.microsoft.com/en-us/windows/win32/seccrypto/time-stamping-authenticode-signatures)
 - [WinVerifyTrust](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust)
 - [WINTRUST_DATA und Offline-Flags](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data)
 - [WINTRUST_FILE_INFO und Dateihandle](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_file_info)
+
+- [FileVersionInfo](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.fileversioninfo?view=net-10.0)
+- [GetFileVersionInfoByHandle](https://learn.microsoft.com/en-us/windows/win32/menurc/getfileversioninfobyhandle)
+- [VerQueryValueW](https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluew)
+- [PE- und COFF-Format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format)
+- [Windows-Dateityp: SHGetFileInfoW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shgetfileinfow)
+- [VS-Code-Workspace-Tasks](https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces)
+
+NE-Layoutreferenzen: [Open Watcom: exeos2.h](https://github.com/open-watcom/open-watcom-v2/blob/master/bld/watcom/h/exeos2.h), [Wine: IMAGE_OS2_HEADER](https://github.com/wine-mirror/wine/blob/master/include/winnt.h).

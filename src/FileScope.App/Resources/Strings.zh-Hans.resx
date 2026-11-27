@@ -1,5 +1,110 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -7,10 +112,10 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="WindowTitle" xml:space="preserve">
     <value>FileScope · 文件分析</value>
@@ -100,10 +205,10 @@
     <value>文件分析结果</value>
   </data>
   <data name="DropTitle" xml:space="preserve">
-    <value>将文件拖放到此处</value>
+    <value>将文件或文件夹拖放到此处</value>
   </data>
   <data name="DropHint" xml:space="preserve">
-    <value>将一个或多个文件拖放到窗口任意位置，或点击“添加文件”。</value>
+    <value>将文件或文件夹拖放到窗口任意位置。确认后将扫描文件夹及其子文件夹。</value>
   </data>
   <data name="DropOptionsHint" xml:space="preserve">
     <value>先在上方选择检查项目。每个文件完成后，其结果将立即显示。</value>
@@ -112,7 +217,7 @@
     <value>没有符合当前筛选条件的文件。</value>
   </data>
   <data name="DetailsTitle" xml:space="preserve">
-    <value>所选文件 · 完整详情 / 复制</value>
+    <value>所选文件 · 完整详情 / 复制：</value>
   </data>
   <data name="DetailsHint" xml:space="preserve">
     <value>选择表格中的一行。可选择详情文本并按 Ctrl+C 复制。</value>
@@ -136,7 +241,7 @@
     <value>正在分析 · 已完成 {0:N0} / {1:N0}</value>
   </data>
   <data name="CompletedSummary" xml:space="preserve">
-    <value>完成 · 已处理 {0:N0} / {1:N0}。请查看各行结果。</value>
+    <value>完成 · 已处理 {0:N0} / {1:N0} 个文件。请查看各行结果。</value>
   </data>
   <data name="CancelledSummary" xml:space="preserve">
     <value>已取消 · 已完成 {0:N0} / {1:N0}。其余行已标记为已取消。</value>
@@ -157,7 +262,7 @@
     <value>操作未能完成，请查看下方详情。</value>
   </data>
   <data name="Reading" xml:space="preserve">
-    <value>正在读取…</value>
+    <value>正在计算校验和…</value>
   </data>
   <data name="CheckingSignature" xml:space="preserve">
     <value>正在检查签名…</value>
@@ -281,5 +386,569 @@
   </data>
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>诊断详情</value>
+  </data>
+  <data name="OptionsTitle" xml:space="preserve">
+    <value>选项</value>
+  </data>
+  <data name="Group_HashFormat" xml:space="preserve">
+    <value>哈希显示格式</value>
+  </data>
+  <data name="HashFormatHint" xml:space="preserve">
+    <value>切换文件哈希值和证书指纹的显示格式，无需重新分析文件。</value>
+  </data>
+  <data name="ColumnOrderTitle" xml:space="preserve">
+    <value>列顺序</value>
+  </data>
+  <data name="ColumnOrderHint" xml:space="preserve">
+    <value>选择一列，然后向上或向下移动。隐藏的列也包含在内，并会保留其位置。</value>
+  </data>
+  <data name="MoveFirst" xml:space="preserve">
+    <value>移至顶部</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="MoveLast" xml:space="preserve">
+    <value>移至底部</value>
+  </data>
+  <data name="ResetColumnOrder" xml:space="preserve">
+    <value>重置列顺序</value>
+  </data>
+  <data name="FitColumns" xml:space="preserve">
+    <value>自动调整列宽</value>
+  </data>
+  <data name="OptionsSavedHint" xml:space="preserve">
+    <value>更改立即生效，并会保存到下次启动。</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="SettingsLoadError" xml:space="preserve">
+    <value>无法读取已保存的选项，正在使用默认值。</value>
+  </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>选项已在当前会话中生效，但无法保存到下次启动。</value>
+  </data>
+  <data name="HashFormat_HexUpper" xml:space="preserve">
+    <value>十六进制 · 大写</value>
+  </data>
+  <data name="HashFormat_HexLower" xml:space="preserve">
+    <value>十六进制 · 小写</value>
+  </data>
+  <data name="HashFormat_HexColon" xml:space="preserve">
+    <value>十六进制 · 冒号分隔</value>
+  </data>
+  <data name="HashFormat_Base64" xml:space="preserve">
+    <value>Base64</value>
+  </data>
+  <data name="HashFormat_Base64Url" xml:space="preserve">
+    <value>Base64url · 无填充</value>
+  </data>
+  <data name="Column_SignatureChoice" xml:space="preserve">
+    <value>选择签名</value>
+  </data>
+  <data name="Column_SigningTime" xml:space="preserve">
+    <value>签名时间戳（UTC）</value>
+  </data>
+  <data name="SignatureChoice" xml:space="preserve">
+    <value>签名 {0}</value>
+  </data>
+  <data name="SignatureChoiceHint" xml:space="preserve">
+    <value>验证状态、证书信息和时间戳均对应所选签名。</value>
+  </data>
+  <data name="Timestamp_NotPresent" xml:space="preserve">
+    <value>无时间戳</value>
+  </data>
+  <data name="Timestamp_Unreadable" xml:space="preserve">
+    <value>无法读取时间戳</value>
+  </data>
+  <data name="Timestamp_Verified" xml:space="preserve">
+    <value>已验证</value>
+  </data>
+  <data name="Timestamp_Unverified" xml:space="preserve">
+    <value>未确认</value>
+  </data>
+  <data name="Group_Metadata" xml:space="preserve">
+    <value>文件元数据</value>
+  </data>
+  <data name="InspectFileProperties" xml:space="preserve">
+    <value>文件属性</value>
+  </data>
+  <data name="InspectFilePropertiesTip" xml:space="preserve">
+    <value>读取版本信息和 Windows 文件类型。缺失的字段留空。启用后重新分析可更新现有行。</value>
+  </data>
+  <data name="InspectPeHeader" xml:space="preserve">
+    <value>EXE 标头 / 平台</value>
+  </data>
+  <data name="InspectPeHeaderTip" xml:space="preserve">
+    <value>读取 PE32/PE32+、NE（Win16）、体系结构和 .NET 平台，不执行文件。启用后重新分析以更新已有结果。</value>
+  </data>
+  <data name="ReadingMetadata" xml:space="preserve">
+    <value>正在读取文件属性…</value>
+  </data>
+  <data name="ManagedPlatform_Prefer32Bit" xml:space="preserve">
+    <value>AnyCPU（首选 32 位）</value>
+  </data>
+  <data name="PropertiesError" xml:space="preserve">
+    <value>文件属性：{0}</value>
+  </data>
+  <data name="PeHeaderError" xml:space="preserve">
+    <value>可执行文件标头：{0}</value>
+  </data>
+  <data name="Column_FileDescription" xml:space="preserve">
+    <value>文件说明</value>
+  </data>
+  <data name="Column_FileLanguage" xml:space="preserve">
+    <value>文件语言</value>
+  </data>
+  <data name="Column_FileType" xml:space="preserve">
+    <value>文件类型</value>
+  </data>
+  <data name="Column_FileVersion" xml:space="preserve">
+    <value>文件版本</value>
+  </data>
+  <data name="Column_ProductName" xml:space="preserve">
+    <value>产品名称</value>
+  </data>
+  <data name="Column_ProductVersion" xml:space="preserve">
+    <value>产品版本</value>
+  </data>
+  <data name="Column_CompanyName" xml:space="preserve">
+    <value>公司</value>
+  </data>
+  <data name="Column_OriginalFilename" xml:space="preserve">
+    <value>原始文件名</value>
+  </data>
+  <data name="Column_InternalName" xml:space="preserve">
+    <value>内部名称</value>
+  </data>
+  <data name="Column_Copyright" xml:space="preserve">
+    <value>版权</value>
+  </data>
+  <data name="Column_Trademarks" xml:space="preserve">
+    <value>商标</value>
+  </data>
+  <data name="Column_Comments" xml:space="preserve">
+    <value>备注</value>
+  </data>
+  <data name="Column_PeMachine" xml:space="preserve">
+    <value>体系结构</value>
+  </data>
+  <data name="Column_PeFormat" xml:space="preserve">
+    <value>可执行文件格式</value>
+  </data>
+  <data name="Column_ManagedPlatform" xml:space="preserve">
+    <value>.NET 平台</value>
+  </data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>添加文件夹</value>
+  </data>
+  <data name="AddFolderTitle" xml:space="preserve">
+    <value>选择要分析的文件夹</value>
+  </data>
+  <data name="AddFolderTip" xml:space="preserve">
+    <value>分析所有文件（包括子文件夹）。跳过已添加的路径。</value>
+  </data>
+  <data name="ScanningFolder" xml:space="preserve">
+    <value>正在扫描文件夹…</value>
+  </data>
+  <data name="FolderScanCancelled" xml:space="preserve">
+    <value>文件夹扫描已取消，未添加任何文件。</value>
+  </data>
+  <data name="FolderEmpty" xml:space="preserve">
+    <value>此文件夹中未找到文件。</value>
+  </data>
+  <data name="FolderScanWarning" xml:space="preserve">
+    <value>已跳过 {0} 个无法读取的文件夹和 {1} 个目录链接。</value>
+  </data>
+  <data name="ExportResults" xml:space="preserve">
+    <value>导出…</value>
+  </data>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>导出结果</value>
+  </data>
+  <data name="CsvFiles" xml:space="preserve">
+    <value>CSV 文件</value>
+  </data>
+  <data name="ExportTip" xml:space="preserve">
+    <value>将所有已加载文件导出为 CSV 或 JSON，无需重新分析。</value>
+  </data>
+  <data name="ExportSourceConflict" xml:space="preserve">
+    <value>请选择其他文件名：导出文件不能覆盖已分析的源文件。</value>
+  </data>
+  <data name="ExportingResults" xml:space="preserve">
+    <value>正在导出结果…</value>
+  </data>
+  <data name="ResultsExported" xml:space="preserve">
+    <value>已导出结果（{0} 个文件）。</value>
+  </data>
+  <data name="ExportCancelled" xml:space="preserve">
+    <value>已取消导出。</value>
+  </data>
+  <data name="ExportColumnsTitle" xml:space="preserve">
+    <value>CSV 导出列</value>
+  </data>
+  <data name="ExportColumnsHint" xml:space="preserve">
+    <value>选择 CSV 和 JSON 导出的字段。导出所有已加载文件，包括被筛选器隐藏的行。</value>
+  </data>
+  <data name="SelectAllExportColumns" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="ClearExportColumns" xml:space="preserve">
+    <value>全部取消</value>
+  </data>
+  <data name="PreparingFiles" xml:space="preserve">
+    <value>正在添加文件…</value>
+  </data>
+  <data name="IntakeCancelled" xml:space="preserve">
+    <value>已取消添加文件。已添加的行可重新分析。</value>
+  </data>
+  <data name="Filter_ExceptValid" xml:space="preserve">
+    <value>除有效签名外的全部</value>
+  </data>
+  <data name="CsvDelimiterLabel" xml:space="preserve">
+    <value>CSV 分隔符</value>
+  </data>
+  <data name="CsvDelimiter_Semicolon" xml:space="preserve">
+    <value>分号（;）</value>
+  </data>
+  <data name="CsvDelimiter_Comma" xml:space="preserve">
+    <value>逗号（,）</value>
+  </data>
+  <data name="CsvDelimiterHint" xml:space="preserve">
+    <value>仅适用于 CSV。德语 Excel 通常使用分号；其他程序可选择逗号。</value>
+  </data>
+  <data name="JsonFiles" xml:space="preserve">
+    <value>JSON 文件</value>
+  </data>
+  <data name="ExportUnsupportedExtension" xml:space="preserve">
+    <value>请选择以 .csv 或 .json 结尾的文件名。</value>
+  </data>
+  <data name="DropFoldersTitle" xml:space="preserve">
+    <value>递归分析文件夹</value>
+  </data>
+  <data name="DropFoldersMessage" xml:space="preserve">
+    <value>您拖放了 {0} 个文件夹。
+
+{1}
+
+FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件夹内的目录链接将被跳过。
+
+是否继续？选择“否”将取消整个拖放操作。</value>
+  </data>
+  <data name="DropFoldersMore" xml:space="preserve">
+    <value>… 以及另外 {0} 个文件夹。</value>
+  </data>
+  <data name="DiagnosticSummary" xml:space="preserve">
+    <value>含诊断详情的行数：{0}</value>
+  </data>
+  <data name="RunSummary" xml:space="preserve">
+    <value>耗时：{0} · 文件总大小：{1:N0} 逻辑字节</value>
+  </data>
+  <data name="RunSummaryUnknownSizes" xml:space="preserve">
+    <value>{0:N0} 个文件的大小未知。</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="AboutButton" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>关于 FileScope</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>分析 Windows 文件，无需运行文件。</value>
+  </data>
+  <data name="AboutFeatures" xml:space="preserve">
+    <value>功能概览</value>
+  </data>
+  <data name="AboutFeatureHashes" xml:space="preserve">
+    <value>计算 MD5、SHA-1、SHA-256、SHA-384 和 SHA-512 校验和。</value>
+  </data>
+  <data name="AboutFeatureSignatures" xml:space="preserve">
+    <value>验证嵌入式 Authenticode 签名，支持多重签名和可选的在线吊销检查。</value>
+  </data>
+  <data name="AboutFeatureMetadata" xml:space="preserve">
+    <value>读取文件大小、修改时间、版本信息以及 PE / Win16 NE 文件头。</value>
+  </data>
+  <data name="AboutFeatureFiles" xml:space="preserve">
+    <value>添加文件或文件夹，支持拖放、搜索、筛选结果和查看诊断详情。</value>
+  </data>
+  <data name="AboutFeatureExport" xml:space="preserve">
+    <value>将分析结果导出为 CSV 或 JSON。</value>
+  </data>
+  <data name="AboutEfficiencyTitle" xml:space="preserve">
+    <value>打开一次，一次完整读取计算所有校验和</value>
+  </data>
+  <data name="AboutEfficiency" xml:space="preserve">
+    <value>每次分析时，FileScope 仅打开每个文件一次并复用其读取句柄。所有选定的校验和共享一次完整的文件读取。</value>
+  </data>
+  <data name="AboutAdditionalReads" xml:space="preserve">
+    <value>文件头、版本和签名检查可能需要额外读取。Windows 也可能访问其他相关资源。</value>
+  </data>
+  <data name="AboutProject" xml:space="preserve">
+    <value>项目与许可证</value>
+  </data>
+  <data name="AboutRepository" xml:space="preserve">
+    <value>打开 FileScope 代码仓库</value>
+  </data>
+  <data name="AboutLicenseOnline" xml:space="preserve">
+    <value>MIT 许可证（在线）</value>
+  </data>
+  <data name="AboutLicenseText" xml:space="preserve">
+    <value>MIT 许可证与版权声明（离线）</value>
+  </data>
+  <data name="AboutLinkError" xml:space="preserve">
+    <value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value>
+  </data>
+  <data name="AboutCredits" xml:space="preserve">
+    <value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value>
+  </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>在文件资源管理器中显示</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows 无法打开“{0}”的属性。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows 无法在文件资源管理器中显示“{0}”。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="OpeningFile" xml:space="preserve">
+    <value>正在打开文件…</value>
+  </data>
+  <data name="ReadingPeHeader" xml:space="preserve">
+    <value>正在读取 EXE 文件头…</value>
+  </data>
+  <data name="CheckingSignatureOnline" xml:space="preserve">
+    <value>正在检查签名（包括在线吊销检查）…</value>
+  </data>
+  <data name="FiltersPausedTip" xml:space="preserve">
+    <value>任务运行期间暂停筛选和排序，完成后重新应用。</value>
+  </data>
+  <data name="MoveSelectedMenu" xml:space="preserve">
+    <value>将选中的文件移至“{0}”…</value>
+  </data>
+  <data name="MovingFiles" xml:space="preserve">
+    <value>正在移动文件…</value>
+  </data>
+  <data name="MovesFinished" xml:space="preserve">
+    <value>移动操作已结束。详情请查看报告。</value>
+  </data>
+  <data name="MoveReportTitle" xml:space="preserve">
+    <value>文件移动报告</value>
+  </data>
+  <data name="MoveReportSummary" xml:space="preserve">
+    <value>{0} 个文件 · 已移动 {1} 个 · 错误 {2} 个 · 已跳过/取消 {3} 个</value>
+  </data>
+  <data name="MoveReportSource" xml:space="preserve">
+    <value>源路径：{0}</value>
+  </data>
+  <data name="MoveReportDestination" xml:space="preserve">
+    <value>目标路径：{0}</value>
+  </data>
+  <data name="MoveOutcome_Moved" xml:space="preserve">
+    <value>已移动</value>
+  </data>
+  <data name="MoveOutcome_TargetExists" xml:space="preserve">
+    <value>已跳过：目标已存在</value>
+  </data>
+  <data name="MoveOutcome_AlreadyInFolder" xml:space="preserve">
+    <value>已跳过：已在对应的子文件夹中</value>
+  </data>
+  <data name="MoveOutcome_SourceMissing" xml:space="preserve">
+    <value>失败：未找到源文件</value>
+  </data>
+  <data name="MoveOutcome_SourceLink" xml:space="preserve">
+    <value>已跳过：源文件是符号链接或其他重解析点</value>
+  </data>
+  <data name="MoveOutcome_TargetLink" xml:space="preserve">
+    <value>已跳过：目标文件夹是链接或其他重解析点</value>
+  </data>
+  <data name="MoveOutcome_TargetListed" xml:space="preserve">
+    <value>已跳过：目标路径已在结果列表中</value>
+  </data>
+  <data name="MoveOutcome_Cancelled" xml:space="preserve">
+    <value>已取消：文件未移动</value>
+  </data>
+  <data name="MoveOutcome_Failed" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="MoveFolder_Valid" xml:space="preserve">
+    <value>有效</value>
+  </data>
+  <data name="MoveFolder_NoEmbeddedSignature" xml:space="preserve">
+    <value>未签名</value>
+  </data>
+  <data name="MoveFolder_InvalidSignature" xml:space="preserve">
+    <value>无效</value>
+  </data>
+  <data name="MoveFolder_Untrusted" xml:space="preserve">
+    <value>不受信任</value>
+  </data>
+  <data name="MoveFolder_Expired" xml:space="preserve">
+    <value>已过期</value>
+  </data>
+  <data name="MoveFolder_Revoked" xml:space="preserve">
+    <value>已吊销</value>
+  </data>
+  <data name="MoveFolder_RevocationUnknown" xml:space="preserve">
+    <value>吊销未知</value>
+  </data>
+  <data name="MoveFolder_UnsupportedFormat" xml:space="preserve">
+    <value>不支持格式</value>
+  </data>
+  <data name="MoveFolder_UnsupportedPlatform" xml:space="preserve">
+    <value>不支持平台</value>
+  </data>
+  <data name="MoveFolder_CheckFailed" xml:space="preserve">
+    <value>检查失败</value>
+  </data>
+  <data name="PathAutoWidth" xml:space="preserve">
+    <value>自动调整路径列宽度</value>
+  </data>
+  <data name="PathAutoWidthHint" xml:space="preserve">
+    <value>启用时允许显示完整路径宽度。关闭后列宽受限，可用鼠标调整。</value>
+  </data>
+  <data name="SingleFileActionHint" xml:space="preserve">
+    <value>此操作需要仅选中一个文件。</value>
+  </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="ShortcutsButton" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+  <data name="ShortcutsTip" xml:space="preserve">
+    <value>查看键盘快捷键（F1）</value>
+  </data>
+  <data name="ShortcutsHint" xml:space="preserve">
+    <value>表格快捷键在结果表格获得键盘焦点时生效。在文本框中使用常规文本快捷键。</value>
+  </data>
+  <data name="ShortcutsGroupActions" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="ShortcutsGroupNavigation" xml:space="preserve">
+    <value>表格导航</value>
+  </data>
+  <data name="ShortcutsGroupSelection" xml:space="preserve">
+    <value>选择与复制</value>
+  </data>
+  <data name="ShortcutsCloseHint" xml:space="preserve">
+    <value>按 Esc 或 Enter 关闭此窗口。</value>
+  </data>
+  <data name="ShortcutOpenKeys" xml:space="preserve">
+    <value>Ctrl+O</value>
+  </data>
+  <data name="ShortcutOpenAction" xml:space="preserve">
+    <value>打开文件</value>
+  </data>
+  <data name="ShortcutClearKeys" xml:space="preserve">
+    <value>Ctrl+L</value>
+  </data>
+  <data name="ShortcutClearAction" xml:space="preserve">
+    <value>在没有任务运行时清空结果与筛选条件</value>
+  </data>
+  <data name="ShortcutCancelKeys" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="ShortcutCancelAction" xml:space="preserve">
+    <value>取消当前操作</value>
+  </data>
+  <data name="ShortcutHelpKeys" xml:space="preserve">
+    <value>F1</value>
+  </data>
+  <data name="ShortcutHelpAction" xml:space="preserve">
+    <value>打开此快捷键列表</value>
+  </data>
+  <data name="ShortcutTableEndsKeys" xml:space="preserve">
+    <value>Ctrl+Home / Ctrl+End</value>
+  </data>
+  <data name="ShortcutTableEndsAction" xml:space="preserve">
+    <value>跳到表格的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutPageKeys" xml:space="preserve">
+    <value>Page Up / Page Down</value>
+  </data>
+  <data name="ShortcutPageAction" xml:space="preserve">
+    <value>向上/向下翻一页</value>
+  </data>
+  <data name="ShortcutRowEndsKeys" xml:space="preserve">
+    <value>Home / End</value>
+  </data>
+  <data name="ShortcutRowEndsAction" xml:space="preserve">
+    <value>跳到当前行的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutRowsKeys" xml:space="preserve">
+    <value>↑ / ↓</value>
+  </data>
+  <data name="ShortcutRowsAction" xml:space="preserve">
+    <value>上一行/下一行</value>
+  </data>
+  <data name="ShortcutSelectAllKeys" xml:space="preserve">
+    <value>Ctrl+A</value>
+  </data>
+  <data name="ShortcutSelectAllAction" xml:space="preserve">
+    <value>选中当前视图中的所有行</value>
+  </data>
+  <data name="ShortcutExtendKeys" xml:space="preserve">
+    <value>Shift+↑ / Shift+↓</value>
+  </data>
+  <data name="ShortcutExtendAction" xml:space="preserve">
+    <value>扩展行选择范围</value>
+  </data>
+  <data name="ShortcutCopyKeys" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+  <data name="ShortcutCopyAction" xml:space="preserve">
+    <value>复制选中的行及列标题</value>
+  </data>
+  <data name="ShortcutContextMenuKeys" xml:space="preserve">
+    <value>Shift+F10 / 菜单键</value>
+  </data>
+  <data name="ShortcutContextMenuAction" xml:space="preserve">
+    <value>打开当前行的快捷菜单</value>
+  </data>
+  <data name="IntakeFilterLabel" xml:space="preserve">
+    <value>文件导入（正则表达式）</value>
+  </data>
+  <data name="IntakeFilterTip" xml:space="preserve">
+    <value>匹配含扩展名的文件名，不含文件夹路径，不区分大小写。适用于打开文件、添加文件夹和拖放。例如：\.(exe|dll)$</value>
+  </data>
+  <data name="IntakeFilterHint" xml:space="preserve">
+    <value>仅影响新文件 · 留空：所有文件</value>
+  </data>
+  <data name="IntakeRegexInvalid" xml:space="preserve">
+    <value>正则表达式无效。详情见工具提示。</value>
+  </data>
+  <data name="IntakeRegexTimeout" xml:space="preserve">
+    <value>正则表达式匹配超时，请简化表达式。</value>
+  </data>
+  <data name="IntakeFilterStopped" xml:space="preserve">
+    <value>因筛选器问题，已停止导入文件。</value>
+  </data>
+  <data name="IntakeNoMatches" xml:space="preserve">
+    <value>未添加新文件。</value>
+  </data>
+  <data name="IntakeExcludedSummary" xml:space="preserve">
+    <value>导入筛选器已排除：{0}</value>
+  </data>
+  <data name="MenuTitle" xml:space="preserve">
+    <value>菜单</value>
   </data>
 </root>

@@ -11,11 +11,11 @@ public sealed class LocalizationService : ObservableObject
     private readonly ResourceManager _resources = new("FileScope.App.Resources.Strings", typeof(LocalizationService).Assembly);
     public static LocalizationService Instance { get; } = new();
     public event EventHandler? CultureChanged;
-    public IReadOnlyList<LanguageOption> Languages { get; } = Array.AsReadOnly(new[]
-    {
+    public IReadOnlyList<LanguageOption> Languages { get; } = Array.AsReadOnly(
+    [
         new LanguageOption("en", "English"), new LanguageOption("de", "Deutsch"),
         new LanguageOption("zh-Hans", "简体中文")
-    });
+    ]);
     public CultureInfo Culture { get; private set; }
     public string this[string key] => _resources.GetString(key, Culture) ?? $"[{key}]";
 
