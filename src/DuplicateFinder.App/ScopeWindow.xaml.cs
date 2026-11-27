@@ -6,8 +6,14 @@ namespace DuplicateFinder.App;
 public partial class ScopeWindow : Window
 {
     public bool Filtered => VisibleFiles.IsChecked == true;
+    public RelayCommand ConfirmCommand { get; }
+    public RelayCommand CloseCommand { get; }
+
     public ScopeWindow(CleanupPlan filtered, CleanupPlan all)
     {
+        CloseCommand = new(Close);
+        ConfirmCommand = new(() => DialogResult = true, HasSelectedScope);
+
         InitializeComponent();
         var strings = LocalizationService.Instance;
         VisibleCount.Text = strings.Format("Counts", filtered.Items.Count, filtered.Groups);
@@ -16,9 +22,11 @@ public partial class ScopeWindow : Window
         AllFiles.IsEnabled = all.Items.Count > 0;
         // Never expand the scope silently when the user's filter has zero candidates.
         VisibleFiles.IsChecked = VisibleFiles.IsEnabled;
-        Confirm.IsEnabled = Filtered;
+        ConfirmCommand.NotifyCanExecuteChanged();
     }
 
-    private void ChoiceChanged(object sender, RoutedEventArgs e) => Confirm.IsEnabled = true;
-    private void Accept(object sender, RoutedEventArgs e) => DialogResult = true;
+    private bool HasSelectedScope() =>
+        VisibleFiles is { IsChecked: true, IsEnabled: true } || AllFiles is { IsChecked: true, IsEnabled: true };
+
+    private void ChoiceChanged(object sender, RoutedEventArgs e) => ConfirmCommand.NotifyCanExecuteChanged();
 }

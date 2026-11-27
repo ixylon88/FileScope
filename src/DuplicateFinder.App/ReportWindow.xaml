@@ -1,11 +1,11 @@
-<Window x:Class="DuplicateFinder.App.ReportWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window x:Class="DuplicateFinder.App.ReportWindow" x:Name="WindowRoot" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:DuplicateFinder.App"
  Width="700" Height="455" MinWidth="450" MinHeight="300" WindowStartupLocation="CenterOwner" Style="{StaticResource AppWindowStyle}">
   <DockPanel Margin="18">
     <TextBlock DockPanel.Dock="Top" x:Name="Intro" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,12"/>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-      <Button x:Name="CloseButton" IsCancel="True" Content="{loc:Loc Close}" Style="{StaticResource BandButton}"/>
-      <Button x:Name="Proceed" Content="{loc:Loc Recycle}" Click="Accept" Visibility="Collapsed" Style="{StaticResource BandButton}"/>
+      <Button x:Name="CloseButton" IsCancel="True" Command="{Binding CloseCommand, ElementName=WindowRoot}" Content="{loc:Loc Close}" Style="{StaticResource BandButton}"/>
+      <Button x:Name="Proceed" Content="{loc:Loc Recycle}" Command="{Binding ConfirmCommand, ElementName=WindowRoot}" Visibility="Collapsed" Style="{StaticResource BandButton}"/>
     </StackPanel>
     <ListBox x:Name="Lines" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
              ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>

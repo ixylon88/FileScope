@@ -145,6 +145,7 @@ Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt
 | Tastaturnavigation in der Tabelle | **Strg+Pos1 / Strg+Ende** springen zur ersten bzw. letzten Tabellenzelle. **BildAuf / BildAb** bewegen sich um eine sichtbare Tabellenseite nach oben bzw. unten. Pos1 / Ende allein wechseln innerhalb der aktuellen Zeile zur ersten bzw. letzten Spalte. Die Ergebnisliste muss den Tastaturfokus haben. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
 | Leeren / Clear | Ctrl+L oder „Leeren“. Entfernt alle Zeilen und Ansichtsfilter, sobald kein Vorgang mehr läuft. Der Aufnahmefilter bleibt erhalten. Während der Verarbeitung deaktiviert; bei Bedarf zuerst abbrechen und das Ende abwarten. |
+| Optionsdialog | Änderungen erscheinen sofort in der Vorschau. **Speichern** übernimmt die Auswahl. **Abbrechen**, **Esc** und das Fensterkreuz stellen den Stand beim Öffnen wieder her, einschließlich zuvor von Hand eingestellter Spaltenbreiten. |
 | Sprachen | Im Optionsfenster: Englisch, Deutsch, vereinfachtes Chinesisch. Umschalten ohne Neustart, auch bei bestehenden Ergebnissen und laufender Verarbeitung. |
 | Fenster | Normale Breite/Höhe und Maximierungszustand werden beim Schließen gespeichert. Ein minimiert geschlossenes Fenster merkt sich den letzten normalen/maximierten Zustand. Neustart zentriert auf dem Primärmonitor; zu große Maße werden auf dessen Arbeitsfläche begrenzt. |
 | Design | Hell/Dunkel unter **Optionen → Design** umschalten; die Auswahl wird gespeichert. Native Fluent-Controls ohne eigene Vorlagen für Zeilen/Zellen. |
@@ -232,7 +233,7 @@ Enthalten sind **Strg+O**, **Strg+L**, **Esc**, **F1**, **Strg+Pos1 / Strg+Ende*
 
 ### Helles und dunkles Design
 
-Unter **Optionen → Design** lässt sich während der Sitzung zwischen Hell und Dunkel wechseln. Die geöffneten Fenster, Hinweisfarben und Status-Badges passen sich an. Die Auswahl wird sofort gespeichert und beim nächsten Start wiederhergestellt; Analyseergebnisse, Filter und Spaltenreihenfolge bleiben erhalten. Fehlt in älteren Einstellungen ein gültiger Designwert, bleibt das aktuelle Anwendungsdesign erhalten, beim regulären Start standardmäßig Hell.
+Unter **Optionen → Design** lässt sich während der Sitzung zwischen Hell und Dunkel wechseln. Die geöffneten Fenster, Hinweisfarben und Status-Badges passen sich an. Nach **Speichern** startet FileScope wieder im gewählten Design. Die Vorschau erhält Analyseergebnisse, Filter und Spaltenreihenfolge. Fehlt in älteren Einstellungen ein gültiger Designwert, bleibt das aktuelle Anwendungsdesign erhalten, beim regulären Start standardmäßig Hell.
 
 ### Ordnersuche und Export
 
@@ -388,6 +389,8 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 
 MVVM trennt View, ViewModel und Domänenmodelle. Code-behind beschränkt sich auf Darstellungsaufgaben: Fensterlebenszyklus einschließlich Größenwiederherstellung, Öffnen der Options- und Infodialoge, Anzeige fester Programminformationen und Sichtbarhalten der ausgewählten Listenzeile. Der Infodialog benötigt dafür kein zusätzliches ViewModel; Browseraufrufe liegen hinter `IExternalLinkService`. `INotifyPropertyChanged` sowie `ICollectionView` aktualisieren und filtern die Darstellung.
 
+In FileScope und DuplicateFinder binden Aktionsschaltflächen an `ICommand`. `CanExecute` steuert die Verfügbarkeit eines Befehls auch für zugehörige Tastenkürzel. Beide Apps verwenden die gemeinsamen Klassen `RelayCommand` und `AsyncRelayCommand` sowie vorhandene WPF-Befehle wie `ApplicationCommands.Help`. Befehle für das Öffnen und Schließen eines Dialogs können im Fenster liegen. Auswahlwechsel und Fensterereignisse bleiben bei den zuständigen WPF-Steuerelementen.
+
 Das Menüband ist eine gruppierte native WPF-Befehlsleiste im Fluent-Stil, **kein zusätzlicher Ribbon-Control-Anbieter**. Der WPF-Tabellentyp heißt `DataGrid`; `DataGridView` gehört zu Windows Forms.
 
 Die Kernbibliothek zielt auf `net10.0`; ihre Hash- und Orchestrierungslogik lässt sich auch ohne Windows verwenden. Die WPF-App zielt auf `net10.0-windows`. Die native Authenticode-Strategie meldet außerhalb von Windows ausdrücklich „UnsupportedPlatform“.
@@ -406,7 +409,7 @@ Mehrfach abgelegte **normalisierte Pfade** werden unter Windows ohne Beachtung d
 
 ### Prüfoptionen und Einstellungen
 
-Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die fünf Hash-Häkchen, eingebettete Signaturprüfung, Katalogprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header werden bei jeder Änderung zusammen mit Sprache, Design, Hashformat, Spaltenreihenfolge, Fenstergröße und Maximierungszustand in `%LOCALAPPDATA%\FileScope\settings.json` gespeichert. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
+Die gewählten Prüfoptionen gelten als unveränderlicher Schnappschuss für einen Durchlauf. Ein späterer Sprach- oder Hashformatwechsel verändert keine Analysewerte. Die Auswahl im Hauptfenster (fünf Hash-Häkchen, eingebettete Signaturprüfung, Katalogprüfung, Online-Sperrprüfung, Dateieigenschaften und PE-Header) wird bei jeder Änderung gespeichert. Im Optionsdialog schreibt erst **Speichern** die dort gewählten Werte für Sprache, Design, Hashformat, Pfadbreite, Spaltenreihenfolge und Export in `%LOCALAPPDATA%\FileScope\settings.json`. Ergebnisse und manuell veränderte Breiten gelten nur für die laufende Sitzung. Ungültige Einstellungen fallen auf Standardwerte zurück; Schreibfehler werden im Optionsfenster angezeigt, ohne die Dateianalyse zu blockieren.
 
 Auch eine vollständig abgewählte Prüfauswahl wird gespeichert. Die Online-Sperrprüfung lässt sich wählen, sobald die eingebettete Signaturprüfung oder die Katalogprüfung aktiv ist. Sind beide abgeschaltet, bleibt die Einstellung gespeichert. „Leeren“ setzt die Prüf-Häkchen nicht zurück.
 
@@ -414,13 +417,13 @@ Im Code liegen die Bindungswerte in `MainViewModel`: `ChecksumOptions[*].IsSelec
 
 #### Fenstergröße der Optionen
 
-Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand beim Schließen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
+Das Optionsfenster speichert seine normale Breite/Höhe und den Maximierungszustand auch beim Abbrechen separat unter `OptionsWindow` in `settings.json`. Beim erneuten Öffnen (auch nach einem Programmneustart) werden diese Werte wiederhergestellt. Minimiertes Schließen erhält die letzte normale bzw. maximierte Ansicht. Ältere Einstellungen verwenden weiterhin die Standardgröße; die Größe wird wie beim Hauptfenster auf die verfügbare primäre Arbeitsfläche begrenzt. Die Position bleibt auf das Besitzerfenster zentriert.
 
 #### Theme-Umschaltung
 
 `IThemeService` und `AppTheme` liegen getrennt von der WPF-Implementierung. Dadurch können die Präsentationstests `OptionsViewModel` mit einem kontrollierten Testdienst ausführen, ohne WPF einzubinden. `ThemeService` ersetzt auf dem UI-Dispatcher ausschließlich die eigene Palette und aktualisiert zugleich `Application.ThemeMode`; die übrigen Ressourcen bleiben erhalten. Auch beim ersten Einsatz ohne Palette werden beide Teile synchronisiert. Ein erneuter Aufruf mit demselben bereits initialisierten Design erzeugt keine neuen Ressourcen.
 
-Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `DynamicResource` aktualisiert bestehende Text- und Badge-Farben beim Austausch. `OptionsViewModel` wendet eine neue Auswahl zuerst an und speichert sie danach gemeinsam mit den übrigen Einstellungen. Scheitert das Anwenden, bleiben Auswahl und gespeicherter Wert erhalten. Scheitert nur das Speichern, bleibt das neue Design in der Sitzung aktiv und das Optionsfenster zeigt den Speicherfehler.
+Die beiden XAML-Paletten stellen dieselben Ressourcenschlüssel bereit. `DynamicResource` aktualisiert bestehende Text- und Badge-Farben beim Austausch. Beim Öffnen merkt sich `OptionsViewModel` die Auswahl. Der Dialog wendet das gewählte Design sofort an. Scheitert das Speichern, bleibt der Dialog mit der Vorschau und einem Fehlerhinweis geöffnet. Man kann **Speichern** erneut versuchen oder **Abbrechen** wählen.
 
 ### Tabellendarstellung
 
@@ -615,12 +618,12 @@ Aktueller Ausführungsstand:
 | --- | --- |
 | PowerShell-Skripte | **91 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **29 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Zwei neue Fälle prüfen den Katalog über den normalen Analyseweg und den Erhalt der Prüfsummen bei Katalogfehlern. |
-| Präsentation, Einstellungen und Ressourcen | **35 Fälle**, darunter die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und elf Konsistenzprüfungen. |
-| WPF / UI / MVVM | **36 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalogauswahl mit aktivem Einlesefilter. |
+| Präsentation, Einstellungen und Ressourcen | **38 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und zwölf Konsistenzprüfungen einschließlich der Button-Commands beider Anwendungen. |
+| WPF / UI / MVVM | **37 Fälle** für Oberfläche und Bedienabläufe, einschließlich Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **25 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
 | DuplicateFinder / WPF | **13 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte und den Über-Dialog. |
 
-Die Suite umfasst **138 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **142 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

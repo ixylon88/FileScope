@@ -4,7 +4,11 @@ namespace DuplicateFinder.App;
 
 public partial class ShortcutsWindow : Window
 {
-    public ShortcutsWindow() => InitializeComponent();
+    public RelayCommand CloseCommand { get; }
 
-    private void CloseShortcuts(object sender, RoutedEventArgs e) => Close();
+    public ShortcutsWindow()
+    {
+        CloseCommand = new(Close);
+        InitializeComponent();
+    }
 }

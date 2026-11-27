@@ -1,18 +1,18 @@
-<Window x:Class="DuplicateFinder.App.ScopeWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window x:Class="DuplicateFinder.App.ScopeWindow" x:Name="WindowRoot" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:DuplicateFinder.App"
  Title="{loc:Loc Clean}" Width="550" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
  Style="{StaticResource AppWindowStyle}">
   <StackPanel Margin="20">
     <TextBlock Text="{loc:Loc ScopePrompt}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
-    <RadioButton x:Name="VisibleFiles" Content="{loc:Loc Visible}" Margin="0,15,0,2" Checked="ChoiceChanged"/>
+    <RadioButton x:Name="VisibleFiles" Content="{loc:Loc Visible}" Margin="0,15,0,2" Checked="ChoiceChanged" Unchecked="ChoiceChanged"/>
     <TextBlock x:Name="VisibleCount" Margin="27,0,0,3"/>
     <TextBlock Text="{loc:Loc VisibleHint}" Margin="27,0,0,8" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"/>
-    <RadioButton x:Name="AllFiles" Content="{loc:Loc AllScanned}" Checked="ChoiceChanged"/>
+    <RadioButton x:Name="AllFiles" Content="{loc:Loc AllScanned}" Checked="ChoiceChanged" Unchecked="ChoiceChanged"/>
     <TextBlock x:Name="AllCount" Margin="27,2,0,10"/>
     <TextBlock Text="{loc:Loc KeepHint}" TextWrapping="Wrap" Margin="0,4,0,16"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-      <Button IsCancel="True" Content="{loc:Loc Cancel}" Style="{StaticResource BandButton}"/>
-      <Button x:Name="Confirm" Click="Accept" Content="{loc:Loc Recycle}" Style="{StaticResource BandButton}"/>
+      <Button IsCancel="True" Command="{Binding CloseCommand, ElementName=WindowRoot}" Content="{loc:Loc Cancel}" Style="{StaticResource BandButton}"/>
+      <Button x:Name="Confirm" Command="{Binding ConfirmCommand, ElementName=WindowRoot}" Content="{loc:Loc Recycle}" Style="{StaticResource BandButton}"/>
     </StackPanel>
   </StackPanel>
 </Window>

@@ -1,5 +1,17 @@
 # Prüfstand der ausgelieferten Quellen
 
+## Gemeinsame WPF-Befehle
+
+Die Ressourcenprüfung erfasst die Aktionsschaltflächen beider Anwendungen und des gemeinsamen Über-Dialogs. Die WPF-Szenarien verwenden die gebundenen Befehle für die Dialogbedienung und prüfen die Freigabe der Papierkorb-Bestätigung bei leerer Filterauswahl. Die Erwartungen an den Titel der DuplicateFinder-Optionen folgen dem eigenen Ressourcenschlüssel für den Dialog.
+
+Unter Linux x64 mit .NET SDK 10.0.404 wurde die Solution im Release-Modus ohne Warnungen gebaut. 83 portable C#-Fälle und 91 PowerShell-Prüfbedingungen bestanden. Neun optionale oder plattformabhängige C#-Fälle wurden übersprungen. Die 50 WPF-Fälle wurden kompiliert. Ihre Ausführung auf Windows steht aus.
+
+## FileScope – Vorschau im Optionsdialog
+
+Zwei Präsentationstests prüfen das Verwerfen aller geänderten Optionen, unabhängige Schreibzugriffe für die Fenstergröße und Prüfoptionen sowie erneutes Speichern nach einem Schreibfehler. Der neue WPF-Fall öffnet den Dialog über den Optionenknopf und prüft beim Abbrechen und Schließen die ursprüngliche Darstellung einschließlich einer manuell eingestellten Spaltenbreite.
+
+Unter Linux x64 mit .NET SDK 10.0.404 bestanden der Release-Build ohne Warnungen, 82 portable C#-Fälle und 91 PowerShell-Prüfbedingungen. Neun weitere C#-Fälle wurden wegen Plattform oder optionaler Beispieldateien übersprungen. Die 50 WPF-Fälle sind kompiliert. Die Ausführung unter Windows steht aus.
+
 ## DuplicateFinder – Signaturen und Darstellungsoptionen
 
 Auf Basis von `dev` bei `8d81c2d` wurden beide Signaturoptionen im Suchlauf mit 7.500 Sparse-Dateien aktiviert. Die 1.500 Treffer zwischen 150 und 200 MB hatten jeweils eine einmalige Größe. Ein Zähler an der Schnittstelle zur eingebetteten Signaturprüfung registrierte vorher 1.500 Aufrufe und danach keinen. Die Zahl der Metadatenabrufe am Dateihandle sank von 3.000 auf 1.500. Die Messung unter Linux erfasst die Aufrufe des Scanners. Die native Katalogprüfung gehört zum Windows-Testlauf.

@@ -1,4 +1,4 @@
-<Window x:Class="DuplicateFinder.App.ShortcutsWindow"
+<Window x:Class="DuplicateFinder.App.ShortcutsWindow" x:Name="WindowRoot"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:DuplicateFinder.App"
@@ -51,7 +51,7 @@
       </StackPanel>
     </ScrollViewer>
 
-    <Button Grid.Row="2" Content="{loc:Loc Close}" IsDefault="True" IsCancel="True" Click="CloseShortcuts"
+    <Button Grid.Row="2" Content="{loc:Loc Close}" IsDefault="True" IsCancel="True" Command="{Binding CloseCommand, ElementName=WindowRoot}"
             HorizontalAlignment="Right" MinWidth="100" Padding="16,8" Margin="0,16,0,0" />
   </Grid>
 </Window>

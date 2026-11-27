@@ -130,8 +130,10 @@ public sealed class WindowTests
         dialog.Show();
         var confirm = (Button)dialog.FindName("Confirm");
         Assert.IsFalse(confirm.IsEnabled);
+        Assert.IsFalse(confirm.Command.CanExecute(null));
         ((RadioButton)dialog.FindName("AllFiles")).IsChecked = true;
         Assert.IsTrue(confirm.IsEnabled);
+        Assert.IsTrue(confirm.Command.CanExecute(null));
         Assert.IsFalse(dialog.Filtered);
     });
 
@@ -179,9 +181,9 @@ public sealed class WindowTests
         Assert.AreEqual("In den Papierkorb…", button.Content);
         var options = new OptionsWindow(settings) { Owner = window };
         options.Show();
-        Assert.AreEqual("Optionen…", options.Title);
+        Assert.AreEqual("Optionen", options.Title);
         strings.SetCulture("zh-Hans");
-        Assert.AreEqual("选项…", options.Title);
+        Assert.AreEqual("选项", options.Title);
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
         Assert.AreEqual("快捷键…", shortcuts.Title);
@@ -404,25 +406,35 @@ public sealed class WindowTests
         Assert.AreEqual("", maximum.Text);
         Assert.AreEqual(default(FileSizeRange), legacy.Search.SizeRange);
 
-        ((ComboBox)dialog.FindName("MinimumUnit")).SelectedValue = FileSizeUnit.Kilobytes;
-        ((ComboBox)dialog.FindName("MaximumUnit")).SelectedValue = FileSizeUnit.Megabytes;
-        minimum.Text = "200";
-        maximum.Text = "x";
-        save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.AreEqual(strings["BadSize"], message.Text);
-
-        maximum.Text = "0,1";
-        save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.AreEqual(strings["ReversedSizes"], message.Text);
-        Assert.AreSame(legacy, dialog.Result);
-
-        maximum.Text = "1,5";
+        string? invalidNumber = null;
+        string? reversedRange = null;
+        Preferences? afterInvalidRange = null;
         dialog.ContentRendered += (_, _) =>
         {
-            try { save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            try
+            {
+                ((ComboBox)dialog.FindName("MinimumUnit")).SelectedValue = FileSizeUnit.Kilobytes;
+                ((ComboBox)dialog.FindName("MaximumUnit")).SelectedValue = FileSizeUnit.Megabytes;
+                minimum.Text = "200";
+                maximum.Text = "x";
+                save.Command.Execute(null);
+                invalidNumber = message.Text;
+
+                maximum.Text = "0,1";
+                save.Command.Execute(null);
+                reversedRange = message.Text;
+                afterInvalidRange = dialog.Result;
+
+                maximum.Text = "1,5";
+                save.Command.Execute(null);
+            }
             finally { if (dialog.IsVisible) dialog.Close(); }
         };
+
         Assert.IsTrue(dialog.ShowDialog());
+        Assert.AreEqual(strings["BadSize"], invalidNumber);
+        Assert.AreEqual(strings["ReversedSizes"], reversedRange);
+        Assert.AreSame(legacy, afterInvalidRange);
 
         var saved = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(dialog.Result))!;
         Assert.AreEqual(new FileSizeRange(200_000, 1_500_000), saved.Search.SizeRange);
@@ -455,7 +467,7 @@ public sealed class WindowTests
             ((ComboBox)dialog.FindName("HashFormats")).SelectedValue = HashFormat.Base64Url;
             ((CheckBox)dialog.FindName("AutoPathWidth")).IsChecked = false;
 
-            Assert.AreEqual(strings["Options"], dialog.Title);
+            Assert.AreEqual(strings["OptionsTitle"], dialog.Title);
             Assert.AreEqual(AppTheme.Dark, theme.CurrentTheme);
             Assert.AreEqual("-_8", row.Sha256);
             StringAssert.Contains(row.Details, "-_8");
@@ -478,7 +490,7 @@ public sealed class WindowTests
         InOptions(window, dialog =>
         {
             ChooseAppearance(dialog);
-            ((Button)dialog.FindName("SaveButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            ((Button)dialog.FindName("SaveButton")).Command.Execute(null);
         });
         var saved = Store.Load();
         Assert.AreEqual(("de", AppTheme.Dark, HashFormat.Base64Url, false),

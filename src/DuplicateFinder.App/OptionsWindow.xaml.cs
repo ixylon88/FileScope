@@ -27,13 +27,24 @@ public partial class OptionsWindow : Window
     internal WindowPreferences? SavedPlacement { get; private set; }
     public Preferences Result { get; private set; }
 
+    public RelayCommand AddFoldersCommand { get; }
+    public RelayCommand RemoveFoldersCommand { get; }
+    public RelayCommand SaveCommand { get; }
+    public RelayCommand CloseCommand { get; }
+
     public OptionsWindow(Preferences preferences)
     {
+        AddFoldersCommand = new(AddFolders);
+        RemoveFoldersCommand = new(RemoveFolders, () => RootsGrid?.SelectedItems.Count > 0);
+        SaveCommand = new(Save);
+        CloseCommand = new(Close);
+
         InitializeComponent();
         Result = preferences;
         _placement = new WindowPlacement(this, preferences.OptionsWindow);
         _roots = new(preferences.Roots.Select(r => new RootEditor(r.Path, r.Priority.ToString(Strings.Culture))));
         RootsGrid.ItemsSource = _roots;
+        RootsGrid.SelectionChanged += (_, _) => RemoveFoldersCommand.NotifyCanExecuteChanged();
 
         MinimumUnit.ItemsSource = MaximumUnit.ItemsSource = FileSizeInput.Units;
         MinimumUnit.SelectedValue = preferences.MinimumSizeUnit;
@@ -106,7 +117,7 @@ public partial class OptionsWindow : Window
         if (!e.Cancel) SavedPlacement = _placement.Capture();
     }
 
-    private void AddFolders(object sender, RoutedEventArgs e)
+    private void AddFolders()
     {
         var picker = new OpenFolderDialog { Multiselect = true, Title = Strings["Add"] };
         if (picker.ShowDialog(this) != true) return;
@@ -119,12 +130,12 @@ public partial class OptionsWindow : Window
         }
     }
 
-    private void RemoveFolders(object sender, RoutedEventArgs e)
+    private void RemoveFolders()
     {
         foreach (var root in RootsGrid.SelectedItems.Cast<RootEditor>().ToArray()) _roots.Remove(root);
     }
 
-    private void Save(object sender, RoutedEventArgs e)
+    private void Save()
     {
         RootsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
         RootsGrid.CommitEdit(DataGridEditingUnit.Row, true);
