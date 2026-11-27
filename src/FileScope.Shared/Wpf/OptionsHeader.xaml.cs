@@ -5,7 +5,10 @@ namespace FileScope.Shared;
 /// <summary>Arranges the three display settings while each application supplies its own bound selectors.</summary>
 public partial class OptionsHeader : Grid
 {
-    public OptionsHeader() => InitializeComponent();
+    public OptionsHeader()
+    {
+        InitializeComponent();
+    }
 
     public ComboBox ThemeSelector { get => (ComboBox)ThemeHost.Child; set => ThemeHost.Child = value; }
 

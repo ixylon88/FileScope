@@ -438,7 +438,7 @@ public sealed partial class WindowTests
         Assert.AreEqual(Visibility.Collapsed, footer.Error.Visibility);
         Assert.AreEqual("", minimum.Text);
         Assert.AreEqual("", maximum.Text);
-        Assert.AreEqual(default(FileSizeRange), legacy.Search.SizeRange);
+        Assert.AreEqual(default, legacy.Search.SizeRange);
 
         string? invalidNumber = null;
         string? reversedRange = null;
@@ -656,8 +656,8 @@ public sealed partial class WindowTests
         strings.UseApplicationResources(typeof(LocalizationService).Assembly);
         try
         {
-            Assert.AreEqual("Ordner durchsuchen", new DuplicateFinder.App.LocExtension("Scan").ProvideValue(target));
-            Assert.AreEqual(strings["Signature_NotChecked"], new DuplicateFinder.App.LocExtension("Signature_NotChecked").ProvideValue(target));
+            Assert.AreEqual("Ordner durchsuchen", new App.LocExtension("Scan").ProvideValue(target));
+            Assert.AreEqual(strings["Signature_NotChecked"], new App.LocExtension("Signature_NotChecked").ProvideValue(target));
         }
         finally { strings.UseApplicationResources(typeof(MainWindow).Assembly); }
     });
