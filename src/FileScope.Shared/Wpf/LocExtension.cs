@@ -22,7 +22,9 @@ public class LocExtension(string key) : MarkupExtension
             return DesignStrings?.GetString(Key, culture) ?? LocalizationService.SharedText(Key, culture) ?? Key;
         }
 
-        return new Binding($"[{Key}]") { Source = LocalizationService.Instance, Mode = BindingMode.OneWay }
-            .ProvideValue(serviceProvider);
+        return CreateBinding(Key).ProvideValue(serviceProvider);
     }
+
+    internal static Binding CreateBinding(string key) =>
+        new($"[{key}]") { Source = LocalizationService.Instance, Mode = BindingMode.OneWay };
 }

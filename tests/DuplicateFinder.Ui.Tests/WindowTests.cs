@@ -21,7 +21,7 @@ using FileScope.Ui.Tests;
 namespace DuplicateFinder.Ui.Tests;
 
 [TestClass]
-public sealed class WindowTests
+public sealed partial class WindowTests
 {
     private readonly string _settingsFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
     private SettingsStore Store => new(Path.Combine(_settingsFolder, "settings.json"));
@@ -193,21 +193,30 @@ public sealed class WindowTests
         Assert.AreEqual("深色", themes[AppTheme.Dark].Label);
 
         var shortcutsButton = (Button)window.FindName("ShortcutsButton");
-        var shortcuts = new ShortcutsWindow { Owner = window };
+        var shortcuts = ShortcutsWindow.Create();
+        shortcuts.Owner = window;
         shortcuts.Show();
-        Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
-        Assert.AreEqual(strings["ShortcutsButton"], AutomationProperties.GetName(shortcutsButton));
+        var help = window.InputBindings.OfType<KeyBinding>().Single(binding => binding.Key == Key.F1);
+        Assert.AreSame(ApplicationCommands.Help, help.Command);
+        Assert.AreSame(help.Command, shortcutsButton.Command);
 
         var firstTab = (TabItem)options.FindName("SearchTab");
         Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
-        var shortcut = (HeaderedContentControl)shortcuts.FindName("FilterShortcut");
+        var shortcut = ((Panel)shortcuts.FindName("ActionsList")).Children.Cast<HeaderedContentControl>()
+            .Single(row => Equals(row.Header, strings["ShortcutFilterKeys"]));
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            DrainLayout();
+            ShortcutDialogChecks.Check(shortcuts, strings, ["Scan", "Filter"], "Mark");
+            Assert.AreEqual(strings["ShortcutsTitle"], AutomationProperties.GetName(shortcutsButton));
+        }
+
         strings.SetCulture("de");
         shortcuts.UpdateLayout();
-        Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
-        Assert.AreEqual(strings["ShortcutsButton"], AutomationProperties.GetName(shortcutsButton));
         Assert.AreEqual("Suchordner", firstTab.Header);
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == "Strg+F"));
-        Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["KeyFilter"]));
+        Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["ShortcutFilterAction"]));
 
         foreach (var (name, glyph) in new[] { ("OptionsButton", "\uE713"), ("ShortcutsButton", "\uE765"), ("AboutButton", "\uE946") })
         {

@@ -31,7 +31,6 @@ public partial class MainWindow : Window
     public RelayCommand CancelCommand { get; }
     public RelayCommand IssuesCommand { get; }
     public RelayCommand AboutCommand { get; }
-    public RelayCommand ShortcutsCommand { get; }
     public RelayCommand ResetFiltersCommand { get; }
 
     public MainWindow(ResultsViewModel model, DuplicateScanner scanner, CleanupService cleanup,
@@ -50,10 +49,10 @@ public partial class MainWindow : Window
         CancelCommand = new(() => _job?.Cancel(), () => _job != null);
         IssuesCommand = new(ShowIssues, () => _job == null && _issues.Count > 0);
         AboutCommand = new(() => ShowOwnedDialog(AboutWindow.Create()));
-        ShortcutsCommand = new(() => ShowOwnedDialog(new ShortcutsWindow()));
         ResetFiltersCommand = new(ResetFilters);
 
         InitializeComponent();
+        ShortcutsDialog.BindHelp(this, ShortcutsWindow.Create);
         DataContext = model;
         _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
         model.SetHashFormat(preferences.HashFormat);
@@ -130,16 +129,14 @@ public partial class MainWindow : Window
             element = VisualTreeHelper.GetParent(element);
         }
 
-        if (e.ClickCount == 1) row.Marked = !row.Marked;
+        // Modified row clicks belong to the grid's range and multiple selection.
+        if (e.ClickCount == 1 && Keyboard.Modifiers == ModifierKeys.None) row.Marked = !row.Marked;
     }
 
     private void WindowKeyDown(object sender, KeyEventArgs e)
     {
         switch (e.Key)
         {
-            case Key.F1:
-                ShortcutsCommand.Execute(null);
-                break;
             case Key.F5 when ScanCommand.CanExecute(null):
                 ScanCommand.Execute(null);
                 break;
@@ -150,7 +147,8 @@ public partial class MainWindow : Window
             case Key.Escape when CancelCommand.CanExecute(null):
                 CancelCommand.Execute(null);
                 break;
-            case Key.Space when _job == null && Keyboard.FocusedElement is DataGridCell { DataContext: ResultRow row }:
+            case Key.Space when _job == null && Keyboard.Modifiers == ModifierKeys.None
+                && Keyboard.FocusedElement is DataGridCell { DataContext: ResultRow row }:
                 row.Marked = !row.Marked;
                 break;
             default:

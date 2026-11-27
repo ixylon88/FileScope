@@ -14,11 +14,7 @@
     <infra:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
     <infra:StatusToneConverter x:Key="StatusToneConverter" />
   </Window.Resources>
-  <Window.CommandBindings>
-    <CommandBinding Command="ApplicationCommands.Help" Executed="OpenShortcuts" />
-  </Window.CommandBindings>
   <Window.InputBindings>
-    <KeyBinding Key="F1" Command="ApplicationCommands.Help" />
     <KeyBinding Key="O" Modifiers="Control" Command="{Binding BrowseCommand}" />
     <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
     <KeyBinding Key="L" Modifiers="Control" Command="{Binding ClearCommand}" />
@@ -174,13 +170,13 @@
         <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" SelectionChanged="OnResultsSelectionChanged"
                   ContextMenuOpening="OnResultsContextMenuOpening" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
                   behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
-                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True"
-                  CanUserSortColumns="{Binding IsIdle}" SelectionMode="Extended" SelectionUnit="FullRow" FrozenColumnCount="2"
+                  Style="{StaticResource ResultsGridStyle}" CanUserReorderColumns="True"
+                  CanUserSortColumns="{Binding IsIdle}" FrozenColumnCount="2"
                   HeadersVisibility="Column" AlternationCount="0"
                   GridLinesVisibility="Horizontal" BorderThickness="0"
                   EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
-                  ClipboardCopyMode="IncludeHeader" AutomationProperties.Name="{loc:Loc ResultsLabel}">
+                  AutomationProperties.Name="{loc:Loc ResultsLabel}">
           <DataGrid.RowStyle>
             <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
               <Setter Property="Background" Value="Transparent"/>

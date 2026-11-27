@@ -227,9 +227,21 @@ Repository und Online-Lizenz werden erst beim Anklicken im Standardbrowser geöf
 
 ### Tastenkürzel
 
-Der Knopf **Tastenkürzel** unter „Über“ im aufklappbaren Menü sowie **F1** öffnen dieselbe kleine Übersicht. F1 funktioniert auch bei eingeklapptem Menü. Sie gruppiert zwölf Einträge in Aktionen, Tabellennavigation und Auswahl/Kopieren. Tastenkombinationen stehen in abgesetzten Feldern neben ihrer Erklärung. Die Liste lässt sich bei einem kleinen Fenster scrollen; der Schließen-Knopf bleibt erreichbar. Die Übersicht folgt Sprache und Design, auch während sie geöffnet ist, und verändert keine Einstellungen.
+Der Knopf **Tastenkürzel** und **F1** öffnen in FileScope und DuplicateFinder dieselbe Übersicht. F1 funktioniert auch bei eingeklapptem Menü. Beide Apps gruppieren ihre Befehle in Aktionen, Tabellennavigation und Auswahl/Kopieren. Die Liste lässt sich bei einem kleinen Fenster scrollen. Der Hinweis auf **Esc** und **Enter** bleibt neben **Schließen** sichtbar. Sprache und Design folgen der Anwendung auch im geöffneten Fenster.
 
-Enthalten sind **Strg+O**, **Strg+L**, **Esc**, **F1**, **Strg+Pos1 / Strg+Ende**, **BildAuf / BildAb**, **Pos1 / Ende**, **Pfeil auf/ab**, **Umschalt+Pfeil auf/ab**, **Strg+A**, **Strg+C** sowie **Umschalt+F10 / Menütaste**. Tabellenkürzel beziehen sich auf die aktuelle gefilterte Ansicht und setzen den Tastaturfokus in der Ergebnisliste voraus. In Textfeldern gelten die üblichen Textkürzel. „Leeren“ ist während laufender Jobs deaktiviert; Esc schließt in der Übersicht zunächst den Dialog.
+Hat die Ergebnisliste den Tastaturfokus, gelten in beiden Apps diese Kürzel.
+
+| Tastenkürzel | Funktion |
+| --- | --- |
+| **Strg+Pos1 / Strg+Ende** | Zur ersten oder letzten Zelle der Tabelle springen. |
+| **BildAuf / BildAb** | In der Ergebnisliste nach oben oder unten blättern. |
+| **Pos1 / Ende** | Zur ersten oder letzten Zelle der aktuellen Zeile springen. |
+| **Pfeil auf/ab** | Zur vorherigen oder nächsten Zeile wechseln. |
+| **Umschalt+Pfeil auf/ab** | Die Zeilenauswahl erweitern oder verkleinern. |
+| **Strg+A** | Alle Zeilen der aktuellen gefilterten Ansicht auswählen. |
+| **Strg+C** | Die ausgewählten Zeilen mit Spaltenüberschriften kopieren. |
+
+In Textfeldern gelten die üblichen Textkürzel. So kopiert **Strg+C** in den Dateidetails den markierten Text. FileScope ergänzt **Strg+O** zum Öffnen, **Strg+L** zum Leeren und **Umschalt+F10 / Menütaste** für das Kontextmenü. Während eines Jobs ist „Leeren“ gesperrt und **Esc** bricht den Job ab. [Bedienung von DuplicateFinder](docs/DUPLICATEFINDER.md#ergebnisse-und-bedienung)
 
 ### Helles und dunkles Design
 
@@ -361,7 +373,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | Projekt / Komponente | Aufgabe |
 | --- | --- |
 | `FileScope.App` | WPF-Fenster, gruppiertes Menüband aus nativen Controls, DataGrid, ViewModels, Commands, Lokalisierung, Dateiauswahldialog und Drag-and-drop-Behavior. |
-| `FileScope.Shared` | Gemeinsame Signaturcodes, Tabellenfilter, Katalogdarstellung und Übersetzungen. Die Windows-Ausgabe enthält zusätzlich Fluent-Stile, Farbpaletten, Statusfelder und den Über-Dialog für beide Apps. |
+| `FileScope.Shared` | Gemeinsame Signaturcodes, Tabellenfilter, Katalogdarstellung und Übersetzungen. Die Windows-Ausgabe enthält zusätzlich Fluent-Stile, Farbpaletten, Statusfelder und die Dialoge für Programminformationen und Tastenkürzel. |
 | `FileScope.Core` | Geschäftslogik: Modelle, Analysevertrag, Streaming-Prüfsummen, Strategiefabrik, Dateieigenschaften, PE-Header und Windows-Signaturprüfung. Keine WPF-Abhängigkeit. |
 | `MainViewModel` | Koordiniert Benutzeraktionen, Status und gefilterte Ergebnisansicht. Berechnet selbst keine Hashwerte. |
 | `FileAnalysisService` | Orchestriert Dateizugriff, Prüfsummen, optionale Metadatenprüfer und Signaturstrategie. Liefert typisierte Resultate ohne UI-Texte zurück. |
@@ -373,7 +385,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `FileDropBehavior` | Übersetzt Drag-and-drop-Ereignisse in ein ViewModel-Command. Auch über Textfeldern und Tabelle wirksam. |
 | `OptionsViewModel` / `OptionsWindow` | Lokalisierte Optionen, vollständige Spaltenreihenfolge und Command-basierte Verschiebung. |
 | `AboutWindow` / `IExternalLinkService` | Reine Programminformationen, Version aus der App-Assembly und eingebetteter Lizenztext. Ein kleiner austauschbarer Dienst öffnet HTTPS-Projektlinks; UI-Prüfungen ersetzen ihn, ohne einen Browser zu starten. |
-| `ShortcutsWindow` | Lokalisierte, reine Informationsansicht für vorhandene Tastenkürzel. Knopf und F1 verwenden denselben WPF-Befehl `ApplicationCommands.Help`; kein zusätzliches ViewModel und keine neuen Dienste. |
+| `ShortcutsDialog` | Gemeinsame lokalisierte Übersicht und Bindung an `ApplicationCommands.Help` für Knopf und F1. Jede App ergänzt ihre eigenen Aktionen. Beide Ergebnistabellen verwenden denselben WPF-Stil für Zeilenauswahl und Kopieren mit Spaltenüberschriften. |
 | `IThemeService` / `ThemeService` | WPF-unabhängiger Vertrag für das Design; die konkrete Implementierung koordiniert die Farbpalette mit dem nativen Fluent-`ThemeMode`. |
 | `IFileMoveService` / `FileMoveService` | Verschiebt Dateien ohne Überschreiben und liefert pro Datei ein sprachneutrales Ergebnis; keine WPF-Abhängigkeit. |
 | `SignatureMoveSelection` / `FileMoveReport` | Prüfen die Signaturgruppe und formatieren Zielnamen sowie Bericht in der gewählten Sprache. |
@@ -621,9 +633,9 @@ Aktueller Ausführungsstand:
 | Präsentation, Einstellungen und Ressourcen | **39 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 13 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **37 Fälle** für Oberfläche und Bedienabläufe, einschließlich Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **25 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
-| DuplicateFinder / WPF | **13 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte und den Über-Dialog. |
+| DuplicateFinder / WPF | **14 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte, geteilte Dialoge und die Tastaturauswahl mit Kopieren in der gefilterten Tabelle. |
 
-Die Suite umfasst **143 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **144 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

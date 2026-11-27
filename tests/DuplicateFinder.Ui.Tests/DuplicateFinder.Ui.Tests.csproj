@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/DuplicateFinder.App/DuplicateFinder.App.csproj" />
     <Compile Include="../FileScope.Ui.Tests/WpfTestHost.cs" Link="WpfTestHost.cs" />
+    <Compile Include="../FileScope.Ui.Tests/ShortcutDialogChecks.cs" Link="ShortcutDialogChecks.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="FileScope.Shared" />

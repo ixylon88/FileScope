@@ -49,6 +49,27 @@
     <value>在线吊销检查</value>
   </data>
 
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="ShortcutsTip" xml:space="preserve">
+    <value>查看键盘快捷键（F1）</value>
+  </data>
+  <data name="ShortcutsHint" xml:space="preserve">
+    <value>表格快捷键在结果表格获得键盘焦点时生效。在文本框中使用常规文本快捷键。</value>
+  </data>
+  <data name="ShortcutsGroupActions" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="ShortcutsGroupNavigation" xml:space="preserve">
+    <value>表格导航</value>
+  </data>
+  <data name="ShortcutsGroupSelection" xml:space="preserve">
+    <value>选择与复制</value>
+  </data>
+  <data name="ShortcutsCloseHint" xml:space="preserve">
+    <value>按 Esc 或 Enter 关闭此窗口。</value>
+  </data>
   <data name="ShortcutCancelKeys" xml:space="preserve">
     <value>Esc</value>
   </data>
@@ -58,8 +79,50 @@
   <data name="ShortcutHelpKeys" xml:space="preserve">
     <value>F1</value>
   </data>
+  <data name="ShortcutHelpAction" xml:space="preserve">
+    <value>打开此快捷键列表</value>
+  </data>
+  <data name="ShortcutTableEndsKeys" xml:space="preserve">
+    <value>Ctrl+Home / Ctrl+End</value>
+  </data>
+  <data name="ShortcutTableEndsAction" xml:space="preserve">
+    <value>跳到表格的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutPageKeys" xml:space="preserve">
+    <value>Page Up / Page Down</value>
+  </data>
+  <data name="ShortcutPageAction" xml:space="preserve">
+    <value>在结果列表中向上或向下翻页</value>
+  </data>
+  <data name="ShortcutRowEndsKeys" xml:space="preserve">
+    <value>Home / End</value>
+  </data>
+  <data name="ShortcutRowEndsAction" xml:space="preserve">
+    <value>跳到当前行的第一个/最后一个单元格</value>
+  </data>
+  <data name="ShortcutRowsKeys" xml:space="preserve">
+    <value>↑ / ↓</value>
+  </data>
+  <data name="ShortcutRowsAction" xml:space="preserve">
+    <value>上一行/下一行</value>
+  </data>
+  <data name="ShortcutSelectAllKeys" xml:space="preserve">
+    <value>Ctrl+A</value>
+  </data>
+  <data name="ShortcutSelectAllAction" xml:space="preserve">
+    <value>选中当前视图中的所有行</value>
+  </data>
+  <data name="ShortcutExtendKeys" xml:space="preserve">
+    <value>Shift+↑ / Shift+↓</value>
+  </data>
+  <data name="ShortcutExtendAction" xml:space="preserve">
+    <value>扩展行选择范围</value>
+  </data>
   <data name="ShortcutCopyKeys" xml:space="preserve">
     <value>Ctrl+C</value>
+  </data>
+  <data name="ShortcutCopyAction" xml:space="preserve">
+    <value>复制选中的行及列标题，或复制文件详情中选中的文本</value>
   </data>
 
   <data name="AllSignatures" xml:space="preserve"><value>全部签名结果</value></data>

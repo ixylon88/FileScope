@@ -687,27 +687,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="SingleFileActionHint" xml:space="preserve">
     <value>Select exactly one file for this action.</value>
   </data>
-  <data name="ShortcutsTitle" xml:space="preserve">
-    <value>Keyboard shortcuts</value>
-  </data>
-  <data name="ShortcutsTip" xml:space="preserve">
-    <value>Show keyboard shortcuts (F1)</value>
-  </data>
-  <data name="ShortcutsHint" xml:space="preserve">
-    <value>Table shortcuts apply while the results table has keyboard focus. In text fields, the usual text shortcuts apply.</value>
-  </data>
-  <data name="ShortcutsGroupActions" xml:space="preserve">
-    <value>Actions</value>
-  </data>
-  <data name="ShortcutsGroupNavigation" xml:space="preserve">
-    <value>Navigate the table</value>
-  </data>
-  <data name="ShortcutsGroupSelection" xml:space="preserve">
-    <value>Select and copy</value>
-  </data>
-  <data name="ShortcutsCloseHint" xml:space="preserve">
-    <value>Esc or Enter closes this overview.</value>
-  </data>
   <data name="ShortcutOpenKeys" xml:space="preserve">
     <value>Ctrl+O</value>
   </data>
@@ -719,48 +698,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>Clear results and filters when idle</value>
-  </data>
-  <data name="ShortcutHelpAction" xml:space="preserve">
-    <value>Show this overview</value>
-  </data>
-  <data name="ShortcutTableEndsKeys" xml:space="preserve">
-    <value>Ctrl+Home / Ctrl+End</value>
-  </data>
-  <data name="ShortcutTableEndsAction" xml:space="preserve">
-    <value>First / last cell in the table</value>
-  </data>
-  <data name="ShortcutPageKeys" xml:space="preserve">
-    <value>Page Up / Page Down</value>
-  </data>
-  <data name="ShortcutPageAction" xml:space="preserve">
-    <value>One visible page up / down</value>
-  </data>
-  <data name="ShortcutRowEndsKeys" xml:space="preserve">
-    <value>Home / End</value>
-  </data>
-  <data name="ShortcutRowEndsAction" xml:space="preserve">
-    <value>First / last cell in the current row</value>
-  </data>
-  <data name="ShortcutRowsKeys" xml:space="preserve">
-    <value>↑ / ↓</value>
-  </data>
-  <data name="ShortcutRowsAction" xml:space="preserve">
-    <value>Previous / next row</value>
-  </data>
-  <data name="ShortcutSelectAllKeys" xml:space="preserve">
-    <value>Ctrl+A</value>
-  </data>
-  <data name="ShortcutSelectAllAction" xml:space="preserve">
-    <value>Select all rows in the current view</value>
-  </data>
-  <data name="ShortcutExtendKeys" xml:space="preserve">
-    <value>Shift+↑ / Shift+↓</value>
-  </data>
-  <data name="ShortcutExtendAction" xml:space="preserve">
-    <value>Extend the row selection</value>
-  </data>
-  <data name="ShortcutCopyAction" xml:space="preserve">
-    <value>Copy selected rows including column headers</value>
   </data>
   <data name="ShortcutContextMenuKeys" xml:space="preserve">
     <value>Shift+F10 / Menu key</value>

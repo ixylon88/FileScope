@@ -11,6 +11,23 @@ public sealed class WindowPlacement
     public WindowPlacement(Window window, WindowPreferences? saved, bool centerOnWorkArea = false)
     {
         _window = window;
+        FitToWorkArea(window, saved);
+
+        if (centerOnWorkArea)
+        {
+            var work = SystemParameters.WorkArea;
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = work.Left + (work.Width - window.Width) / 2;
+            window.Top = work.Top + (work.Height - window.Height) / 2;
+        }
+
+        if (saved?.Maximized == true) window.WindowState = WindowState.Maximized;
+        _lastVisibleState = window.WindowState;
+        window.StateChanged += OnStateChanged;
+    }
+
+    internal static void FitToWorkArea(Window window, WindowPreferences? saved = null)
+    {
         var work = SystemParameters.WorkArea;
         var size = WindowSize.Restore(saved, window.Width, window.Height,
             window.MinWidth, window.MinHeight, work.Width, work.Height);
@@ -18,17 +35,6 @@ public sealed class WindowPlacement
         window.MinHeight = size.MinHeight;
         window.Width = size.Width;
         window.Height = size.Height;
-
-        if (centerOnWorkArea)
-        {
-            window.WindowStartupLocation = WindowStartupLocation.Manual;
-            window.Left = work.Left + (work.Width - size.Width) / 2;
-            window.Top = work.Top + (work.Height - size.Height) / 2;
-        }
-
-        if (saved?.Maximized == true) window.WindowState = WindowState.Maximized;
-        _lastVisibleState = window.WindowState;
-        window.StateChanged += OnStateChanged;
     }
 
     private void OnStateChanged(object? sender, EventArgs e)

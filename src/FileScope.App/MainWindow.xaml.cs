@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using FileScope.App.Behaviors;
 using FileScope.App.ViewModels;
 
@@ -22,6 +21,7 @@ public partial class MainWindow : Window
         AboutCommand = new(OpenAbout);
 
         InitializeComponent();
+        ShortcutsDialog.BindHelp(this, ShortcutsWindow.Create);
         DataContext = viewModel;
         _placement = new WindowPlacement(this, _options.WindowPreferences, centerOnWorkArea: true);
         Closed += (_, _) => viewModel.Dispose();
@@ -71,12 +71,6 @@ public partial class MainWindow : Window
         var dialog = AboutWindow.Create();
         dialog.Owner = this;
         dialog.ShowDialog();
-    }
-
-    private void OpenShortcuts(object sender, ExecutedRoutedEventArgs args)
-    {
-        args.Handled = true;
-        new ShortcutsWindow { Owner = this }.ShowDialog();
     }
 
 }
