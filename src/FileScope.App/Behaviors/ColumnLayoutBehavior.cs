@@ -99,11 +99,7 @@ public static class ColumnLayoutBehavior
         private void ApplyPathWidth()
         {
             var column = _grid.Columns.FirstOrDefault(column => GetId(column) == "Path");
-            if (column is null) return;
-            // A long path can use its full width at the end of the table. When moved
-            // near the front, the optional bounded mode leaves room for other columns.
-            column.MaxWidth = _options.PathAutoWidth ? double.PositiveInfinity : 600;
-            column.Width = _options.PathAutoWidth ? DataGridLength.Auto : new DataGridLength(320);
+            if (column is not null) PathColumnWidth.Apply(column, _options.PathAutoWidth);
         }
         private void OnOrderChanged(object? sender, EventArgs args) => ApplyOrder();
         private void ApplyOrder()

@@ -61,15 +61,5 @@ public sealed class SettingsStore
         { return new(); }
     }
 
-    public void Save(Preferences settings)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            using (var output = File.Create(temporary)) JsonSerializer.Serialize(output, settings);
-            File.Move(temporary, _path, overwrite: true);
-        }
-        finally { File.Delete(temporary); } // Only our uniquely named settings scratch file.
-    }
+    public void Save(Preferences settings) => JsonSettingsFile.Save(_path, settings);
 }

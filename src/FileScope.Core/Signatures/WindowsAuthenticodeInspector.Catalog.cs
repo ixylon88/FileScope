@@ -24,7 +24,7 @@ public sealed partial class WindowsAuthenticodeInspector
     internal static unsafe SignatureResult VerifyMember(FileStream file, nint handle, string catalog, string tag,
         RevocationMode mode, nint admin, byte* hash, uint size)
     {
-        var policy = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+        var policy = AuthenticodePolicy;
         fixed (char* path = catalog, member = tag, name = file.Name)
         {
             var info = new CatalogTrustInfo
@@ -38,16 +38,8 @@ public sealed partial class WindowsAuthenticodeInspector
                 HashLength = size,
                 Admin = admin
             };
-            var data = new Native.WinTrustData
-            {
-                Size = (uint)sizeof(Native.WinTrustData),
-                UiChoice = 2,
-                RevocationChecks = 1,
-                UnionChoice = 2,
-                FileInfo = (nint)(&info),
-                StateAction = 1,
-                ProviderFlags = 0x80u | 0x2000u | (mode == RevocationMode.OfflineCache ? 0x1000u : 0u)
-            };
+            var data = CreateTrustData(TrustSubject.Catalog, (nint)(&info), mode);
+
             try
             {
                 var status = Native.WinVerifyTrust(-1, ref policy, ref data);

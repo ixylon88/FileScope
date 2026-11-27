@@ -250,8 +250,7 @@ public partial class MainWindow : Window
     {
         if (_pathAutoWidth == automatic) return;
         _pathAutoWidth = automatic;
-        PathColumn.MaxWidth = automatic ? double.PositiveInfinity : 600;
-        PathColumn.Width = automatic ? DataGridLength.Auto : new DataGridLength(320);
+        PathColumnWidth.Apply(PathColumn, automatic);
     }
 
     private Task StartScanAsync(object? parameter)

@@ -79,12 +79,10 @@ public partial class OptionsWindow : Window
         DisplayOptions.LanguageSelector.ItemsSource = Strings.Languages;
         DisplayOptions.LanguageSelector.SelectedValue = preferences.Language;
 
-        DisplayOptions.ThemeSelector.ItemsSource = Enum.GetValues<AppTheme>()
-            .Select(theme => new FilterOption<AppTheme>(theme, "Theme_" + theme, Strings)).ToArray();
+        DisplayOptions.ThemeSelector.ItemsSource = AppearanceOptions.Themes(Strings);
         DisplayOptions.ThemeSelector.SelectedValue = preferences.Theme;
 
-        DisplayOptions.HashFormatSelector.ItemsSource = Enum.GetValues<HashFormat>()
-            .Select(format => new FilterOption<HashFormat>(format, "HashFormat_" + format, Strings)).ToArray();
+        DisplayOptions.HashFormatSelector.ItemsSource = AppearanceOptions.HashFormats(Strings);
         DisplayOptions.HashFormatSelector.SelectedValue = preferences.HashFormat;
 
         DisplayOptions.LanguageSelector.SelectionChanged += Preview;
