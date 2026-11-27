@@ -981,7 +981,8 @@ public sealed partial class UiTests
             DrainDispatcher();
             var grid = (DataGrid)main.FindName("ResultsGrid");
             var statusColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Status");
-            var selector = (ComboBox)settings.FindName("ThemeSelector");
+            OptionsHeaderChecks.CheckLayout(settings, (TabItem)settings.FindName("ExportOptionsTab"));
+            var selector = OptionsHeaderChecks.From(settings).ThemeSelector;
             var columns = (ListBox)settings.FindName("ColumnList");
             var row = vm.Rows.Single();
             var result = row.Result;
@@ -1058,7 +1059,7 @@ public sealed partial class UiTests
                 restoredWindow.Measure(new Size(730, 740));
                 restoredWindow.Arrange(new Rect(0, 0, 730, 740));
                 DrainDispatcher();
-                Assert.IsTrue(ReferenceEquals(((ComboBox)restoredWindow.FindName("ThemeSelector")).SelectedItem, reopened.SelectedTheme)
+                Assert.IsTrue(ReferenceEquals(OptionsHeaderChecks.From(restoredWindow).ThemeSelector.SelectedItem, reopened.SelectedTheme)
                     && reopened.SelectedTheme.Value == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
                     "a newly created options view and view model restore the saved theme");
             }
@@ -2244,7 +2245,7 @@ public sealed partial class UiTests
                     if (dialog == null) return;
                     try
                     {
-                        var selector = (ComboBox)dialog.FindName("ThemeSelector");
+                        var selector = OptionsHeaderChecks.From(dialog).ThemeSelector;
                         selector.SelectedItem = options.Themes.Single(theme => theme.Value == AppTheme.Dark);
                         options.FitColumnsCommand.Execute(null);
                         DrainDispatcher();
@@ -2684,7 +2685,7 @@ public sealed partial class UiTests
             }
             vm.Options.SelectedLanguage = originalLanguage;
             DrainDispatcher();
-            var selector = (ComboBox)optionsWindow.FindName("HashFormatSelector");
+            var selector = OptionsHeaderChecks.From(optionsWindow).HashFormatSelector;
             selector.SelectedIndex = vm.Options.HashFormats.ToList().FindIndex(option => option.Value == HashFormat.Base64);
             DrainDispatcher();
             var expected = Convert.ToBase64String(Convert.FromHexString(HashValue(ChecksumAlgorithm.SHA256)));

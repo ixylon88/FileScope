@@ -67,18 +67,22 @@ public partial class OptionsWindow : Window
         Embedded.IsChecked = preferences.Embedded;
         Catalogs.IsChecked = preferences.Catalogs;
         Online.IsChecked = preferences.Online;
-        Languages.ItemsSource = Strings.Languages;
-        Languages.SelectedValue = preferences.Language;
-        Themes.ItemsSource = Enum.GetValues<AppTheme>()
-            .Select(theme => new FilterOption<AppTheme>(theme, "Theme_" + theme, Strings)).ToArray();
-        Themes.SelectedValue = preferences.Theme;
-        HashFormats.ItemsSource = Enum.GetValues<HashFormat>().Select(f => new FilterOption<HashFormat>(f, "HashFormat_" + f, Strings)).ToArray();
-        HashFormats.SelectedValue = preferences.HashFormat;
         AutoPathWidth.IsChecked = preferences.PathAutoWidth;
 
-        Languages.SelectionChanged += Preview;
-        Themes.SelectionChanged += Preview;
-        HashFormats.SelectionChanged += Preview;
+        DisplayOptions.LanguageSelector.ItemsSource = Strings.Languages;
+        DisplayOptions.LanguageSelector.SelectedValue = preferences.Language;
+
+        DisplayOptions.ThemeSelector.ItemsSource = Enum.GetValues<AppTheme>()
+            .Select(theme => new FilterOption<AppTheme>(theme, "Theme_" + theme, Strings)).ToArray();
+        DisplayOptions.ThemeSelector.SelectedValue = preferences.Theme;
+
+        DisplayOptions.HashFormatSelector.ItemsSource = Enum.GetValues<HashFormat>()
+            .Select(format => new FilterOption<HashFormat>(format, "HashFormat_" + format, Strings)).ToArray();
+        DisplayOptions.HashFormatSelector.SelectedValue = preferences.HashFormat;
+
+        DisplayOptions.LanguageSelector.SelectionChanged += Preview;
+        DisplayOptions.ThemeSelector.SelectionChanged += Preview;
+        DisplayOptions.HashFormatSelector.SelectionChanged += Preview;
         AutoPathWidth.Checked += Preview;
         AutoPathWidth.Unchecked += Preview;
         Strings.CultureChanged += UpdateLabels;
@@ -87,9 +91,9 @@ public partial class OptionsWindow : Window
 
     private Preferences DisplayChoices() => Result with
     {
-        Language = (string)Languages.SelectedValue,
-        Theme = (AppTheme)Themes.SelectedValue,
-        HashFormat = (HashFormat)HashFormats.SelectedValue,
+        Language = (string)DisplayOptions.LanguageSelector.SelectedValue,
+        Theme = (AppTheme)DisplayOptions.ThemeSelector.SelectedValue,
+        HashFormat = (HashFormat)DisplayOptions.HashFormatSelector.SelectedValue,
         PathAutoWidth = AutoPathWidth.IsChecked == true
     };
 
@@ -101,8 +105,8 @@ public partial class OptionsWindow : Window
         ReformatSize(MaximumSize, (FileSizeUnit)MaximumUnit.SelectedValue);
         _inputCulture = Strings.Culture;
 
-        foreach (var theme in Themes.Items.Cast<FilterOption<AppTheme>>()) theme.RefreshLanguage();
-        foreach (var format in HashFormats.Items.Cast<FilterOption<HashFormat>>()) format.RefreshLanguage();
+        foreach (var theme in DisplayOptions.ThemeSelector.Items.Cast<FilterOption<AppTheme>>()) theme.RefreshLanguage();
+        foreach (var format in DisplayOptions.HashFormatSelector.Items.Cast<FilterOption<HashFormat>>()) format.RefreshLanguage();
         if (_validationKey != null) Validation.Text = Strings[_validationKey];
     }
 

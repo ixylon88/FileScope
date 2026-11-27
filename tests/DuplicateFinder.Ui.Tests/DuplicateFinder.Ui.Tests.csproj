@@ -8,6 +8,7 @@
     <ProjectReference Include="../../src/DuplicateFinder.App/DuplicateFinder.App.csproj" />
     <Compile Include="../FileScope.Ui.Tests/WpfTestHost.cs" Link="WpfTestHost.cs" />
     <Compile Include="../FileScope.Ui.Tests/DialogPlacementChecks.cs" Link="DialogPlacementChecks.cs" />
+    <Compile Include="../FileScope.Ui.Tests/OptionsHeaderChecks.cs" Link="OptionsHeaderChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/ShortcutDialogChecks.cs" Link="ShortcutDialogChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/TabHeaderChecks.cs" Link="TabHeaderChecks.cs" />
   </ItemGroup>
