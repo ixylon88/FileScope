@@ -26,6 +26,9 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _job;
     private readonly LatestProgress _progress = new();
     private readonly DispatcherTimer _timer;
+    private bool _settingFilters;
+    private bool? _pathAutoWidth;
+
     private static LocalizationService Strings => LocalizationService.Instance;
 
     public AsyncRelayCommand ScanCommand { get; }
@@ -51,37 +54,40 @@ public partial class MainWindow : Window
 
         _fileActions = new(fileShell, SelectedFileForShell, row => row.File.Path,
             row => IsLoaded && _model.Rows.Contains(row), RefreshFileActionError, ShowError);
-        ScanCommand = new(StartScanAsync, ShowError, _ => _job == null && _preferences.Roots.Length > 0);
-        CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job == null && _model.Rows.Count > 0);
-        RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job == null && _model.MarkedCount > 0);
-        OptionsCommand = new(OpenOptions, () => _job == null);
-        CancelCommand = new(() => _job?.Cancel(), () => _job != null);
-        IssuesCommand = new(ShowIssues, () => _job == null && _issues.Count > 0);
-        AboutCommand = new(() => ShowOwnedDialog(WindowPlacement.RememberDialogSize(AboutWindow.Create(height: 750),
-            _preferences.AboutWindow, value => SavePlacement(_preferences with { AboutWindow = value }))));
+
+        ScanCommand = new(StartScanAsync, ShowError, _ => _job is null && _preferences.Roots.Length > 0);
+        CancelCommand = new(() => _job?.Cancel(), () => _job is not null);
+        CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job is null && _model.Rows.Count > 0);
+        RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job is null && _model.MarkedCount > 0);
+
+        IssuesCommand = new(ShowIssues, () => _job is null && _issues.Count > 0);
         ResetFiltersCommand = new(ResetFilters);
+        OptionsCommand = new(OpenOptions, () => _job is null);
+        AboutCommand = new(OpenAbout);
 
         InitializeComponent();
-        // Popups have their own visual tree. Commands belong to this window, even if WPF recycles the row.
+        // A context menu has its own visual tree. Its commands belong to this window.
         ((FileRowContextMenu)Resources["FileMenu"]).DataContext = this;
-        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(height: 810),
-            _preferences.ShortcutsWindow, value => SavePlacement(_preferences with { ShortcutsWindow = value })));
-        DataContext = model;
-        _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
-        model.SetHashFormat(preferences.HashFormat);
-        SetPathWidth(preferences.PathAutoWidth);
+        ShortcutsDialog.BindHelp(this, CreateShortcutsDialog);
 
-        _timer = new(TimeSpan.FromMilliseconds(150), DispatcherPriority.Background, Tick, Dispatcher);
-        _timer.Stop();
-        model.PropertyChanged += ModelChanged;
-        Closed += (_, _) => { _timer.Stop(); model.PropertyChanged -= ModelChanged; };
+        _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
+        _timer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromMilliseconds(150) };
+        _timer.Tick += Tick;
+
+        InitializeResultsView();
+    }
+
+    private void InitializeResultsView()
+    {
+        DataContext = _model;
+        _model.SetHashFormat(_preferences.HashFormat);
+        SetPathWidth(_preferences.PathAutoWidth);
+        _model.PropertyChanged += ModelChanged;
+
         ReloadFilters();
         UpdateButtons();
         Summary();
     }
-
-    private bool _settingFilters;
-    private bool? _pathAutoWidth;
 
     private void ReloadFilters()
     {
@@ -123,7 +129,12 @@ public partial class MainWindow : Window
 
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount)) { UpdateButtons(); if (_job == null) Summary(); }
+        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount))
+        {
+            UpdateButtons();
+            if (_job is null) Summary();
+        }
+
         if (e.PropertyName == nameof(ResultsViewModel.View)) _fileActions.ClearError();
     }
 
@@ -187,6 +198,18 @@ public partial class MainWindow : Window
         }
         e.Handled = true;
     }
+
+    private void OpenAbout()
+    {
+        var dialog = WindowPlacement.RememberDialogSize(AboutWindow.Create(height: 750),
+            _preferences.AboutWindow, value => SavePlacement(_preferences with { AboutWindow = value }));
+
+        ShowOwnedDialog(dialog);
+    }
+
+    private ShortcutsDialog CreateShortcutsDialog() =>
+        WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(height: 810),
+            _preferences.ShortcutsWindow, value => SavePlacement(_preferences with { ShortcutsWindow = value }));
 
     private void OpenOptions()
     {
@@ -380,6 +403,14 @@ public partial class MainWindow : Window
         }
 
         if (!e.Cancel) TrySave(_preferences with { MainWindow = _placement.Capture() });
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _timer.Stop();
+        _model.PropertyChanged -= ModelChanged;
+
+        base.OnClosed(e);
     }
 
     private sealed class LatestProgress : IProgress<ScanProgress>
