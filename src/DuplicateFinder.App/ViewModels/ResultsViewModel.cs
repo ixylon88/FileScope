@@ -101,7 +101,7 @@ public sealed class ResultsViewModel : ObservableObject
     private bool Matches(ResultRow row) =>
         (_kind != 1 || row.CurrentGroup != 0) && (_kind != 2 || row.CurrentGroup == 0)
         && (_kind != 3 || row.Diagnostic != null || row.File.Streams == StreamComparison.Unknown)
-        && _signature.Matches(row.File.Embedded.Status, row.File.Embedded.RevocationMode)
+        && _signature.Matches(row.File.Embedded.Status, row.File.Embedded.RevocationMode, row.CatalogResult)
         && (_text.Length == 0 || row.File.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)
             || row.Signature.Contains(_text, StringComparison.CurrentCultureIgnoreCase)
             || row.MatchesHash(_text)

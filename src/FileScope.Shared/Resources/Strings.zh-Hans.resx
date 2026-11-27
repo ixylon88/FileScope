@@ -246,6 +246,21 @@
   <data name="Filter_Attention" xml:space="preserve">
     <value>需要关注</value>
   </data>
+  <data name="SignatureResultsLabel" xml:space="preserve">
+    <value>签名状态</value>
+  </data>
+  <data name="SignatureSource_Embedded" xml:space="preserve">
+    <value>嵌入式</value>
+  </data>
+  <data name="SignatureSource_Catalog" xml:space="preserve">
+    <value>目录文件</value>
+  </data>
+  <data name="SignatureSource_Both" xml:space="preserve">
+    <value>两种来源</value>
+  </data>
+  <data name="ScopedSignatureFilter" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
   <data name="SignatureFilterLabel" xml:space="preserve">
     <value>嵌入式签名</value>
   </data>

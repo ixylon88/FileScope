@@ -246,6 +246,21 @@
   <data name="Filter_Attention" xml:space="preserve">
     <value>Prüfbedarf</value>
   </data>
+  <data name="SignatureResultsLabel" xml:space="preserve">
+    <value>Signaturstatus</value>
+  </data>
+  <data name="SignatureSource_Embedded" xml:space="preserve">
+    <value>Eingebettet</value>
+  </data>
+  <data name="SignatureSource_Catalog" xml:space="preserve">
+    <value>Katalog</value>
+  </data>
+  <data name="SignatureSource_Both" xml:space="preserve">
+    <value>Beide Quellen</value>
+  </data>
+  <data name="ScopedSignatureFilter" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
   <data name="SignatureFilterLabel" xml:space="preserve">
     <value>Eingebettete Signatur</value>
   </data>
