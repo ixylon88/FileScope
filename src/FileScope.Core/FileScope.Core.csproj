@@ -1,11 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Product>FileScope ($(TargetFramework))</Product>
     <Description>Streaming checksums and Windows Authenticode inspection, independent of the UI.</Description>
   </PropertyGroup>
+  
   <ItemGroup>
     <InternalsVisibleTo Include="FileScope.Core.Tests" />
   </ItemGroup>
+  
 </Project>

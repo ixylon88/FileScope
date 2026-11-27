@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -10,19 +11,33 @@
     <Product>DuplicateFinder ($(TargetFramework))</Product>
     <Description>Find and safely recycle duplicate files across prioritized search folders.</Description>
   </PropertyGroup>
-  <ItemGroup>
-    <!-- WPF generates the early Show(true) call and the automatic fade-out. -->
-    <ProjectReference Include="../DuplicateFinder.Core/DuplicateFinder.Core.csproj" />
-    <InternalsVisibleTo Include="DuplicateFinder.Ui.Tests" />
-    <ProjectReference Include="../FileScope.Shared/FileScope.Shared.csproj" />
-    <Resource Include="Resources/DuplicateFinder.ico" />
-    <None Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <EmbeddedResource Include="../../LICENSE" LogicalName="DuplicateFinder.App.LICENSE" />
-  </ItemGroup>
+
   <ItemGroup>
     <Using Include="FileScope.Shared" />
   </ItemGroup>
-  <ItemGroup Condition="'$(UseWPF)' == 'true'">
-    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml" Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
+
+  <ItemGroup>
+    <ProjectReference Include="../DuplicateFinder.Core/DuplicateFinder.Core.csproj" />
+    <ProjectReference Include="../FileScope.Shared/FileScope.Shared.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <!-- WPF generates the early Show(true) call and the automatic fade-out. -->
+    <None Remove="Resources\DuplicateFinderSplash.png" />
+    <SplashScreen Include="Resources\DuplicateFinderSplash.png" />
+    <Resource Include="Resources/DuplicateFinder.ico" />
+    <!-- One canonical license: available offline in the dialog and beside published binaries. -->
+    <None Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="DuplicateFinder.App.LICENSE" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(UseWPF)' == 'true'">
+    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
+          Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DuplicateFinder.Ui.Tests" />
+  </ItemGroup>
+  
 </Project>
