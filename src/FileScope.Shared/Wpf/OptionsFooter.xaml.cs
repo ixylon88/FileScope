@@ -6,7 +6,7 @@ using System.Windows.Input;
 namespace FileScope.Shared;
 
 /// <summary>Shows the preview hint, the current error and the two options dialog commands.</summary>
-public sealed class OptionsFooter : Decorator
+public partial class OptionsFooter : Decorator
 {
     private readonly TextBlock _errorMessage;
 
