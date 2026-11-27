@@ -26,21 +26,25 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _job;
     private readonly LatestProgress _progress = new();
     private readonly DispatcherTimer _timer;
-    private bool _settingFilters;
     private bool? _pathAutoWidth;
 
     private static LocalizationService Strings => LocalizationService.Instance;
 
-    public AsyncRelayCommand ScanCommand { get; }
-    public AsyncRelayCommand CleanCommand { get; }
-    public AsyncRelayCommand RecycleCommand { get; }
+    public AsyncRelayCommand ScanCommand => field ??= new(StartScanAsync, ShowError, _ => CanScan);
+    public AsyncRelayCommand CleanCommand => field ??= new(ChooseScopeAsync, ShowError, _ => CanClean);
+    public AsyncRelayCommand RecycleCommand => field ??= new(ManualRecycleAsync, ShowError, _ => CanRecycle);
+
     public AsyncRelayCommand ShowFilePropertiesCommand => _fileActions.Properties;
     public AsyncRelayCommand ShowInExplorerCommand => _fileActions.Explorer;
-    public RelayCommand OptionsCommand { get; }
-    public RelayCommand CancelCommand { get; }
-    public RelayCommand IssuesCommand { get; }
-    public RelayCommand AboutCommand { get; }
-    public RelayCommand ResetFiltersCommand { get; }
+
+    public RelayCommand OptionsCommand => field ??= new(OpenOptions, () => _job is null);
+    public RelayCommand CancelCommand => field ??= new(() => _job?.Cancel(), () => _job is not null);
+    public RelayCommand IssuesCommand => field ??= new(ShowIssues, () => _job is null && _issues.Count > 0);
+    public RelayCommand AboutCommand => field ??= new(OpenAbout);
+
+    private bool CanScan => _job is null && _preferences.Roots.Length > 0;
+    private bool CanClean => _job is null && _model.Rows.Count > 0;
+    private bool CanRecycle => _job is null && _model.MarkedCount > 0;
 
     public MainWindow(ResultsViewModel model, DuplicateScanner scanner, CleanupService cleanup,
         Preferences preferences, SettingsStore store, IThemeService theme, IFileShellService fileShell)
@@ -54,16 +58,6 @@ public partial class MainWindow : Window
 
         _fileActions = new(fileShell, SelectedFileForShell, row => row.File.Path,
             row => IsLoaded && _model.Rows.Contains(row), RefreshFileActionError, ShowError);
-
-        ScanCommand = new(StartScanAsync, ShowError, _ => _job is null && _preferences.Roots.Length > 0);
-        CancelCommand = new(() => _job?.Cancel(), () => _job is not null);
-        CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job is null && _model.Rows.Count > 0);
-        RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job is null && _model.MarkedCount > 0);
-
-        IssuesCommand = new(ShowIssues, () => _job is null && _issues.Count > 0);
-        ResetFiltersCommand = new(ResetFilters);
-        OptionsCommand = new(OpenOptions, () => _job is null);
-        AboutCommand = new(OpenAbout);
 
         InitializeComponent();
         // A context menu has its own visual tree. Its commands belong to this window.
@@ -84,56 +78,15 @@ public partial class MainWindow : Window
         SetPathWidth(_preferences.PathAutoWidth);
         _model.PropertyChanged += ModelChanged;
 
-        ReloadFilters();
         UpdateButtons();
         Summary();
     }
 
-    private void ReloadFilters()
-    {
-        var kind = Math.Max(0, KindBox.SelectedIndex);
-        var signature = SignatureBox.SelectedValue is SignatureFilter selected ? selected : SignatureFilter.All;
-        _settingFilters = true;
-        try
-        {
-            KindBox.ItemsSource = new[] { Strings["AllFiles"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
-            KindBox.SelectedIndex = kind;
-            SignatureBox.ItemsSource = SignatureFilter.Options(Strings);
-            SignatureBox.SelectedValue = signature;
-        }
-        finally { _settingFilters = false; }
-        ApplyFilters();
-    }
-
-    private void ResetFilters()
-    {
-        _settingFilters = true;
-        try
-        {
-            FilterBox.Clear();
-            KindBox.SelectedIndex = 0;
-            SignatureBox.SelectedValue = SignatureFilter.All;
-        }
-        finally { _settingFilters = false; }
-        ApplyFilters();
-    }
-
-    private void FilterChanged(object sender, RoutedEventArgs e) => ApplyFilters();
-
-    private void ApplyFilters()
-    {
-        if (_settingFilters || SignatureBox?.SelectedValue is not SignatureFilter filter || KindBox.SelectedIndex < 0) return;
-        _model.Filter(FilterBox.Text, KindBox.SelectedIndex, filter);
-        if (_job == null) Summary();
-    }
-
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount))
-        {
-            UpdateButtons();
-            if (_job is null) Summary();
-        }
+        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount)) UpdateButtons();
+        if (_job is null && e.PropertyName is nameof(ResultsViewModel.MarkedCount) or nameof(ResultsViewModel.VisibleCount))
+            Summary();
 
         if (e.PropertyName == nameof(ResultsViewModel.View)) _fileActions.ClearError();
     }
@@ -257,10 +210,8 @@ public partial class MainWindow : Window
         if (Strings.Culture.Name != next.Language)
         {
             Strings.SetCulture(next.Language);
-            ReloadFilters();
             _model.Relocalize();
             RefreshFileActionError();
-            Summary();
         }
 
         Dispatcher.VerifyAccess();
@@ -299,9 +250,16 @@ public partial class MainWindow : Window
         var items = _model.Manual();
         if (items.Count == 0) return;
         var last = _model.LastCopiesSelected();
-        var intro = Strings.Format("ManualPrompt", items.Count);
-        if (last != 0) intro += Environment.NewLine + Strings.Format("LastCopy", last);
-        var dialog = new ReportWindow(Strings["Recycle"], intro, items.Select(i => i.File.Path).ToArray(), confirm: true) { Owner = this };
+        var paths = items.Select(item => item.File.Path).ToArray();
+
+        string Prompt(LocalizationService strings)
+        {
+            var intro = strings.Format("ManualPrompt", paths.Length);
+            return last == 0 ? intro : intro + Environment.NewLine + strings.Format("LastCopy", last);
+        }
+
+        var dialog = ReportDialog.ForLines("Recycle", Prompt, _ => paths, confirmationKey: "Recycle");
+        dialog.Owner = this;
         if (dialog.ShowDialog() == true) await RecycleAsync(items);
     }
 
@@ -325,9 +283,15 @@ public partial class MainWindow : Window
             _model.RemoveMoved(result);
         });
 
-        var report = result.Select(r => $"{Strings[r.Moved ? "Moved" : "Skipped"]} · {r.File.Path}  {r.Reason}").ToList();
-        if (result.Count < items.Count) report.Add(Strings.Format("Unprocessed", items.Count - result.Count));
-        ShowOwnedDialog(new ReportWindow(Strings["Recycle"], Strings.Format("RecycledCount", result.Count(r => r.Moved), items.Count), report));
+        var moved = result.Count(item => item.Moved);
+        ShowOwnedDialog(ReportDialog.ForLines("Recycle", strings => strings.Format("RecycledCount", moved, items.Count), ReportLines));
+
+        IReadOnlyList<string> ReportLines(LocalizationService strings)
+        {
+            var lines = result.Select(item => $"{strings[item.Moved ? "Moved" : "Skipped"]} · {item.File.Path}  {item.Reason}").ToList();
+            if (result.Count < items.Count) lines.Add(strings.Format("Unprocessed", items.Count - result.Count));
+            return lines;
+        }
     }
 
     internal async Task RunJobAsync(Func<CancellationToken, Task> work)
@@ -370,7 +334,7 @@ public partial class MainWindow : Window
     private void Summary()
     {
         Status.Text = _preferences.Roots.Length == 0 ? Strings["StartHint"] :
-            Strings.Format("Summary", _model.View.Count, _model.Rows.Count, _model.MarkedCount, _issues.Count);
+            Strings.Format("Summary", _model.VisibleCount, _model.Rows.Count, _model.MarkedCount, _issues.Count);
     }
 
     private void Tick(object? sender, EventArgs e)
@@ -385,7 +349,9 @@ public partial class MainWindow : Window
     private void ShowError(Exception ex) => MessageBox.Show(this, ex.Message, "DuplicateFinder", MessageBoxButton.OK, MessageBoxImage.Error);
 
     private void ShowIssues() =>
-        ShowOwnedDialog(new ReportWindow(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
+        ShowOwnedDialog(ReportDialog.ForLines("Issues", strings => strings["Diagnostics"],
+            _ => _issues.Select(issue => $"{issue.Path} · {issue.Reason}").ToArray()));
+
     private void ShowOwnedDialog(Window window)
     {
         window.Owner = this;

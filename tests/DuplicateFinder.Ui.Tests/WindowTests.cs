@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
@@ -59,15 +60,28 @@ public sealed partial class WindowTests
         var signature = (ComboBox)window.FindName("SignatureBox");
         var reset = (Button)window.FindName("ResetFiltersButton");
 
-        text.Text = "Alpha";
-        kind.SelectedIndex = 1;
+        text.Text = " Alpha ";
+        kind.SelectedValue = ResultKind.Duplicates;
+        Assert.AreEqual(" Alpha ", model.SearchText);
+        Assert.AreEqual(ResultKind.Duplicates, model.SelectedKind);
         signature.SelectedValue = SignatureFilter.Exact(SignatureGroup.From(SignatureStatus.Valid, RevocationMode.OfflineCache)!.Value);
         Assert.AreSame(offline, model.View.Cast<ResultRow>().Single().File);
         Assert.IsTrue(model.Rows[0].Marked);
+        Assert.AreSame(model.ResetFiltersCommand, reset.Command);
         Assert.IsTrue(reset.Command.CanExecute(null));
+
+        var resets = 0;
+        ((INotifyCollectionChanged)model.View).CollectionChanged += (_, args) =>
+        {
+            if (args.Action == NotifyCollectionChangedAction.Reset) resets++;
+        };
+        text.Text = "Alpha";
+        Assert.AreEqual(0, resets, "Trimming only the displayed input keeps the effective filter.");
         reset.Command.Execute(null);
+
+        Assert.AreEqual(1, resets, "Resetting the three filters refreshes the grouped view once.");
         Assert.AreEqual("", text.Text);
-        Assert.AreEqual(0, kind.SelectedIndex);
+        Assert.AreEqual(ResultKind.AllFiles, kind.SelectedValue);
         Assert.AreEqual(SignatureFilter.All, signature.SelectedValue);
         Assert.HasCount(2, model.View.Cast<ResultRow>().ToArray());
         Assert.AreEqual(1, model.MarkedCount);
@@ -119,7 +133,7 @@ public sealed partial class WindowTests
     {
         var model = new ResultsViewModel();
         model.Replace([FileAt("archive", 30), FileAt("backup", 20), FileAt("download", 10)]);
-        model.Filter("download", 1, SignatureFilter.All);
+        model.Filter("download", ResultKind.Duplicates, SignatureFilter.All);
         var filtered = model.Plan(true);
         var all = model.Plan(false);
         Assert.AreEqual("archive", filtered.Items.Single().Keeper!.Path);
@@ -138,7 +152,7 @@ public sealed partial class WindowTests
     {
         var model = new ResultsViewModel();
         model.Replace([FileAt("high", 10), FileAt("low", 0)]);
-        model.Filter("no match", 0, SignatureFilter.All);
+        model.Filter("no match", ResultKind.AllFiles, SignatureFilter.All);
         var dialog = new ScopeWindow(model.Plan(true), model.Plan(false));
         dialog.Show();
         var confirm = (Button)dialog.FindName("Confirm");
@@ -156,7 +170,7 @@ public sealed partial class WindowTests
         var model = new ResultsViewModel();
         model.Replace([FileAt("high", 10), FileAt("low", 0)]);
         foreach (var row in model.Rows) row.Marked = true;
-        model.Filter("high", 0, SignatureFilter.All);
+        model.Filter("high", ResultKind.AllFiles, SignatureFilter.All);
         Assert.HasCount(2, model.Manual());
         Assert.AreEqual(1, model.LastCopiesSelected());
 
@@ -365,7 +379,7 @@ public sealed partial class WindowTests
         grid.SelectedItem = model.Rows[1];
         Assert.AreEqual("backup.dat", path.Text);
         Assert.AreEqual("", model.Rows[1].ModifiedText);
-        model.Filter("no matches", 0, SignatureFilter.All);
+        model.Filter("no matches", ResultKind.AllFiles, SignatureFilter.All);
         window.UpdateLayout();
         Assert.AreEqual("", details.Text);
         Assert.AreEqual("", path.Text);
@@ -573,12 +587,12 @@ public sealed partial class WindowTests
 
         DigestSearchChecks.CheckFileHash(model.SetHashFormat, query =>
         {
-            model.Filter(query, 0, SignatureFilter.All);
+            model.Filter(query, ResultKind.AllFiles, SignatureFilter.All);
             Assert.IsFalse(model.View.Contains(model.Rows[1]));
             return model.View.Contains(row);
         });
 
-        model.Filter("-pBQUDe", 0, SignatureFilter.All);
+        model.Filter("-pBQUDe", ResultKind.AllFiles, SignatureFilter.All);
         Assert.IsTrue(model.View.Contains(row));
         model.SetHashFormat(HashFormat.HexUpper);
         Assert.IsFalse(model.View.Contains(row), "Changing the format refreshes an active filter.");
@@ -647,7 +661,7 @@ public sealed partial class WindowTests
         Assert.AreSame(row, model.Rows.Single());
         Assert.IsTrue(row.Marked);
         Assert.AreEqual("FBFF", file.Hashes[ChecksumAlgorithm.SHA256]);
-        model.Filter("-_8", 0, SignatureFilter.All);
+        model.Filter("-_8", ResultKind.AllFiles, SignatureFilter.All);
         Assert.HasCount(1, model.View.Cast<ResultRow>().ToArray());
     });
 

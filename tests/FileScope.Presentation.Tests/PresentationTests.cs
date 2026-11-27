@@ -437,16 +437,32 @@ public sealed class PresentationTests
             PeHeader = new(new PeHeaderInfo(0x014c, "i386", "PE32", ManagedPlatform.Prefer32Bit))
         };
         row.Complete(result);
-        foreach (var value in new[] { "Example description", "Deutsch", "Application", "1.2.3.4", "Example product",
-            "2.3.4-beta", "Example company", "original.exe", "internal", "Copyright sample", "Trademark sample", "Comment sample",
-            "i386 (0x014C)", "PE32", "AnyCPU" })
-            Assert.IsTrue(row.Matches(value) && row.Details.Contains(value), "metadata is included in search and details / " + value);
+        var columns = ColumnOption.CreateDefaults(strings).ToDictionary(column => column.Id);
         foreach (var language in strings.Languages)
         {
-            strings.SetCulture(language.CultureName); row.RefreshLanguage();
-            Assert.IsTrue(row.ManagedPlatformText == strings["ManagedPlatform_Prefer32Bit"] && !row.ManagedPlatformText.StartsWith('['),
-                "platform annotation translates / " + language.CultureName);
+            strings.SetCulture(language.CultureName);
+            row.RefreshLanguage();
+            var details = row.Details;
+            (string Id, string Expected)[] fields =
+            [
+                ("FileDescription", "Example description"), ("FileLanguage", "Deutsch"), ("FileType", "Application"),
+                ("FileVersion", "1.2.3.4"), ("ProductName", "Example product"), ("ProductVersion", "2.3.4-beta"),
+                ("CompanyName", "Example company"), ("OriginalFilename", "original.exe"), ("InternalName", "internal"),
+                ("Copyright", "Copyright sample"), ("Trademarks", "Trademark sample"), ("Comments", "Comment sample"),
+                ("PeMachine", "i386 (0x014C)"), ("PeFormat", "PE32"), ("ManagedPlatform", strings["ManagedPlatform_Prefer32Bit"])
+            ];
+
+            foreach (var (id, expected) in fields)
+            {
+                var column = columns[id];
+                Assert.IsFalse(expected.StartsWith('['));
+                Assert.AreEqual(strings["Column_" + id], column.Label);
+                Assert.AreEqual(expected, column.GetExportValue(row));
+                StringAssert.Contains(details, $"{column.Label}: {expected}");
+                Assert.IsTrue(row.Matches(expected), $"Search finds {id} in {language.CultureName}.");
+            }
         }
+
         row.SetHashFormat(HashFormat.Base64);
         Assert.IsTrue(row.SHA256 == "AP8=" && ReferenceEquals(row.Result, result) && row.FileVersion == "1.2.3.4"
             && row.PeMachine == "i386 (0x014C)", "hash format does not modify version or machine values");

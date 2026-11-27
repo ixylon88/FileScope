@@ -11,14 +11,12 @@ public partial class MainWindow : Window
     private readonly OptionsViewModel _options;
     private readonly WindowPlacement _placement;
 
-    public RelayCommand OptionsCommand { get; }
-    public RelayCommand AboutCommand { get; }
+    public RelayCommand OptionsCommand => field ??= new(OpenOptions);
+    public RelayCommand AboutCommand => field ??= new(OpenAbout);
 
     public MainWindow(MainViewModel viewModel)
     {
         _options = viewModel.Options;
-        OptionsCommand = new(OpenOptions);
-        AboutCommand = new(OpenAbout);
 
         InitializeComponent();
         ShortcutsDialog.BindHelp(this, CreateShortcutsDialog);

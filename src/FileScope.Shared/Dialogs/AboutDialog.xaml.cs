@@ -16,14 +16,13 @@ public partial class AboutDialog : Window
     private readonly IExternalLinkService _links;
     private readonly IReadOnlyList<string> _features;
 
-    public RelayCommand CloseCommand { get; }
+    public RelayCommand CloseCommand => field ??= new(Close);
 
     public AboutDialog(Assembly assembly, string product, IReadOnlyList<string> features, IExternalLinkService links,
         double? width = null, double? height = null)
     {
         _links = links;
         _features = features;
-        CloseCommand = new(Close);
         InitializeComponent();
 
         ProductName.Text = product;

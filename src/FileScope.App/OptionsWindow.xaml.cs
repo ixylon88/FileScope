@@ -11,15 +11,13 @@ public partial class OptionsWindow : Window
     private readonly WindowPlacement _placement;
     private bool _saveRequested;
 
-    public RelayCommand SaveCommand { get; }
-    public RelayCommand CancelCommand { get; }
+    public RelayCommand SaveCommand => field ??= new(SaveAndClose);
+    public RelayCommand CancelCommand => field ??= new(Close);
     internal bool ChangesSaved { get; private set; }
 
     public OptionsWindow(OptionsViewModel options)
     {
         _options = options;
-        SaveCommand = new RelayCommand(SaveAndClose);
-        CancelCommand = new RelayCommand(Close);
         InitializeComponent();
         options.BeginEdit();
         DataContext = options;

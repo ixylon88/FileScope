@@ -414,7 +414,7 @@ public sealed partial class UiTests
         app.MainWindow = window;
         var themes = new ThemeService(app);
         ContextMenu? menu = null;
-        FileMoveReportWindow? reportWindow = null;
+        ReportDialog? reportWindow = null;
         var errors = new StringWriter();
         using var listener = new TextWriterTraceListener(errors);
         var bindingSource = PresentationTraceSources.DataBindingSource;
@@ -510,34 +510,43 @@ public sealed partial class UiTests
             var modalOpened = false;
             app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
             {
-                var dialog = app.Windows.OfType<FileMoveReportWindow>().SingleOrDefault(candidate => candidate.IsVisible);
+                var dialog = app.Windows.OfType<ReportDialog>().SingleOrDefault(candidate => candidate.IsVisible);
                 if (dialog == null) return;
                 modalOpened = ReferenceEquals(dialog.Owner, window) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
-                ((Button)dialog.FindName("CloseMoveReportButton")).Command.Execute(null);
+                ((Button)dialog.FindName("CloseButton")).Command.Execute(null);
             }));
             new FileMoveReportService().Show(reportResults);
-            Assert.IsTrue(modalOpened && !app.Windows.OfType<FileMoveReportWindow>().Any(candidate => candidate.IsVisible),
+            Assert.IsTrue(modalOpened && !app.Windows.OfType<ReportDialog>().Any(candidate => candidate.IsVisible),
                 "the real move report service opens an owned modal window and its Close button returns");
-            reportWindow = new FileMoveReportWindow(reportResults) { Owner = window, ShowActivated = false };
+            reportWindow = FileMoveReportService.CreateDialog(reportResults);
+            reportWindow.Owner = window;
+            reportWindow.ShowActivated = false;
             reportWindow.Show();
-            var reportText = (TextBox)reportWindow.FindName("MoveReportText");
+            var reportText = (TextBox)reportWindow.FindName("ReportText");
             Assert.IsTrue(reportText.IsReadOnly && reportText.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto
                 && reportText.VerticalScrollBarVisibility == ScrollBarVisibility.Auto && reportWindow.ResizeMode == ResizeMode.CanResize,
                 "the move report is resizable with selectable read-only text and both scrollbars");
+            reportText.Select(1, 4);
+            Assert.AreEqual(reportText.Text.Substring(1, 4), reportText.SelectedText);
+            Assert.IsFalse(reportWindow.ConfirmCommand.CanExecute(null));
+            Assert.AreEqual(Visibility.Collapsed, ((Button)reportWindow.FindName("ConfirmButton")).Visibility);
+            Assert.AreEqual(Math.Min(960, SystemParameters.WorkArea.Width), reportWindow.Width);
+            Assert.AreEqual(Math.Min(640, SystemParameters.WorkArea.Height), reportWindow.Height);
+
             foreach (var culture in new[] { "de", "en", "zh-Hans" })
             {
                 strings.SetCulture(culture);
                 DrainDispatcher();
                 Assert.IsTrue(reportWindow.Title == strings["MoveReportTitle"] && reportText.Text == FileMoveReport.Format(reportResults, strings)
-                    && ((TextBlock)reportWindow.FindName("MoveSummaryText")).Text == FileMoveReport.Summary(reportResults, strings)
-                    && ((Button)reportWindow.FindName("CloseMoveReportButton")).Content.ToString() == strings["Close"],
+                    && ((TextBlock)reportWindow.FindName("SummaryText")).Text == FileMoveReport.Summary(reportResults, strings)
+                    && ((Button)reportWindow.FindName("CloseButton")).Content.ToString() == strings["Close"],
                     "the existing move report updates title, counts, details and Close together / " + culture);
             }
             foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
             {
                 themes.Apply(theme);
                 DrainDispatcher();
-                Assert.IsTrue(((SolidColorBrush)((TextBlock)reportWindow.FindName("MoveSummaryText")).Foreground).Color
+                Assert.IsTrue(((SolidColorBrush)((TextBlock)reportWindow.FindName("SummaryText")).Foreground).Color
                         == ((SolidColorBrush)app.FindResource("MutedBrush")).Color,
                     "the existing move report follows the current palette / " + theme);
             }

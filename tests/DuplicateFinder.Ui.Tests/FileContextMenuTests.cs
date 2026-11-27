@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using DuplicateFinder.App;
 using DuplicateFinder.App.ViewModels;
 using FileScope.Ui.Tests;
 using static FileScope.Ui.Tests.FileMenuChecks;
@@ -82,7 +81,7 @@ public sealed partial class WindowTests
             string[]? proposed = null;
             _ = window.Dispatcher.InvokeAsync(() =>
             {
-                var dialog = app.Windows.OfType<ReportWindow>().SingleOrDefault(report => report.Owner == window);
+                var dialog = app.Windows.OfType<ReportDialog>().SingleOrDefault(report => report.Owner == window);
                 if (dialog == null) return;
                 try { proposed = ((ListBox)dialog.FindName("Lines")).Items.Cast<string>().ToArray(); }
                 finally { dialog.Close(); }

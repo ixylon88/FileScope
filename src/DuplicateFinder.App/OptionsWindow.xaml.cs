@@ -33,18 +33,13 @@ public partial class OptionsWindow : Window
     internal WindowPreferences? ChangedPlacement { get; private set; }
     public Preferences Result { get; private set; }
 
-    public RelayCommand AddFoldersCommand { get; }
-    public RelayCommand RemoveFoldersCommand { get; }
-    public RelayCommand SaveCommand { get; }
-    public RelayCommand CloseCommand { get; }
+    public RelayCommand AddFoldersCommand => field ??= new(AddFolders);
+    public RelayCommand RemoveFoldersCommand => field ??= new(RemoveFolders, () => RootsGrid?.SelectedItems.Count > 0);
+    public RelayCommand SaveCommand => field ??= new(() => DialogResult = true);
+    public RelayCommand CloseCommand => field ??= new(Close);
 
     public OptionsWindow(Preferences preferences)
     {
-        AddFoldersCommand = new(AddFolders);
-        RemoveFoldersCommand = new(RemoveFolders, () => RootsGrid?.SelectedItems.Count > 0);
-        SaveCommand = new(() => DialogResult = true);
-        CloseCommand = new(Close);
-
         InitializeComponent();
         Result = preferences;
         _placement = new WindowPlacement(this, preferences.OptionsWindow ?? new WindowPreferences(Width: 730, Height: 800, Maximized: false));

@@ -4,17 +4,36 @@ using DuplicateFinder.Core.Models;
 
 namespace DuplicateFinder.App.ViewModels;
 
+public enum ResultKind { AllFiles, Duplicates, Singles, Diagnostics }
+
 public sealed class ResultsViewModel : ObservableObject
 {
     private List<ResultRow> _rows = [];
     private ListCollectionView _view;
-    private string _text = "";
-    private int _kind;
+    private string _searchText = "";
+    private string _query = "";
+    private ResultKind _kind;
     private SignatureFilter _signature;
 
     private HashFormat _hashFormat;
 
-    public ResultsViewModel() => _view = BuildView();
+    public ResultsViewModel()
+    {
+        var strings = LocalizationService.Instance;
+        ResultKinds = Enum.GetValues<ResultKind>().Select(kind => new FilterOption<ResultKind>(kind, kind.ToString(), strings)).ToArray();
+        SignatureFilters = SignatureFilter.Options(strings);
+        _view = BuildView();
+    }
+
+    public IReadOnlyList<FilterOption<ResultKind>> ResultKinds { get; }
+    public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
+
+    public string SearchText { get => _searchText; set => Filter(value, _kind, _signature); }
+    public ResultKind SelectedKind { get => _kind; set => Filter(_searchText, value, _signature); }
+    public SignatureFilter SelectedSignature { get => _signature; set => Filter(_searchText, _kind, value); }
+    public RelayCommand ResetFiltersCommand => field ??= new(() => Filter("", ResultKind.AllFiles, SignatureFilter.All));
+
+    public int VisibleCount => View.Count;
     public ListCollectionView View { get => _view; private set => SetProperty(ref _view, value); }
     public IReadOnlyList<ResultRow> Rows => _rows;
     public int MarkedCount { get; private set; }
@@ -37,13 +56,16 @@ public sealed class ResultsViewModel : ObservableObject
         if (_hashFormat == format) return;
         _hashFormat = format;
         foreach (var row in _rows) row.SetHashFormat(format);
-        if (_text.Length != 0) View.Refresh();
+        if (_query.Length != 0) RefreshView();
     }
 
     public void Relocalize()
     {
+        foreach (var option in ResultKinds) option.RefreshLanguage();
+        foreach (var option in SignatureFilters) option.RefreshLanguage();
         foreach (var row in _rows) row.Relocalize();
-        View.Refresh();
+
+        RefreshView();
     }
 
     public void RemoveMoved(IReadOnlyList<RecycleResult> result)
@@ -67,6 +89,7 @@ public sealed class ResultsViewModel : ObservableObject
         MarkedCount = rows.Count(r => r.Marked);
         OnPropertyChanged(nameof(MarkedCount));
         View = BuildView();
+        OnPropertyChanged(nameof(VisibleCount));
     }
 
     private void MarkChanged(object? sender, PropertyChangedEventArgs e)
@@ -90,25 +113,43 @@ public sealed class ResultsViewModel : ObservableObject
         return view;
     }
 
-    public void Filter(string text, int kind, SignatureFilter signature)
+    public void Filter(string text, ResultKind kind, SignatureFilter signature)
     {
-        _text = text.Trim();
-        _kind = kind;
-        _signature = signature;
-        View.Refresh();
+        // Keep the user's spaces in the editor. Compare the trimmed query once per edit.
+        var query = text.Trim();
+        var refresh = query != _query || kind != _kind || signature != _signature;
+        _query = query;
+
+        SetProperty(ref _searchText, text, nameof(SearchText));
+        SetProperty(ref _kind, kind, nameof(SelectedKind));
+        SetProperty(ref _signature, signature, nameof(SelectedSignature));
+        if (refresh) RefreshView();
     }
 
-    private bool Matches(ResultRow row) =>
-        (_kind != 1 || row.CurrentGroup != 0) && (_kind != 2 || row.CurrentGroup == 0)
-        && (_kind != 3 || row.Diagnostic != null || row.File.Streams == StreamComparison.Unknown)
+    private void RefreshView()
+    {
+        View.Refresh();
+        OnPropertyChanged(nameof(VisibleCount));
+    }
+
+    private bool MatchesKind(ResultRow row) => _kind switch
+    {
+        ResultKind.AllFiles => true,
+        ResultKind.Duplicates => row.CurrentGroup != 0,
+        ResultKind.Singles => row.CurrentGroup == 0,
+        ResultKind.Diagnostics => row.Diagnostic != null || row.File.Streams == StreamComparison.Unknown,
+        _ => false
+    };
+
+    private bool Matches(ResultRow row) => MatchesKind(row)
         && _signature.Matches(row.File.Embedded.Status, row.File.Embedded.RevocationMode, row.CatalogResult)
-        && (_text.Length == 0 || row.File.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)
-            || row.Signature.Contains(_text, StringComparison.CurrentCultureIgnoreCase)
-            || row.MatchesHash(_text)
-            || row.File.Embedded.Certificate?.Publisher.Contains(_text, StringComparison.OrdinalIgnoreCase) == true
-            || row.Diagnostic?.Contains(_text, StringComparison.OrdinalIgnoreCase) == true
-            || row.File.Catalogs?.Matches.Any(m => m.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)
-                || m.Trust.Certificate?.Publisher.Contains(_text, StringComparison.OrdinalIgnoreCase) == true) == true);
+        && (_query.Length == 0 || row.File.Path.Contains(_query, StringComparison.OrdinalIgnoreCase)
+            || row.Signature.Contains(_query, StringComparison.CurrentCultureIgnoreCase)
+            || row.MatchesHash(_query)
+            || row.File.Embedded.Certificate?.Publisher.Contains(_query, StringComparison.OrdinalIgnoreCase) == true
+            || row.Diagnostic?.Contains(_query, StringComparison.OrdinalIgnoreCase) == true
+            || row.File.Catalogs?.Matches.Any(m => m.Path.Contains(_query, StringComparison.OrdinalIgnoreCase)
+                || m.Trust.Certificate?.Publisher.Contains(_query, StringComparison.OrdinalIgnoreCase) == true) == true);
 
     // Filter the proposed removals after choosing the keepers from the complete snapshot.
     // Whether WPF has realized or expanded a row is immaterial.

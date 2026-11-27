@@ -25,6 +25,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFileMoveService _fileMover;
     private readonly IFileMoveReportService _moveReports;
     private FileRowViewModel[] _selectedRows = [];
+    private readonly FileShellCommands<FileRowViewModel> _fileActions;
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _catalogPaths = new(StringComparer.OrdinalIgnoreCase);
@@ -54,18 +55,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public OptionsViewModel Options { get; }
     public IReadOnlyList<FilterOption<RowStatus?>> StateFilters { get; }
     public IReadOnlyList<FilterOption<SignatureFilter>> SignatureFilters { get; }
-    public AsyncRelayCommand BrowseCommand { get; }
-    public AsyncRelayCommand AddFolderCommand { get; }
-    public AsyncRelayCommand ExportCommand { get; }
-    public AsyncRelayCommand DropFilesCommand { get; }
-    public AsyncRelayCommand ReanalyseCommand { get; }
-    public RelayCommand CancelCommand { get; }
-    public RelayCommand ClearCommand { get; }
-    public RelayCommand ResetFiltersCommand { get; }
-    private readonly FileShellCommands<FileRowViewModel> _fileActions;
+
+    public AsyncRelayCommand BrowseCommand => field ??= new(BrowseAsync, OnCommandError, _ => CanAddFiles);
+    public AsyncRelayCommand AddFolderCommand => field ??= new(_ => AddFolderAsync(), OnCommandError, _ => CanAddFiles);
+    public AsyncRelayCommand ExportCommand => field ??= new(_ => ExportAsync(), OnCommandError, _ => CanExport);
+    public AsyncRelayCommand DropFilesCommand => field ??= new(DropFilesAsync, OnCommandError, CanDropFiles);
+    public AsyncRelayCommand ReanalyseCommand => field ??= new(_ => RunBatchAsync(Rows.ToArray()), OnCommandError, _ => IsIdle && HasRows);
+    public RelayCommand CancelCommand => field ??= new(Cancel, () => CanCancel);
+    public RelayCommand ClearCommand => field ??= new(Clear, () => CanClear);
+    public RelayCommand ResetFiltersCommand => field ??= new(ResetFilters, () => IsIdle);
+
     public AsyncRelayCommand ShowFilePropertiesCommand => _fileActions.Properties;
     public AsyncRelayCommand ShowInExplorerCommand => _fileActions.Explorer;
-    public AsyncRelayCommand MoveSelectedCommand { get; }
+    public AsyncRelayCommand MoveSelectedCommand => field ??= new(_ => MoveSelectedAsync(), OnCommandError, _ => CanMoveSelected);
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
         OptionsViewModel options, IFolderScanner folderScanner, IResultExporter exporter, IConfirmationService confirmation,
@@ -110,21 +112,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _signatureFilter = SignatureFilters[0];
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
         RowsView.Filter = MatchesFilters;
-        BrowseCommand = new AsyncRelayCommand(async _ =>
-            await AddFilesAsync(_picker.PickFiles(strings["OpenTitle"], strings["AllFiles"])), OnCommandError, _ => CanAddFiles);
-        AddFolderCommand = new AsyncRelayCommand(_ => AddFolderAsync(), OnCommandError, _ => CanAddFiles);
-        ExportCommand = new AsyncRelayCommand(_ => ExportAsync(), OnCommandError,
-            _ => IsIdle && HasRows && Options.HasExportColumns);
-        DropFilesCommand = new AsyncRelayCommand(p => AddDroppedPathsAsync((string[])p!), OnCommandError,
-            p => CanAddFiles && p is string[] { Length: > 0 });
-        ReanalyseCommand = new AsyncRelayCommand(_ => RunBatchAsync(Rows.ToArray()), OnCommandError,
-            _ => IsIdle && HasRows);
-        CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
-        ClearCommand = new RelayCommand(Clear, () => IsIdle && (HasRows || _catalogPaths.Count > 0) && !_clearRequested);
-        ResetFiltersCommand = new RelayCommand(ResetFilters, () => IsIdle);
+
         _fileActions = new(fileShell, () => IsIdle ? SingleSelectedRow : null, row => row.FullPath,
             row => !_disposed && Rows.Contains(row), NotifyFileActionErrorChanged, OnCommandError);
-        MoveSelectedCommand = new AsyncRelayCommand(_ => MoveSelectedAsync(), OnCommandError, _ => CanMoveSelected);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
         options.ExportSelectionChanged += OnExportSelectionChanged;
@@ -145,6 +135,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
     public bool IsIdle => !IsBusy && !_disposed;
     public bool CanAddFiles => IsIdle && _intakeFilter is not null;
+
+    private bool CanExport => IsIdle && HasRows && Options.HasExportColumns;
+    private bool CanCancel => IsBusy && _cancellation?.IsCancellationRequested == false;
+    private bool CanClear => IsIdle && (HasRows || _catalogPaths.Count > 0) && !_clearRequested;
+    private bool CanDropFiles(object? parameter) => CanAddFiles && parameter is string[] { Length: > 0 };
     public bool HasRows => Rows.Count > 0;
     public bool ShowEmptyState => Rows.Count == 0;
     public bool ShowNoMatches => HasRows && RowsView.Count == 0;
@@ -367,6 +362,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         InspectFileProperties = InspectFileProperties,
         InspectPeHeader = InspectPeHeader
     });
+
+    private Task BrowseAsync(object? parameter) =>
+        AddFilesAsync(_picker.PickFiles(_strings["OpenTitle"], _strings["AllFiles"]));
+
+    private Task DropFilesAsync(object? parameter) => AddDroppedPathsAsync((string[])parameter!);
 
     private Task AddFolderAsync()
     {
