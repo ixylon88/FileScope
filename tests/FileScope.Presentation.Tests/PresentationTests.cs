@@ -298,6 +298,28 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    public void FileAndCertificateHashesMatchCanonicalHexAndTheDisplayedEncoding()
+    {
+        var row = new FileRowViewModel("sample.bin", LocalizationService.Instance);
+        var certificate = new CertificateInfo("Publisher", "", "", "", "00FACE", "DEADBEFF", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch.AddYears(1), "");
+        var result = new FileAnalysisResult("sample.bin", 3, null,
+            new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = DigestSearchChecks.Hex },
+            new SignatureResult(SignatureStatus.Valid, RevocationMode.OfflineCache, certificate, 0));
+        row.Complete(result);
+
+        DigestSearchChecks.CheckFileHash(row.SetHashFormat, row.Matches);
+
+        row.SetHashFormat(HashFormat.Base64);
+        Assert.IsTrue(row.Matches("00face") && row.Matches("deadbeff"));
+        Assert.IsTrue(row.Matches("APrO") && row.Matches("3q2+/w=="));
+        Assert.IsFalse(row.Matches("apro") || row.Matches("3Q2+/w=="));
+        Assert.IsTrue(row.Matches("PUBLISHER"));
+
+        row.Reset();
+        Assert.IsFalse(row.Matches("8f01cfea") || row.Matches("APrO"));
+    }
+
+    [TestMethod]
     public void Rows()
     {
         const string sha256 = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD";
