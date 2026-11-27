@@ -26,9 +26,11 @@ jobs:
           - runtime: win-x64
             runner: windows-2025
             architecture: x64
+            verify_shell: powershell
           - runtime: win-arm64
             runner: windows-11-arm
             architecture: arm64
+            verify_shell: pwsh
     defaults:
       run:
         shell: pwsh
@@ -45,10 +47,18 @@ jobs:
           global-json-file: global.json
           architecture: ${{ matrix.architecture }}
 
+      # Verify an already-published checkout, as on a developer machine.
+      - name: Publish framework-dependent
+        run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -NoColor
+
+      - name: Publish DuplicateFinder framework-dependent
+        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
+
       # The same script builds and runs both applications and their test projects locally and in CI.
-      # Resource consistency is part of the presentation test project.
-      # Each job executes WPF and native Windows checks on its own architecture.
+      # The x64 job uses the same Windows PowerShell as the VS Code tasks.
+      # ARM64 also exercises verification under PowerShell 7.
       - name: Build and verify, including WPF
+        shell: ${{ matrix.verify_shell }}
         run: ./Verify.ps1 -Runtime ${{ matrix.runtime }} -NoColor
 
       # Keep completed test results even when a later suite fails.
@@ -60,10 +70,6 @@ jobs:
           path: artifacts/test-results/**/*.trx
           if-no-files-found: warn
           retention-days: 14
-
-      # These must stay sequential: both variants use the same project obj files.
-      - name: Publish framework-dependent
-        run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -NoColor
 
       - name: Publish self-contained
         run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -SelfContained -NoColor
@@ -83,10 +89,6 @@ jobs:
           path: artifacts/publish/FileScope/${{ matrix.runtime }}_self-contained/
           if-no-files-found: error
           retention-days: 14
-
-      # These must stay sequential: both variants use the same project obj files.
-      - name: Publish DuplicateFinder framework-dependent
-        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
 
       - name: Publish DuplicateFinder self-contained
         run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -SelfContained -NoColor
