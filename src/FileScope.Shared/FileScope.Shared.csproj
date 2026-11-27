@@ -13,7 +13,6 @@
     <Compile Remove="Wpf/**/*.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseWPF)' == 'true'">
-    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
-          Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
+    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml" Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
   </ItemGroup>
 </Project>

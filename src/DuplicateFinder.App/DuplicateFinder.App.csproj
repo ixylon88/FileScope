@@ -5,8 +5,9 @@
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationIcon>Resources/DuplicateFinder.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <NeutralLanguage>en</NeutralLanguage>
-    <Product>DuplicateFinder</Product>
+    <Product>DuplicateFinder ($(TargetFramework))</Product>
     <Description>Find and safely recycle duplicate files across prioritized search folders.</Description>
   </PropertyGroup>
   <ItemGroup>
