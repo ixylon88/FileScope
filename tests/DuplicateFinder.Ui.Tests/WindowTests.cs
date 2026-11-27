@@ -187,7 +187,7 @@ public sealed partial class WindowTests
         var options = new OptionsWindow(settings) { Owner = window };
         options.Show();
         Assert.AreEqual("Optionen", options.Title);
-        var themes = ((ComboBox)options.FindName("Themes")).Items
+        var themes = OptionsHeaderChecks.From(options).ThemeSelector.Items
             .Cast<FilterOption<AppTheme>>().ToDictionary(theme => theme.Value);
         Assert.AreEqual("Hell", themes[AppTheme.Light].Label);
         Assert.AreEqual("Dunkel", themes[AppTheme.Dark].Label);
@@ -495,9 +495,10 @@ public sealed partial class WindowTests
 
         void ChooseAppearance(OptionsWindow dialog)
         {
-            ((ComboBox)dialog.FindName("Languages")).SelectedValue = "de";
-            ((ComboBox)dialog.FindName("Themes")).SelectedValue = AppTheme.Dark;
-            ((ComboBox)dialog.FindName("HashFormats")).SelectedValue = HashFormat.Base64Url;
+            var header = OptionsHeaderChecks.From(dialog);
+            header.LanguageSelector.SelectedValue = "de";
+            header.ThemeSelector.SelectedValue = AppTheme.Dark;
+            header.HashFormatSelector.SelectedValue = HashFormat.Base64Url;
             ((CheckBox)dialog.FindName("AutoPathWidth")).IsChecked = false;
 
             Assert.AreEqual(strings["OptionsTitle"], dialog.Title);
@@ -509,6 +510,8 @@ public sealed partial class WindowTests
 
         InOptions(window, dialog =>
         {
+            OptionsHeaderChecks.CheckLayout(dialog, (TabItem)dialog.FindName("SearchTab"));
+
             ((ComboBox)dialog.FindName("MinimumUnit")).SelectedValue = FileSizeUnit.Kilobytes;
             var minimum = (TextBox)dialog.FindName("MinimumSize");
             minimum.Text = "1.5";
