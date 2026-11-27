@@ -1031,7 +1031,7 @@ public sealed partial class UiTests
                     && themes.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
                     "the displayed theme label and accessible name follow the language / " + language.CultureName);
             }
-            var save = (Button)settings.FindName("SaveOptionsButton");
+            var save = new OptionsFooterChecks(settings).Save;
             save.Command.Execute(null);
             Assert.IsFalse(settings.IsVisible);
             Assert.AreEqual("Dark", store.Saved.Theme);
@@ -2233,7 +2233,7 @@ public sealed partial class UiTests
                         options.FitColumnsCommand.Execute(null);
                         DrainDispatcher();
                         previewApplied = themes.CurrentTheme == AppTheme.Dark && column.Width.IsAuto;
-                        if (useCancelButton) ((Button)dialog.FindName("CancelOptionsButton")).Command.Execute(null);
+                        if (useCancelButton) new OptionsFooterChecks(dialog).Cancel.Command.Execute(null);
                     }
                     finally
                     {
@@ -2268,28 +2268,21 @@ public sealed partial class UiTests
             try
             {
                 window.Show();
-                var root = (Grid)window.Content;
-                var cancel = (Button)window.FindName("CancelOptionsButton");
-                var save = (Button)window.FindName("SaveOptionsButton");
-                var error = (TextBlock)window.FindName("SettingsErrorText");
-                var messages = (FrameworkElement)error.Parent;
-                Assert.IsFalse(error.IsVisible);
-                Assert.IsTrue(save.IsDefault && cancel.IsCancel);
+                var footer = new OptionsFooterChecks(window);
+                Assert.AreEqual(Visibility.Collapsed, footer.Error.Visibility);
 
                 options.PathAutoWidth = !options.PathAutoWidth;
                 store.FailSave = true;
-                save.Command.Execute(null);
+                footer.Save.Command.Execute(null);
                 DrainDispatcher();
                 window.UpdateLayout();
 
-                Rect Bounds(FrameworkElement control) => control.TransformToAncestor(root).TransformBounds(new Rect(control.RenderSize));
-                Assert.IsTrue(window.IsVisible && error.IsVisible && error.Text == strings["SettingsSaveError"]);
-                Assert.IsTrue(Bounds(messages).Right <= Bounds(cancel).Left && Bounds(cancel).Right <= Bounds(save).Left
-                    && Bounds(save).Right <= root.ActualWidth + 1 && Bounds(save).Bottom <= root.ActualHeight + 1,
-                    $"Both buttons are reachable alongside the write error / {culture.CultureName} / {window.Width}");
+                Assert.IsTrue(window.IsVisible && footer.Error.IsVisible);
+                Assert.AreEqual(strings["SettingsSaveError"], footer.Error.Text);
+                footer.CheckLayout(strings);
 
                 store.FailSave = false;
-                save.Command.Execute(null);
+                footer.Save.Command.Execute(null);
                 Assert.IsFalse(window.IsVisible || options.HasSettingsError);
                 Assert.AreEqual(options.PathAutoWidth, store.Saved.PathAutoWidth);
             }

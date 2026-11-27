@@ -381,6 +381,9 @@
   <data name="ShortcutContextMenuAction" xml:space="preserve">
     <value>Kontextmenü der Zeile öffnen</value>
   </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>Die Einstellungen konnten nicht gespeichert werden.</value>
+  </data>
   <data name="OptionsPreviewHint" xml:space="preserve">
     <value>Speichern übernimmt die Änderungen. Abbrechen stellt die Einstellungen vom Öffnen des Dialogs wieder her.</value>
   </data>

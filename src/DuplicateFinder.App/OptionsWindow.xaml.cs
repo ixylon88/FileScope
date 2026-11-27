@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using DuplicateFinder.Core;
@@ -20,11 +21,14 @@ public partial class OptionsWindow : Window
     private readonly ObservableCollection<RootEditor> _roots;
     private static LocalizationService Strings => LocalizationService.Instance;
     private readonly WindowPlacement _placement;
+    private WindowPreferences? _openingPlacement;
     private CultureInfo _inputCulture = Strings.Culture;
-    private string? _validationKey;
+    private string? _errorKey;
+    private string? _errorDetail;
 
     internal event Action<Preferences>? PreviewChanged;
-    internal WindowPreferences? SavedPlacement { get; private set; }
+    internal event Action<Preferences>? Saving;
+    internal WindowPreferences? ChangedPlacement { get; private set; }
     public Preferences Result { get; private set; }
 
     public RelayCommand AddFoldersCommand { get; }
@@ -36,12 +40,13 @@ public partial class OptionsWindow : Window
     {
         AddFoldersCommand = new(AddFolders);
         RemoveFoldersCommand = new(RemoveFolders, () => RootsGrid?.SelectedItems.Count > 0);
-        SaveCommand = new(Save);
+        SaveCommand = new(() => DialogResult = true);
         CloseCommand = new(Close);
 
         InitializeComponent();
         Result = preferences;
         _placement = new WindowPlacement(this, preferences.OptionsWindow);
+        Loaded += (_, _) => _openingPlacement = _placement.Capture();
         _roots = new(preferences.Roots.Select(r => new RootEditor(r.Path, r.Priority.ToString(Strings.Culture))));
         RootsGrid.ItemsSource = _roots;
         RootsGrid.SelectionChanged += (_, _) => RemoveFoldersCommand.NotifyCanExecuteChanged();
@@ -107,7 +112,7 @@ public partial class OptionsWindow : Window
 
         foreach (var theme in DisplayOptions.ThemeSelector.Items.Cast<FilterOption<AppTheme>>()) theme.RefreshLanguage();
         foreach (var format in DisplayOptions.HashFormatSelector.Items.Cast<FilterOption<HashFormat>>()) format.RefreshLanguage();
-        if (_validationKey != null) Validation.Text = Strings[_validationKey];
+        UpdateErrorText();
     }
 
     private void ReformatSize(TextBox field, FileSizeUnit unit)
@@ -119,7 +124,13 @@ public partial class OptionsWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
-        if (!e.Cancel) SavedPlacement = _placement.Capture();
+        if (e.Cancel) return;
+
+        var placement = _placement.Capture();
+        if (DialogResult == true)
+            e.Cancel = !TrySave(placement);
+        else if (placement != _openingPlacement)
+            ChangedPlacement = placement;
     }
 
     private void AddFolders()
@@ -140,7 +151,7 @@ public partial class OptionsWindow : Window
         foreach (var root in RootsGrid.SelectedItems.Cast<RootEditor>().ToArray()) _roots.Remove(root);
     }
 
-    private void Save()
+    private bool TrySave(WindowPreferences placement)
     {
         RootsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
         RootsGrid.CommitEdit(DataGridEditingUnit.Row, true);
@@ -150,7 +161,7 @@ public partial class OptionsWindow : Window
             if (!int.TryParse(entry.Priority, NumberStyles.Integer, Strings.Culture, out var priority))
             {
                 ShowInputError("BadPriority", RootsGrid);
-                return;
+                return false;
             }
             roots.Add(new(entry.Path, priority));
         }
@@ -160,21 +171,22 @@ public partial class OptionsWindow : Window
         if (!FileSizeInput.TryParse(MinimumSize.Text, minUnit, Strings.Culture, out var min))
         {
             ShowInputError("BadSize", MinimumSize);
-            return;
+            return false;
         }
         if (!FileSizeInput.TryParse(MaximumSize.Text, maxUnit, Strings.Culture, out var max))
         {
             ShowInputError("BadSize", MaximumSize);
-            return;
+            return false;
         }
         if (min > max)
         {
             ShowInputError("ReversedSizes", MinimumSize);
-            return;
+            return false;
         }
 
-        Result = DisplayChoices() with
+        var next = DisplayChoices() with
         {
+            OptionsWindow = placement,
             Roots = roots.ToArray(),
             Hashes = HashOptions.Children.OfType<CheckBox>().Where(h => h.IsChecked == true).Select(h => (ChecksumAlgorithm)h.Tag).ToArray(),
             SizeRange = new FileSizeRange(min, max),
@@ -184,14 +196,35 @@ public partial class OptionsWindow : Window
             Catalogs = Catalogs.IsChecked == true,
             Online = Online.IsChecked == true
         };
-        DialogResult = true;
+
+        try { Saving?.Invoke(next); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowError("SettingsSaveError", ex.Message);
+            return false;
+        }
+
+        Result = next;
+        return true;
     }
 
     private void ShowInputError(string messageKey, UIElement field)
     {
         SearchTab.IsSelected = true;
-        _validationKey = messageKey;
-        Validation.Text = Strings[messageKey];
+        ShowError(messageKey);
         field.Focus();
+    }
+
+    private void ShowError(string key, string? detail = null)
+    {
+        _errorKey = key;
+        _errorDetail = detail;
+        UpdateErrorText();
+    }
+
+    private void UpdateErrorText()
+    {
+        if (_errorKey is { } key)
+            DialogFooter.ErrorText = _errorDetail == null ? Strings[key] : $"{Strings[key]} {_errorDetail}";
     }
 }
