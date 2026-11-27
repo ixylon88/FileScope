@@ -1,4 +1,4 @@
-namespace FileScope.App.Services;
+namespace FileScope.Shared;
 
 /// <summary>Explicit file actions in Windows Shell, separate from file analysis.</summary>
 public interface IFileShellService

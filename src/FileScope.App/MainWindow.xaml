@@ -168,7 +168,7 @@
     <Border Grid.Row="3" Margin="24,0,24,12" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <Grid>
         <DataGrid x:Name="ResultsGrid" Loaded="OnResultsGridLoaded" SelectionChanged="OnResultsSelectionChanged"
-                  ContextMenuOpening="OnResultsContextMenuOpening" behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
+                  behaviors:ColumnLayoutBehavior.Options="{Binding Options}"
                   behaviors:ColumnLayoutBehavior.FitRevision="{Binding Options.WidthRevision}" ItemsSource="{Binding RowsView}" SelectedItem="{Binding SelectedRow}" AutoGenerateColumns="False"
                   Style="{StaticResource ResultsGridStyle}" CanUserReorderColumns="True"
                   CanUserSortColumns="{Binding IsIdle}" FrozenColumnCount="2"
@@ -179,20 +179,18 @@
                   AutomationProperties.Name="{loc:Loc ResultsLabel}">
           <DataGrid.RowStyle>
             <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+              <EventSetter Event="ContextMenuOpening" Handler="OnResultsContextMenuOpening" />
               <Setter Property="Background" Value="Transparent"/>
               <Setter Property="ContextMenu">
                 <Setter.Value>
                   <!-- A popup must not keep a recycled row container as its command target.
                        Selection is synchronized before opening; commands resolve it in the view model. -->
-                  <ContextMenu DataContext="{Binding Data, Source={StaticResource ViewModelProxy}}">
-                    <MenuItem Header="{Binding MoveSelectedMenu}" Command="{Binding MoveSelectedCommand}"
-                              Visibility="{Binding CanMoveSelected, Converter={StaticResource BoolToVisibility}}" />
-                    <Separator Visibility="{Binding CanMoveSelected, Converter={StaticResource BoolToVisibility}}" />
-                    <MenuItem Header="{loc:Loc FilePropertiesMenu}" Command="{Binding ShowFilePropertiesCommand}"
-                              ToolTip="{loc:Loc SingleFileActionHint}" ToolTipService.ShowOnDisabled="True" />
-                    <MenuItem Header="{loc:Loc ShowInExplorerMenu}" Command="{Binding ShowInExplorerCommand}"
-                              ToolTip="{loc:Loc SingleFileActionHint}" ToolTipService.ShowOnDisabled="True" />
-                  </ContextMenu>
+                  <controls:FileRowContextMenu DataContext="{Binding Data, Source={StaticResource ViewModelProxy}}">
+                    <controls:FileRowContextMenu.LeadingAction>
+                      <MenuItem Header="{Binding MoveSelectedMenu}" Command="{Binding MoveSelectedCommand}"
+                                Visibility="{Binding CanMoveSelected, Converter={StaticResource BoolToVisibility}}" />
+                    </controls:FileRowContextMenu.LeadingAction>
+                  </controls:FileRowContextMenu>
                 </Setter.Value>
               </Setter>
             </Style>

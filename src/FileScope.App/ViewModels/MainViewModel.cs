@@ -38,8 +38,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private FileNameFilter? _intakeFilter = new("");
     private string? _intakeFilterErrorKey;
     private int _intakeExcluded;
-    private string? _fileActionErrorPath;
-    private string _fileActionErrorKey = "FilePropertiesError";
     private AnalysisProgressBuffer? _analysisDisplay;
     private DispatcherTimer? _displayTimer;
     private CurrentAnalysis? _displayedAnalysis;
@@ -64,8 +62,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CancelCommand { get; }
     public RelayCommand ClearCommand { get; }
     public RelayCommand ResetFiltersCommand { get; }
-    public AsyncRelayCommand ShowFilePropertiesCommand { get; }
-    public AsyncRelayCommand ShowInExplorerCommand { get; }
+    private readonly FileShellCommands<FileRowViewModel> _fileActions;
+    public AsyncRelayCommand ShowFilePropertiesCommand => _fileActions.Properties;
+    public AsyncRelayCommand ShowInExplorerCommand => _fileActions.Explorer;
     public AsyncRelayCommand MoveSelectedCommand { get; }
 
     public MainViewModel(IFileAnalysisService analysis, IFilePickerService picker, LocalizationService strings,
@@ -123,20 +122,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelCommand = new RelayCommand(Cancel, () => IsBusy && _cancellation?.IsCancellationRequested == false);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && (HasRows || _catalogPaths.Count > 0) && !_clearRequested);
         ResetFiltersCommand = new RelayCommand(ResetFilters, () => IsIdle);
-        // Commands use the actual selection, never a popup's recyclable row container.
-        ShowFilePropertiesCommand = new AsyncRelayCommand(_ =>
-        {
-            var path = SingleSelectedRow!.FullPath;
-            SetFileActionError(fileShell.TryShowProperties(path) ? null : path, "FilePropertiesError");
-            return Task.CompletedTask;
-        }, OnCommandError, _ => IsIdle && SingleSelectedRow is not null);
-        ShowInExplorerCommand = new AsyncRelayCommand(async _ =>
-        {
-            var row = SingleSelectedRow!;
-            var path = row.FullPath;
-            var success = await fileShell.TryShowInExplorerAsync(path);
-            if (!_disposed && Rows.Contains(row)) SetFileActionError(success ? null : path, "FileExplorerError");
-        }, OnCommandError, _ => IsIdle && SingleSelectedRow is not null);
+        _fileActions = new(fileShell, () => IsIdle ? SingleSelectedRow : null, row => row.FullPath,
+            row => !_disposed && Rows.Contains(row), NotifyFileActionErrorChanged, OnCommandError);
         MoveSelectedCommand = new AsyncRelayCommand(_ => MoveSelectedAsync(), OnCommandError, _ => CanMoveSelected);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
@@ -223,13 +210,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string CurrentFile { get; private set => SetProperty(ref field, value); } = "";
     public string LastError { get; private set => SetProperty(ref field, value); } = "";
     public bool HasError => LastError.Length != 0;
-    public bool HasFileActionError => _fileActionErrorPath is not null;
-    public string FileActionError => _fileActionErrorPath is { } path ? _strings.Format(_fileActionErrorKey, path) : "";
+    public bool HasFileActionError => _fileActions.HasError;
+    public string FileActionError => _fileActions.GetErrorText(_strings);
 
-    private void SetFileActionError(string? path, string key)
+    private void NotifyFileActionErrorChanged()
     {
-        _fileActionErrorPath = path;
-        _fileActionErrorKey = key;
         OnPropertyChanged(nameof(FileActionError));
         OnPropertyChanged(nameof(HasFileActionError));
     }
@@ -279,8 +264,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SingleSelectedRow));
         OnPropertyChanged(nameof(CanMoveSelected));
         OnPropertyChanged(nameof(MoveSelectedMenu));
-        ShowFilePropertiesCommand.NotifyCanExecuteChanged();
-        ShowInExplorerCommand.NotifyCanExecuteChanged();
+        _fileActions.NotifyCanExecuteChanged();
         MoveSelectedCommand.NotifyCanExecuteChanged();
     }
 
@@ -814,7 +798,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void ClearRows()
     {
-        SetFileActionError(null, "FilePropertiesError");
+        _fileActions.ClearError();
         LastRunSummary = null;
         foreach (var row in Rows) UnsubscribeRow(row);
         _multipleSignatures.Clear();

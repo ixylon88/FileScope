@@ -582,18 +582,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="AboutAdditionalReads" xml:space="preserve">
     <value>Header-, Versions- und Signaturprüfungen können zusätzliche Lesezugriffe erfordern. Windows kann dabei auch ergänzende Ressourcen heranziehen.</value>
   </data>
-  <data name="FilePropertiesMenu" xml:space="preserve">
-    <value>Eigenschaften</value>
-  </data>
-  <data name="ShowInExplorerMenu" xml:space="preserve">
-    <value>Im Explorer anzeigen</value>
-  </data>
-  <data name="FilePropertiesError" xml:space="preserve">
-    <value>Windows konnte die Eigenschaften von „{0}“ nicht öffnen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
-  </data>
-  <data name="FileExplorerError" xml:space="preserve">
-    <value>Windows konnte „{0}“ nicht im Explorer anzeigen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
-  </data>
   <data name="OpeningFile" xml:space="preserve">
     <value>Datei wird geöffnet…</value>
   </data>
@@ -684,9 +672,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="MoveFolder_CheckFailed" xml:space="preserve">
     <value>fehler</value>
   </data>
-  <data name="SingleFileActionHint" xml:space="preserve">
-    <value>Für diese Aktion genau eine Datei markieren.</value>
-  </data>
   <data name="ShortcutOpenKeys" xml:space="preserve">
     <value>Strg+O</value>
   </data>
@@ -698,12 +683,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>Ergebnisse und Filter leeren, wenn kein Vorgang läuft</value>
-  </data>
-  <data name="ShortcutContextMenuKeys" xml:space="preserve">
-    <value>Umschalt+F10 / Menütaste</value>
-  </data>
-  <data name="ShortcutContextMenuAction" xml:space="preserve">
-    <value>Kontextmenü der Zeile öffnen</value>
   </data>
   <data name="IntakeFilterLabel" xml:space="preserve">
     <value>Dateiaufnahme (Regex)</value>

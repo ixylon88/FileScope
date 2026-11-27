@@ -185,4 +185,25 @@
   <data name="PathAutoWidthHint" xml:space="preserve">
     <value>Erlaubt die volle Pfadbreite. Ausgeschaltet bleibt die Spalte begrenzt breit und lässt sich mit der Maus anpassen.</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>Eigenschaften</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>Im Explorer anzeigen</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows konnte die Eigenschaften von „{0}“ nicht öffnen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows konnte „{0}“ nicht im Explorer anzeigen. Die Datei wurde möglicherweise verschoben oder gelöscht, oder der Zugriff wurde verweigert.</value>
+  </data>
+  <data name="SingleFileActionHint" xml:space="preserve">
+    <value>Für diese Aktion genau eine Datei markieren.</value>
+  </data>
+  <data name="ShortcutContextMenuKeys" xml:space="preserve">
+    <value>Umschalt+F10 / Menütaste</value>
+  </data>
+  <data name="ShortcutContextMenuAction" xml:space="preserve">
+    <value>Kontextmenü der Zeile öffnen</value>
+  </data>
 </root>

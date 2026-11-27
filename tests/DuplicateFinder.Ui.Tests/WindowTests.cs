@@ -167,7 +167,7 @@ public sealed partial class WindowTests
         strings.SetCulture("de");
         var model = new ResultsViewModel();
         var settings = new Preferences();
-        var window = new MainWindow(model, new DuplicateScanner(), new CleanupService(new WindowsRecycleBin()), settings, Store, theme);
+        var window = new MainWindow(model, new DuplicateScanner(), new CleanupService(new WindowsRecycleBin()), settings, Store, theme, new FileShellService());
         window.Show();
         var button = (Button)window.FindName("RecycleButton");
         Assert.IsFalse(button.IsEnabled);
@@ -220,7 +220,7 @@ public sealed partial class WindowTests
         {
             strings.SetCulture(language.CultureName);
             DrainLayout();
-            ShortcutDialogChecks.Check(shortcuts, strings, ["Scan", "Filter"], "Mark");
+            ShortcutDialogChecks.Check(shortcuts, strings, ["Scan", "Filter"], "Mark", "ContextMenu");
             Assert.AreEqual(strings["ShortcutsTitle"], AutomationProperties.GetName(shortcutsButton));
         }
 
@@ -409,9 +409,10 @@ public sealed partial class WindowTests
         Assert.AreEqual(1, model.MarkedCount);
     });
 
-    private MainWindow ShowResults(ResultsViewModel model, IThemeService theme, Preferences? preferences = null)
+    private MainWindow ShowResults(ResultsViewModel model, IThemeService theme, Preferences? preferences = null, IFileShellService? shell = null)
     {
-        var window = new MainWindow(model, new DuplicateScanner(), new CleanupService(new WindowsRecycleBin()), preferences ?? new Preferences(), Store, theme);
+        var window = new MainWindow(model, new DuplicateScanner(), new CleanupService(new WindowsRecycleBin()),
+            preferences ?? new Preferences(), Store, theme, shell ?? new FileShellService());
         window.Show();
         return window;
     }

@@ -582,18 +582,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="AboutAdditionalReads" xml:space="preserve">
     <value>文件头、版本和签名检查可能需要额外读取。Windows 也可能访问其他相关资源。</value>
   </data>
-  <data name="FilePropertiesMenu" xml:space="preserve">
-    <value>属性</value>
-  </data>
-  <data name="ShowInExplorerMenu" xml:space="preserve">
-    <value>在文件资源管理器中显示</value>
-  </data>
-  <data name="FilePropertiesError" xml:space="preserve">
-    <value>Windows 无法打开“{0}”的属性。文件可能已被移动或删除，或者访问被拒绝。</value>
-  </data>
-  <data name="FileExplorerError" xml:space="preserve">
-    <value>Windows 无法在文件资源管理器中显示“{0}”。文件可能已被移动或删除，或者访问被拒绝。</value>
-  </data>
   <data name="OpeningFile" xml:space="preserve">
     <value>正在打开文件…</value>
   </data>
@@ -684,9 +672,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="MoveFolder_CheckFailed" xml:space="preserve">
     <value>检查失败</value>
   </data>
-  <data name="SingleFileActionHint" xml:space="preserve">
-    <value>此操作需要仅选中一个文件。</value>
-  </data>
   <data name="ShortcutOpenKeys" xml:space="preserve">
     <value>Ctrl+O</value>
   </data>
@@ -698,12 +683,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>在没有任务运行时清空结果与筛选条件</value>
-  </data>
-  <data name="ShortcutContextMenuKeys" xml:space="preserve">
-    <value>Shift+F10 / 菜单键</value>
-  </data>
-  <data name="ShortcutContextMenuAction" xml:space="preserve">
-    <value>打开当前行的快捷菜单</value>
   </data>
   <data name="IntakeFilterLabel" xml:space="preserve">
     <value>文件导入（正则表达式）</value>

@@ -4,6 +4,11 @@
         Icon="Resources/DuplicateFinder.ico" Title="DuplicateFinder" Width="1160" Height="770" MinWidth="700" MinHeight="460"
         Style="{StaticResource AppWindowStyle}" PreviewKeyDown="WindowKeyDown">
   <Window.Resources>
+    <shared:FileRowContextMenu x:Key="FileMenu">
+      <shared:FileRowContextMenu.LeadingAction>
+        <MenuItem Header="{loc:Loc Recycle}" Command="{Binding RecycleCommand}" />
+      </shared:FileRowContextMenu.LeadingAction>
+    </shared:FileRowContextMenu>
     <!-- Fluent's SystemAccentColor is itself a dynamic reference. Ask Windows for the Color directly. -->
     <SolidColorBrush x:Key="MarkedRowBackground" Color="{DynamicResource {x:Static SystemColors.AccentColorKey}}" Opacity="0.24" />
     <Style x:Key="FileCells" TargetType="DataGridCellsPanel">
@@ -22,7 +27,7 @@
   <Grid Margin="18,14,18,10">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
-      <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
     <Border x:Name="MenuFrame" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10">
@@ -91,7 +96,7 @@
 
     <Border x:Name="ResultsFrame" Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
       <DataGrid x:Name="Files" Style="{StaticResource ResultsGridStyle}" BorderThickness="0" GridLinesVisibility="Horizontal" ItemsSource="{Binding View}" AutoGenerateColumns="False"
-                CanUserSortColumns="False" IsSynchronizedWithCurrentItem="False"
+                CanUserSortColumns="False" IsSynchronizedWithCurrentItem="False" SelectionChanged="FileSelectionChanged"
                 HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True"
                 VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 ScrollViewer.CanContentScroll="True">
@@ -118,6 +123,8 @@
         <DataGrid.RowStyle>
           <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
             <EventSetter Event="PreviewMouseLeftButtonDown" Handler="RowClick" />
+            <EventSetter Event="ContextMenuOpening" Handler="FileMenuOpening" />
+            <Setter Property="ContextMenu" Value="{StaticResource FileMenu}" />
             <!-- The Fluent row border paints its own transparent background. The cells panel draws the mark behind the cells. -->
             <Setter Property="ItemsPanel">
               <Setter.Value>
@@ -190,5 +197,7 @@
       <ProgressBar x:Name="Meter" DockPanel.Dock="Right" Width="115" Height="8" Margin="12,0,0,0"/>
       <TextBlock x:Name="Status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
     </DockPanel>
+    <TextBlock x:Name="FileActionErrorText" Grid.Row="5" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+               Visibility="Collapsed" TextWrapping="Wrap" Margin="0,6,0,0" />
   </Grid>
 </Window>

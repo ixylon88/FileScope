@@ -1,8 +1,9 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace FileScope.App.Services;
+namespace FileScope.Shared;
 
 /// <summary>Opens Windows properties or selects a file in Explorer; never invokes its default verb.</summary>
 public sealed partial class FileShellService : IFileShellService
@@ -71,7 +72,7 @@ public sealed partial class FileShellService : IFileShellService
         /// <summary>Invokes a Shell object's Properties command.</summary>
         /// <param name="owner">Borrowed parent HWND, or zero for no owner.</param>
         /// <param name="objectType">SHOP_FILEPATH (0x2) makes name a fully qualified file path.</param>
-        /// <param name="name">UTF-16 object name; FileScope supplies the file path.</param>
+        /// <param name="name">UTF-16 object name containing the file path.</param>
         /// <param name="page">Initial property-page name; null selects the default page.</param>
         /// <returns>Native BOOL: nonzero means the command was invoked successfully.</returns>
         /// <remarks>The return is marshalled as a 32-bit Windows BOOL, not an HRESULT.</remarks>
@@ -82,7 +83,7 @@ public sealed partial class FileShellService : IFileShellService
         internal static partial bool SHObjectProperties(IntPtr owner, uint objectType, string name, string? page);
 
         /// <summary>Resolves a Shell display name to an absolute item identifier list (PIDL).</summary>
-        /// <param name="name">UTF-16 name to resolve; FileScope uses a fully qualified file path.</param>
+        /// <param name="name">Fully qualified UTF-16 file path to resolve.</param>
         /// <param name="bindContext">Optional IBindCtx pointer; zero uses the default parsing context.</param>
         /// <param name="item">Receives the PIDL; the caller must release it with Marshal.FreeCoTaskMem.</param>
         /// <param name="requestedAttributes">SFGAO attribute mask; zero requests no attributes.</param>
