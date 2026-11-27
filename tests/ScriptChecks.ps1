@@ -120,7 +120,9 @@ try {
         $productTasks = @($tasks | Where-Object { $_.label -like "$($product): *" })
         $wrongSelector = @($productTasks | Where-Object {
             $index = [Array]::IndexOf([object[]]$_.args, '-Application')
-            if ($product -eq 'FileScope') { return $index -ge 0 }
+            if ($product -eq 'FileScope' -and $_.args -contains ($taskPrefix + 'Build.ps1')) {
+                return $index -ge 0 -and $_.args[$index + 1] -ne $product
+            }
             return $index -lt 0 -or $_.args[$index + 1] -ne $product
         })
         Check ($productTasks.Count -gt 0 -and $wrongSelector.Count -eq 0) "$product tasks select the intended application scope"
@@ -140,6 +142,12 @@ try {
         Check ($buildTasks.Count -eq 1 -and $buildTasks[0].args -notcontains '-Runtime') "$product has a regular build task"
     }
 
+    $solutionVerify = @($tasks | Where-Object { $_.label -like 'Solution: Verify*' })
+    $targets = @($solutionVerify | ForEach-Object { Get-TaskRuntime $_ })
+    Check ($targets.Count -eq 3 -and @(Compare-Object @('host', 'win-x64', 'win-arm64') $targets).Count -eq 0 -and
+        @($solutionVerify | Where-Object { $_.args -notcontains ($taskPrefix + 'Verify.ps1') -or
+            $_.args -contains '-Application' }).Count -eq 0) 'solution tasks verify all products on the host, x64 and ARM64'
+
     $runTasks = @($tasks | Where-Object { $_.args -contains '-Run' })
     $runTargets = @($runTasks | ForEach-Object { Get-TaskRuntime $_ })
     Check ($runTasks.Count -eq 2 -and @(Compare-Object @('win-x64', 'win-arm64') $runTargets).Count -eq 0 -and
@@ -147,7 +155,7 @@ try {
 
     $defaults = @($tasks | Where-Object { $_.group -isnot [string] -and $_.group.isDefault })
     Check ($defaults.Count -eq 2 -and ($defaults | Where-Object { $_.group.kind -eq 'build' }).label -eq 'FileScope: Build (Release)' -and
-        ($defaults | Where-Object { $_.group.kind -eq 'test' }).label -eq 'FileScope: Verify') 'default build and test tasks still cover the whole solution'
+        ($defaults | Where-Object { $_.group.kind -eq 'test' }).label -eq 'Solution: Verify') 'default build and test tasks still cover the whole solution'
 
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'build') -Force)
     [void](New-Item -ItemType Directory -Path (Join-Path $fixture 'tests') -Force)
@@ -231,12 +239,18 @@ try {
             @($commands | Where-Object { $_.Arguments -contains '--runtime' -or $_.Arguments -notcontains '-p:Platform=Arm64' }).Count -eq 0) "$product builds and runs the same project and platform"
 
         $expectedTests = if ($product -eq 'FileScope') { @('FileScope.Core.Tests', 'FileScope.Presentation.Tests', 'FileScope.Ui.Tests') }
-            else { @('DuplicateFinder.Tests', 'DuplicateFinder.Ui.Tests') }
+            else { @('FileScope.Core.Tests', 'DuplicateFinder.Tests', 'FileScope.Presentation.Tests', 'DuplicateFinder.Ui.Tests') }
         $result = Invoke-Scenario 'Verify.ps1' @{ Application = $product.ToLowerInvariant() }
         $build = @($result.Calls | Where-Object Name -eq 'build')
         $suites = @($result.Calls | Where-Object { $_.Arguments[0] -eq 'test' })
         Check ($result.Error -eq '' -and $build.Count -eq 1 -and $build[0].Arguments[1] -ceq $project -and
-            $build[0].Arguments -contains '-p:Platform=AnyCPU' -and ($suites.Name -join ',') -eq ($expectedTests -join ',')) "$product verification builds its app and runs its own suites"
+            $build[0].Arguments -contains '-p:Platform=AnyCPU' -and ($suites.Name -join ',') -eq ($expectedTests -join ',')) "$product verification covers the app and its dependencies"
+
+        $filter = if ($product -eq 'FileScope') { 'TestCategory!=DuplicateFinder' }
+            else { 'TestCategory=Shared|TestCategory=DuplicateFinder' }
+        $presentation = $suites | Where-Object Name -eq 'FileScope.Presentation.Tests'
+        Check ((Has-Option $presentation '--filter' $filter) -and
+            @($suites | Where-Object { $_.Name -ne $presentation.Name -and $_.Arguments -contains '--filter' }).Count -eq 0) "$product selects only its own and shared presentation cases"
 
         $result = Invoke-Scenario 'Verify.ps1' @{ Application = $product; Runtime = 'win-arm64'; SkipUi = $true; SkipBuild = $true }
         $portable = @($expectedTests | Where-Object { $_ -notlike '*.Ui.Tests' })
@@ -260,7 +274,7 @@ try {
         $ui = $work | Where-Object Name -eq 'FileScope.Ui.Tests'
         Check ($ui.Project.Project.PropertyGroup.UseWPF -eq 'true') "UI test project still uses actual WPF: $runtime"
         Check (@($testProjects | Where-Object { $_.Arguments[0] -ne 'test' -or
-            $_.Arguments -notcontains '--report-trx' -or $_.Arguments -notcontains '--no-ansi' -or
+            $_.Arguments -contains '--filter' -or $_.Arguments -notcontains '--report-trx' -or $_.Arguments -notcontains '--no-ansi' -or
             -not (Has-Option $_ '--settings' (Join-Path $fixture 'tests/FileScope.runsettings')) }).Count -eq 0) "all suites use MSTest, shared settings and persistent reports: $runtime"
         Check (@(Get-ChildItem -LiteralPath (Split-Path $preserved -Parent)).Count -eq 1 -and $result.LocationRestored -and
             @($testProjects | Where-Object { -not (Test-Path -LiteralPath $_.ReportPath) }).Count -eq 0) "verify preserves unrelated artifacts and completed test reports: $runtime"

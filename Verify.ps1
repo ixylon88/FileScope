@@ -76,6 +76,14 @@ function Invoke-Checks {
         '--settings', $settingsPath, '--report-trx', '--report-trx-filename', "$Name.trx",
         '--results-directory', $resultsDirectory)
 
+    # This portable assembly contains shared presentation tests and resources for both apps.
+    if ($Name -eq 'FileScope.Presentation.Tests') {
+        switch ($Application) {
+            'FileScope'       { $arguments += @('--filter', 'TestCategory!=DuplicateFinder') }
+            'DuplicateFinder' { $arguments += @('--filter', 'TestCategory=Shared|TestCategory=DuplicateFinder') }
+        }
+    }
+
     # A RID is valid for an individual project, never for the solution build.
     if ($Runtime) { $arguments += @('--runtime', $Runtime) }
     if ($NoColor -or $env:NO_COLOR) { $arguments += '--no-ansi' }
@@ -109,11 +117,12 @@ try {
     }
     else { Write-BuildMessage 'Initial build skipped; dotnet test still builds its projects and references.' -Kind Warning }
 
-    $testProjects = @('FileScope.Core.Tests', 'DuplicateFinder.Tests', 'FileScope.Presentation.Tests',
-        'FileScope.Ui.Tests', 'DuplicateFinder.Ui.Tests')
-    if ($Application -ne 'All') {
-        $testProjects = $testProjects -like "${Application}.*"
-    }
+    # Both apps depend on FileScope.Core and FileScope.Shared. Each owns its WPF suite.
+    $testProjects = @('FileScope.Core.Tests')
+    if ($Application -ne 'FileScope') { $testProjects += 'DuplicateFinder.Tests' }
+    $testProjects += 'FileScope.Presentation.Tests'
+    if ($Application -ne 'DuplicateFinder') { $testProjects += 'FileScope.Ui.Tests' }
+    if ($Application -ne 'FileScope') { $testProjects += 'DuplicateFinder.Ui.Tests' }
 
     if ($SkipUi -or $env:OS -ne 'Windows_NT') {
         Write-BuildMessage 'Windows UI tests skipped.' -Kind Warning
