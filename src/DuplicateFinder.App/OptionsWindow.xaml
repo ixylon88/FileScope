@@ -81,8 +81,8 @@
       </TabItem>
     </TabControl>
 
-    <shared:OptionsFooter x:Name="DialogFooter" Grid.Row="2"
-                          CancelCommand="{Binding CloseCommand, ElementName=WindowRoot}"
-                          SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
+    <shared:OptionsFooterHost x:Name="DialogFooter" Grid.Row="2"
+                              CancelCommand="{Binding CloseCommand, ElementName=WindowRoot}"
+                              SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
   </Grid>
 </Window>
