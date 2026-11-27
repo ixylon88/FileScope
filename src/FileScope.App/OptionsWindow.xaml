@@ -82,8 +82,8 @@
       </TabItem>
     </TabControl>
 
-    <shared:OptionsFooter x:Name="DialogFooter" Grid.Row="2" ErrorText="{Binding SettingsError}"
-                          CancelCommand="{Binding CancelCommand, ElementName=WindowRoot}"
-                          SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
+    <shared:OptionsFooterHost x:Name="DialogFooter" Grid.Row="2" ErrorText="{Binding SettingsError}"
+                              CancelCommand="{Binding CancelCommand, ElementName=WindowRoot}"
+                              SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
   </Grid>
 </Window>

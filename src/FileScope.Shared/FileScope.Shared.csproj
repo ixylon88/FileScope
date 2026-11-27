@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.EndsWith(`windows`))'">
+    <!-- Nest the host under its classless layout in Solution Explorer. -->
+    <Compile Update="Wpf/OptionsFooterHost.cs" DependentUpon="OptionsFooter.xaml" />
     <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
           Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
   </ItemGroup>
