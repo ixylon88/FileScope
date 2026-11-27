@@ -213,6 +213,7 @@ public sealed partial class WindowTests
 
         var firstTab = (TabItem)options.FindName("SearchTab");
         Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
+        TabHeaderChecks.Check(firstTab);
         var shortcut = ((Panel)shortcuts.FindName("ActionsList")).Children.Cast<HeaderedContentControl>()
             .Single(row => Equals(row.Header, strings["ShortcutFilterKeys"]));
         foreach (var language in strings.Languages)

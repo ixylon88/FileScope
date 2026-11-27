@@ -136,7 +136,7 @@ public sealed partial class ResourceConsistencyTests
         string[] fluentKeys =
         [
             "SystemFillColorAttentionBrush", "SystemFillColorCriticalBrush",
-            "TextOnAccentFillColorSelectedTextBrush"
+            "TextOnAccentFillColorSelectedTextBrush", "DataGridHeaderBackgroundPointerOver"
         ];
         var light = PaletteKeys(ReadXamlFile("LightThemePalette.xaml"));
         var dark = PaletteKeys(ReadXamlFile("DarkThemePalette.xaml"));
@@ -204,6 +204,18 @@ public sealed partial class ResourceConsistencyTests
 
         Assert.IsFalse(controls.Descendants(Wpf + "ControlTemplate").Any(),
             "Shared styles must preserve WPF's native control templates.");
+
+        var tab = controls.Descendants(Wpf + "Style").Single(style => (string?)style.Attribute(Xaml + "Key") == "TabItemStyle");
+        var hover = tab.Descendants(Wpf + "MultiTrigger").Single();
+        var conditions = hover.Descendants(Wpf + "Condition")
+            .ToDictionary(condition => (string)condition.Attribute("Property")!, condition => (string)condition.Attribute("Value")!);
+
+        Assert.AreEqual("True", conditions["IsMouseOver"]);
+        Assert.AreEqual("True", conditions["IsEnabled"]);
+        Assert.AreEqual("False", conditions["IsSelected"], "The selected tab keeps its accent under the pointer.");
+
+        var background = hover.Elements(Wpf + "Setter").Single(setter => (string?)setter.Attribute("Property") == "Background");
+        Assert.AreEqual("{DynamicResource DataGridHeaderBackgroundPointerOver}", (string?)background.Attribute("Value"));
     }
 
     [TestMethod]

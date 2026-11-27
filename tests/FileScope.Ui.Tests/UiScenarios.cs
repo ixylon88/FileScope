@@ -1031,6 +1031,8 @@ public sealed partial class UiTests
                     && grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId).SequenceEqual(order)
                     && grid.FrozenColumnCount == 2 && grid.EnableRowVirtualization && grid.EnableColumnVirtualization,
                     "repeated switches retain one palette, column order and grid virtualization / " + theme);
+
+                TabHeaderChecks.Check((TabItem)settings.FindName("ExportOptionsTab"));
             }
             Assert.IsTrue(analysis.Calls == calls && ReferenceEquals(row.Result, result) && row.SHA256 == digest
                 && ReferenceEquals(vm.SelectedRow, row) && vm.SearchText == Path.GetFileName(input) && vm.RowsView.Count == 1,
