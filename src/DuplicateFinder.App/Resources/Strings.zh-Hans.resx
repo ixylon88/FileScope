@@ -123,6 +123,9 @@
   <data name="Options" xml:space="preserve">
     <value>选项…</value>
   </data>
+  <data name="OptionsTitle" xml:space="preserve">
+    <value>选项</value>
+  </data>
   <data name="Scan" xml:space="preserve">
     <value>扫描文件夹</value>
   </data>
