@@ -1,11 +1,14 @@
 using System.Buffers.Binary;
 using System.Text;
-using DuplicateFinder.Core;
-using FileScope.TestSupport;
+using DuplicateFinder.Core.Abstractions;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Models;
+using DuplicateFinder.Core.Services;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
+using FileScope.TestSupport;
 
 namespace DuplicateFinder.Tests;
 

@@ -1,8 +1,8 @@
 <Window x:Class="DuplicateFinder.App.OptionsWindow" x:Name="WindowRoot"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:DuplicateFinder.App"
-        xmlns:shared="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:loc="clr-namespace:DuplicateFinder.App.Localization"
+        xmlns:shared="clr-namespace:FileScope.Shared.Controls;assembly=FileScope.Shared"
         Title="{loc:Loc OptionsTitle}" Style="{StaticResource AppWindowStyle}"
         Width="730" Height="740" MinWidth="640" MinHeight="600" WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">

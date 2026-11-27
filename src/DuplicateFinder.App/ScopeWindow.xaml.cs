@@ -1,5 +1,5 @@
 using System.Windows;
-using DuplicateFinder.Core;
+using DuplicateFinder.Core.Models;
 
 namespace DuplicateFinder.App;
 

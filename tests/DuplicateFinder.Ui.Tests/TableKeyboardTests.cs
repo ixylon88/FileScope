@@ -3,8 +3,8 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
-using DuplicateFinder.App;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.ViewModels;
+using DuplicateFinder.Core.Models;
 using FileScope.Ui.Tests;
 
 namespace DuplicateFinder.Ui.Tests;

@@ -3,9 +3,12 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Threading;
-using DuplicateFinder.Core;
 using System.Windows.Media;
+using System.Windows.Threading;
+using DuplicateFinder.App.Services;
+using DuplicateFinder.App.ViewModels;
+using DuplicateFinder.Core.Models;
+using DuplicateFinder.Core.Services;
 
 namespace DuplicateFinder.App;
 

@@ -1,5 +1,8 @@
 using System.Windows;
-using DuplicateFinder.Core;
+using DuplicateFinder.App.Services;
+using DuplicateFinder.App.ViewModels;
+using DuplicateFinder.Core.Files;
+using DuplicateFinder.Core.Services;
 
 namespace DuplicateFinder.App;
 

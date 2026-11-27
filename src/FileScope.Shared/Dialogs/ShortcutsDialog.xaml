@@ -1,0 +1,79 @@
+<Window x:Class="FileScope.Shared.Dialogs.ShortcutsDialog" x:Name="WindowRoot"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:FileScope.Shared.Localization"
+        Title="{loc:Loc ShortcutsTitle}" Width="660" Height="760" MinWidth="480" MinHeight="380"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
+        Language="{Binding Culture.IetfLanguageTag, Source={x:Static loc:LocalizationService.Instance}, Mode=OneWay, ConverterCulture=en-US}"
+        Style="{StaticResource AppWindowStyle}">
+  <Window.Resources>
+    <Style TargetType="HeaderedContentControl">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Margin" Value="0,0,0,5" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="HeaderedContentControl">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="ShortcutKeys" MaxWidth="230" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource ShortcutKeyCap}">
+                <TextBlock Text="{TemplateBinding Header}" Style="{StaticResource ShortcutKeys}" />
+              </Border>
+              <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" Style="{StaticResource ShortcutDescription}" />
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+  <Grid Margin="24">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+    <Grid Margin="0,0,0,18">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Border Width="44" Height="44" Background="{DynamicResource SystemFillColorAttentionBrush}"
+              CornerRadius="10" Margin="0,0,14,0" VerticalAlignment="Top">
+        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" />
+      </Border>
+      <StackPanel Grid.Column="1">
+        <TextBlock Text="{loc:Loc ShortcutsTitle}" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock x:Name="ShortcutsHintText" Text="{loc:Loc ShortcutsHint}" TextWrapping="Wrap"
+                   Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0" />
+      </StackPanel>
+    </Grid>
+    <ScrollViewer x:Name="ShortcutsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
+      <StackPanel x:Name="ShortcutList" Grid.IsSharedSizeScope="True">
+        <TextBlock x:Name="ShortcutsGroupActions" Text="{loc:Loc ShortcutsGroupActions}" Style="{StaticResource GroupHeading}" Margin="0,0,0,8" />
+        <StackPanel x:Name="ActionsList">
+          <HeaderedContentControl Header="{loc:Loc ShortcutCancelKeys}" Content="{loc:Loc ShortcutCancelAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutHelpKeys}" Content="{loc:Loc ShortcutHelpAction}" />
+        </StackPanel>
+
+        <TextBlock x:Name="ShortcutsGroupNavigation" Text="{loc:Loc ShortcutsGroupNavigation}" Style="{StaticResource GroupHeading}" Margin="0,14,0,8" />
+        <StackPanel x:Name="NavigationList">
+          <HeaderedContentControl Header="{loc:Loc ShortcutTableEndsKeys}" Content="{loc:Loc ShortcutTableEndsAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutPageKeys}" Content="{loc:Loc ShortcutPageAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutRowEndsKeys}" Content="{loc:Loc ShortcutRowEndsAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutRowsKeys}" Content="{loc:Loc ShortcutRowsAction}" />
+        </StackPanel>
+
+        <TextBlock x:Name="ShortcutsGroupSelection" Text="{loc:Loc ShortcutsGroupSelection}" Style="{StaticResource GroupHeading}" Margin="0,14,0,8" />
+        <StackPanel x:Name="SelectionList">
+          <HeaderedContentControl Header="{loc:Loc ShortcutSelectAllKeys}" Content="{loc:Loc ShortcutSelectAllAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutExtendKeys}" Content="{loc:Loc ShortcutExtendAction}" />
+          <HeaderedContentControl Header="{loc:Loc ShortcutCopyKeys}" Content="{loc:Loc ShortcutCopyAction}" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+    <Grid Grid.Row="2" Margin="0,18,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <TextBlock x:Name="ShortcutsCloseHintText" Text="{loc:Loc ShortcutsCloseHint}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"
+                 Foreground="{DynamicResource MutedBrush}" FontSize="12" />
+      <Button x:Name="CloseShortcutsButton" Grid.Column="1" Content="{loc:Loc Close}" IsDefault="True" IsCancel="True"
+              Command="{Binding CloseCommand, ElementName=WindowRoot}" MinWidth="100" Padding="16,8" />
+    </Grid>
+  </Grid>
+</Window>
