@@ -1,4 +1,7 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Markup;
 using FileScope.TestSupport;
 
 namespace FileScope.Ui.Tests;
@@ -118,6 +121,20 @@ public sealed partial class UiTests
     [TestMethod]
     public Task OptionsFooter() =>
         WpfTestHost.RunAsync((app, strings) => CheckOptionsFooter(strings));
+
+    [TestMethod]
+    public Task OptionsFooterOpensAsStandaloneXaml() => WpfTestHost.RunAsync((_, _) =>
+    {
+        // Load the original markup directly, without a host control or generated code-behind.
+        using var source = typeof(UiTests).Assembly.GetManifestResourceStream("OptionsFooter.xaml");
+        Assert.IsNotNull(source);
+        var panel = (DockPanel)XamlReader.Load(source);
+
+        Assert.AreEqual(typeof(DockPanel), panel.GetType());
+        Assert.IsTrue(((Button)panel.FindName("CancelButton")).IsCancel);
+        Assert.IsTrue(((Button)panel.FindName("SaveButton")).IsDefault);
+        Assert.AreEqual(Visibility.Collapsed, ((TextBlock)panel.FindName("ErrorMessage")).Visibility);
+    });
 
     [TestMethod]
     [DataRow(0)]

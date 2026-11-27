@@ -7,7 +7,7 @@ namespace FileScope.Ui.Tests;
 
 internal sealed class OptionsFooterChecks(Window window)
 {
-    private readonly OptionsFooter _footer = (OptionsFooter)window.FindName("DialogFooter");
+    private readonly FrameworkElement _footer = (FrameworkElement)((OptionsFooter)window.FindName("DialogFooter")).Child;
 
     public Button Cancel => (Button)_footer.FindName("CancelButton");
     public Button Save => (Button)_footer.FindName("SaveButton");

@@ -6,8 +6,10 @@ using System.Windows.Input;
 namespace FileScope.Shared;
 
 /// <summary>Shows the preview hint, the current error and the two options dialog commands.</summary>
-public partial class OptionsFooter : DockPanel
+public sealed class OptionsFooter : Decorator
 {
+    private readonly TextBlock _errorMessage;
+
     public static readonly DependencyProperty CancelCommandProperty =
         DependencyProperty.Register(nameof(CancelCommand), typeof(ICommand), typeof(OptionsFooter));
 
@@ -21,23 +23,29 @@ public partial class OptionsFooter : DockPanel
     public ICommand? CancelCommand { get => (ICommand?)GetValue(CancelCommandProperty); set => SetValue(CancelCommandProperty, value); }
     public ICommand? SaveCommand { get => (ICommand?)GetValue(SaveCommandProperty); set => SetValue(SaveCommandProperty, value); }
     public string? ErrorText { get => (string?)GetValue(ErrorTextProperty); set => SetValue(ErrorTextProperty, value); }
+    public LocalizationService Strings { get; } = LocalizationService.Instance;
 
     public OptionsFooter()
     {
-        InitializeComponent();
+        // Visual Studio can open this ordinary WPF page before it has loaded the host assembly.
+        var view = (DockPanel)Application.LoadComponent(new Uri("/FileScope.Shared;component/Wpf/OptionsFooter.xaml", UriKind.Relative));
+        _errorMessage = (TextBlock)view.FindName("ErrorMessage");
+        view.DataContext = this;
+        Child = view;
+
         Loaded += (_, _) => AnnounceError();
     }
 
     private void ShowError(string? message)
     {
-        ErrorMessage.Text = message ?? string.Empty;
-        ErrorMessage.Visibility = string.IsNullOrEmpty(message) ? Visibility.Collapsed : Visibility.Visible;
+        _errorMessage.Text = message ?? string.Empty;
+        _errorMessage.Visibility = string.IsNullOrEmpty(message) ? Visibility.Collapsed : Visibility.Visible;
         AnnounceError();
     }
 
     private void AnnounceError()
     {
-        if (IsLoaded && ErrorMessage.IsVisible && AutomationPeer.ListenerExists(AutomationEvents.LiveRegionChanged))
-            UIElementAutomationPeer.CreatePeerForElement(ErrorMessage)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        if (IsLoaded && _errorMessage.IsVisible && AutomationPeer.ListenerExists(AutomationEvents.LiveRegionChanged))
+            UIElementAutomationPeer.CreatePeerForElement(_errorMessage)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
     }
 }
