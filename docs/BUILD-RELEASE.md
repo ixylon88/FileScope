@@ -77,7 +77,7 @@ dotnet test --project tests/FileScope.Ui.Tests/FileScope.Ui.Tests.csproj --filte
 dotnet test --project tests/FileScope.Core.Tests/FileScope.Core.Tests.csproj -c Release --runtime win-arm64 -p:Platform=Arm64
 ```
 
-`Verify.ps1` führt zuerst die gemeinsamen Skriptprüfungen aus. Standardmäßig baut es die Solution und startet die fünf Testprojekte mit `dotnet test`. Bei Auswahl einer App baut es deren Projekt samt Referenzen und startet die drei FileScope- oder die zwei DuplicateFinder-Testprojekte. `-SkipBuild` überspringt den vorangestellten Build. Die Testaufrufe bauen weiterhin ihre Projekte und Referenzen. `-SkipUi` überspringt die jeweils ausgewählten WPF-Tests. Ohne expliziten
+`Verify.ps1` führt zuerst die gemeinsamen Skriptprüfungen aus. Standardmäßig baut es die Solution und startet die fünf Testprojekte mit `dotnet test`. Bei Auswahl einer App baut es deren Projekt samt Referenzen und prüft in beiden Fällen FileScope.Core und die gemeinsame Präsentation. Dazu kommen die Präsentations- und WPF-Tests der gewählten App sowie für DuplicateFinder dessen eigene Core-Tests. `-SkipBuild` überspringt den vorangestellten Build. Die Testaufrufe bauen weiterhin ihre Projekte und Referenzen. `-SkipUi` überspringt die jeweils ausgewählten WPF-Tests. Ohne expliziten
 Windows-RID laufen unter Linux die Core- und Präsentationstests; ein vollständiger
 Solution-Testlauf einschließlich WPF benötigt Windows.
 

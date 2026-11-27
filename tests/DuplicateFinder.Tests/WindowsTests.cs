@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using DuplicateFinder.Core;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
+using FileScope.TestSupport;
 
 namespace DuplicateFinder.Tests;
 
@@ -11,6 +12,37 @@ namespace DuplicateFinder.Tests;
 [OSCondition(OperatingSystems.Windows)]
 public sealed partial class WindowsTests
 {
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task FixtureCleanupWaitsForASharingViolation(bool keepLocked)
+    {
+        var root = Directory.CreateTempSubdirectory("DuplicateFinder-cleanup-").FullName;
+        var path = Path.Combine(root, "one");
+        try
+        {
+            using var held = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            var cleanup = TestDirectory.DeleteAsync(root);
+            Assert.IsFalse(cleanup.IsCompleted, "Cleanup must wait while the file denies deletion.");
+
+            if (keepLocked)
+            {
+                var error = await Assert.ThrowsExactlyAsync<IOException>(() => cleanup);
+                Assert.AreEqual(unchecked((int)0x80070020), error.HResult);
+            }
+            else
+            {
+                held.Dispose();
+                await cleanup;
+                Assert.IsFalse(Directory.Exists(root));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root)) await TestDirectory.DeleteAsync(root);
+        }
+    }
+
     [TestMethod]
     public async Task NativeScanRecognizesHardlinksAndNamedStreamVariants()
     {

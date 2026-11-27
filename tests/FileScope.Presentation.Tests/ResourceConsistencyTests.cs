@@ -25,10 +25,15 @@ public sealed partial class ResourceConsistencyTests
     private static readonly XNamespace Behaviors = "clr-namespace:FileScope.App.Behaviors";
 
     [TestMethod]
-    [DataRow(FileScopeApp)]
-    [DataRow(DuplicateFinderApp)]
-    [DataRow(Shared)]
-    public void TranslationsHaveMatchingKeysAndPlaceholders(string catalog)
+    public void FileScopeTranslations() => CheckTranslations(FileScopeApp);
+
+    [TestMethod, TestCategory("DuplicateFinder")]
+    public void DuplicateFinderTranslations() => CheckTranslations(DuplicateFinderApp);
+
+    [TestMethod, TestCategory("Shared")]
+    public void SharedTranslations() => CheckTranslations(Shared);
+
+    private static void CheckTranslations(string catalog)
     {
         var baseline = ReadStrings(catalog, "en");
         Assert.IsNotEmpty(baseline, $"{catalog}: empty neutral resource set.");
@@ -50,9 +55,12 @@ public sealed partial class ResourceConsistencyTests
     }
 
     [TestMethod]
-    [DataRow(FileScopeApp, "Source.Xaml.FileScope.")]
-    [DataRow(DuplicateFinderApp, "DuplicateFinder.Xaml.")]
-    public void XamlLocalizationKeysExist(string application, string xamlPrefix)
+    public void FileScopeXamlLocalizationKeysExist() => CheckXamlKeys(FileScopeApp, "Source.Xaml.FileScope.");
+
+    [TestMethod, TestCategory("DuplicateFinder")]
+    public void DuplicateFinderXamlLocalizationKeysExist() => CheckXamlKeys(DuplicateFinderApp, "DuplicateFinder.Xaml.");
+
+    private static void CheckXamlKeys(string application, string xamlPrefix)
     {
         var keys = ApplicationKeys(application);
 
@@ -70,9 +78,17 @@ public sealed partial class ResourceConsistencyTests
     }
 
     [TestMethod]
-    public void BothApplicationsUseCommandsForActionButtons()
+    public void FileScopeButtonsUseCommands() => CheckButtonCommands("Source.Xaml.FileScope.");
+
+    [TestMethod, TestCategory("DuplicateFinder")]
+    public void DuplicateFinderButtonsUseCommands() => CheckButtonCommands("DuplicateFinder.Xaml.");
+
+    [TestMethod, TestCategory("Shared")]
+    public void SharedButtonsUseCommands() => CheckButtonCommands("Source.Xaml.Shared.");
+
+    private static void CheckButtonCommands(string prefix)
     {
-        foreach (var (name, document) in ReadXaml().Concat(ReadXaml("DuplicateFinder.Xaml.")))
+        foreach (var (name, document) in ReadXaml(prefix))
         {
             foreach (var button in document.Descendants(Wpf + "Button"))
             {
@@ -104,7 +120,7 @@ public sealed partial class ResourceConsistencyTests
             Assert.Contains(key, available, $"Missing model label: {key}.");
     }
 
-    [TestMethod]
+    [TestMethod, TestCategory("Shared")]
     public void ThemePalettesHaveMatchingKeys()
     {
         var light = PaletteKeys(ReadXamlFile("LightThemePalette.xaml"));
@@ -181,7 +197,7 @@ public sealed partial class ResourceConsistencyTests
         }
     }
 
-    [TestMethod]
+    [TestMethod, TestCategory("Shared")]
     public void SharedStylesKeepNativeControlTemplates()
     {
         var controls = ReadXamlFile("Controls.xaml");

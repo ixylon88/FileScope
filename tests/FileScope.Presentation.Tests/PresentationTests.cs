@@ -31,6 +31,7 @@ public sealed class PresentationTests
     public void Cleanup() => LocalizationService.Instance.SetCulture("en");
 
     [TestMethod]
+    [TestCategory("Shared")]
     public void BothAppsOfferOneExactFilterPerDisplayedCode()
     {
         var strings = LocalizationService.Instance;
@@ -266,6 +267,7 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    [TestCategory("Shared")]
     [DataRow("", "", "", "", "")]
     [DataRow("00FF", "00ff", "00:FF", "AP8=", "AP8")]
     [DataRow("FF", "ff", "FF", "/w==", "_w")]
@@ -281,6 +283,7 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    [TestCategory("Shared")]
     [DataRow(16)]
     [DataRow(20)]
     [DataRow(32)]
@@ -546,6 +549,7 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    [TestCategory("Shared")]
     public void WindowSizes()
     {
         static WindowSize Restore(WindowPreferences? saved, double width = 1920, double height = 1040) =>

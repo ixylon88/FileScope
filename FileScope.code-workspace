@@ -183,10 +183,7 @@
         "options": {
           "cwd": "${workspaceFolder:FileScope}"
         },
-        "group": {
-          "kind": "test",
-          "isDefault": true
-        },
+        "group": "test",
         "problemMatcher": "$msCompile",
         "presentation": {
           "reveal": "always",

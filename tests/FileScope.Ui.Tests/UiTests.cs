@@ -1,3 +1,6 @@
+using System.IO;
+using FileScope.TestSupport;
+
 namespace FileScope.Ui.Tests;
 
 [TestClass]
@@ -52,8 +55,18 @@ public sealed partial class UiTests
         WpfTestHost.RunAsync((app, strings) => CheckFolderAndExport(strings));
 
     [TestMethod]
-    public Task DroppedFolders() =>
-        WpfTestHost.RunAsync((app, strings) => CheckDroppedFolders(strings));
+    public async Task DroppedFolders()
+    {
+        var root = Directory.CreateTempSubdirectory("FileScope-drop-ui-").FullName;
+        try
+        {
+            await WpfTestHost.RunAsync((app, strings) => CheckDroppedFolders(strings, root));
+        }
+        finally
+        {
+            await TestDirectory.DeleteAsync(root);
+        }
+    }
 
     [TestMethod]
     public Task FileOperationCancellation() =>
