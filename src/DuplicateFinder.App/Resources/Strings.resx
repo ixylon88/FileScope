@@ -132,9 +132,6 @@
   <data name="Issues" xml:space="preserve">
     <value>Scan diagnostics</value>
   </data>
-  <data name="ShortcutsTitle" xml:space="preserve">
-    <value>Shortcuts</value>
-  </data>
   <data name="Filter" xml:space="preserve">
     <value>Filter</value>
   </data>
@@ -237,17 +234,17 @@
   <data name="LastCopy" xml:space="preserve">
     <value>This selection includes all known copies of {0:N0} contents or stream variants.</value>
   </data>
-  <data name="KeyScan" xml:space="preserve">
+  <data name="ShortcutScanKeys" xml:space="preserve">
+    <value>F5</value>
+  </data>
+  <data name="ShortcutScanAction" xml:space="preserve">
     <value>Scan the configured folders</value>
   </data>
-  <data name="KeyFilter" xml:space="preserve">
+  <data name="ShortcutFilterAction" xml:space="preserve">
     <value>Focus the table filter</value>
   </data>
-  <data name="KeyMark" xml:space="preserve">
-    <value>Toggle the check mark on the focused file</value>
-  </data>
-  <data name="KeyHelp" xml:space="preserve">
-    <value>Open keyboard shortcuts</value>
+  <data name="ShortcutMarkAction" xml:space="preserve">
+    <value>Toggle the Recycle Bin check mark on the focused file</value>
   </data>
   <data name="Moved" xml:space="preserve">
     <value>Recycled</value>
@@ -321,20 +318,11 @@
   <data name="Signatures" xml:space="preserve">
     <value>Signatures</value>
   </data>
-  <data name="ShortcutActions" xml:space="preserve">
-    <value>Commands</value>
-  </data>
-  <data name="ShortcutResults" xml:space="preserve">
-    <value>Results and file details</value>
-  </data>
-  <data name="KeysFilter" xml:space="preserve">
+  <data name="ShortcutFilterKeys" xml:space="preserve">
     <value>Ctrl+F</value>
   </data>
-  <data name="KeysMark" xml:space="preserve">
+  <data name="ShortcutMarkKeys" xml:space="preserve">
     <value>Space</value>
-  </data>
-  <data name="KeyCopy" xml:space="preserve">
-    <value>Copy the selected text from the file details</value>
   </data>
   <data name="Stage_Metadata" xml:space="preserve">
     <value>Checking file metadata</value>

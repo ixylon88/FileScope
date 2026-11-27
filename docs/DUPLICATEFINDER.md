@@ -23,7 +23,7 @@ Bei **Dateien suchen** zeigt die Statusleiste den aktuellen Pfad und zählt alle
 
 Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einem bestätigten Duplikat liefern.
 
-Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
+Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. **F1** oder der Knopf **Tastenkürzel** öffnet die gemeinsame Übersicht. **Esc** oder **Enter** schließt sie. Darin stehen auch die DuplicateFinder-Befehle **F5** für die Suche und **Strg+F** für den Filter. [Gemeinsame Tabellenkürzel](../README.md#tastenkürzel)
 
 Sprache und Design wechseln bereits im offenen Optionsfenster. Unter **Optionen → Analyse** lässt sich die Darstellung für vorhandene und künftige Prüfsummen und Zertifikatfingerabdrücke wählen. Zur Auswahl stehen Hex mit Groß- oder Kleinbuchstaben, Hex mit Doppelpunkten, Base64 und Base64url. Tabelle und kopierbare Details verwenden das gewählte Format. **Speichern** übernimmt die Vorschau, **Abbrechen** und das Schließen über das Fensterkreuz stellen die vorherige Darstellung wieder her. Die letzte Spalte passt sich dem vollständigen Pfad an. Wer die Breite begrenzen möchte, kann die automatische Pfadbreite dort ausschalten.
 
@@ -33,9 +33,11 @@ Haupt- und Optionsfenster merken sich ihre normale Größe und ihren Maximierung
 
 **Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)
 
-Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Der aufklappbare Bereich **Ausgewählte Datei · Details und Kopieren** zeigt den vollständigen Pfad der aktiven Zeile. Im Textfeld lassen sich beispielsweise Prüfsummen oder Katalogpfade markieren und mit **Strg+C** kopieren.
+Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Ist genau eine Zeile ausgewählt, zeigt **Ausgewählte Datei · Details und Kopieren** ihren vollständigen Pfad. Im aufgeklappten Textfeld lassen sich beispielsweise eine Prüfsumme oder ein Katalogpfad markieren und mit **Strg+C** kopieren.
 
-Die Kästchen vor den Dateinamen bestimmen die manuelle Auswahl für den Papierkorb. Ein Klick auf eine Dateizeile oder ihr Kästchen schaltet die Markierung um. Die Häkchen bleiben erhalten, wenn man eine Gruppe zuklappt oder mit den Pfeiltasten eine andere Datei ansieht. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
+In der Tabelle erweitert **Umschalt+Pfeil auf/ab** die Zeilenauswahl. **Strg+A** wählt alle Dateien der gefilterten Ansicht aus, auch in zugeklappten Gruppen. **Strg+C** kopiert die ausgewählten Zeilen mit Spaltenüberschriften. Die Häkchen für den Papierkorb bleiben bei diesen Tastenkürzeln und bei der Zeilenauswahl per **Strg+Klick** oder **Umschalt+Klick** erhalten.
+
+Ein einfacher Klick auf eine Dateizeile oder ihr Kästchen schaltet das Häkchen für den Papierkorb um. Mit der Tastatur geht das über die **Leertaste** in der aktuellen Zeile. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
 
 ## Wie die Duplikatsuche arbeitet
 
@@ -74,7 +76,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 ## Architektur
 
-`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes, Katalogtexte und den Hashformatierer sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und den Über-Dialog bereit.
+`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes, Katalogtexte und den Hashformatierer sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und die Dialoge für Programminformationen und Tastenkürzel bereit.
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |

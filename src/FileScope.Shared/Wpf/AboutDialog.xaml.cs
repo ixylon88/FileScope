@@ -35,12 +35,7 @@ public partial class AboutDialog : Window
         using var reader = new StreamReader(stream);
         LicenseText.Text = reader.ReadToEnd();
 
-        var workArea = SystemParameters.WorkArea;
-        var size = WindowSize.Restore(null, Width, Height, MinWidth, MinHeight, workArea.Width, workArea.Height);
-        MinWidth = size.MinWidth;
-        MinHeight = size.MinHeight;
-        Width = size.Width;
-        Height = size.Height;
+        WindowPlacement.FitToWorkArea(this);
         UpdateLanguage(this, EventArgs.Empty);
         LocalizationService.Instance.CultureChanged += UpdateLanguage;
         Closed += (_, _) => LocalizationService.Instance.CultureChanged -= UpdateLanguage;

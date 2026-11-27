@@ -44,6 +44,7 @@ public sealed class LocalizationService : ObservableObject
         if (!Languages.Any(l => l.CultureName == name)) throw new ArgumentException("Unsupported UI language.", nameof(name));
         Culture = CultureInfo.GetCultureInfo(name);
         ApplyCulture();
+        OnPropertyChanged(nameof(Culture));
         OnPropertyChanged("Item[]");
         CultureChanged?.Invoke(this, EventArgs.Empty);
     }

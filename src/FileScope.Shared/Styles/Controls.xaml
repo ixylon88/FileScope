@@ -93,6 +93,15 @@
       </Trigger>
     </Style.Triggers>
   </Style>
+  <Style x:Key="ResultsGridStyle" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="CanUserAddRows" Value="False" />
+    <Setter Property="CanUserDeleteRows" Value="False" />
+    <Setter Property="SelectionMode" Value="Extended" />
+    <Setter Property="SelectionUnit" Value="FullRow" />
+    <Setter Property="ClipboardCopyMode" Value="IncludeHeader" />
+  </Style>
+
   <Style x:Key="GridText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
     <Setter Property="Margin" Value="9,7" />
     <Setter Property="VerticalAlignment" Value="Center" />

@@ -687,27 +687,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="SingleFileActionHint" xml:space="preserve">
     <value>Für diese Aktion genau eine Datei markieren.</value>
   </data>
-  <data name="ShortcutsTitle" xml:space="preserve">
-    <value>Tastenkürzel</value>
-  </data>
-  <data name="ShortcutsTip" xml:space="preserve">
-    <value>Tastenkürzel anzeigen (F1)</value>
-  </data>
-  <data name="ShortcutsHint" xml:space="preserve">
-    <value>Tabellenkürzel gelten, wenn die Ergebnisliste den Tastaturfokus hat. In Textfeldern gelten die üblichen Textkürzel.</value>
-  </data>
-  <data name="ShortcutsGroupActions" xml:space="preserve">
-    <value>Aktionen</value>
-  </data>
-  <data name="ShortcutsGroupNavigation" xml:space="preserve">
-    <value>In der Tabelle navigieren</value>
-  </data>
-  <data name="ShortcutsGroupSelection" xml:space="preserve">
-    <value>Auswählen und kopieren</value>
-  </data>
-  <data name="ShortcutsCloseHint" xml:space="preserve">
-    <value>Esc oder Enter schließt diese Übersicht.</value>
-  </data>
   <data name="ShortcutOpenKeys" xml:space="preserve">
     <value>Strg+O</value>
   </data>
@@ -719,48 +698,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>Ergebnisse und Filter leeren, wenn kein Vorgang läuft</value>
-  </data>
-  <data name="ShortcutHelpAction" xml:space="preserve">
-    <value>Diese Übersicht öffnen</value>
-  </data>
-  <data name="ShortcutTableEndsKeys" xml:space="preserve">
-    <value>Strg+Pos1 / Strg+Ende</value>
-  </data>
-  <data name="ShortcutTableEndsAction" xml:space="preserve">
-    <value>Erste / letzte Zelle der Tabelle</value>
-  </data>
-  <data name="ShortcutPageKeys" xml:space="preserve">
-    <value>BildAuf / BildAb</value>
-  </data>
-  <data name="ShortcutPageAction" xml:space="preserve">
-    <value>Eine sichtbare Tabellenseite nach oben / unten</value>
-  </data>
-  <data name="ShortcutRowEndsKeys" xml:space="preserve">
-    <value>Pos1 / Ende</value>
-  </data>
-  <data name="ShortcutRowEndsAction" xml:space="preserve">
-    <value>Erste / letzte Zelle der aktuellen Zeile</value>
-  </data>
-  <data name="ShortcutRowsKeys" xml:space="preserve">
-    <value>↑ / ↓</value>
-  </data>
-  <data name="ShortcutRowsAction" xml:space="preserve">
-    <value>Vorherige / nächste Zeile</value>
-  </data>
-  <data name="ShortcutSelectAllKeys" xml:space="preserve">
-    <value>Strg+A</value>
-  </data>
-  <data name="ShortcutSelectAllAction" xml:space="preserve">
-    <value>Alle Zeilen der aktuellen Ansicht markieren</value>
-  </data>
-  <data name="ShortcutExtendKeys" xml:space="preserve">
-    <value>Umschalt+↑ / Umschalt+↓</value>
-  </data>
-  <data name="ShortcutExtendAction" xml:space="preserve">
-    <value>Zeilenauswahl erweitern</value>
-  </data>
-  <data name="ShortcutCopyAction" xml:space="preserve">
-    <value>Markierte Zeilen einschließlich Spaltenüberschriften kopieren</value>
   </data>
   <data name="ShortcutContextMenuKeys" xml:space="preserve">
     <value>Umschalt+F10 / Menütaste</value>

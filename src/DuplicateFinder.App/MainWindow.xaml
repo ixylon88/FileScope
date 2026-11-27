@@ -47,7 +47,8 @@
                   <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
-              <Button x:Name="ShortcutsButton" Command="{Binding ShortcutsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc ShortcutsButton}">
+              <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
+                      ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
                   <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
@@ -89,8 +90,8 @@
     </Grid>
 
     <Border x:Name="ResultsFrame" Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
-      <DataGrid x:Name="Files" BorderThickness="0" GridLinesVisibility="Horizontal" ItemsSource="{Binding View}" AutoGenerateColumns="False" IsReadOnly="True"
-                CanUserAddRows="False" CanUserSortColumns="False" SelectionMode="Single" SelectionUnit="FullRow" IsSynchronizedWithCurrentItem="False"
+      <DataGrid x:Name="Files" Style="{StaticResource ResultsGridStyle}" BorderThickness="0" GridLinesVisibility="Horizontal" ItemsSource="{Binding View}" AutoGenerateColumns="False"
+                CanUserSortColumns="False" IsSynchronizedWithCurrentItem="False"
                 HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True"
                 VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 ScrollViewer.CanContentScroll="True">
@@ -160,8 +161,17 @@
       </DataGrid>
     </Border>
 
-    <Expander x:Name="DetailsExpander" Grid.Row="3" Margin="0,8,0,0" IsExpanded="False" HorizontalContentAlignment="Stretch"
-              DataContext="{Binding SelectedItem, ElementName=Files, Mode=OneWay}">
+    <Expander x:Name="DetailsExpander" Grid.Row="3" Margin="0,8,0,0" IsExpanded="False" HorizontalContentAlignment="Stretch">
+      <Expander.Style>
+        <Style TargetType="Expander" BasedOn="{StaticResource {x:Type Expander}}">
+          <Setter Property="DataContext" Value="{x:Null}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding SelectedItems.Count, ElementName=Files}" Value="1">
+              <Setter Property="DataContext" Value="{Binding SelectedItem, ElementName=Files}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Expander.Style>
       <Expander.Header>
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

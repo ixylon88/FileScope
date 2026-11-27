@@ -209,7 +209,8 @@ public sealed partial class UiTests
         using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
             new OptionsViewModel(strings, store, themes));
         var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
-        var shortcuts = new ShortcutsWindow { ShowActivated = false };
+        var shortcuts = ShortcutsWindow.Create();
+        shortcuts.ShowActivated = false;
         var errors = new StringWriter();
         using var listener = new TextWriterTraceListener(errors);
         var bindingSource = PresentationTraceSources.DataBindingSource;
@@ -237,7 +238,7 @@ public sealed partial class UiTests
             {
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    var dialog = app.Windows.OfType<ShortcutsWindow>().SingleOrDefault(window => window.IsVisible);
+                    var dialog = app.Windows.OfType<ShortcutsDialog>().SingleOrDefault(window => window.IsVisible);
                     if (dialog == null) return;
                     opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
                     ((Button)dialog.FindName("CloseShortcutsButton")).Command.Execute(null);
@@ -246,37 +247,25 @@ public sealed partial class UiTests
             CloseNextModal();
             var peer = new ButtonAutomationPeer(button);
             ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
-            PumpUntil(() => opened && !app.Windows.OfType<ShortcutsWindow>().Any(window => window.IsVisible));
+            PumpUntil(() => opened && !app.Windows.OfType<ShortcutsDialog>().Any(window => window.IsVisible));
             Assert.IsTrue(opened, "invoking the real shortcuts button opens an owned modal dialog and Close returns");
             opened = false;
             CloseNextModal();
             ((RoutedCommand)help.Command).Execute(null, main);
-            Assert.IsTrue(opened && !app.Windows.OfType<ShortcutsWindow>().Any(window => window.IsVisible),
+            Assert.IsTrue(opened && !app.Windows.OfType<ShortcutsDialog>().Any(window => window.IsVisible),
                 "the F1-bound routed command opens and closes the same owned help dialog");
 
             var saves = store.SaveCount;
             shortcuts.Show();
             DrainDispatcher();
             var close = (Button)shortcuts.FindName("CloseShortcutsButton");
-            Assert.IsTrue(close.IsCancel && close.IsDefault && !shortcuts.ShowInTaskbar && shortcuts.ResizeMode == ResizeMode.CanResizeWithGrip,
-                "shortcuts support Escape, Enter, resizing and no separate taskbar entry");
-            var entries = new[] { "Open", "Clear", "Cancel", "Help", "TableEnds", "Page", "RowEnds", "Rows", "SelectAll", "Extend", "Copy", "ContextMenu" };
-            var groups = new[] { "Actions", "Navigation", "Selection" };
+            Assert.IsTrue(!shortcuts.ShowInTaskbar && shortcuts.ResizeMode == ResizeMode.CanResizeWithGrip);
             foreach (var language in strings.Languages)
             {
                 strings.SetCulture(language.CultureName);
                 DrainDispatcher();
-                Assert.IsTrue(shortcuts.Title == strings["ShortcutsTitle"]
-                    && string.Equals(shortcuts.Language.IetfLanguageTag, strings.Culture.IetfLanguageTag, StringComparison.OrdinalIgnoreCase)
-                    && ((TextBlock)shortcuts.FindName("ShortcutsHintText")).Text == strings["ShortcutsHint"]
-                    && System.Windows.Automation.AutomationProperties.GetName(button) == strings["ShortcutsTitle"],
-                    "the existing shortcut window and accessible toolbar label follow the language / " + language.CultureName);
-                Assert.IsTrue(entries.All(id => ((TextBlock)shortcuts.FindName("Shortcut" + id + "Keys")).Text == strings["Shortcut" + id + "Keys"]
-                        && ((TextBlock)shortcuts.FindName("Shortcut" + id + "Action")).Text == strings["Shortcut" + id + "Action"])
-                    && groups.All(group =>
-                        ((TextBlock)shortcuts.FindName("ShortcutsGroup" + group)).Text == strings["ShortcutsGroup" + group])
-                    && close.Content.ToString() == strings["Close"],
-                    "all twelve shortcut pairs, section headings and Close are translated in place / " + language.CultureName);
+                ShortcutDialogChecks.Check(shortcuts, strings, ["Open", "Clear"], "ContextMenu");
+                Assert.AreEqual(strings["ShortcutsTitle"], System.Windows.Automation.AutomationProperties.GetName(button));
             }
             foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
             {
