@@ -1,3 +1,4 @@
+using FileScope.App.Presentation;
 
 namespace FileScope.App.ViewModels;
 
@@ -30,21 +31,7 @@ public sealed class ColumnOption(string id, string label, LocalizationService st
         new("ValidUntil", "Column_ValidUntil", strings, static row => row.ValidUntil), new("CertSha1", "Column_CertSha1", strings, static row => row.CertificateSha1),
         new("CertSha256", "Column_CertSha256", strings, static row => row.CertificateSha256), new("CertAlgorithm", "Column_CertAlgorithm", strings, static row => row.CertificateAlgorithm),
         new("NativeCode", "Column_NativeCode", strings, static row => row.NativeCode),
-        new("FileDescription", "Column_FileDescription", strings, static row => row.FileDescription),
-        new("FileLanguage", "Column_FileLanguage", strings, static row => row.FileLanguage),
-        new("FileType", "Column_FileType", strings, static row => row.FileType),
-        new("FileVersion", "Column_FileVersion", strings, static row => row.FileVersion),
-        new("ProductName", "Column_ProductName", strings, static row => row.ProductName),
-        new("ProductVersion", "Column_ProductVersion", strings, static row => row.ProductVersion),
-        new("CompanyName", "Column_CompanyName", strings, static row => row.CompanyName),
-        new("OriginalFilename", "Column_OriginalFilename", strings, static row => row.OriginalFilename),
-        new("InternalName", "Column_InternalName", strings, static row => row.InternalName),
-        new("Copyright", "Column_Copyright", strings, static row => row.FileCopyright),
-        new("Trademarks", "Column_Trademarks", strings, static row => row.FileTrademarks),
-        new("Comments", "Column_Comments", strings, static row => row.FileComments),
-        new("PeMachine", "Column_PeMachine", strings, static row => row.PeMachine),
-        new("PeFormat", "Column_PeFormat", strings, static row => row.PeFormat),
-        new("ManagedPlatform", "Column_ManagedPlatform", strings, static row => row.ManagedPlatformText),
+        .. FileMetadataField.All.Select(definition => new ColumnOption(definition.Id, definition.LabelKey, strings, definition.Read)),
         new("Path", "Column_Path", strings, static row => row.FullPath)
     ];
 }

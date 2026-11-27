@@ -153,21 +153,8 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             Line("Column_ValidUntil", ValidUntil);
             Line("Column_CertAlgorithm", CertificateAlgorithm);
             Line("Column_NativeCode", NativeCode);
-            Line("Column_FileDescription", FileDescription);
-            Line("Column_FileLanguage", FileLanguage);
-            Line("Column_FileType", FileType);
-            Line("Column_FileVersion", FileVersion);
-            Line("Column_ProductName", ProductName);
-            Line("Column_ProductVersion", ProductVersion);
-            Line("Column_CompanyName", CompanyName);
-            Line("Column_OriginalFilename", OriginalFilename);
-            Line("Column_InternalName", InternalName);
-            Line("Column_Copyright", FileCopyright);
-            Line("Column_Trademarks", FileTrademarks);
-            Line("Column_Comments", FileComments);
-            Line("Column_PeMachine", PeMachine);
-            Line("Column_PeFormat", PeFormat);
-            Line("Column_ManagedPlatform", ManagedPlatformText);
+            foreach (var definition in FileMetadataField.All) Line(definition.LabelKey, definition.Read(this));
+
             Line("Column_Diagnostic", Diagnostic);
             return text.ToString().TrimEnd();
         }
@@ -280,11 +267,9 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText,
         Publisher, Subject, Issuer, SerialNumber,
-        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic, CatalogDetails,
-        FileDescription, FileLanguage, FileType, FileVersion, ProductName, ProductVersion,
-        CompanyName, OriginalFilename, InternalName, FileCopyright, FileTrademarks, FileComments,
-        PeMachine, PeFormat, ManagedPlatformText
-    }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase));
+        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic, CatalogDetails
+    }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase)) ||
+        FileMetadataField.All.Any(definition => definition.Read(this).Contains(query, StringComparison.CurrentCultureIgnoreCase));
 
     private string Hash(ChecksumAlgorithm algorithm) =>
         _hashText.GetValueOrDefault(algorithm, "");
