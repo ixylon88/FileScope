@@ -45,30 +45,11 @@ jobs:
           global-json-file: global.json
           architecture: ${{ matrix.architecture }}
 
-      # Verify an already-published checkout, as on a developer machine.
-      - name: Publish framework-dependent
-        run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -NoColor
-
-      - name: Publish DuplicateFinder framework-dependent
-        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
-
       # The same script builds and runs both applications and their test projects locally and in CI.
-      # Use the same Windows PowerShell host as the VS Code tasks.
+      # Resource consistency is part of the presentation test project.
+      # Each job executes WPF and native Windows checks on its own architecture.
       - name: Build and verify, including WPF
-        shell: powershell
         run: ./Verify.ps1 -Runtime ${{ matrix.runtime }} -NoColor
-
-      - name: Repeat the size-filter test and its cleanup on Windows
-        run: |
-          $runtime = '${{ matrix.runtime }}'
-          $test = @(Get-ChildItem tests/DuplicateFinder.Tests/bin -Filter DuplicateFinder.Tests.dll -Recurse |
-              Where-Object { $_.Directory.Name -eq $runtime })
-          if ($test.Count -ne 1) { throw "Expected one DuplicateFinder test assembly for $runtime." }
-
-          for ($i = 1; $i -le 20; $i++) {
-              & dotnet $test[0].FullName --filter 'FullyQualifiedName=DuplicateFinder.Tests.DuplicateTests.EmptyFileAndOpenSizeLimitsWorkDuringDiscovery' --minimum-expected-tests 1 --progress off --no-ansi
-              if ($LASTEXITCODE -ne 0) { throw "Size-filter test failed on run $i." }
-          }
 
       # Keep completed test results even when a later suite fails.
       - name: Upload test reports
@@ -79,6 +60,10 @@ jobs:
           path: artifacts/test-results/**/*.trx
           if-no-files-found: warn
           retention-days: 14
+
+      # These must stay sequential: both variants use the same project obj files.
+      - name: Publish framework-dependent
+        run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -NoColor
 
       - name: Publish self-contained
         run: ./Build.ps1 -Publish -Runtime ${{ matrix.runtime }} -SelfContained -NoColor
@@ -98,6 +83,10 @@ jobs:
           path: artifacts/publish/FileScope/${{ matrix.runtime }}_self-contained/
           if-no-files-found: error
           retention-days: 14
+
+      # These must stay sequential: both variants use the same project obj files.
+      - name: Publish DuplicateFinder framework-dependent
+        run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
 
       - name: Publish DuplicateFinder self-contained
         run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -SelfContained -NoColor

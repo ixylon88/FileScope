@@ -1,8 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using DuplicateFinder.App;
+using DuplicateFinder.Core;
 using FileScope.Ui.Tests;
 
 namespace DuplicateFinder.Ui.Tests;
@@ -13,13 +15,14 @@ public sealed partial class WindowTests
     public Task TableShortcutsSelectAndCopyFilteredRowsIndependentlyOfRecycleMarks() => WpfTestHost.RunAsync((app, strings) =>
     {
         var model = new ResultsViewModel();
+        var single = new FoundFile(@"C:\single\match-single.bin", new("search", 0));
         model.Replace([FileAt(@"C:\archive\match-a.bin", 3), FileAt(@"C:\backup\match-b.bin", 2),
-            FileAt(@"C:\download\match-c.bin", 1), FileAt(@"C:\other.bin", 0)]);
+            FileAt(@"C:\download\match-c.bin", 1), single, FileAt(@"C:\other.bin", 0)]);
         var window = ShowResults(model, new ThemeService(app));
         ((TextBox)window.FindName("FilterBox")).Text = "match";
         var grid = ExpandResults(window);
         var files = model.View.Cast<ResultRow>().ToArray();
-        Assert.HasCount(3, files);
+        Assert.HasCount(4, files);
 
         var first = VisualChildren<DataGridCell>(grid).Single(cell => cell.Column == grid.Columns[1] && cell.DataContext == files[0]);
         Assert.IsTrue(first.Focus());
@@ -40,9 +43,13 @@ public sealed partial class WindowTests
         Assert.IsTrue(ApplicationCommands.Copy.CanExecute(null, details));
         Assert.HasCount(1, grid.SelectedItems);
 
+        var singlesGroup = VisualChildren<Expander>(grid).Single(group => AutomationProperties.GetName(group) == strings["Singles"]);
+        singlesGroup.IsExpanded = false;
+        window.UpdateLayout();
         Assert.IsTrue(first.Focus());
         PressKey(Key.A, ModifierKeys.Control);
         CollectionAssert.AreEquivalent(files, grid.SelectedItems.Cast<ResultRow>().ToArray());
+        Assert.IsFalse(singlesGroup.IsExpanded);
         Assert.AreEqual("", details.Text);
         Assert.AreEqual(0, model.MarkedCount);
         Assert.IsFalse(window.RecycleCommand.CanExecute(null));
