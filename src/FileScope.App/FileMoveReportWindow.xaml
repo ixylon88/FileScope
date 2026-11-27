@@ -1,4 +1,4 @@
-<Window x:Class="FileScope.App.FileMoveReportWindow"
+<Window x:Class="FileScope.App.FileMoveReportWindow" x:Name="WindowRoot"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:FileScope.App"
@@ -11,6 +11,6 @@
              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" FontFamily="Consolas"
              AutomationProperties.Name="{loc:Loc MoveReportTitle}" />
     <Button x:Name="CloseMoveReportButton" Grid.Row="2" Content="{loc:Loc Close}" IsDefault="True" IsCancel="True"
-            Click="CloseReport" HorizontalAlignment="Right" Padding="18,7" Margin="0,14,0,0" />
+            Command="{Binding CloseCommand, ElementName=WindowRoot}" HorizontalAlignment="Right" Padding="18,7" Margin="0,14,0,0" />
   </Grid>
 </Window>

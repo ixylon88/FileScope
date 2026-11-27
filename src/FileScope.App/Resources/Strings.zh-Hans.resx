@@ -363,14 +363,17 @@
   <data name="FitColumns" xml:space="preserve">
     <value>自动调整列宽</value>
   </data>
-  <data name="OptionsSavedHint" xml:space="preserve">
-    <value>更改立即生效，并会保存到下次启动。</value>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="OptionsPreviewHint" xml:space="preserve">
+    <value>选择“保存”以保留更改。选择“取消”将恢复打开此窗口时的设置。</value>
   </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>无法读取已保存的选项，正在使用默认值。</value>
   </data>
   <data name="SettingsSaveError" xml:space="preserve">
-    <value>选项已在当前会话中生效，但无法保存到下次启动。</value>
+    <value>无法保存设置。</value>
   </data>
   <data name="Column_SignatureChoice" xml:space="preserve">
     <value>选择签名</value>

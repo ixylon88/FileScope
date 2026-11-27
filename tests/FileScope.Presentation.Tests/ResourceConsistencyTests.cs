@@ -61,6 +61,22 @@ public sealed partial class ResourceConsistencyTests
     }
 
     [TestMethod]
+    public void BothApplicationsUseCommandsForActionButtons()
+    {
+        foreach (var (name, document) in ReadXaml().Concat(ReadXaml("DuplicateFinder.Xaml.")))
+        {
+            foreach (var button in document.Descendants(Wpf + "Button"))
+            {
+                var label = (string?)button.Attribute(Xaml + "Name") ?? (string?)button.Attribute("Content");
+                Assert.IsFalse(string.IsNullOrWhiteSpace((string?)button.Attribute("Command")),
+                    $"{name} / {label}: bind the action to a command.");
+                Assert.IsFalse(button.Attributes().Any(a => a.Name.LocalName is "Click" or "Button.Click"),
+                    $"{name} / {label}: a second click handler can execute the action twice.");
+            }
+        }
+    }
+
+    [TestMethod]
     public void ModelLabelsExist()
     {
         var strings = ReadStrings("en");
@@ -228,10 +244,10 @@ public sealed partial class ResourceConsistencyTests
         .Where(element => element.Name.LocalName is "DataGridTextColumn" or "DataGridTemplateColumn" or "CellBoundTemplateColumn")
         .ToArray();
 
-    private static IEnumerable<(string Name, XDocument Document)> ReadXaml()
+    private static IEnumerable<(string Name, XDocument Document)> ReadXaml(string prefix = "Source.Xaml.")
     {
         string[] names = typeof(ResourceConsistencyTests).Assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith("Source.Xaml.", StringComparison.Ordinal)).ToArray();
+            .Where(name => name.StartsWith(prefix, StringComparison.Ordinal)).ToArray();
 
         Assert.IsTrue(names.Length > 0, "XAML sources must be embedded in the test assembly.");
 

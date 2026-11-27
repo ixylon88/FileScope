@@ -240,7 +240,7 @@ public sealed partial class UiTests
                     var dialog = app.Windows.OfType<ShortcutsWindow>().SingleOrDefault(window => window.IsVisible);
                     if (dialog == null) return;
                     opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
-                    ((Button)dialog.FindName("CloseShortcutsButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((Button)dialog.FindName("CloseShortcutsButton")).Command.Execute(null);
                 }));
             }
             CloseNextModal();
@@ -295,7 +295,7 @@ public sealed partial class UiTests
                 "a small shortcut window scrolls its list while keeping Close outside the scrolling area");
             Assert.IsTrue(store.SaveCount == saves, "viewing and translating the cheat sheet does not write preferences");
             Assert.IsTrue(errors.ToString().Length == 0, "shortcuts, themes and translations produce no WPF binding errors: " + errors);
-            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            close.Command.Execute(null);
             Assert.IsTrue(!shortcuts.IsVisible, "the shortcut Close button also closes a modeless test window");
         }
         finally
@@ -358,9 +358,9 @@ public sealed partial class UiTests
             nameColumn.Width = new DataGridLength(300);
             checkBox.IsChecked = false;
             DrainDispatcher();
-            Assert.IsTrue(!options.PathAutoWidth && !store.Saved.PathAutoWidth && pathColumn.Width.IsAbsolute
+            Assert.IsTrue(!options.PathAutoWidth && store.Saved.PathAutoWidth && pathColumn.Width.IsAbsolute
                 && pathColumn.Width.Value == 320 && pathColumn.MaxWidth == 600 && nameColumn.Width.Value == 300,
-                "the real checkbox saves bounded path sizing without resetting another column's manual width");
+                "the real checkbox previews bounded path sizing without resetting another column's manual width");
             pathColumn.Width = new DataGridLength(400);
             foreach (var culture in new[] { "de", "en", "zh-Hans" })
             {
@@ -515,7 +515,7 @@ public sealed partial class UiTests
                 var dialog = app.Windows.OfType<FileMoveReportWindow>().SingleOrDefault(candidate => candidate.IsVisible);
                 if (dialog == null) return;
                 modalOpened = ReferenceEquals(dialog.Owner, window) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
-                ((Button)dialog.FindName("CloseMoveReportButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)dialog.FindName("CloseMoveReportButton")).Command.Execute(null);
             }));
             new FileMoveReportService().Show(reportResults);
             Assert.IsTrue(modalOpened && !app.Windows.OfType<FileMoveReportWindow>().Any(candidate => candidate.IsVisible),
@@ -769,15 +769,16 @@ public sealed partial class UiTests
             var opened = false;
             app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
             {
-                // Exercise the real button and its modal event handler, then close
-                // the dialog without following a link or starting an external process.
+                // Close through the bound button command without following a project link.
                 var dialog = app.Windows.OfType<AboutDialog>().SingleOrDefault(window => window.IsVisible);
                 if (dialog == null) return;
                 opened = ReferenceEquals(dialog.Owner, main) && ComponentDispatcher.IsThreadModal && !dialog.ShowInTaskbar;
-                ((Button)dialog.FindName("CloseAboutButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)dialog.FindName("CloseAboutButton")).Command.Execute(null);
             }));
             var button = (Button)main.FindName("AboutButton");
-            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var peer = new ButtonAutomationPeer(button);
+            ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
+            PumpUntil(() => opened && !app.Windows.OfType<AboutDialog>().Any(window => window.IsVisible));
             Assert.IsTrue(opened && !app.Windows.OfType<AboutDialog>().Any(window => window.IsVisible),
                 "the real About button opens an owned modal dialog and its Close button returns to the main window");
 
@@ -850,7 +851,7 @@ public sealed partial class UiTests
             Assert.IsTrue(scroll.ScrollableHeight > 0 && close.IsVisible
                 && close.TranslatePoint(new Point(0, close.ActualHeight), about).Y <= about.ActualHeight,
                 "About content scrolls at the minimum size while Close stays in the window");
-            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            close.Command.Execute(null);
             DrainDispatcher();
             Assert.IsTrue(!about.IsVisible && store.SaveCount == saves,
                 "closing About leaves saved preferences unchanged");
@@ -997,8 +998,8 @@ public sealed partial class UiTests
                 var expectedMuted = theme == AppTheme.Dark ? Color.FromRgb(0xB1, 0xB1, 0xBA) : Color.FromRgb(0x59, 0x65, 0x79);
                 var expectedBadge = theme == AppTheme.Dark ? Color.FromRgb(0xAD, 0xFE, 0xC8) : Color.FromRgb(0xDD, 0xEF, 0xE3);
                 Assert.IsTrue(options.SelectedTheme.Value == theme && themes.CurrentTheme == theme && HasNativeTheme(app, theme)
-                    && store.Saved.Theme == theme.ToString() && store.SaveCount == saves + 1,
-                    "selecting a theme in the real ComboBox applies and saves it immediately / " + theme);
+                    && store.SaveCount == saves,
+                    "selecting a theme in the real ComboBox previews it without a write / " + theme);
                 Assert.IsTrue(((SolidColorBrush)subtitle.Foreground).Color == expectedMuted
                     && ((SolidColorBrush)hint.Foreground).Color == expectedMuted,
                     "existing main and options window text updates through DynamicResource / " + theme);
@@ -1037,6 +1038,10 @@ public sealed partial class UiTests
                     && themes.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
                     "the displayed theme label and accessible name follow the language / " + language.CultureName);
             }
+            var save = (Button)settings.FindName("SaveOptionsButton");
+            save.Command.Execute(null);
+            Assert.IsFalse(settings.IsVisible);
+            Assert.AreEqual("Dark", store.Saved.Theme);
             using var reopened = new OptionsViewModel(strings, store, new ThemeService(app));
             var restoredWindow = new OptionsWindow(reopened);
             try
@@ -1054,7 +1059,7 @@ public sealed partial class UiTests
         }
         finally
         {
-            settings.Close();
+            if (settings.IsVisible) settings.Close();
             main.Close();
             bindingSource.Listeners.Remove(listener);
             bindingSource.Switch.Level = previousLevel;
@@ -2203,57 +2208,104 @@ public sealed partial class UiTests
         }
     }
 
-    private static void CheckOptionsFooter(LocalizationService strings)
+    private static void CheckCancelOptions(Application app, LocalizationService strings)
     {
-        strings.SetCulture("en");
         var store = new MemoryPreferences();
-        using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
-        var window = new OptionsWindow(options) { ShowActivated = false };
+        var themes = new RecordingThemeService();
+        var options = new OptionsViewModel(strings, store, themes);
+        using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
+        var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
 
         try
         {
-            window.Show();
-            var root = (Grid)window.Content;
-            var close = (Button)window.FindName("CloseOptionsButton");
-            var error = (TextBlock)window.FindName("SettingsErrorText");
-            var messages = (FrameworkElement)error.Parent;
-            var sizes = new[] { new Size(window.Width, window.Height), new Size(window.MinWidth, window.MinHeight) };
+            main.Show();
+            DrainDispatcher();
+            var grid = (DataGrid)main.FindName("ResultsGrid");
+            var column = grid.Columns.Single(value => ColumnLayoutBehavior.GetId(value) == "Name");
+            column.Width = new DataGridLength(274);
+            var peer = new ButtonAutomationPeer((Button)main.FindName("OptionsButton"));
+            var invoke = (IInvokeProvider)peer.GetPattern(PatternInterface.Invoke);
 
-            foreach (var size in sizes)
+            foreach (var useCancelButton in new[] { true, false })
             {
-                window.Width = size.Width;
-                window.Height = size.Height;
-
-                foreach (var culture in new[] { "de", "en", "zh-Hans" })
+                var closed = false;
+                var previewApplied = false;
+                app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    strings.SetCulture(culture);
-
-                    foreach (var failSave in new[] { false, true })
+                    var dialog = app.Windows.OfType<OptionsWindow>().SingleOrDefault(window => window.IsVisible);
+                    if (dialog == null) return;
+                    try
                     {
-                        // Exercise the actual error binding through a failed save,
-                        // then clear it again on the next successful save.
-                        store.FailSave = failSave;
-                        options.PathAutoWidth = !options.PathAutoWidth;
+                        var selector = (ComboBox)dialog.FindName("ThemeSelector");
+                        selector.SelectedItem = options.Themes.Single(theme => theme.Value == AppTheme.Dark);
+                        options.FitColumnsCommand.Execute(null);
                         DrainDispatcher();
-                        window.UpdateLayout();
-
-                        var closeBounds = close.TransformToAncestor(root).TransformBounds(new Rect(close.RenderSize));
-                        var messageBounds = messages.TransformToAncestor(root).TransformBounds(new Rect(messages.RenderSize));
-
-                        Assert.IsTrue(close.IsVisible && close.ActualWidth >= close.MinWidth
-                            && closeBounds.Left >= 0 && closeBounds.Right <= root.ActualWidth + 1
-                            && messageBounds.Right <= closeBounds.Left && closeBounds.Bottom <= root.ActualHeight + 1
-                            && error.IsVisible == failSave && error.Text == (failSave ? strings["SettingsSaveError"] : ""),
-                            $"options messages leave Close fully visible / {culture} / {size.Width}x{size.Height} / save error: {failSave}");
+                        previewApplied = themes.CurrentTheme == AppTheme.Dark && column.Width.IsAuto;
+                        if (useCancelButton) ((Button)dialog.FindName("CancelOptionsButton")).Command.Execute(null);
                     }
-                }
+                    finally
+                    {
+                        if (dialog.IsVisible) dialog.Close();
+                        closed = true;
+                    }
+                }));
+
+                invoke.Invoke();
+                PumpUntil(() => closed);
+                Assert.IsTrue(previewApplied);
+                Assert.AreEqual(AppTheme.Light, themes.CurrentTheme);
+                Assert.IsTrue(column.Width.IsAbsolute);
+                Assert.AreEqual(274d, column.Width.Value);
+                Assert.AreEqual("Light", store.Saved.Theme);
             }
         }
-        finally
+        finally { main.Close(); }
+    }
+
+    private static void CheckOptionsFooter(LocalizationService strings)
+    {
+        var store = new MemoryPreferences();
+        using var options = new OptionsViewModel(strings, store, new RecordingThemeService());
+
+        foreach (var minimum in new[] { false, true })
+        foreach (var culture in strings.Languages)
         {
-            store.FailSave = false;
-            window.Close();
-            strings.SetCulture("en");
+            strings.SetCulture(culture.CultureName);
+            var window = new OptionsWindow(options) { ShowActivated = false };
+            if (minimum) { window.Width = window.MinWidth; window.Height = window.MinHeight; }
+            try
+            {
+                window.Show();
+                var root = (Grid)window.Content;
+                var cancel = (Button)window.FindName("CancelOptionsButton");
+                var save = (Button)window.FindName("SaveOptionsButton");
+                var error = (TextBlock)window.FindName("SettingsErrorText");
+                var messages = (FrameworkElement)error.Parent;
+                Assert.IsFalse(error.IsVisible);
+                Assert.IsTrue(save.IsDefault && cancel.IsCancel);
+
+                options.PathAutoWidth = !options.PathAutoWidth;
+                store.FailSave = true;
+                save.Command.Execute(null);
+                DrainDispatcher();
+                window.UpdateLayout();
+
+                Rect Bounds(FrameworkElement control) => control.TransformToAncestor(root).TransformBounds(new Rect(control.RenderSize));
+                Assert.IsTrue(window.IsVisible && error.IsVisible && error.Text == strings["SettingsSaveError"]);
+                Assert.IsTrue(Bounds(messages).Right <= Bounds(cancel).Left && Bounds(cancel).Right <= Bounds(save).Left
+                    && Bounds(save).Right <= root.ActualWidth + 1 && Bounds(save).Bottom <= root.ActualHeight + 1,
+                    $"Both buttons are reachable alongside the write error / {culture.CultureName} / {window.Width}");
+
+                store.FailSave = false;
+                save.Command.Execute(null);
+                Assert.IsFalse(window.IsVisible || options.HasSettingsError);
+                Assert.AreEqual(options.PathAutoWidth, store.Saved.PathAutoWidth);
+            }
+            finally
+            {
+                store.FailSave = false;
+                if (window.IsVisible) window.Close();
+            }
         }
     }
 

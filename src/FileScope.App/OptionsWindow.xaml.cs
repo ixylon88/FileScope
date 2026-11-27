@@ -9,10 +9,19 @@ public partial class OptionsWindow : Window
 {
     private readonly OptionsViewModel _options;
     private readonly WindowPlacement _placement;
+    private bool _saveRequested;
+
+    public RelayCommand SaveCommand { get; }
+    public RelayCommand CancelCommand { get; }
+    internal bool ChangesSaved { get; private set; }
+
     public OptionsWindow(OptionsViewModel options)
     {
         _options = options;
+        SaveCommand = new RelayCommand(SaveAndClose);
+        CancelCommand = new RelayCommand(Close);
         InitializeComponent();
+        options.BeginEdit();
         DataContext = options;
         _placement = new WindowPlacement(this, options.OptionsWindowPreferences);
         options.ColumnOrderChanged += OnColumnOrderChanged;
@@ -23,10 +32,29 @@ public partial class OptionsWindow : Window
             options.PropertyChanged -= OnOptionChanged;
         };
     }
+
+    private void SaveAndClose()
+    {
+        _saveRequested = true;
+        try { Close(); }
+        finally { _saveRequested = false; }
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
-        if (!e.Cancel) _options.SaveOptionsWindowPreferences(_placement.Capture());
+        if (e.Cancel) return;
+
+        var placement = _placement.Capture();
+        if (_saveRequested)
+        {
+            ChangesSaved = _options.TryCommitEdit(placement);
+            e.Cancel = !ChangesSaved;
+        }
+        else
+        {
+            _options.CancelEdit(placement);
+        }
     }
 
     private void OnColumnOrderChanged(object? sender, EventArgs args) => RevealSelection();

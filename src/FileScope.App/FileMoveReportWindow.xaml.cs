@@ -9,9 +9,12 @@ public partial class FileMoveReportWindow : Window
 {
     private readonly IReadOnlyList<FileMoveResult> _results;
 
+    public RelayCommand CloseCommand { get; }
+
     public FileMoveReportWindow(IReadOnlyList<FileMoveResult> results)
     {
         _results = results.ToArray();
+        CloseCommand = new(Close);
         InitializeComponent();
         var work = SystemParameters.WorkArea;
         var size = WindowSize.Restore(null, Width, Height, MinWidth, MinHeight, work.Width, work.Height);
@@ -31,6 +34,4 @@ public partial class FileMoveReportWindow : Window
         MoveSummaryText.Text = FileMoveReport.Summary(_results, strings);
         MoveReportText.Text = FileMoveReport.Format(_results, strings);
     }
-
-    private void CloseReport(object sender, RoutedEventArgs args) => Close();
 }

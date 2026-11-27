@@ -6,8 +6,11 @@ namespace FileScope.App;
 /// <summary>A read-only reference for existing commands and native WPF table navigation.</summary>
 public partial class ShortcutsWindow : Window
 {
+    public RelayCommand CloseCommand { get; }
+
     public ShortcutsWindow()
     {
+        CloseCommand = new(Close);
         InitializeComponent();
         var work = SystemParameters.WorkArea;
         var size = WindowSize.Restore(null, Width, Height, MinWidth, MinHeight, work.Width, work.Height);
@@ -22,6 +25,4 @@ public partial class ShortcutsWindow : Window
 
     private void UpdateLanguage(object? sender, EventArgs args) =>
         Language = XmlLanguage.GetLanguage(LocalizationService.Instance.Culture.IetfLanguageTag);
-
-    private void CloseShortcuts(object sender, RoutedEventArgs args) => Close();
 }

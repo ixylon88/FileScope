@@ -363,14 +363,17 @@
   <data name="FitColumns" xml:space="preserve">
     <value>Fit column widths</value>
   </data>
-  <data name="OptionsSavedHint" xml:space="preserve">
-    <value>Changes apply immediately and are saved for the next start.</value>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="OptionsPreviewHint" xml:space="preserve">
+    <value>Save keeps these changes. Cancel restores the settings from when this dialog opened.</value>
   </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>Saved options could not be read. Default options are being used.</value>
   </data>
   <data name="SettingsSaveError" xml:space="preserve">
-    <value>Options apply to this session, but could not be saved for the next start.</value>
+    <value>The settings could not be saved.</value>
   </data>
   <data name="Column_SignatureChoice" xml:space="preserve">
     <value>Signature selection</value>

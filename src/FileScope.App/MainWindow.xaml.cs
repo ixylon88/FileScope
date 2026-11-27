@@ -12,10 +12,16 @@ public partial class MainWindow : Window
     private readonly OptionsViewModel _options;
     private readonly WindowPlacement _placement;
 
+    public RelayCommand OptionsCommand { get; }
+    public RelayCommand AboutCommand { get; }
+
     public MainWindow(MainViewModel viewModel)
     {
-        InitializeComponent();
         _options = viewModel.Options;
+        OptionsCommand = new(OpenOptions);
+        AboutCommand = new(OpenAbout);
+
+        InitializeComponent();
         DataContext = viewModel;
         _placement = new WindowPlacement(this, _options.WindowPreferences, centerOnWorkArea: true);
         Closed += (_, _) => viewModel.Dispose();
@@ -52,13 +58,15 @@ public partial class MainWindow : Window
             viewModel.SetSelectedRows(ResultsGrid.SelectedItems.Cast<FileRowViewModel>());
     }
 
-    private void OpenOptions(object sender, RoutedEventArgs args)
+    private void OpenOptions()
     {
-        if (DataContext is MainViewModel viewModel)
-            new OptionsWindow(viewModel.Options) { Owner = this }.ShowDialog();
+        var restoreWidths = ColumnLayoutBehavior.CaptureWidths(ResultsGrid);
+        var dialog = new OptionsWindow(_options) { Owner = this };
+        dialog.ShowDialog();
+        if (!dialog.ChangesSaved) restoreWidths();
     }
 
-    private void OpenAbout(object sender, RoutedEventArgs args)
+    private void OpenAbout()
     {
         var dialog = AboutWindow.Create();
         dialog.Owner = this;

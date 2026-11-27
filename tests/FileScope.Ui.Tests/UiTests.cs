@@ -36,6 +36,10 @@ public sealed partial class UiTests
         WpfTestHost.RunAsync(CheckThemeSwitching);
 
     [TestMethod]
+    public Task CancellingOptionsRestoresManualWidthsAndLiveSettings() =>
+        WpfTestHost.RunAsync(CheckCancelOptions);
+
+    [TestMethod]
     public Task CheckboxPersistence() =>
         WpfTestHost.RunAsync((app, strings) => CheckCheckboxPersistence(strings));
 

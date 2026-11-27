@@ -363,14 +363,17 @@
   <data name="FitColumns" xml:space="preserve">
     <value>Breiten neu anpassen</value>
   </data>
-  <data name="OptionsSavedHint" xml:space="preserve">
-    <value>Änderungen gelten sofort und werden für den nächsten Start gespeichert.</value>
+  <data name="Save" xml:space="preserve">
+    <value>Speichern</value>
+  </data>
+  <data name="OptionsPreviewHint" xml:space="preserve">
+    <value>Speichern übernimmt die Änderungen. Abbrechen stellt die Einstellungen vom Öffnen des Dialogs wieder her.</value>
   </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>Gespeicherte Optionen konnten nicht gelesen werden. Es werden Standardwerte verwendet.</value>
   </data>
   <data name="SettingsSaveError" xml:space="preserve">
-    <value>Die Optionen gelten für diese Sitzung, konnten aber nicht für den nächsten Start gespeichert werden.</value>
+    <value>Die Einstellungen konnten nicht gespeichert werden.</value>
   </data>
   <data name="Column_SignatureChoice" xml:space="preserve">
     <value>Signaturauswahl</value>

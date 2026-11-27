@@ -13,10 +13,13 @@ public partial class AboutDialog : Window
     private readonly IExternalLinkService _links;
     private readonly IReadOnlyList<string> _features;
 
+    public RelayCommand CloseCommand { get; }
+
     public AboutDialog(Assembly assembly, string product, IReadOnlyList<string> features, IExternalLinkService links)
     {
         _links = links;
         _features = features;
+        CloseCommand = new(Close);
         InitializeComponent();
 
         ProductName.Text = product;
@@ -55,6 +58,4 @@ public partial class AboutDialog : Window
         args.Handled = true;
         LinkErrorText.Visibility = _links.TryOpen(args.Uri) ? Visibility.Collapsed : Visibility.Visible;
     }
-
-    private void CloseAbout(object sender, RoutedEventArgs args) => Close();
 }

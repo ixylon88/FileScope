@@ -21,6 +21,12 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     private string? _settingsErrorKey;
     private bool _updatingExportSelection;
     private bool _pathAutoWidth;
+    private DialogValues? _beforeEdit;
+
+    private sealed record DialogValues(LanguageOption Language, FilterOption<AppTheme> Theme,
+        FilterOption<HashFormat> HashFormat, FilterOption<CsvDelimiter> CsvDelimiter, bool PathAutoWidth,
+        string[] ColumnOrder, string[] ExportColumns, ColumnOption? SelectedColumn);
+
     public event EventHandler? HashFormatChanged;
     public event EventHandler? ColumnOrderChanged;
     public event EventHandler? ExportSelectionChanged;
@@ -89,8 +95,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             () => SelectedIndex >= 0 && SelectedIndex < Columns.Count - 1);
         ResetOrderCommand = new RelayCommand(() => SetColumnOrder(_defaults.Select(column => column.Id)));
         FitColumnsCommand = new RelayCommand(RequestColumnSizing);
-        SelectAllExportColumnsCommand = new RelayCommand(() => SetExportSelection(true));
-        ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(false));
+        SelectAllExportColumnsCommand = new RelayCommand(() => SetExportSelection(_ => true));
+        ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(_ => false));
         strings.CultureChanged += OnCultureChanged;
         _themeService = themes;
         Themes = Array.AsReadOnly(new[]
@@ -102,6 +108,42 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             ? value : themes.CurrentTheme;
         _selectedTheme = Themes.Single(theme => theme.Value == savedTheme);
         _themeService.Apply(_selectedTheme.Value);
+    }
+
+    // The modal dialog previews the same model used by the table. Keep a value snapshot, including
+    // copies of both column lists, so the views can keep their bindings throughout a rollback.
+    internal void BeginEdit()
+    {
+        if (_beforeEdit != null) throw new InvalidOperationException("An options dialog is already open.");
+        _beforeEdit = CaptureDialogValues();
+    }
+
+    internal bool TryCommitEdit(WindowPreferences placement)
+    {
+        if (_beforeEdit == null) throw new InvalidOperationException("No options dialog is open.");
+        if (!TryWrite(CaptureDialogValues(), placement)) return false;
+
+        OptionsWindowPreferences = placement;
+        _beforeEdit = null;
+        return true;
+    }
+
+    internal void CancelEdit(WindowPreferences placement)
+    {
+        var original = _beforeEdit ?? throw new InvalidOperationException("No options dialog is open.");
+        SelectedTheme = original.Theme;
+        SelectedLanguage = original.Language;
+        SelectedHashFormat = original.HashFormat;
+        SelectedCsvDelimiter = original.CsvDelimiter;
+        PathAutoWidth = original.PathAutoWidth;
+
+        SetColumnOrder(original.ColumnOrder);
+        var exported = original.ExportColumns.ToHashSet(StringComparer.Ordinal);
+        SetExportSelection(column => exported.Contains(column.Id));
+        SelectedColumn = original.SelectedColumn;
+
+        _beforeEdit = null;
+        if (OptionsWindowPreferences != placement || HasSettingsError) SaveOptionsWindowPreferences(placement);
     }
 
     public bool PathAutoWidth
@@ -220,7 +262,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
 
         if (forOptionsWindow) OptionsWindowPreferences = window;
         else WindowPreferences = window;
-        Save();
+        SaveIndependentSettings();
     }
 
     public void SaveAnalysisPreferences(AnalysisPreferences analysis)
@@ -228,15 +270,25 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(analysis);
         if (AnalysisPreferences == analysis) return;
         AnalysisPreferences = analysis;
-        Save();
+        SaveIndependentSettings();
     }
 
-    private void SetExportSelection(bool selected)
+    private void SetExportSelection(Func<ColumnOption, bool> selected)
     {
         _updatingExportSelection = true;
-        try { foreach (var column in Columns) column.IsExportSelected = selected; }
+        var changed = false;
+        try
+        {
+            foreach (var column in Columns)
+            {
+                var value = selected(column);
+                if (column.IsExportSelected == value) continue;
+                column.IsExportSelected = value;
+                changed = true;
+            }
+        }
         finally { _updatingExportSelection = false; }
-        NotifyExportSelection();
+        if (changed) NotifyExportSelection();
     }
 
     private void OnColumnPropertyChanged(object? sender, PropertyChangedEventArgs args)
@@ -252,29 +304,44 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         Save();
     }
 
+    private DialogValues CaptureDialogValues() => new(SelectedLanguage, SelectedTheme, SelectedHashFormat,
+        SelectedCsvDelimiter, PathAutoWidth, Columns.Select(column => column.Id).ToArray(),
+        Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(), SelectedColumn);
+
     private void Save()
+    {
+        if (_beforeEdit == null) TryWrite(CaptureDialogValues(), OptionsWindowPreferences);
+    }
+
+    // A write originating outside the dialog must never include its unfinished edits.
+    private void SaveIndependentSettings() => TryWrite(_beforeEdit ?? CaptureDialogValues(), OptionsWindowPreferences);
+
+    private bool TryWrite(DialogValues values, WindowPreferences? placement)
     {
         try
         {
             _store.Save(new UserPreferences
             {
-                Theme = SelectedTheme.Value.ToString(),
-                Language = SelectedLanguage.CultureName,
-                HashFormat = SelectedHashFormat.Value.ToString(),
-                ColumnOrder = Columns.Select(column => column.Id).ToArray(),
-                PathAutoWidth = PathAutoWidth,
-                ExportColumns = Columns.Where(column => column.IsExportSelected).Select(column => column.Id).ToArray(),
-                CsvDelimiter = SelectedCsvDelimiter.Value.ToString(),
+                Theme = values.Theme.Value.ToString(),
+                Language = values.Language.CultureName,
+                HashFormat = values.HashFormat.Value.ToString(),
+                ColumnOrder = values.ColumnOrder,
+                PathAutoWidth = values.PathAutoWidth,
+                ExportColumns = values.ExportColumns,
+                CsvDelimiter = values.CsvDelimiter.Value.ToString(),
                 Window = WindowPreferences,
-                OptionsWindow = OptionsWindowPreferences,
+                OptionsWindow = placement,
                 Analysis = AnalysisPreferences
             });
             _settingsErrorKey = null;
         }
         catch (Exception ex) when (IsSettingsFailure(ex)) { _settingsErrorKey = "SettingsSaveError"; }
+
         OnPropertyChanged(nameof(SettingsError));
         OnPropertyChanged(nameof(HasSettingsError));
+        return !HasSettingsError;
     }
+
     private static bool IsSettingsFailure(Exception exception) =>
         exception is IOException or UnauthorizedAccessException or JsonException or System.Security.SecurityException;
     private void OnCultureChanged(object? sender, EventArgs args)

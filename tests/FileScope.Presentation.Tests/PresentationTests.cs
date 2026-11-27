@@ -858,6 +858,89 @@ public sealed class PresentationTests
         finally { strings.SetCulture("en"); }
     }
 
+    [TestMethod]
+    public void OptionsPreviewRollsBackEveryFieldAndKeepsIndependentWrites()
+    {
+        var strings = LocalizationService.Instance;
+        var store = new ThemePreferencesStore(new UserPreferences { Language = "en", Theme = "Light" });
+        var themes = new RecordingThemeService();
+        using var options = new OptionsViewModel(strings, store, themes);
+        var originalOrder = options.Columns.Select(column => column.Id).ToArray();
+        var originalSelection = options.SelectedColumn;
+
+        options.BeginEdit();
+        options.SelectedLanguage = options.Languages.Single(value => value.CultureName == "de");
+        options.SelectedTheme = options.Themes.Single(value => value.Value == AppTheme.Dark);
+        options.SelectedHashFormat = options.HashFormats.Single(value => value.Value == HashFormat.Base64);
+        options.SelectedCsvDelimiter = options.CsvDelimiters.Single(value => value.Value == CsvDelimiter.Comma);
+        options.PathAutoWidth = false;
+        options.SelectedColumn = options.Columns[^1];
+        options.MoveFirstCommand.Execute(null);
+        options.ClearExportColumnsCommand.Execute(null);
+        Assert.AreEqual(0, store.SaveCount);
+        Assert.AreEqual(("de", AppTheme.Dark), (strings.Culture.Name, themes.CurrentTheme));
+        Assert.IsFalse(options.HasExportColumns);
+
+        var analysis = options.AnalysisPreferences with { MD5 = true, SHA256 = false };
+        var main = new WindowPreferences(920, 680, true);
+        options.SaveAnalysisPreferences(analysis);
+        options.SaveWindowPreferences(main);
+        Assert.AreEqual(("en", "Light", "HexUpper", "Semicolon", true),
+            (store.Saved.Language, store.Saved.Theme, store.Saved.HashFormat, store.Saved.CsvDelimiter, store.Saved.PathAutoWidth));
+        CollectionAssert.AreEqual(originalOrder, store.Saved.ColumnOrder);
+        CollectionAssert.AreEqual(originalOrder, store.Saved.ExportColumns);
+
+        var placement = new WindowPreferences(740, 640, false);
+        options.CancelEdit(placement);
+        Assert.AreEqual(("en", AppTheme.Light), (strings.Culture.Name, themes.CurrentTheme));
+        Assert.AreEqual((HashFormat.HexUpper, CsvDelimiter.Semicolon, true),
+            (options.SelectedHashFormat.Value, options.SelectedCsvDelimiter.Value, options.PathAutoWidth));
+        Assert.AreSame(originalSelection, options.SelectedColumn);
+        CollectionAssert.AreEqual(originalOrder, options.Columns.Select(column => column.Id).ToArray());
+        Assert.IsTrue(options.Columns.All(column => column.IsExportSelected));
+        Assert.AreEqual((main, placement, analysis), (store.Saved.Window, store.Saved.OptionsWindow, store.Saved.Analysis));
+
+        var saves = store.SaveCount;
+        options.BeginEdit();
+        options.CancelEdit(placement);
+        Assert.AreEqual(saves, store.SaveCount);
+    }
+
+    [TestMethod]
+    public void FailedOptionsSaveCanBeRetriedOrDiscarded()
+    {
+        var strings = LocalizationService.Instance;
+        var store = new ThemePreferencesStore(new UserPreferences { Language = "en", Theme = "Light" });
+        var themes = new RecordingThemeService();
+        using var options = new OptionsViewModel(strings, store, themes);
+        var placement = new WindowPreferences(760, 660, false);
+
+        options.BeginEdit();
+        options.SelectedTheme = options.Themes.Single(value => value.Value == AppTheme.Dark);
+        options.ClearExportColumnsCommand.Execute(null);
+        store.FailWrites = true;
+        Assert.IsFalse(options.TryCommitEdit(placement));
+        Assert.IsTrue(options.HasSettingsError);
+        Assert.AreEqual((AppTheme.Dark, "Light", 0), (themes.CurrentTheme, store.Saved.Theme, store.SaveCount));
+
+        store.FailWrites = false;
+        Assert.IsTrue(options.TryCommitEdit(placement));
+        Assert.IsFalse(options.HasSettingsError);
+        Assert.AreEqual(("Dark", 1, placement), (store.Saved.Theme, store.SaveCount, store.Saved.OptionsWindow));
+        Assert.IsNotNull(store.Saved.ExportColumns);
+        Assert.IsEmpty(store.Saved.ExportColumns);
+
+        options.BeginEdit();
+        options.SelectedTheme = options.Themes.Single(value => value.Value == AppTheme.Light);
+        options.SelectAllExportColumnsCommand.Execute(null);
+        store.FailWrites = true;
+        Assert.IsFalse(options.TryCommitEdit(placement));
+        options.CancelEdit(placement);
+        Assert.AreEqual(AppTheme.Dark, themes.CurrentTheme);
+        Assert.IsFalse(options.HasExportColumns);
+        Assert.AreEqual("Dark", store.Saved.Theme);
+    }
+
     private sealed class ThemePreferencesStore(UserPreferences initial) : IPreferencesStore
     {
         public UserPreferences Saved { get; private set; } = initial;

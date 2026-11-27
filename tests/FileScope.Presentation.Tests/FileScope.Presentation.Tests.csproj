@@ -26,6 +26,9 @@
                       LogicalName="Source.Xaml.%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../src/FileScope.Shared/Wpf/*.xaml;../../src/FileScope.Shared/Styles/**/*.xaml"
                       LogicalName="Source.Xaml.Shared.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/DuplicateFinder.App/**/*.xaml"
+                      Exclude="../../src/DuplicateFinder.App/bin/**;../../src/DuplicateFinder.App/obj/**"
+                      LogicalName="DuplicateFinder.Xaml.%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../src/FileScope.App/FileScope.App.csproj" LogicalName="Source.AppProject.xml" />
     <EmbeddedResource Include="../../src/FileScope.App/Resources/FileScopeSplash.png" LogicalName="Source.Splash.png" />
   </ItemGroup>

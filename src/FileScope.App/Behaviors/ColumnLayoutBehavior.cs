@@ -37,6 +37,18 @@ public static class ColumnLayoutBehavior
     private static void OnFitRequested(DependencyObject target, DependencyPropertyChangedEventArgs args) =>
         (target.GetValue(ControllerProperty) as Controller)?.RequestFit();
 
+    internal static Action CaptureWidths(DataGrid grid)
+    {
+        var widths = grid.Columns.Select(column => (Column: column, Width: column.Width)).ToArray();
+        return () =>
+        {
+            // A language or hash-format rollback can queue one final fit for the next layout pass.
+            grid.GetBindingExpression(FitRevisionProperty)?.UpdateTarget();
+            (grid.GetValue(ControllerProperty) as Controller)?.CancelFit();
+            foreach (var (column, width) in widths) column.Width = width;
+        };
+    }
+
     private sealed class Controller : IDisposable
     {
         private readonly DataGrid _grid;
@@ -73,6 +85,10 @@ public static class ColumnLayoutBehavior
             _options.ColumnOrderChanged -= OnOrderChanged;
             _options.PropertyChanged -= OnOptionChanged;
             _grid.ColumnReordered -= OnColumnReordered;
+            CancelFit();
+        }
+        public void CancelFit()
+        {
             _pendingFit?.Abort();
             _pendingFit = null;
         }
