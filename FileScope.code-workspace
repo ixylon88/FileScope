@@ -176,7 +176,9 @@
           "-ExecutionPolicy",
           "Bypass",
           "-File",
-          "${workspaceFolder:FileScope}/Verify.ps1"
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "FileScope"
         ],
         "options": {
           "cwd": "${workspaceFolder:FileScope}"
@@ -206,6 +208,8 @@
           "Bypass",
           "-File",
           "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "FileScope",
           "-Runtime",
           "win-x64"
         ],
@@ -234,6 +238,8 @@
           "Bypass",
           "-File",
           "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Application",
+          "FileScope",
           "-Runtime",
           "win-arm64"
         ],
@@ -552,6 +558,92 @@
           "${workspaceFolder:FileScope}/Verify.ps1",
           "-Application",
           "DuplicateFinder",
+          "-Runtime",
+          "win-arm64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      
+      {
+        "label": "Solution: Verify",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "Solution: Verify (win-x64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
+          "-Runtime",
+          "win-x64"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:FileScope}"
+        },
+        "group": "test",
+        "problemMatcher": "$msCompile",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "runOptions": {
+          "instanceLimit": 1
+        }
+      },
+      {
+        "label": "Solution: Verify (win-arm64)",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder:FileScope}/Verify.ps1",
           "-Runtime",
           "win-arm64"
         ],
