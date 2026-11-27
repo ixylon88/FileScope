@@ -14,6 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../TestDirectory.cs" Link="TestDirectory.cs" />
-    <EmbeddedResource Include="../../src/FileScope.Shared/Wpf/OptionsFooter.xaml" LogicalName="OptionsFooter.xaml" />
+    <EmbeddedResource Include="../../src/FileScope.Shared/Controls/OptionsFooter.xaml" LogicalName="OptionsFooter.xaml" />
   </ItemGroup>
 </Project>

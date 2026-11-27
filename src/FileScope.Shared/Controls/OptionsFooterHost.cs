@@ -28,7 +28,7 @@ public sealed class OptionsFooterHost : Decorator
     public OptionsFooterHost()
     {
         // Keep the standalone layout and its host distinct, even if an older designer-generated OptionsFooter still exists.
-        var view = (DockPanel)Application.LoadComponent(new Uri("/FileScope.Shared;component/Wpf/OptionsFooter.xaml", UriKind.Relative));
+        var view = (DockPanel)Application.LoadComponent(new Uri("/FileScope.Shared;component/Controls/OptionsFooter.xaml", UriKind.Relative));
         _errorMessage = (TextBlock)view.FindName("ErrorMessage");
         view.DataContext = this;
         Child = view;

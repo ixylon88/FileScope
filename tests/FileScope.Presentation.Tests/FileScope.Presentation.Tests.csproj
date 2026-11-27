@@ -26,7 +26,8 @@
     <EmbeddedResource Include="../../src/FileScope.App/**/*.xaml"
                       Exclude="../../src/FileScope.App/bin/**;../../src/FileScope.App/obj/**"
                       LogicalName="Source.Xaml.FileScope.%(RecursiveDir)%(Filename)%(Extension)" />
-    <EmbeddedResource Include="../../src/FileScope.Shared/Wpf/*.xaml;../../src/FileScope.Shared/Styles/**/*.xaml"
+    <EmbeddedResource Include="../../src/FileScope.Shared/**/*.xaml"
+                      Exclude="../../src/FileScope.Shared/bin/**;../../src/FileScope.Shared/obj/**"
                       LogicalName="Source.Xaml.Shared.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../src/DuplicateFinder.App/**/*.xaml"
                       Exclude="../../src/DuplicateFinder.App/bin/**;../../src/DuplicateFinder.App/obj/**"

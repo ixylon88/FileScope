@@ -14,12 +14,15 @@
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Compile Remove="Wpf/**/*.cs" />
+    <!-- These controls and services belong to the Windows build. -->
+    <Compile Remove="Controls/**/*.cs;Dialogs/**/*.cs;Services/**/*.cs" />
+    <Compile Remove="Abstractions/IExternalLinkService.cs;Abstractions/IFileShellService.cs" />
+    <Compile Remove="Infrastructure/FileShellCommands.cs;Localization/LocExtension.cs;Presentation/WindowPlacement.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.EndsWith(`windows`))'">
     <!-- Nest the host under its classless layout in Solution Explorer. -->
-    <Compile Update="Wpf/OptionsFooterHost.cs" DependentUpon="OptionsFooter.xaml" />
+    <Compile Update="Controls/OptionsFooterHost.cs" DependentUpon="OptionsFooter.xaml" />
     <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
           Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
   </ItemGroup>

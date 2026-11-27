@@ -3,7 +3,7 @@
   <ItemGroup><ProjectReference Include="../../src/DuplicateFinder.Core/DuplicateFinder.Core.csproj" /></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/loose.cat" LogicalName="DuplicateFinder.Tests.loose.cat" />
-    <Compile Include="../../src/DuplicateFinder.App/FileSizeInput.cs" Link="App/FileSizeInput.cs" />
+    <Compile Include="../../src/DuplicateFinder.App/Presentation/FileSizeInput.cs" Link="App/Presentation/FileSizeInput.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../TestDirectory.cs" Link="TestDirectory.cs" />

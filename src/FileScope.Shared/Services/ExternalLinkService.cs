@@ -4,11 +4,6 @@ using System.Security;
 
 namespace FileScope.Shared;
 
-public interface IExternalLinkService
-{
-    bool TryOpen(Uri uri);
-}
-
 /// <summary>Opens HTTPS project links in the default browser; replaceable without launching a browser in UI checks.</summary>
 public sealed class ExternalLinkService : IExternalLinkService
 {
