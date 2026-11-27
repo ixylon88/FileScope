@@ -1788,8 +1788,17 @@ public sealed partial class UiTests
             window.Show();
             var grid = (DataGrid)window.FindName("ResultsGrid");
             var filters = (Grid)window.FindName("FiltersPanel");
+            var meter = (ProgressBar)window.FindName("OperationProgress");
+            window.UpdateLayout();
+            Assert.AreEqual(Visibility.Hidden, meter.Visibility);
+            var idleHeight = meter.DesiredSize.Height;
+            Assert.IsGreaterThan(0.0, idleHeight, "The idle progress row reserves its height.");
+
             vm.DropFilesCommand.Execute(new[] { Path.Combine(Path.GetTempPath(), "buffer-b.bin"), Path.Combine(Path.GetTempPath(), "buffer-a.bin") });
             PumpUntil(() => analysis.Started.Task.IsCompleted && vm.Rows[0].State == RowStatus.Running);
+            window.UpdateLayout();
+            Assert.AreEqual(Visibility.Visible, meter.Visibility);
+            Assert.AreEqual(idleHeight, meter.DesiredSize.Height);
             Assert.IsTrue(!filters.IsEnabled && !grid.CanUserSortColumns && !vm.ResetFiltersCommand.CanExecute(null),
                 "filter controls and sorting pause during analysis");
             Assert.IsTrue(vm.StatusText.Contains(strings["OpeningFile"], StringComparison.Ordinal),
@@ -1829,6 +1838,7 @@ public sealed partial class UiTests
             var status = vm.StatusText;
             analysis.Progress.Report(new AnalysisProgress(AnalysisStage.Reading, 1, 40000));
             DrainDispatcher();
+            Assert.AreEqual(Visibility.Hidden, meter.Visibility);
             Assert.IsTrue(vm.Progress == 100 && vm.StatusText == status && !vm.IsProgressIndeterminate,
                 "late reports cannot revive a finished batch or its indeterminate indicator");
         }

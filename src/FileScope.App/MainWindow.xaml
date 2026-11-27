@@ -351,7 +351,9 @@
           <TextBlock x:Name="OperationStatusText" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,12,0" ToolTip="{Binding StatusText}" />
           <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
         </Grid>
-        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate}" Height="4" Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
+        <ProgressBar x:Name="OperationProgress" Style="{StaticResource JobProgressBarStyle}" Height="4"
+                     Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate}"
+                     Foreground="{DynamicResource SystemFillColorAttentionBrush}" AutomationProperties.Name="{loc:Loc ProgressLabel}" />
         <TextBlock Text="{Binding LastError}" Foreground="#B42318" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock x:Name="FileActionErrorText" Text="{Binding FileActionError}" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
                    Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding HasFileActionError, Converter={StaticResource BoolToVisibility}}" />

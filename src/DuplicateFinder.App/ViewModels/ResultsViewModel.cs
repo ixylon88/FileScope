@@ -18,7 +18,17 @@ public sealed class ResultsViewModel : ObservableObject
     public ListCollectionView View { get => _view; private set => SetProperty(ref _view, value); }
     public IReadOnlyList<ResultRow> Rows => _rows;
     public int MarkedCount { get; private set; }
-    public bool CanMark { get; internal set => SetProperty(ref field, value); } = true;
+
+    public bool IsBusy
+    {
+        get;
+        internal set
+        {
+            if (SetProperty(ref field, value)) OnPropertyChanged(nameof(CanMark));
+        }
+    }
+
+    public bool CanMark => !IsBusy;
 
     public void Replace(IEnumerable<FoundFile> files) => Install(files.Select(f => new ResultRow(f, _hashFormat)).ToList());
 

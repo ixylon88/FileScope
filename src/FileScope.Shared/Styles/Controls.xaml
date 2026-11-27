@@ -88,6 +88,15 @@
       </Trigger>
     </Style.Triggers>
   </Style>
+  <Style x:Key="JobProgressBarStyle" TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+    <Setter Property="Visibility" Value="Hidden" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsBusy}" Value="True">
+        <Setter Property="Visibility" Value="Visible" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <Style x:Key="ResultsGridStyle" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="CanUserAddRows" Value="False" />

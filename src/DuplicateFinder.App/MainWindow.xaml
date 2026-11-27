@@ -194,7 +194,8 @@
                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
     </Expander>
     <DockPanel Grid.Row="4" Margin="0,9,0,0">
-      <ProgressBar x:Name="Meter" DockPanel.Dock="Right" Width="115" Height="8" Margin="12,0,0,0"/>
+      <ProgressBar x:Name="Meter" Style="{StaticResource JobProgressBarStyle}"
+                   DockPanel.Dock="Right" Width="115" Height="8" Margin="12,0,0,0" />
       <TextBlock x:Name="Status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
     </DockPanel>
     <TextBlock x:Name="FileActionErrorText" Grid.Row="5" Foreground="{DynamicResource SystemFillColorCriticalBrush}"

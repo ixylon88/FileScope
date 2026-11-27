@@ -335,7 +335,7 @@ public partial class MainWindow : Window
     private void UpdateButtons()
     {
         // Keep the grid readable while a job is running. Only marking and the affected commands are disabled.
-        _model.CanMark = _job == null;
+        _model.IsBusy = _job != null;
         ScanCommand.NotifyCanExecuteChanged();
         CleanCommand.NotifyCanExecuteChanged();
         RecycleCommand.NotifyCanExecuteChanged();
