@@ -20,8 +20,9 @@ public static class DigestSearch
     // Plain hex in either letter case is already covered by the canonical value.
     private static StringComparison? DisplayComparison(HashFormat format) => format switch
     {
+        HashFormat.HexUpper or HashFormat.HexLower => null,
         HashFormat.HexColon => StringComparison.OrdinalIgnoreCase,
         HashFormat.Base64 or HashFormat.Base64Url => StringComparison.Ordinal,
-        _ => null
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 }
