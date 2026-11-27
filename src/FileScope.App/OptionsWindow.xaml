@@ -81,18 +81,9 @@
         </Grid>
       </TabItem>
     </TabControl>
-    <DockPanel Grid.Row="2" Margin="0,14,0,0">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-        <Button x:Name="CancelOptionsButton" Content="{loc:Loc Cancel}" IsCancel="True"
-                Command="{Binding CancelCommand, ElementName=WindowRoot}" MinWidth="90" Padding="12,7" Margin="0,0,8,0" />
-        <Button x:Name="SaveOptionsButton" Content="{loc:Loc Save}" IsDefault="True"
-                Command="{Binding SaveCommand, ElementName=WindowRoot}" MinWidth="90" Padding="12,7" />
-      </StackPanel>
-      <StackPanel VerticalAlignment="Bottom">
-        <TextBlock Text="{loc:Loc OptionsPreviewHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
-        <TextBlock x:Name="SettingsErrorText" Text="{Binding SettingsError}" Foreground="#B42318" TextWrapping="Wrap" Margin="0,8,0,0"
-                   Visibility="{Binding HasSettingsError, Converter={StaticResource BoolToVisibility}}" />
-      </StackPanel>
-    </DockPanel>
+
+    <shared:OptionsFooter x:Name="DialogFooter" Grid.Row="2" ErrorText="{Binding SettingsError}"
+                          CancelCommand="{Binding CancelCommand, ElementName=WindowRoot}"
+                          SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
   </Grid>
 </Window>

@@ -434,8 +434,8 @@ public sealed partial class WindowTests
         var dialog = new OptionsWindow(legacy);
         var minimum = (TextBox)dialog.FindName("MinimumSize");
         var maximum = (TextBox)dialog.FindName("MaximumSize");
-        var save = (Button)dialog.FindName("SaveButton");
-        var message = (TextBlock)dialog.FindName("Validation");
+        var footer = new OptionsFooterChecks(dialog);
+        Assert.AreEqual(Visibility.Collapsed, footer.Error.Visibility);
         Assert.AreEqual("", minimum.Text);
         Assert.AreEqual("", maximum.Text);
         Assert.AreEqual(default(FileSizeRange), legacy.Search.SizeRange);
@@ -451,16 +451,16 @@ public sealed partial class WindowTests
                 ((ComboBox)dialog.FindName("MaximumUnit")).SelectedValue = FileSizeUnit.Megabytes;
                 minimum.Text = "200";
                 maximum.Text = "x";
-                save.Command.Execute(null);
-                invalidNumber = message.Text;
+                footer.Save.Command.Execute(null);
+                invalidNumber = footer.Error.Text;
 
                 maximum.Text = "0,1";
-                save.Command.Execute(null);
-                reversedRange = message.Text;
+                footer.Save.Command.Execute(null);
+                reversedRange = footer.Error.Text;
                 afterInvalidRange = dialog.Result;
 
                 maximum.Text = "1,5";
-                save.Command.Execute(null);
+                footer.Save.Command.Execute(null);
             }
             finally { if (dialog.IsVisible) dialog.Close(); }
         };
@@ -478,6 +478,56 @@ public sealed partial class WindowTests
         Assert.AreEqual(FileSizeUnit.Kilobytes, ((ComboBox)reopened.FindName("MinimumUnit")).SelectedValue);
         Assert.AreEqual(FileSizeUnit.Megabytes, ((ComboBox)reopened.FindName("MaximumUnit")).SelectedValue);
         reopened.Close();
+    });
+
+    [TestMethod]
+    public Task OptionsKeepTheDraftAfterAWriteErrorForRetryOrCancel() => WpfTestHost.RunAsync((app, strings) =>
+    {
+        var initial = new Preferences { Language = "en", Theme = AppTheme.Light };
+        Store.Save(initial);
+        var theme = new ThemeService(app);
+        var window = ShowResults(new ResultsViewModel(), theme, initial);
+
+        CheckWriteFailure(retry: false);
+        CheckWriteFailure(retry: true);
+
+        void CheckWriteFailure(bool retry)
+        {
+            InOptions(window, dialog =>
+            {
+                var header = OptionsHeaderChecks.From(dialog);
+                var footer = new OptionsFooterChecks(dialog);
+
+                // An open reader on Windows allows reading the settings but blocks replacement.
+                using (File.OpenRead(Path.Combine(_settingsFolder, "settings.json")))
+                {
+                    header.ThemeSelector.SelectedValue = AppTheme.Dark;
+                    footer.Save.Command.Execute(null);
+
+                    Assert.IsTrue(dialog.IsVisible && footer.Error.IsVisible);
+                    Assert.AreEqual(AppTheme.Dark, theme.CurrentTheme);
+                    Assert.AreEqual(AppTheme.Light, Store.Load().Theme);
+                    Assert.AreEqual(AppTheme.Light, dialog.Result.Theme);
+
+                    if (retry) dialog.Width = dialog.MinWidth;
+                    foreach (var language in strings.Languages)
+                    {
+                        header.LanguageSelector.SelectedValue = language.CultureName;
+                        dialog.UpdateLayout();
+                        StringAssert.StartsWith(footer.Error.Text, strings["SettingsSaveError"]);
+                        footer.CheckLayout(strings);
+                    }
+
+                    if (!retry) footer.Cancel.Command.Execute(null);
+                }
+
+                if (retry) footer.Save.Command.Execute(null);
+            });
+
+            var expected = retry ? AppTheme.Dark : AppTheme.Light;
+            Assert.AreEqual(expected, Store.Load().Theme);
+            Assert.AreEqual(expected, theme.CurrentTheme);
+        }
     });
 
     [TestMethod]
@@ -527,7 +577,7 @@ public sealed partial class WindowTests
         InOptions(window, dialog =>
         {
             ChooseAppearance(dialog);
-            ((Button)dialog.FindName("SaveButton")).Command.Execute(null);
+            new OptionsFooterChecks(dialog).Save.Command.Execute(null);
         });
         var saved = Store.Load();
         Assert.AreEqual(("de", AppTheme.Dark, HashFormat.Base64Url, false),

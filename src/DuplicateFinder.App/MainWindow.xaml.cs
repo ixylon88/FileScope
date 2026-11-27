@@ -190,15 +190,17 @@ public partial class MainWindow : Window
         Dispatcher.VerifyAccess();
         var dialog = new OptionsWindow(_preferences) { Owner = this };
         dialog.PreviewChanged += ApplyAppearance;
-        var accepted = dialog.ShowDialog() == true;
+        dialog.Saving += _store.Save;
 
-        var next = (accepted ? dialog.Result : _preferences) with { OptionsWindow = dialog.SavedPlacement };
-        if (!TrySave(next))
+        if (dialog.ShowDialog() != true)
         {
             ApplyAppearance(_preferences);
+            if (dialog.ChangedPlacement is { } placement)
+                SavePlacement(_preferences with { OptionsWindow = placement });
             return;
         }
 
+        var next = dialog.Result;
         var rescan = !_preferences.Roots.SequenceEqual(next.Roots) || !_preferences.Hashes.SequenceEqual(next.Hashes)
             || _preferences.Embedded != next.Embedded || _preferences.Catalogs != next.Catalogs || _preferences.Online != next.Online
             || _preferences.SizeRange != next.SizeRange;

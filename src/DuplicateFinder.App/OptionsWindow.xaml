@@ -81,17 +81,8 @@
       </TabItem>
     </TabControl>
 
-    <DockPanel Grid.Row="2" Margin="0,14,0,0">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <Button Content="{loc:Loc Cancel}" IsCancel="True" Command="{Binding CloseCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" />
-        <Button x:Name="SaveButton" Content="{loc:Loc Save}" IsDefault="True" Command="{Binding SaveCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" Margin="0,0,0,6" />
-      </StackPanel>
-
-      <StackPanel VerticalAlignment="Bottom">
-        <TextBlock Text="{loc:Loc OptionsPreviewHint}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
-        <TextBlock x:Name="Validation" VerticalAlignment="Center" Margin="0,0,14,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
-           TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-      </StackPanel>
-    </DockPanel>
+    <shared:OptionsFooter x:Name="DialogFooter" Grid.Row="2"
+                          CancelCommand="{Binding CloseCommand, ElementName=WindowRoot}"
+                          SaveCommand="{Binding SaveCommand, ElementName=WindowRoot}" />
   </Grid>
 </Window>

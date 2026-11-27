@@ -345,9 +345,6 @@
   <data name="SettingsLoadError" xml:space="preserve">
     <value>无法读取已保存的选项，正在使用默认值。</value>
   </data>
-  <data name="SettingsSaveError" xml:space="preserve">
-    <value>无法保存设置。</value>
-  </data>
   <data name="Column_SignatureChoice" xml:space="preserve">
     <value>选择签名</value>
   </data>

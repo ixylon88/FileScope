@@ -345,9 +345,6 @@
   <data name="SettingsLoadError" xml:space="preserve">
     <value>Gespeicherte Optionen konnten nicht gelesen werden. Es werden Standardwerte verwendet.</value>
   </data>
-  <data name="SettingsSaveError" xml:space="preserve">
-    <value>Die Einstellungen konnten nicht gespeichert werden.</value>
-  </data>
   <data name="Column_SignatureChoice" xml:space="preserve">
     <value>Signaturauswahl</value>
   </data>
