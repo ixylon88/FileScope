@@ -7,7 +7,7 @@ using System.Windows.Navigation;
 
 namespace FileScope.Shared;
 
-/// <summary>Displays build information and the bundled license without changing user preferences.</summary>
+/// <summary>Displays build information and the bundled license.</summary>
 public partial class AboutDialog : Window
 {
     private readonly IExternalLinkService _links;
@@ -15,7 +15,8 @@ public partial class AboutDialog : Window
 
     public RelayCommand CloseCommand { get; }
 
-    public AboutDialog(Assembly assembly, string product, IReadOnlyList<string> features, IExternalLinkService links)
+    public AboutDialog(Assembly assembly, string product, IReadOnlyList<string> features, IExternalLinkService links,
+        double? width = null, double? height = null)
     {
         _links = links;
         _features = features;
@@ -35,7 +36,7 @@ public partial class AboutDialog : Window
         using var reader = new StreamReader(stream);
         LicenseText.Text = reader.ReadToEnd();
 
-        WindowPlacement.FitToWorkArea(this);
+        WindowPlacement.FitToWorkArea(this, width, height);
         UpdateLanguage(this, EventArgs.Empty);
         LocalizationService.Instance.CultureChanged += UpdateLanguage;
         Closed += (_, _) => LocalizationService.Instance.CultureChanged -= UpdateLanguage;

@@ -9,14 +9,15 @@ public partial class ShortcutsDialog : Window
 {
     public RelayCommand CloseCommand { get; }
 
-    public ShortcutsDialog(IReadOnlyList<string> actions, IReadOnlyList<string> selection)
+    public ShortcutsDialog(IReadOnlyList<string> actions, IReadOnlyList<string> selection,
+        double? width = null, double? height = null)
     {
         CloseCommand = new(Close);
         InitializeComponent();
 
         InsertShortcuts(ActionsList, 0, actions);
         InsertShortcuts(SelectionList, SelectionList.Children.Count, selection);
-        WindowPlacement.FitToWorkArea(this);
+        WindowPlacement.FitToWorkArea(this, width, height);
     }
 
     public static void BindHelp(Window owner, Func<ShortcutsDialog> createDialog)

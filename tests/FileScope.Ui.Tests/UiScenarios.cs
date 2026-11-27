@@ -209,7 +209,12 @@ public sealed partial class UiTests
         using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings,
             new OptionsViewModel(strings, store, themes));
         var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
-        var shortcuts = ShortcutsWindow.Create();
+        var defaults = ShortcutsWindow.Create();
+        var shortcuts = ShortcutsWindow.Create(height: 560);
+        Assert.AreEqual(defaults.Width, shortcuts.Width);
+        Assert.AreEqual(Math.Min(560, SystemParameters.WorkArea.Height), shortcuts.Height);
+        defaults.Close();
+
         shortcuts.ShowActivated = false;
         var errors = new StringWriter();
         using var listener = new TextWriterTraceListener(errors);
@@ -743,7 +748,12 @@ public sealed partial class UiTests
         using var vm = CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, options);
         var main = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var links = new RecordingExternalLinks();
-        var about = AboutWindow.Create(links);
+        var defaults = AboutWindow.Create(links);
+        var about = AboutWindow.Create(links, width: 710);
+        Assert.AreEqual(Math.Min(710, SystemParameters.WorkArea.Width), about.Width);
+        Assert.AreEqual(defaults.Height, about.Height);
+        defaults.Close();
+
         about.ShowActivated = false;
         var errors = new StringWriter();
         using var listener = new TextWriterTraceListener(errors);
@@ -843,7 +853,15 @@ public sealed partial class UiTests
             close.Command.Execute(null);
             DrainDispatcher();
             Assert.IsTrue(!about.IsVisible && store.SaveCount == saves,
-                "closing About leaves saved preferences unchanged");
+                "viewing About leaves saved preferences unchanged");
+
+            DialogPlacementChecks.Check(main, () =>
+            {
+                var nextOptions = new OptionsViewModel(strings, store, themes);
+                var next = new MainWindow(CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, nextOptions));
+                next.Show();
+                return next;
+            }, () => store.Saved.AboutWindow, () => store.Saved.ShortcutsWindow);
             listener.Flush();
             Assert.IsTrue(errors.ToString().Length == 0, "About produces no WPF binding errors while opening, translating and switching themes");
         }

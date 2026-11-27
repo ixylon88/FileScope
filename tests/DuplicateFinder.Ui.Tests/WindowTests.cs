@@ -78,7 +78,12 @@ public sealed partial class WindowTests
     public Task AboutShowsDuplicateFinderBrandVersionAndOfflineLicense() => WpfTestHost.RunAsync((app, strings) =>
     {
         var owner = ShowResults(new ResultsViewModel(), new ThemeService(app));
-        var about = AboutWindow.Create();
+        DialogPlacementChecks.Check(owner, () => ShowResults(new ResultsViewModel(), new ThemeService(app), Store.Load()),
+            () => Store.Load().AboutWindow, () => Store.Load().ShortcutsWindow);
+
+        var about = AboutWindow.Create(width: 1, height: 600);
+        Assert.AreEqual(about.MinWidth, about.Width);
+        Assert.AreEqual(Math.Min(600, SystemParameters.WorkArea.Height), about.Height);
         about.Owner = owner;
         about.Show();
         Assert.IsNotNull(owner.Icon);
@@ -193,7 +198,13 @@ public sealed partial class WindowTests
         Assert.AreEqual("深色", themes[AppTheme.Dark].Label);
 
         var shortcutsButton = (Button)window.FindName("ShortcutsButton");
-        var shortcuts = ShortcutsWindow.Create();
+        var work = SystemParameters.WorkArea;
+        var defaults = ShortcutsWindow.Create();
+        var shortcuts = ShortcutsWindow.Create(width: work.Width + 100, height: double.NaN);
+        Assert.AreEqual(work.Width, shortcuts.Width);
+        Assert.AreEqual(defaults.Height, shortcuts.Height);
+        defaults.Close();
+
         shortcuts.Owner = window;
         shortcuts.Show();
         var help = window.InputBindings.OfType<KeyBinding>().Single(binding => binding.Key == Key.F1);

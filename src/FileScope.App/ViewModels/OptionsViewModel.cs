@@ -42,6 +42,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public int WidthRevision { get; private set; }
     public WindowPreferences? WindowPreferences { get; private set; }
     public WindowPreferences? OptionsWindowPreferences { get; private set; }
+    public WindowPreferences? AboutWindowPreferences { get; private set; }
+    public WindowPreferences? ShortcutsWindowPreferences { get; private set; }
     public AnalysisPreferences AnalysisPreferences { get; private set; }
     public RelayCommand MoveUpCommand { get; }
     public RelayCommand MoveDownCommand { get; }
@@ -62,6 +64,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         _pathAutoWidth = saved.PathAutoWidth;
         WindowPreferences = saved.Window;
         OptionsWindowPreferences = saved.OptionsWindow;
+        AboutWindowPreferences = saved.AboutWindow;
+        ShortcutsWindowPreferences = saved.ShortcutsWindow;
         AnalysisPreferences = saved.Analysis ?? new AnalysisPreferences();
         _selectedLanguage = Languages.FirstOrDefault(language => language.CultureName == saved.Language)
             ?? Languages.First(language => language.CultureName == strings.Culture.Name);
@@ -248,11 +252,19 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         MoveFirstCommand.NotifyCanExecuteChanged();
         MoveLastCommand.NotifyCanExecuteChanged();
     }
-    public void SaveWindowPreferences(WindowPreferences window) => SaveWindowPreferences(window, false);
+    public void SaveWindowPreferences(WindowPreferences window) =>
+        SaveWindowPreferences(window, value => WindowPreferences = value);
 
-    public void SaveOptionsWindowPreferences(WindowPreferences window) => SaveWindowPreferences(window, true);
+    public void SaveOptionsWindowPreferences(WindowPreferences window) =>
+        SaveWindowPreferences(window, value => OptionsWindowPreferences = value);
 
-    private void SaveWindowPreferences(WindowPreferences window, bool forOptionsWindow)
+    public void SaveAboutWindowPreferences(WindowPreferences window) =>
+        SaveWindowPreferences(window, value => AboutWindowPreferences = value);
+
+    public void SaveShortcutsWindowPreferences(WindowPreferences window) =>
+        SaveWindowPreferences(window, value => ShortcutsWindowPreferences = value);
+
+    private void SaveWindowPreferences(WindowPreferences window, Action<WindowPreferences> assign)
     {
         if (!double.IsFinite(window.Width) || !double.IsFinite(window.Height)
             || window.Width <= 0 || window.Height <= 0)
@@ -260,8 +272,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (forOptionsWindow) OptionsWindowPreferences = window;
-        else WindowPreferences = window;
+        assign(window);
         SaveIndependentSettings();
     }
 
@@ -331,6 +342,8 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
                 CsvDelimiter = values.CsvDelimiter.Value.ToString(),
                 Window = WindowPreferences,
                 OptionsWindow = placement,
+                AboutWindow = AboutWindowPreferences,
+                ShortcutsWindow = ShortcutsWindowPreferences,
                 Analysis = AnalysisPreferences
             });
             _settingsErrorKey = null;

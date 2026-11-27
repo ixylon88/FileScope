@@ -11,7 +11,7 @@ public sealed class WindowPlacement
     public WindowPlacement(Window window, WindowPreferences? saved, bool centerOnWorkArea = false)
     {
         _window = window;
-        FitToWorkArea(window, saved);
+        FitToWorkArea(window, saved?.Width, saved?.Height);
 
         if (centerOnWorkArea)
         {
@@ -26,11 +26,31 @@ public sealed class WindowPlacement
         window.StateChanged += OnStateChanged;
     }
 
-    internal static void FitToWorkArea(Window window, WindowPreferences? saved = null)
+    /// <summary>Uses the factory size as the fallback and saves the user's changes after the dialog closes.</summary>
+    public static T RememberDialogSize<T>(T dialog, WindowPreferences? saved, Action<WindowPreferences> save)
+        where T : Window
+    {
+        var placement = new WindowPlacement(dialog, saved);
+        WindowPreferences? initial = null;
+        WindowPreferences? final = null;
+
+        // Compare actual window bounds after first layout, including DPI rounding.
+        // Closing still has RestoreBounds. Closed confirms that closing wasn't cancelled.
+        dialog.Loaded += (_, _) => initial ??= placement.Capture();
+        dialog.Closing += (_, _) => final = placement.Capture();
+        dialog.Closed += (_, _) =>
+        {
+            if (initial != null && final != null && initial != final) save(final);
+        };
+        return dialog;
+    }
+
+    internal static void FitToWorkArea(Window window, double? width = null, double? height = null)
     {
         var work = SystemParameters.WorkArea;
-        var size = WindowSize.Restore(saved, window.Width, window.Height,
-            window.MinWidth, window.MinHeight, work.Width, work.Height);
+        var defaults = new WindowSize(window.Width, window.Height, window.MinWidth, window.MinHeight);
+        var size = defaults.Fit(width, height, work.Width, work.Height);
+
         window.MinWidth = size.MinWidth;
         window.MinHeight = size.MinHeight;
         window.Width = size.Width;
