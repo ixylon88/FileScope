@@ -873,7 +873,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (item is not FileRowViewModel row) return false;
         if (StateFilter.Value is RowStatus status && row.State != status) return false;
-        var matchesSignature = SignatureFilterOption.Value.Matches(row.SignatureState, row.SignatureMode);
+        var matchesSignature = SignatureFilterOption.Value.Matches(row.SignatureState, row.SignatureMode, row.CatalogResult);
         return matchesSignature && row.Matches(SearchText.Trim());
     }
 

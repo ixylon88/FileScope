@@ -21,7 +21,9 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     public string Signature => FormatTrust(File.Embedded);
     public string Sha256 => _displayHashes.GetValueOrDefault(ChecksumAlgorithm.SHA256) ?? "";
     public string ModifiedText => File.ModifiedUtc is { } utc ? $"{utc.ToString("g", Strings.Culture)} UTC" : "";
-    public string Catalog => CatalogPresentation.Summary(File.Catalogs, Strings);
+    public CatalogPresentation CatalogResult { get; } = CatalogPresentation.From(file.Catalogs);
+    public IEnumerable<SignatureBadgeItem> CatalogBadges => CatalogResult.Badges(Strings);
+    public string Catalog => CatalogResult.Summary(Strings);
 
     public string Details
     {

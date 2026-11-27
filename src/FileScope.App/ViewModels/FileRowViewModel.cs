@@ -109,9 +109,11 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         : strings[$"Row_{State}"];
     public RevocationMode SignatureMode => Result?.Signature.RevocationMode ?? RevocationMode.OfflineCache;
     public string SignatureText => SignatureGroup.From(SignatureState, SignatureMode)?.Format(strings) ?? "?";
-    public string CatalogText => CatalogPresentation.Summary(Result?.Catalogs, strings);
+    public CatalogPresentation CatalogResult { get; private set; } = CatalogPresentation.From(null);
+    public IEnumerable<SignatureBadgeItem> CatalogBadges => CatalogResult.Badges(strings);
+    public string CatalogText => CatalogResult.Summary(strings);
     public string CatalogDetails => Result?.Catalogs is { } lookup
-        ? string.Join(Environment.NewLine, CatalogPresentation.Details(lookup, strings).Prepend(CatalogText)) : "";
+        ? string.Join(Environment.NewLine, CatalogPresentation.Details(lookup, strings).Prepend(CatalogText)) : CatalogText;
 
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
     {
@@ -119,7 +121,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null),
         MetadataDiagnostic("PropertiesError", Result.Properties?.Diagnostic),
         MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic),
-        Result.Catalogs is { IndexComplete: false } or { Issues.Count: > 0 } ? strings["Incomplete"] : null
+        Result.Catalogs is { } lookup && CatalogPresentation.IsIncomplete(lookup) ? strings["Incomplete"] : null
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details
@@ -174,6 +176,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public void Reset()
     {
         Result = null;
+        CatalogResult = CatalogPresentation.From(null);
         RebuildSignatures();
         RebuildHashText();
         State = RowStatus.Queued;
@@ -204,6 +207,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public void Complete(FileAnalysisResult result)
     {
         Result = result;
+        CatalogResult = CatalogPresentation.From(result.Catalogs);
         RebuildSignatures();
         RebuildHashText();
         State = result.Succeeded ? RowStatus.Completed : RowStatus.Failed;

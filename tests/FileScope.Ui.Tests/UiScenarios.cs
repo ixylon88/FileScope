@@ -115,7 +115,8 @@ public sealed partial class UiTests
         vm.ResetFiltersCommand.Execute(null);
         vm.SignatureFilterOption = vm.SignatureFilters.Single(x => x.Value == SignatureFilter.Valid);
         Assert.IsTrue(vm.RowsView.Count == 0, "signature filter excludes unsigned files");
-        vm.SignatureFilterOption = vm.SignatureFilters.Single(x => x.Value.Group?.Status == SignatureStatus.NoEmbeddedSignature);
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(option =>
+            option.Value.Group is { IsCatalog: false, Status: SignatureStatus.NoEmbeddedSignature });
         Assert.IsTrue(vm.RowsView.Count == 2, "signature filter matches unsigned files");
         vm.ResetFiltersCommand.Execute(null);
         vm.StateFilter = vm.StateFilters.Single(x => x.Value == RowStatus.Completed);
@@ -1773,7 +1774,8 @@ public sealed partial class UiTests
         var analysis = new ControlledProgressAnalysis();
         using var vm = CreateMainViewModel(analysis, new EmptyPicker(), strings, CreateOptions(strings));
         vm.OnlineRevocation = true;
-        vm.SignatureFilterOption = vm.SignatureFilters.Single(option => option.Value.Group?.Status == SignatureStatus.NoEmbeddedSignature);
+        vm.SignatureFilterOption = vm.SignatureFilters.Single(option =>
+            option.Value.Group is { IsCatalog: false, Status: SignatureStatus.NoEmbeddedSignature });
         vm.RowsView.SortDescriptions.Add(new SortDescription(nameof(FileRowViewModel.FileName), ListSortDirection.Ascending));
         var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var wrongThread = false;
@@ -2434,6 +2436,7 @@ public sealed partial class UiTests
     {
         using var vm = CreateMainViewModel(new MultipleSignatureAnalysis(), new EmptyPicker(), strings, CreateOptions(strings));
         vm.InspectCertificates = true;
+        vm.InspectCatalogs = true;
         var window = new MainWindow(vm) { ShowActivated = false, ShowInTaskbar = false };
         var trace = PresentationTraceSources.DataBindingSource;
         var previousLevel = trace.Switch.Level;
@@ -2451,8 +2454,8 @@ public sealed partial class UiTests
             var first = vm.Rows.Single(row => row.FileName == "multi.exe");
             var second = vm.Rows.Single(row => row.FileName == "single.exe");
             var columns = grid.Columns.OfType<DataGridTemplateColumn>().ToArray();
-            Assert.IsTrue(columns.Length == 3 && columns.All(column => column is CellBoundTemplateColumn),
-                "all three production template columns use cell-bound presenters");
+            Assert.IsTrue(columns.Length == 4 && columns.All(column => column is CellBoundTemplateColumn),
+                "all four production template columns use cell-bound presenters");
 
             // Call the framework's generation hook without attaching its result.
             // This deliberately separates creation from attachment; a regular
@@ -2519,6 +2522,8 @@ public sealed partial class UiTests
                         ReferenceEquals(badge.DataContext, row) && badge.Text == row.StateText),
                     "Signature" => VisualChildren<StatusBadge>(content).Any(badge =>
                         ReferenceEquals(badge.DataContext, row) && badge.Text == row.SignatureText),
+                    "Catalog" => VisualChildren<StatusBadge>(content).Select(badge => new SignatureBadgeItem(badge.Text, badge.Tone))
+                        .SequenceEqual(row.CatalogBadges),
                     "SignatureChoice" => VisualChildren<ComboBox>(content).Any(box =>
                         ReferenceEquals(box.ItemsSource, row.Signatures) && ReferenceEquals(box.SelectedItem, row.SelectedSignature)),
                     _ => false

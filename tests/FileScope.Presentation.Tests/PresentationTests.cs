@@ -37,23 +37,92 @@ public sealed class PresentationTests
         var strings = LocalizationService.Instance;
         var options = SignatureFilter.Options(strings);
         var exact = options.Where(option => option.Value.Group.HasValue).ToArray();
-        Assert.HasCount(16, options);
-        Assert.AreEqual("0123456789AB", string.Concat(exact.Select(option => option.Value.Group!.Value.Code)));
+        Assert.HasCount(36, options);
+        Assert.HasCount(10, options.Where(option => !option.Value.Group.HasValue).ToArray());
+        CollectionAssert.AreEqual(Enumerable.Range(0, 12).Concat(Enumerable.Range(0x10, 14)).ToArray(),
+            exact.Select(option => (int)option.Value.Group!.Value.Code).ToArray());
 
         foreach (var language in strings.Languages)
         {
             strings.SetCulture(language.CultureName);
+            CollectionAssert.AllItemsAreUnique(options.Select(option => option.Label).ToArray());
+            Assert.IsTrue(options.All(option => !option.Label.Contains('[')));
+
             foreach (var status in Enum.GetValues<SignatureStatus>())
             foreach (var mode in Enum.GetValues<RevocationMode>())
             {
-                var group = SignatureGroup.From(status, mode)!.Value;
-                var option = exact.Single(option => option.Value.Matches(status, mode));
-                Assert.AreEqual(group.Format(strings), option.Label);
-                Assert.IsTrue(SignatureFilter.All.Matches(status, mode));
-                Assert.AreEqual(status == SignatureStatus.Valid, SignatureFilter.Valid.Matches(status, mode));
-                Assert.AreEqual(status != SignatureStatus.Valid, SignatureFilter.ExceptValid.Matches(status, mode));
-                Assert.AreEqual(group.Code is not ('0' or '1' or '2' or '3'), SignatureFilter.Attention.Matches(status, mode));
+                var trust = new SignatureResult(status, mode);
+                var catalog = CatalogPresentation.From(new([new("one.cat", "member", false, trust)], [], true));
+                var matches = exact.Where(option => option.Value.Matches(status, mode, catalog)).ToArray();
+                Assert.HasCount(2, matches);
+                var embedded = SignatureGroup.From(status, mode)!.Value;
+
+                Assert.AreEqual(embedded.Format(strings), matches[0].Label);
+                Assert.AreEqual(embedded.Code + 0x10, catalog.Groups.Single().Code);
+                Assert.AreEqual(matches[1].Label, catalog.Badges(strings).Single().Text);
+                Assert.AreEqual(embedded.Tone, catalog.Badges(strings).Single().Tone);
             }
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Shared")]
+    [DataRow(SignatureStatus.NoEmbeddedSignature, SignatureStatus.Valid, false, true, false, false)]
+    [DataRow(SignatureStatus.Valid, SignatureStatus.Revoked, true, false, false, true)]
+    [DataRow(SignatureStatus.Revoked, SignatureStatus.Valid, false, true, true, false)]
+    [DataRow(SignatureStatus.Expired, SignatureStatus.Untrusted, false, false, true, true)]
+    [DataRow(SignatureStatus.NotChecked, SignatureStatus.NoEmbeddedSignature, false, false, false, false)]
+    public void GenericSignatureFiltersRespectTheirSource(SignatureStatus embedded, SignatureStatus member,
+        bool embeddedValid, bool catalogValid, bool embeddedAttention, bool catalogAttention)
+    {
+        var mode = RevocationMode.OfflineCache;
+        var catalog = CatalogPresentation.From(new([new("pack.cat", "member", true, new(member, mode))], [], true));
+
+        Check(SignatureSource.Embedded, embeddedValid, embeddedAttention);
+        Check(SignatureSource.Catalog, catalogValid, catalogAttention);
+        Check(SignatureSource.Both, embeddedValid || catalogValid, embeddedAttention || catalogAttention);
+
+        void Check(SignatureSource source, bool valid, bool attention)
+        {
+            bool Matches(SignatureFilterKind kind) => SignatureFilter.For(kind, source).Matches(embedded, mode, catalog);
+            Assert.IsTrue(Matches(SignatureFilterKind.All));
+            Assert.AreEqual(valid, Matches(SignatureFilterKind.Valid));
+            Assert.AreEqual(!valid, Matches(SignatureFilterKind.ExceptValid));
+            Assert.AreEqual(attention, Matches(SignatureFilterKind.Attention));
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Shared")]
+    public void CatalogBadgesPreservePartialEvidenceAndDistinguishUnsearchedFromNoMatch()
+    {
+        var valid = new CatalogMatch("a.cat", "member", false, new(SignatureStatus.Valid, RevocationMode.Online));
+        var revoked = valid with { Path = "b.cat", Trust = new(SignatureStatus.Revoked, RevocationMode.OfflineCache) };
+
+        Check(null, false, false, 0x10);
+        Check(new([], [], true), false, false, 0x1C);
+        Check(new([], [], false), false, true, 0x1D);
+        Check(new([], ["member lookup failed"], true), false, true, 0x1D);
+        Check(new([], [], true) { IndexIssues = ["index read failed"] }, false, true, 0x1D);
+        Check(new([revoked, valid, valid with { Path = "c.cat" }], ["unreadable member"], true), true, true, 0x11, 0x17, 0x1D);
+
+        static void Check(CatalogLookup? lookup, bool valid, bool attention, params byte[] codes)
+        {
+            var catalog = CatalogPresentation.From(lookup);
+            CollectionAssert.AreEqual(codes, catalog.Groups.Select(group => group.Code).ToArray());
+
+            var exact = SignatureFilter.Options(LocalizationService.Instance).Select(option => option.Value)
+                .Where(filter => filter.Group is { IsCatalog: true } && Matches(filter));
+            CollectionAssert.AreEqual(codes, exact.Select(filter => filter.Group!.Value.Code).ToArray());
+
+            foreach (var source in new[] { SignatureSource.Catalog, SignatureSource.Both })
+            {
+                Assert.AreEqual(valid, Matches(SignatureFilter.For(SignatureFilterKind.Valid, source)));
+                Assert.AreEqual(!valid, Matches(SignatureFilter.For(SignatureFilterKind.ExceptValid, source)));
+                Assert.AreEqual(attention, Matches(SignatureFilter.For(SignatureFilterKind.Attention, source)));
+            }
+
+            bool Matches(SignatureFilter filter) => filter.Matches(SignatureStatus.NotChecked, RevocationMode.OfflineCache, catalog);
         }
     }
 
@@ -75,7 +144,7 @@ public sealed class PresentationTests
             Assert.AreEqual(SignatureStatus.NoEmbeddedSignature, SignatureMoveSelection.GetStatus([row]));
             Assert.IsFalse(SignatureFilter.Valid.Matches(row.SignatureState, row.SignatureMode));
             StringAssert.StartsWith(row.SignatureText, "3 | ");
-            StringAssert.StartsWith(row.CatalogText, "1 | ");
+            StringAssert.StartsWith(row.CatalogText, "11 | ");
             StringAssert.Contains(row.CatalogText, strings["Incomplete"]);
             StringAssert.Contains(row.Diagnostic, strings["Incomplete"]);
             foreach (var value in new[] { "pack.cat", "MEMBER", "0x00000000", "missing.cat", strings["Loose"] })
@@ -84,9 +153,9 @@ public sealed class PresentationTests
                 StringAssert.Contains(row.Details, value);
                 StringAssert.Contains(field.GetExportValue(row), value);
             }
-            Assert.AreEqual(strings["NoCatalog"], CatalogPresentation.Summary(new([], [], true), strings));
-            Assert.AreEqual(strings["Signature_NotChecked"], CatalogPresentation.Summary(null, strings));
-            Assert.AreEqual("3 | " + strings["CatalogUnsigned"], CatalogPresentation.Summary(new([catalog with { Trust = embedded }], [], true), strings));
+            Assert.AreEqual("1C | " + strings["NoCatalog"], CatalogPresentation.Summary(new([], [], true), strings));
+            Assert.AreEqual("10 | " + strings["Signature_NotChecked"], CatalogPresentation.Summary(null, strings));
+            Assert.AreEqual("13 | " + strings["CatalogUnsigned"], CatalogPresentation.Summary(new([catalog with { Trust = embedded }], [], true), strings));
         }
     }
 
