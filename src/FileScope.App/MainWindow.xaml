@@ -349,7 +349,7 @@
     <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,12">
       <StackPanel>
         <Grid Margin="0,0,0,8">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
           <TextBlock x:Name="OperationStatusText" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,12,0" ToolTip="{Binding StatusText}" />
           <TextBlock Grid.Column="1" Text="{Binding CurrentFile}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" ToolTip="{Binding CurrentFile}" />
         </Grid>
