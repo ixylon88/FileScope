@@ -21,7 +21,7 @@ public partial class MainWindow : Window
         AboutCommand = new(OpenAbout);
 
         InitializeComponent();
-        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(),
+        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(height: 760),
             _options.ShortcutsWindowPreferences, _options.SaveShortcutsWindowPreferences));
         DataContext = viewModel;
         _placement = new WindowPlacement(this, _options.WindowPreferences, centerOnWorkArea: true);
@@ -64,7 +64,7 @@ public partial class MainWindow : Window
 
     private void OpenAbout()
     {
-        var dialog = WindowPlacement.RememberDialogSize(AboutWindow.Create(),
+        var dialog = WindowPlacement.RememberDialogSize(AboutWindow.Create(height: 720),
             _options.AboutWindowPreferences, _options.SaveAboutWindowPreferences);
         dialog.Owner = this;
         dialog.ShowDialog();

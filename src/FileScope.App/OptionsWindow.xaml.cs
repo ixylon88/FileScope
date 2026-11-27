@@ -23,7 +23,7 @@ public partial class OptionsWindow : Window
         InitializeComponent();
         options.BeginEdit();
         DataContext = options;
-        _placement = new WindowPlacement(this, options.OptionsWindowPreferences);
+        _placement = new WindowPlacement(this, options.OptionsWindowPreferences ?? new WindowPreferences(Width: 730, Height: 860, Maximized: false));
         options.ColumnOrderChanged += OnColumnOrderChanged;
         options.PropertyChanged += OnOptionChanged;
         Closed += (_, _) =>

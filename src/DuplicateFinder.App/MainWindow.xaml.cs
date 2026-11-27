@@ -57,14 +57,14 @@ public partial class MainWindow : Window
         OptionsCommand = new(OpenOptions, () => _job == null);
         CancelCommand = new(() => _job?.Cancel(), () => _job != null);
         IssuesCommand = new(ShowIssues, () => _job == null && _issues.Count > 0);
-        AboutCommand = new(() => ShowOwnedDialog(WindowPlacement.RememberDialogSize(AboutWindow.Create(),
+        AboutCommand = new(() => ShowOwnedDialog(WindowPlacement.RememberDialogSize(AboutWindow.Create(height: 750),
             _preferences.AboutWindow, value => SavePlacement(_preferences with { AboutWindow = value }))));
         ResetFiltersCommand = new(ResetFilters);
 
         InitializeComponent();
         // Popups have their own visual tree. Commands belong to this window, even if WPF recycles the row.
         ((FileRowContextMenu)Resources["FileMenu"]).DataContext = this;
-        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(),
+        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(height: 810),
             _preferences.ShortcutsWindow, value => SavePlacement(_preferences with { ShortcutsWindow = value })));
         DataContext = model;
         _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);

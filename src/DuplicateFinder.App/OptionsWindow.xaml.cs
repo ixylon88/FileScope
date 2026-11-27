@@ -47,7 +47,7 @@ public partial class OptionsWindow : Window
 
         InitializeComponent();
         Result = preferences;
-        _placement = new WindowPlacement(this, preferences.OptionsWindow);
+        _placement = new WindowPlacement(this, preferences.OptionsWindow ?? new WindowPreferences(Width: 730, Height: 800, Maximized: false));
         Loaded += (_, _) => _openingPlacement = _placement.Capture();
         _roots = new(preferences.Roots.Select(r => new RootEditor(r.Path, r.Priority.ToString(Strings.Culture))));
         RootsGrid.ItemsSource = _roots;
