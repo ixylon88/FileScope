@@ -1,9 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
   <data name="MenuTitle" xml:space="preserve">
     <value>菜单</value>
   </data>
@@ -22,7 +135,6 @@
   <data name="Cancel" xml:space="preserve">
     <value>取消</value>
   </data>
-
   <data name="Group_Language" xml:space="preserve">
     <value>语言</value>
   </data>
@@ -35,7 +147,6 @@
   <data name="Theme_Dark" xml:space="preserve">
     <value>深色</value>
   </data>
-
   <data name="AllFiles" xml:space="preserve">
     <value>所有文件</value>
   </data>
@@ -48,7 +159,6 @@
   <data name="OnlineRevocation" xml:space="preserve">
     <value>在线吊销检查</value>
   </data>
-
   <data name="ShortcutsTitle" xml:space="preserve">
     <value>键盘快捷键</value>
   </data>
@@ -124,40 +234,105 @@
   <data name="ShortcutCopyAction" xml:space="preserve">
     <value>复制选中的行及列标题，或复制文件详情中选中的文本</value>
   </data>
-
-  <data name="AllSignatures" xml:space="preserve"><value>全部签名结果</value></data>
-  <data name="Filter_Valid" xml:space="preserve"><value>有效签名</value></data>
-  <data name="Filter_ExceptValid" xml:space="preserve"><value>除有效签名外的全部</value></data>
-  <data name="Filter_Attention" xml:space="preserve"><value>需要关注</value></data>
-  <data name="SignatureFilterLabel" xml:space="preserve"><value>嵌入式签名</value></data>
-  <data name="ResetFilters" xml:space="preserve"><value>重置筛选</value></data>
-  <data name="AboutVersion" xml:space="preserve"><value>版本</value></data>
-  <data name="AboutFeatures" xml:space="preserve"><value>功能概览</value></data>
-  <data name="AboutProject" xml:space="preserve"><value>项目与许可证</value></data>
-  <data name="AboutRepository" xml:space="preserve"><value>打开 FileScope 代码仓库</value></data>
-  <data name="AboutLicenseOnline" xml:space="preserve"><value>MIT 许可证（在线）</value></data>
-  <data name="AboutLicenseText" xml:space="preserve"><value>MIT 许可证与版权声明（离线）</value></data>
-  <data name="AboutLinkError" xml:space="preserve"><value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value></data>
-  <data name="AboutCredits" xml:space="preserve"><value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value></data>
-  <data name="Close" xml:space="preserve"><value>关闭</value></data>
-  <data name="Signature_NotChecked" xml:space="preserve"><value>未检查</value></data>
-  <data name="Signature_ValidOnline" xml:space="preserve"><value>有效 · 在线吊销检查</value></data>
-  <data name="Signature_ValidOffline" xml:space="preserve"><value>有效 · 缓存吊销检查</value></data>
-  <data name="Signature_NoEmbeddedSignature" xml:space="preserve"><value>无嵌入式签名</value></data>
-  <data name="Signature_InvalidSignature" xml:space="preserve"><value>签名或摘要无效</value></data>
-  <data name="Signature_Untrusted" xml:space="preserve"><value>不受信任</value></data>
-  <data name="Signature_Expired" xml:space="preserve"><value>证书有效期无效</value></data>
-  <data name="Signature_Revoked" xml:space="preserve"><value>证书已吊销</value></data>
-  <data name="Signature_RevocationUnknown" xml:space="preserve"><value>吊销状态未知</value></data>
-  <data name="Signature_UnsupportedFormat" xml:space="preserve"><value>不支持此签名格式</value></data>
-  <data name="Signature_UnsupportedPlatform" xml:space="preserve"><value>需要 Windows</value></data>
-  <data name="Signature_CheckFailed" xml:space="preserve"><value>签名检查失败</value></data>
-  <data name="NoCatalog" xml:space="preserve"><value>未找到匹配的目录</value></data>
-  <data name="CatalogUnsigned" xml:space="preserve"><value>目录未签名</value></data>
-  <data name="Incomplete" xml:space="preserve"><value>目录搜索不完整</value></data>
-  <data name="Registered" xml:space="preserve"><value>已注册的目录</value></data>
-  <data name="Loose" xml:space="preserve"><value>随附的目录文件</value></data>
-  <data name="Column_Catalog" xml:space="preserve"><value>目录签名</value></data>
+  <data name="AllSignatures" xml:space="preserve">
+    <value>全部签名结果</value>
+  </data>
+  <data name="Filter_Valid" xml:space="preserve">
+    <value>有效签名</value>
+  </data>
+  <data name="Filter_ExceptValid" xml:space="preserve">
+    <value>除有效签名外的全部</value>
+  </data>
+  <data name="Filter_Attention" xml:space="preserve">
+    <value>需要关注</value>
+  </data>
+  <data name="SignatureFilterLabel" xml:space="preserve">
+    <value>嵌入式签名</value>
+  </data>
+  <data name="ResetFilters" xml:space="preserve">
+    <value>重置筛选</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="AboutFeatures" xml:space="preserve">
+    <value>功能概览</value>
+  </data>
+  <data name="AboutProject" xml:space="preserve">
+    <value>项目与许可证</value>
+  </data>
+  <data name="AboutRepository" xml:space="preserve">
+    <value>打开 FileScope 代码仓库</value>
+  </data>
+  <data name="AboutLicenseOnline" xml:space="preserve">
+    <value>MIT 许可证（在线）</value>
+  </data>
+  <data name="AboutLicenseText" xml:space="preserve">
+    <value>MIT 许可证与版权声明（离线）</value>
+  </data>
+  <data name="AboutLinkError" xml:space="preserve">
+    <value>无法在默认浏览器中打开链接。下方也提供完整许可证文本，无需连接互联网。</value>
+  </data>
+  <data name="AboutCredits" xml:space="preserve">
+    <value>由 ixylon88 与 ChatGPT 共同开发，并相互审查代码。</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Signature_NotChecked" xml:space="preserve">
+    <value>未检查</value>
+  </data>
+  <data name="Signature_ValidOnline" xml:space="preserve">
+    <value>有效 · 在线吊销检查</value>
+  </data>
+  <data name="Signature_ValidOffline" xml:space="preserve">
+    <value>有效 · 缓存吊销检查</value>
+  </data>
+  <data name="Signature_NoEmbeddedSignature" xml:space="preserve">
+    <value>无嵌入式签名</value>
+  </data>
+  <data name="Signature_InvalidSignature" xml:space="preserve">
+    <value>签名或摘要无效</value>
+  </data>
+  <data name="Signature_Untrusted" xml:space="preserve">
+    <value>不受信任</value>
+  </data>
+  <data name="Signature_Expired" xml:space="preserve">
+    <value>证书有效期无效</value>
+  </data>
+  <data name="Signature_Revoked" xml:space="preserve">
+    <value>证书已吊销</value>
+  </data>
+  <data name="Signature_RevocationUnknown" xml:space="preserve">
+    <value>吊销状态未知</value>
+  </data>
+  <data name="Signature_UnsupportedFormat" xml:space="preserve">
+    <value>不支持此签名格式</value>
+  </data>
+  <data name="Signature_UnsupportedPlatform" xml:space="preserve">
+    <value>需要 Windows</value>
+  </data>
+  <data name="Signature_CheckFailed" xml:space="preserve">
+    <value>签名检查失败</value>
+  </data>
+  <data name="NoCatalog" xml:space="preserve">
+    <value>未找到匹配的目录</value>
+  </data>
+  <data name="CatalogUnsigned" xml:space="preserve">
+    <value>目录未签名</value>
+  </data>
+  <data name="Incomplete" xml:space="preserve">
+    <value>目录搜索不完整</value>
+  </data>
+  <data name="Registered" xml:space="preserve">
+    <value>已注册的目录</value>
+  </data>
+  <data name="Loose" xml:space="preserve">
+    <value>随附的目录文件</value>
+  </data>
+  <data name="Column_Catalog" xml:space="preserve">
+    <value>目录签名</value>
+  </data>
   <data name="Group_HashFormat" xml:space="preserve">
     <value>哈希显示格式</value>
   </data>
@@ -205,5 +380,11 @@
   </data>
   <data name="ShortcutContextMenuAction" xml:space="preserve">
     <value>打开当前行的快捷菜单</value>
+  </data>
+  <data name="OptionsPreviewHint" xml:space="preserve">
+    <value>选择“保存”以保留更改。选择“取消”将恢复打开此窗口时的设置。</value>
+  </data>
+  <data name="Options" xml:space="preserve">
+    <value>选项…</value>
   </data>
 </root>

@@ -342,9 +342,6 @@
   <data name="FitColumns" xml:space="preserve">
     <value>Breiten neu anpassen</value>
   </data>
-  <data name="OptionsPreviewHint" xml:space="preserve">
-    <value>Speichern übernimmt die Änderungen. Abbrechen stellt die Einstellungen vom Öffnen des Dialogs wieder her.</value>
-  </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>Gespeicherte Optionen konnten nicht gelesen werden. Es werden Standardwerte verwendet.</value>
   </data>

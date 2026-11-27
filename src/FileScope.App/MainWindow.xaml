@@ -37,11 +37,11 @@
       </StackPanel>
       <StackPanel Grid.Column="2" VerticalAlignment="Top">
         <Button x:Name="OptionsButton" Command="{Binding OptionsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}"
-                ToolTip="{loc:Loc OptionsTitle}" AutomationProperties.Name="{loc:Loc OptionsTitle}" Margin="0" HorizontalAlignment="Right">
+                ToolTip="{loc:Loc Options}" AutomationProperties.Name="{loc:Loc Options}" Margin="0" HorizontalAlignment="Right">
           <StackPanel Orientation="Horizontal">
             <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBlock Text="{loc:Loc OptionsTitle}" VerticalAlignment="Center" />
+            <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
         <TextBlock Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />

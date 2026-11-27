@@ -342,9 +342,6 @@
   <data name="FitColumns" xml:space="preserve">
     <value>自动调整列宽</value>
   </data>
-  <data name="OptionsPreviewHint" xml:space="preserve">
-    <value>选择“保存”以保留更改。选择“取消”将恢复打开此窗口时的设置。</value>
-  </data>
   <data name="SettingsLoadError" xml:space="preserve">
     <value>无法读取已保存的选项，正在使用默认值。</value>
   </data>
