@@ -31,6 +31,8 @@ Bei einer ungültigen Eingabe zeigt die Fußzeile den Grund und der Fokus spring
 
 Hauptfenster, Optionen, Über und Tastenkürzel merken sich ihre normale Größe und ihren Maximierungszustand getrennt. Bei Über und Tastenkürzeln gilt die vorgegebene Startgröße bis zur ersten Größenänderung oder Maximierung. Ein minimiertes Fenster öffnet sich wieder im letzten sichtbaren Zustand. Während der Suche und während eines Papierkorbvorgangs ist **Optionen** ausgegraut.
 
+Das Suchfeld findet Datei-Prüfsummen sowohl als Hex-Wert ohne Trennzeichen als auch in der gewählten Darstellung. Teilwerte genügen. Bei Base64 und Base64url zählt die Groß- und Kleinschreibung.
+
 **Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Rechts neben dem Suchfeld lässt sich die primäre eingebettete Signatur nach denselben zwölf Codes und vier Sammelfiltern wie in FileScope filtern. Beispielsweise zeigt `2` nur gültige Signaturen mit Sperrprüfung aus dem Cache. Katalogtreffer stehen in einer eigenen Spalte. [Codes, Farben und Bedeutung](../README.md#dateien-nach-signaturergebnis-verschieben)
 
 **Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)

@@ -64,9 +64,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     }
 
     internal bool MatchesHash(string text) =>
-        File.Hashes.Values.Any(hash => hash.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
-        (_hashFormat != HashFormat.HexUpper && _displayHashes.Values.Any(hash => hash.Contains(text,
-            _hashFormat is HashFormat.Base64 or HashFormat.Base64Url ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)));
+        DigestSearch.MatchesAny(File.Hashes.Values, _displayHashes.Values, _hashFormat, text);
 
     internal void Relocalize() => OnPropertyChanged(string.Empty);
 }

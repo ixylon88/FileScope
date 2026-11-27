@@ -140,7 +140,7 @@ Für self-contained setzt das Skript `TargetLatestRuntimePatch=true`: Gebündelt
 | Scrollbalken | Beide Richtungen sind doppelt so dick, einschließlich Schieber und Maus-Trefffläche. Die nativen Fluent-Vorlagen werden nur quer zur Scrollrichtung skaliert: 24 statt 12 geräteunabhängige Pixel. Gilt auch für Listen, Detailfeld und Menüband. |
 | Spaltenreihenfolge | Zahnrad → Optionen: Alle 40 Spalten per Auf/Ab, ganz nach oben/unten oder Zurücksetzen anordnen, auch ausgeblendete Spalten. Verschieben der Tabellenüberschriften synchronisiert diese Liste. |
 | Spaltenbreiten | Automatisch nach Überschrift und sichtbarem Inhalt, mit Begrenzungen für die normalen Spalten. Der Pfad steht standardmäßig zuletzt und darf automatisch seine volle Inhaltsbreite nutzen. Unter Optionen → Spaltenreihenfolge lässt sich seine Automatik abschalten: dann startet er begrenzt breit und lässt sich manuell anpassen. |
-| Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details, Suche und Kopierausgabe. Keine erneute Dateianalyse. |
+| Hashdarstellung | Unter Optionen: Hex groß, Hex klein, Hex mit Doppelpunkten, Base64 oder Base64url ohne Padding. Datei-Hashes und Zertifikatsfingerabdrücke wechseln sofort, auch in Details und Kopierausgabe. Die Suche findet Hex-Werte ohne Trennzeichen in jeder Darstellung sowie Ausschnitte des angezeigten Werts. Bei Base64 und Base64url zählt die Groß- und Kleinschreibung. Der Wechsel erfordert keine erneute Dateianalyse. |
 | Kopieren | Zeilen auswählen und Ctrl+C verwenden. Bei genau einer markierten Datei zeigt der Detailkopf nach „Kopieren:“ mit Abstand den vollständigen Pfad; der Detailtext ist markierbar. Bei keiner oder mehreren markierten Dateien bleiben Pfad und Detailtext leer. |
 | Tastaturnavigation in der Tabelle | **Strg+Pos1 / Strg+Ende** springen zur ersten bzw. letzten Tabellenzelle. **BildAuf / BildAb** bewegen sich um eine sichtbare Tabellenseite nach oben bzw. unten. Pos1 / Ende allein wechseln innerhalb der aktuellen Zeile zur ersten bzw. letzten Spalte. Die Ergebnisliste muss den Tastaturfokus haben. |
 | Abbrechen | Esc oder „Abbrechen“. Fertige Ergebnisse bleiben erhalten, noch offene Zeilen werden als abgebrochen markiert. |
@@ -633,13 +633,13 @@ Aktueller Ausführungsstand:
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **94 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
-| Core | **31 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Katalogsuche, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
-| Präsentation, Einstellungen und Ressourcen | **41 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
+| Core | **33 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Katalogsuche, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
+| Präsentation, Einstellungen und Ressourcen | **43 Fälle**, darunter die Suche nach Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **38 Fälle** für Oberfläche und Bedienabläufe, einschließlich eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **26 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung, Dateisperren und die Binärprüfung vor dem Papierkorb. |
-| DuplicateFinder / WPF | **16 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung. |
+| DuplicateFinder / WPF | **17 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung. |
 
-Die Suite umfasst **152 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **157 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

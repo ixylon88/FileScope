@@ -18,6 +18,25 @@ namespace FileScope.Core.Signatures;
 /// <seealso href="https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust"/>
 public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
 {
+    // WINTRUST_ACTION_GENERIC_VERIFY_V2 selects the Authenticode policy for both subjects.
+    private static readonly Guid AuthenticodePolicy = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+
+    private enum TrustSubject : uint { File = 1, Catalog = 2 }
+
+    [SupportedOSPlatform("windows")]
+    private static Native.WinTrustData CreateTrustData(TrustSubject subject, nint subjectInfo, RevocationMode mode) => new()
+    {
+        Size = (uint)Marshal.SizeOf<Native.WinTrustData>(),
+        UiChoice = 2,          // WTD_UI_NONE
+        RevocationChecks = 1,  // WTD_REVOKE_WHOLECHAIN
+        UnionChoice = subject,
+        SubjectInfo = subjectInfo,
+        StateAction = 1,       // WTD_STATEACTION_VERIFY
+        // Check revocation in both modes. Cache-only prevents network retrieval. Online permits a cached response.
+        ProviderFlags = 0x80u | 0x2000u // CHAIN_EXCLUDE_ROOT | DISABLE_MD2_MD4
+            | (mode == RevocationMode.OfflineCache ? 0x1000u : 0u) // CACHE_ONLY_URL_RETRIEVAL
+    };
+
     public SignatureResult Inspect(FileStream file, string fullPath, RevocationMode revocationMode,
         CancellationToken cancellationToken = default)
     {
@@ -56,22 +75,9 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         var filePointer = Marshal.AllocHGlobal(Marshal.SizeOf<Native.WinTrustFileInfo>());
         var settingsPointer = IntPtr.Zero;
         var marshaled = false;
-        // WINTRUST_ACTION_GENERIC_VERIFY_V2 selects Windows Authenticode policy.
-        var action = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
-        // Revocation remains enabled in both modes. CACHE_ONLY_URL_RETRIEVAL (0x1000)
-        // forbids network retrieval offline; omitting it permits networking but does not force a refresh.
-        var data = new Native.WinTrustData
-        {
-            Size = (uint)Marshal.SizeOf<Native.WinTrustData>(),
-            UiChoice = 2,                  // WTD_UI_NONE
-            RevocationChecks = 1,          // WTD_REVOKE_WHOLECHAIN
-            UnionChoice = 1,               // WTD_CHOICE_FILE
-            FileInfo = filePointer,
-            StateAction = 1,               // WTD_STATEACTION_VERIFY
-            ProviderFlags = 0x80u | 0x2000u // CHAIN_EXCLUDE_ROOT | DISABLE_MD2_MD4
-                | (mode == RevocationMode.OfflineCache ? 0x1000u : 0u),
-            UiContext = 0
-        };
+        var action = AuthenticodePolicy;
+        var data = CreateTrustData(TrustSubject.File, filePointer, mode);
+
         try
         {
             Marshal.StructureToPtr(fileInfo, filePointer, false);
@@ -294,7 +300,7 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             public IntPtr KnownSubject;
         }
 
-        // WINTRUST_DATA's union is represented by its pFile member because UnionChoice is WTD_CHOICE_FILE.
+        // The union points to WINTRUST_FILE_INFO or WINTRUST_CATALOG_INFO according to UnionChoice.
         [StructLayout(LayoutKind.Sequential)]
         internal struct WinTrustData
         {
@@ -303,8 +309,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
             public IntPtr SipClientData;
             public uint UiChoice;
             public uint RevocationChecks;
-            public uint UnionChoice;
-            public IntPtr FileInfo;
+            public TrustSubject UnionChoice;
+            public IntPtr SubjectInfo;
             public uint StateAction;
             public IntPtr StateData;
             public IntPtr UrlReference;

@@ -267,10 +267,15 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         CertificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashFormat);
     }
 
-    public bool Matches(string query) => query.Length == 0 || new[]
+    private bool MatchesHash(string query) => Result is not null &&
+        (DigestSearch.MatchesAny(Result.Checksums.Values, _hashText.Values, _hashFormat, query)
+            || DigestSearch.Matches(Certificate?.ThumbprintSha1, CertificateSha1, _hashFormat, query)
+            || DigestSearch.Matches(Certificate?.ThumbprintSha256, CertificateSha256, _hashFormat, query));
+
+    public bool Matches(string query) => query.Length == 0 || MatchesHash(query) || new[]
     {
-        FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText, MD5, SHA1, SHA256, SHA384, SHA512,
-        Publisher, Subject, Issuer, SerialNumber, CertificateSha1, CertificateSha256,
+        FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText,
+        Publisher, Subject, Issuer, SerialNumber,
         ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic, CatalogDetails,
         FileDescription, FileLanguage, FileType, FileVersion, ProductName, ProductVersion,
         CompanyName, OriginalFilename, InternalName, FileCopyright, FileTrademarks, FileComments,

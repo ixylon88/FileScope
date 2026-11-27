@@ -298,6 +298,28 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    public void FileAndCertificateHashesMatchCanonicalHexAndTheDisplayedEncoding()
+    {
+        var row = new FileRowViewModel("sample.bin", LocalizationService.Instance);
+        var certificate = new CertificateInfo("Publisher", "", "", "", "00FACE", "DEADBEFF", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch.AddYears(1), "");
+        var result = new FileAnalysisResult("sample.bin", 3, null,
+            new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = DigestSearchChecks.Hex },
+            new SignatureResult(SignatureStatus.Valid, RevocationMode.OfflineCache, certificate, 0));
+        row.Complete(result);
+
+        DigestSearchChecks.CheckFileHash(row.SetHashFormat, row.Matches);
+
+        row.SetHashFormat(HashFormat.Base64);
+        Assert.IsTrue(row.Matches("00face") && row.Matches("deadbeff"));
+        Assert.IsTrue(row.Matches("APrO") && row.Matches("3q2+/w=="));
+        Assert.IsFalse(row.Matches("apro") || row.Matches("3Q2+/w=="));
+        Assert.IsTrue(row.Matches("PUBLISHER"));
+
+        row.Reset();
+        Assert.IsFalse(row.Matches("8f01cfea") || row.Matches("APrO"));
+    }
+
+    [TestMethod]
     public void Rows()
     {
         const string sha256 = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD";
@@ -516,6 +538,32 @@ public sealed class PresentationTests
             && row.SigningTime is null && row.SigningTimeText == "" && row.SignatureText == "0 | " + strings["Signature_NotChecked"],
             "reset removes all signature state and restores the unchecked display code");
         strings.SetCulture("en");
+    }
+
+    [TestMethod]
+    public void FailedSettingsSerializationPreservesTheLastSavedFile()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        var path = Path.Combine(directory.FullName, "preferences", "settings.json");
+        var store = new PreferencesStore(path);
+        var saved = new UserPreferences { Theme = "Dark", Window = new(900, 700, false) };
+
+        try
+        {
+            store.Save(saved);
+            var original = File.ReadAllBytes(path);
+
+            var invalid = saved with { Window = new(double.NaN, 700, false) };
+            Assert.ThrowsExactly<ArgumentException>(() => store.Save(invalid));
+
+            CollectionAssert.AreEqual(original, File.ReadAllBytes(path));
+            Assert.AreEqual(saved, store.Load());
+            CollectionAssert.AreEqual(new[] { path }, Directory.GetFiles(Path.GetDirectoryName(path)!));
+
+            store.Save(saved with { Theme = "Light" });
+            Assert.AreEqual("Light", store.Load().Theme);
+        }
+        finally { directory.Delete(recursive: true); }
     }
 
     [TestMethod]

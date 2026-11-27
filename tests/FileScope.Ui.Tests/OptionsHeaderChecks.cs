@@ -12,6 +12,15 @@ internal static class OptionsHeaderChecks
         var header = From(window);
         var tabs = (TabControl)ItemsControl.ItemsControlFromItemContainer(item);
         var original = tabs.SelectedIndex;
+        var strings = LocalizationService.Instance;
+
+        var themes = header.ThemeSelector.Items.Cast<FilterOption<AppTheme>>().ToArray();
+        CollectionAssert.AreEqual(new[] { AppTheme.Light, AppTheme.Dark }, themes.Select(option => option.Value).ToArray());
+        foreach (var option in themes) Assert.AreEqual(strings["Theme_" + option.Value], option.Label);
+
+        var formats = header.HashFormatSelector.Items.Cast<FilterOption<HashFormat>>().ToArray();
+        CollectionAssert.AreEqual(Enum.GetValues<HashFormat>(), formats.Select(option => option.Value).ToArray());
+        foreach (var option in formats) Assert.AreEqual(strings["HashFormat_" + option.Value], option.Label);
 
         try
         {
@@ -27,7 +36,6 @@ internal static class OptionsHeaderChecks
                     Assert.IsTrue(selector.IsVisible);
                     Assert.AreEqual(34.0, selector.MinHeight, "The minimum applies to the clickable control.");
                 }
-                Assert.HasCount(Enum.GetValues<HashFormat>().Length, format.Items);
 
                 var top = theme.TranslatePoint(new Point(theme.ActualWidth, theme.ActualHeight), window);
                 var left = format.TranslatePoint(new Point(format.ActualWidth, 0), window);

@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/DuplicateFinder.App/DuplicateFinder.App.csproj" />
+    <Compile Include="../FileScope.Presentation.Tests/DigestSearchChecks.cs" Link="DigestSearchChecks.cs" />
+    <Compile Include="../FileScope.Ui.Tests/VisualTreeQueries.cs" Link="VisualTreeQueries.cs" />
     <Compile Include="../FileScope.Ui.Tests/WpfTestHost.cs" Link="WpfTestHost.cs" />
     <Compile Include="../FileScope.Ui.Tests/DialogPlacementChecks.cs" Link="DialogPlacementChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/FileMenuChecks.cs" Link="FileMenuChecks.cs" />

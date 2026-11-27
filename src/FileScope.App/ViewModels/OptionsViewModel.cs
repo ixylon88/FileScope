@@ -70,8 +70,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         _selectedLanguage = Languages.FirstOrDefault(language => language.CultureName == saved.Language)
             ?? Languages.First(language => language.CultureName == strings.Culture.Name);
         strings.SetCulture(_selectedLanguage.CultureName);
-        HashFormats = Enum.GetValues<HashFormat>()
-            .Select(format => new FilterOption<HashFormat>(format, "HashFormat_" + format, strings)).ToArray();
+        HashFormats = AppearanceOptions.HashFormats(strings);
         var format = Enum.TryParse<HashFormat>(saved.HashFormat, out var parsed) && Enum.IsDefined(parsed)
             ? parsed : HashFormat.HexUpper;
         _selectedHashFormat = HashFormats.Single(option => option.Value == format);
@@ -103,11 +102,7 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(_ => false));
         strings.CultureChanged += OnCultureChanged;
         _themeService = themes;
-        Themes = Array.AsReadOnly(new[]
-        {
-            new FilterOption<AppTheme>(AppTheme.Light, "Theme_Light", strings),
-            new FilterOption<AppTheme>(AppTheme.Dark, "Theme_Dark", strings)
-        });
+        Themes = AppearanceOptions.Themes(strings);
         var savedTheme = Enum.TryParse<AppTheme>(saved.Theme, out var value) && Enum.IsDefined(value)
             ? value : themes.CurrentTheme;
         _selectedTheme = Themes.Single(theme => theme.Value == savedTheme);

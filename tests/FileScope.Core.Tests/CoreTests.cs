@@ -97,7 +97,9 @@ public sealed class CoreTests
     }
 
     [TestMethod]
-    public async Task FileScopeFindsOnlyTheSuppliedCatalogMember()
+    [DataRow(RevocationMode.OfflineCache)]
+    [DataRow(RevocationMode.Online)]
+    public async Task FileScopeFindsOnlyTheSuppliedCatalogMember(RevocationMode mode)
     {
         if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Windows catalog provider.");
         var member = Path.Combine(_directory, "member.txt");
@@ -112,7 +114,7 @@ public sealed class CoreTests
         var bytes = "DuplicateFinder catalog membership regression fixture."u8.ToArray();
         await File.WriteAllBytesAsync(member, bytes);
         var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
-        var options = new AnalysisOptions([ChecksumAlgorithm.SHA256], false, catalogs: new CatalogSearch([catalog]));
+        var options = new AnalysisOptions([ChecksumAlgorithm.SHA256], false, mode, catalogs: new CatalogSearch([catalog]));
         var original = await analyzer.AnalyzeAsync(member, options);
         Assert.IsNotNull(original.Catalogs);
         Assert.IsTrue(original.Catalogs.IndexComplete);
@@ -126,6 +128,7 @@ public sealed class CoreTests
         Assert.IsNotNull(match, $"Missing SHA-256 catalog member {sha256}. " +
             $"Returned tags: {string.Join(", ", original.Catalogs.Matches.Select(m => m.Member))}");
         Assert.IsFalse(match.Registered);
+        Assert.AreEqual(mode, match.Trust.RevocationMode);
         Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
         Assert.AreEqual(SignatureStatus.NotChecked, original.Signature.Status);
 
@@ -325,13 +328,17 @@ public sealed class CoreTests
     }
 
     [TestMethod]
-    public async Task UnsignedPeHasNoEmbeddedSignature()
+    [DataRow(RevocationMode.OfflineCache)]
+    [DataRow(RevocationMode.Online)]
+    public async Task UnsignedPeHasNoEmbeddedSignature(RevocationMode mode)
     {
         if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Native Authenticode requires Windows.");
 
         var nativeAnalyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
         var unsigned = await nativeAnalyzer.AnalyzeAsync(typeof(FileAnalysisService).Assembly.Location,
-            new AnalysisOptions([], true));
+            new AnalysisOptions([], true, mode));
+
+        Assert.AreEqual(mode, unsigned.Signature.RevocationMode);
         Assert.AreEqual(SignatureStatus.NoEmbeddedSignature, unsigned.Signature.Status, "unsigned PE / native WinVerifyTrust");
         Assert.IsTrue(unsigned.Signature.Certificate is null, "unsigned PE has no signer metadata");
         Assert.AreEqual(0, unsigned.Signature.Signatures.Count, "unsigned PE has no selectable signature");

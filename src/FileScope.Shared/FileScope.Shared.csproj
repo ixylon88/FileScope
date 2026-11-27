@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.EndsWith(`windows`))'">
+    <!-- The portable SDK already imports System.IO. -->
+    <Using Include="System.IO" />
     <!-- Nest the host under its classless layout in Solution Explorer. -->
     <Compile Update="Controls/OptionsFooterHost.cs" DependentUpon="OptionsFooter.xaml" />
     <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"

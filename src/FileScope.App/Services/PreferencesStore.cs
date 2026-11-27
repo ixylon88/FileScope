@@ -49,23 +49,7 @@ public sealed class PreferencesStore(string path) : IPreferencesStore
         ? JsonSerializer.Deserialize<UserPreferences>(File.ReadAllText(path)) ?? new()
         : new();
 
-    public void Save(UserPreferences preferences)
-    {
-        var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        Directory.CreateDirectory(directory);
-        var temporary = Path.Combine(directory, $".settings-{Guid.NewGuid():N}.tmp");
-        try
-        {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(preferences, SerializationOptions));
-            File.Move(temporary, path, overwrite: true);
-        }
-        finally
-        {
-            try { File.Delete(temporary); }
-            catch (IOException) { /* A cleanup failure must not replace the original error. */ }
-            catch (UnauthorizedAccessException) { }
-        }
-    }
+    public void Save(UserPreferences preferences) => JsonSettingsFile.Save(path, preferences, SerializationOptions);
 
     private static JsonSerializerOptions SerializationOptions => field ??= new JsonSerializerOptions { WriteIndented = true };
 }
