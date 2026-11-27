@@ -1,5 +1,19 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder – Größenfilter beim Auflisten
+
+Verglichen wurden `dev` bei `426e935` und die geänderte Fassung unter Linux x64 mit .NET SDK 10.0.404. Der Suchbaum enthielt 7.500 Sparse-Dateien. Genau 1.500 hatten eine Größe zwischen 150 und 200 MB, jede davon eine andere. Beide Signaturprüfungen waren ausgeschaltet. Der Scanner lief durch echte Verzeichnisse und öffnete echte Dateien. Ein Testadapter zählte die Metadatenabrufe am geöffneten Handle.
+
+| Messgröße | Vorher | Mit Größenvorauswahl |
+| --- | ---: | ---: |
+| Aufgenommene Dateien | 1.500 | 1.500 |
+| Verschiedene zum Lesen geöffnete Dateien | 7.500 | 1.500 |
+| Metadatenabrufe am geöffneten Handle insgesamt | 9.000 | 1.500 |
+
+Der Vergleich erfasst die vermiedenen Öffnungen. Die Laufzeit auf einer Windows-Festplatte mit aktivem Virenscanner ist offen.
+
+Der Release-Build der Solution und die frameworkabhängigen DuplicateFinder-Pakete für `win-x64` und `win-arm64` waren erfolgreich. 80 C#-Fälle und 91 Skriptprüfungen bestanden. Neun C#-Fälle benötigen Windows oder optionale Beispieldateien. Die 46 WPF-Fälle wurden unter Linux kompiliert.
+
 ## Produktordner für Publish
 
 Auf `dev` bei `68f3873` brachen beide Windows-Jobs im Skripttest ab, weil er für FileScope noch den früheren Ausgabeordner erwartete. Der vorherige Lauf hatte die nativen Tests und die WPF-Tests auf x64 und ARM64 bestanden. [CI-Lauf 17](https://github.com/ixylon88/FileScope/actions/runs/45903348307) · [CI-Lauf 16](https://github.com/ixylon88/FileScope/actions/runs/45902764988)

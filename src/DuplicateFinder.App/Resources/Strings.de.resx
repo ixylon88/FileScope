@@ -310,7 +310,10 @@
     <value>{0:N0} von {1:N0} Dateien · {2:N0} markiert · {3:N0} Scandiagnosen</value>
   </data>
   <data name="Stage_Search" xml:space="preserve">
-    <value>Dateien suchen</value>
+    <value>Dateien suchen · {0:N0} Dateieinträge gesichtet</value>
+  </data>
+  <data name="Stage_CatalogIndex" xml:space="preserve">
+    <value>Katalogindex aufbauen</value>
   </data>
   <data name="Stage_Hash" xml:space="preserve">
     <value>Prüfsummen lesen</value>

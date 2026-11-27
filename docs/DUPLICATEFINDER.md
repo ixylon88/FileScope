@@ -19,6 +19,8 @@ Unter **Optionen → Suchordner → Ordner hinzufügen** die Suchordner wählen.
 
 Unter **Optionen → Suchordner → Dateigröße beim Einlesen** lassen sich eine Mindest- und eine Höchstgröße für den Hauptdatenstrom setzen. Anfangs sind beide Felder leer und alle Größen zugelassen. Jede Grenze lässt sich einzeln setzen und zählt mit. **Von 200 kB bis 1,5 MB** erfasst beispielsweise 200.000 bis 1.500.000 Byte. **Bis 0 B** findet ausschließlich leere Hauptdatenströme. Pro Feld stehen B, kB, MB und GB zur Wahl (1 kB = 1.000 Byte).
 
+Bei **Dateien suchen** zeigt die Statusleiste den aktuellen Pfad und zählt alle gesichteten Dateieinträge, einschließlich der Einträge außerhalb des Größenbereichs. Die anschließende Metadatenprüfung und der Aufbau des Katalogindex zeigen jeweils den bearbeiteten Dateipfad.
+
 Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einer aufgenommenen Datei liefern.
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
@@ -33,8 +35,8 @@ Die Kästchen vor den Dateinamen bestimmen die manuelle Auswahl für den Papierk
 
 ## Wie die Duplikatsuche arbeitet
 
-1. **Dateien erfassen.** DuplicateFinder ermittelt Dateigröße, Änderungszeit und Datei-ID und wendet die eingestellten Größengrenzen an. Mehrere Hardlinks auf dieselbe Datei zählen einmal.
-2. **Nach Größe vorsortieren.** Nur wenn mindestens zwei verschiedene Dateien dieselbe Größe in Byte haben, berechnet `FileScope.Core` SHA-256 und alle zusätzlich gewählten Prüfsummen in einem gemeinsamen Lesedurchlauf. Bei einer einmaligen Größe bleiben die Prüfsummenfelder leer. Zwei gleich große Dateien mit unterschiedlichem Inhalt erhalten also beide einen Hash, auch wenn am Ende beide einzeln stehen.
+1. **Dateien erfassen.** Für die Größenvorauswahl nutzt DuplicateFinder die Größe aus dem Verzeichniseintrag. Eine gewöhnliche Datei außerhalb der Grenzen wird damit schon vor dem Öffnen aussortiert. Bei Kandidaten prüft DuplicateFinder die Größe erneut am geöffneten Handle und ermittelt Änderungszeit und Datei-ID. Mehrere Hardlinks auf dieselbe Datei zählen einmal.
+2. **Nach Größe vorsortieren.** Nur wenn mindestens zwei verschiedene Dateien dieselbe Größe in Byte haben, berechnet `FileScope.Core` SHA-256 und alle zusätzlich gewählten Prüfsummen in einem gemeinsamen Lesedurchlauf. Bei einer einmaligen Größe bleiben die Prüfsummenfelder leer. Sind auch beide Signaturprüfungen ausgeschaltet, ist die Datei nach dem Erfassen fertig. Zwei gleich große Dateien mit unterschiedlichem Inhalt erhalten also beide einen Hash, auch wenn am Ende beide einzeln stehen.
 3. **Signaturen prüfen, falls aktiviert.** Eingebettete Signaturen und Katalogzuordnungen werden für jede aufgenommene, lesbare Datei geprüft, auch bei einmaliger Größe. Windows kann dafür zusätzliche Daten lesen und eigene Kataloghashes berechnen.
 4. **Identität bestätigen.** Bei gleicher Größe und gleichem SHA-256 vergleicht DuplicateFinder den Hauptdatenstrom Byte für Byte. Erst übereinstimmende Inhalte bilden eine Duplikatgruppe. Innerhalb dieser Gruppe prüft die App auch Namen und Inhalte der NTFS-Zusatzdatenströme. Die automatische Bereinigung berücksichtigt die Aufbewahrungsprioritäten innerhalb jeder vollständig geprüften, identischen Variante.
 

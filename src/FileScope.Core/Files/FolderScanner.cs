@@ -17,7 +17,12 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
     // An explicitly selected root may itself be a directory link. Within that root,
     // directory reparse points are never traversed. File links remain individual paths:
     // hard links cannot create directory cycles, and file symlinks are resolved on opening.
-    public FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default)
+    public FolderScanResult Scan(string folderPath, CancellationToken cancellationToken = default) =>
+        Scan(folderPath, includeFile: null, enteringDirectory: null, cancellationToken);
+
+    /// <summary>Filters files using the metadata returned by directory enumeration, before collecting their paths.</summary>
+    public FolderScanResult Scan(string folderPath, Func<FileInfo, bool>? includeFile,
+        Action<string>? enteringDirectory, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
         cancellationToken.ThrowIfCancellationRequested();
@@ -40,6 +45,8 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                enteringDirectory?.Invoke(directory);
+
                 // Also recheck queued directories: a link must not be followed
                 // if it appeared after the parent was enumerated.
                 if (directory != root && (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
@@ -50,9 +57,9 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
                 foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", options))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if ((entry.Attributes & FileAttributes.Directory) == 0)
+                    if (entry is FileInfo file)
                     {
-                        files.Add(entry.FullName);
+                        if (includeFile?.Invoke(file) != false) files.Add(file.FullName);
                     }
                     else if ((entry.Attributes & FileAttributes.ReparsePoint) != 0)
                     {

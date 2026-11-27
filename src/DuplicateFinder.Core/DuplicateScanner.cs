@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Files;
@@ -34,7 +35,8 @@ public sealed class DuplicateScanner
         var algorithms = options.Hashes.Append(ChecksumAlgorithm.SHA256).Distinct().ToArray();
 
         var catalogIndex = catalogPaths != null && files.Any(f => f.Stamp != null) && OperatingSystem.IsWindows()
-            ? new WindowsCatalogIndex(catalogPaths.Values, (path, reason) => issues.Add(new(path, reason)), token) : null;
+            ? new WindowsCatalogIndex(CatalogsToIndex(catalogPaths, progress),
+                (path, reason) => issues.Add(new(path, reason)), token) : null;
 
         for (var index = 0; index < files.Count; index++)
         {
@@ -42,11 +44,14 @@ public sealed class DuplicateScanner
             var file = files[index];
             if (file.Stamp == null) continue;
 
+            var needsHashes = sizes[file.Stamp.Length] > 1;
+            if (!needsHashes && !options.Embedded && catalogIndex == null) continue;
+
             try
             {
                 progress?.Report(new("Metadata", file.Path, index, files.Count));
                 using var input = FileAccessChecks.OpenVerified(file, _facts);
-                if (sizes[file.Stamp.Length] > 1)
+                if (needsHashes)
                 {
                     progress?.Report(new("Hash", file.Path, index, files.Count));
                     file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
@@ -85,6 +90,34 @@ public sealed class DuplicateScanner
         var identities = new HashSet<FileKey>();
         var files = new List<FoundFile>();
         var scanner = new FolderScanner(FileAccessChecks.IsRecycleDirectory);
+        var seen = 0;
+        var updateClock = Stopwatch.StartNew();
+
+        void ReportSearch(string path)
+        {
+            progress?.Report(new("Search", path, seen, 0));
+            updateClock.Restart();
+        }
+
+        bool IncludeFile(FileInfo file)
+        {
+            seen++;
+            if (progress != null && updateClock.ElapsedMilliseconds >= 150) ReportSearch(file.FullName);
+
+            if (sizes == default || (catalogPaths != null && file.FullName.EndsWith(".cat", StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            try
+            {
+                // Directory enumeration supplies Length on Windows. Reparse points still take the diagnostic path.
+                return (file.Attributes & FileAttributes.ReparsePoint) != 0 || sizes.Includes(file.Length);
+            }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex))
+            {
+                // Resolve unknown metadata through the usual handle check and its per-file error reporting.
+                return true;
+            }
+        }
 
         foreach (var selected in roots.OrderByDescending(r => r.Priority))
         {
@@ -92,15 +125,19 @@ public sealed class DuplicateScanner
             try
             {
                 var root = selected with { Path = Path.GetFullPath(selected.Path) };
-                progress?.Report(new("Search", root.Path, 0, 0));
+                ReportSearch(root.Path);
                 FileAccessChecks.CheckPath(root.Path);
-                var found = scanner.Scan(root.Path, token);
+                var found = scanner.Scan(root.Path, IncludeFile, ReportSearch, token);
+                ReportSearch(root.Path);
                 issues.AddRange(found.Issues.Select(i => new ScanIssue(i.Path, i.Message)));
 
-                foreach (var path in found.Files)
+                for (var index = 0; index < found.Files.Count; index++)
                 {
                     token.ThrowIfCancellationRequested();
+                    var path = found.Files[index];
                     if (!paths.Add(path)) continue;
+
+                    progress?.Report(new("Metadata", path, index, found.Files.Count));
                     var entry = new FoundFile(path, root);
                     try
                     {
@@ -114,6 +151,7 @@ public sealed class DuplicateScanner
                             catalogPaths.TryAdd(entry.Stamp.Key, path);
                         }
 
+                        // A candidate can change between directory enumeration and opening.
                         if (!sizes.Includes(entry.Stamp.Length)) continue;
                         if (!identities.Add(entry.Stamp.Key)) continue;
                     }
@@ -135,6 +173,17 @@ public sealed class DuplicateScanner
         }
 
         return files;
+    }
+
+    private static IEnumerable<string> CatalogsToIndex(Dictionary<FileKey, string> catalogs, IProgress<ScanProgress>? progress)
+    {
+        var index = 0;
+        foreach (var path in catalogs.Values)
+        {
+            progress?.Report(new("CatalogIndex", path, index, catalogs.Count));
+            index++;
+            yield return path;
+        }
     }
 
     private void Classify(List<FoundFile> files, IProgress<ScanProgress>? progress, CancellationToken token)

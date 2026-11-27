@@ -310,7 +310,10 @@
     <value>显示 {1:N0} 个文件中的 {0:N0} 个 · 已勾选 {2:N0} 个 · {3:N0} 条扫描诊断</value>
   </data>
   <data name="Stage_Search" xml:space="preserve">
-    <value>查找文件</value>
+    <value>查找文件 · 已查看 {0:N0} 个文件条目</value>
+  </data>
+  <data name="Stage_CatalogIndex" xml:space="preserve">
+    <value>正在为安全目录文件建立索引</value>
   </data>
   <data name="Stage_Hash" xml:space="preserve">
     <value>计算校验和</value>

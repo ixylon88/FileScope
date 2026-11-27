@@ -49,6 +49,7 @@ public sealed class DuplicateTests
         CollectionAssert.AreEquivalent(new[] { first, second }, progress.Paths("Hash"));
         CollectionAssert.AreEquivalent(new[] { first, second, single }, progress.Paths("Signature"));
         Assert.IsEmpty(scan.Files.Single(file => file.Path == single).Hashes);
+        Assert.AreEqual(2, _facts.ReadCount[single], "A unique size still receives the requested signature inspection.");
         Assert.IsTrue(scan.Files.Where(file => file.Path != single).All(file => file.Hashes.Count == 3));
         Assert.IsTrue(scan.Files.All(file => file.Group == 0));
     }
@@ -66,16 +67,50 @@ public sealed class DuplicateTests
             paths.Add(Put("1", "copy-" + contents, contents));
         }
 
+        // Directory metadata remains available while an unrelated file is held exclusively.
+        using var locked = File.Open(excluded[0], FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         var options = Options with { SizeRange = new(2, 4), Embedded = true };
         var scan = await ScanAsync(options: options);
         Assert.IsEmpty(scan.Issues);
         CollectionAssert.AreEquivalent(admitted, scan.Files.Select(f => f.Path).ToArray());
         Assert.IsTrue(scan.Files.All(f => f.Hashes.ContainsKey(ChecksumAlgorithm.SHA256) && f.Embedded != SignatureResult.NotChecked));
-        Assert.IsTrue(excluded.All(path => _facts.ReadCount[path] == 1), "Excluded files should only be opened for discovery.");
+        Assert.IsTrue(excluded.All(path => !_facts.ReadCount.ContainsKey(path)), "Out-of-range files should need no read handle.");
 
         var plan = CleanupPlan.Create(scan.Files);
         CollectionAssert.AreEquivalent(admitted.Where(path => Path.GetFileName(path).StartsWith("copy-", StringComparison.Ordinal)).ToArray(),
             plan.Items.Select(item => item.File.Path).ToArray());
+    }
+
+    [TestMethod]
+    public async Task DiscoveryReportsSubfoldersAndRechecksCandidateSizeAtOpen()
+    {
+        var changed = Put("1/nested", "changed", "abc");
+        var kept = Put("1/nested", "kept", "123");
+        var excluded = Put("1/nested", "small", "x");
+        var resized = false;
+
+        var progress = new Stages(update =>
+        {
+            // The file qualified in the directory listing, but grows before its handle is opened.
+            if (!resized && update.Stage == "Metadata" && update.Path == changed)
+            {
+                File.WriteAllText(changed, "larger");
+                resized = true;
+            }
+        });
+
+        var scanner = new DuplicateScanner(_facts, new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
+        var scan = await scanner.ScanAsync([new(_dir, 1)], Options with { SizeRange = new(3, 3) }, progress);
+
+        Assert.IsTrue(resized);
+        Assert.IsEmpty(scan.Issues);
+        Assert.AreEqual(kept, scan.Files.Single().Path);
+        Assert.AreEqual(1, _facts.ReadCount[changed]);
+        Assert.IsFalse(_facts.ReadCount.ContainsKey(excluded));
+
+        CollectionAssert.Contains(progress.Paths("Search"), Path.GetDirectoryName(changed)!);
+        Assert.AreEqual(3, progress.Updates.Last(update => update.Stage == "Search").Completed);
+        CollectionAssert.DoesNotContain(progress.Paths("Metadata"), excluded);
     }
 
     [TestMethod]
@@ -118,7 +153,7 @@ public sealed class DuplicateTests
         Put("30", "master-b", "same");
         var backup = Put("20", "backup", "same");
         var download = Put("10", "download", "same");
-        Put("10", "only", "unique");
+        var unique = Put("10", "only", "unique");
         var scan = await ScanAsync();
 
         var all = CleanupPlan.Create(scan.Files);
@@ -129,6 +164,7 @@ public sealed class DuplicateTests
         Assert.AreEqual(30, filtered.Items.Single().Keeper!.Root.Priority);
         Assert.AreEqual(3, scan.Files.Single(f => f.Path == backup).Hashes.Count);
         Assert.IsEmpty(scan.Files.Single(f => f.Name == "only").Hashes);
+        Assert.AreEqual(1, _facts.ReadCount[unique], "With no content checks, the discovery handle is sufficient.");
     }
 
     [TestMethod]
@@ -332,11 +368,17 @@ public sealed class DuplicateTests
         }
     }
 
-    private sealed class Stages : IProgress<ScanProgress>
+    private sealed class Stages(Action<ScanProgress>? onReport = null) : IProgress<ScanProgress>
     {
-        private readonly List<ScanProgress> _updates = [];
-        public void Report(ScanProgress value) => _updates.Add(value);
-        internal string[] Paths(string stage) => _updates.Where(update => update.Stage == stage).Select(update => update.Path).ToArray();
+        internal List<ScanProgress> Updates { get; } = [];
+
+        public void Report(ScanProgress value)
+        {
+            Updates.Add(value);
+            onReport?.Invoke(value);
+        }
+
+        internal string[] Paths(string stage) => Updates.Where(update => update.Stage == stage).Select(update => update.Path).ToArray();
     }
 
     private sealed class Facts : IFileFacts

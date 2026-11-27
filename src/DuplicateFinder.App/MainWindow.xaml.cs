@@ -267,7 +267,8 @@ public partial class MainWindow : Window
     private void Tick(object? sender, EventArgs e)
     {
         if (_progress.Take() is not { } update) return;
-        Status.Text = Strings["Stage_" + update.Stage] + " · " + update.Path;
+        var stage = update.Stage == "Search" ? Strings.Format("Stage_Search", update.Completed) : Strings["Stage_" + update.Stage];
+        Status.Text = stage + " · " + update.Path;
         Meter.IsIndeterminate = update.Total == 0;
         if (update.Total > 0) { Meter.Maximum = update.Total; Meter.Value = update.Completed; }
     }

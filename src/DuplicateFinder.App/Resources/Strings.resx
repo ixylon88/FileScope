@@ -310,7 +310,10 @@
     <value>{0:N0} of {1:N0} files · {2:N0} selected · {3:N0} scan diagnostics</value>
   </data>
   <data name="Stage_Search" xml:space="preserve">
-    <value>Finding files</value>
+    <value>Finding files · {0:N0} file entries seen</value>
+  </data>
+  <data name="Stage_CatalogIndex" xml:space="preserve">
+    <value>Indexing catalogs</value>
   </data>
   <data name="Stage_Hash" xml:space="preserve">
     <value>Reading checksums</value>
