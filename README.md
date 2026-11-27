@@ -190,7 +190,7 @@ Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows di
 
 ### Signaturstatus filtern
 
-Im Dropdown **Signaturstatus** von FileScope und DuplicateFinder gibt es zehn Sammelfilter. **Alle Signaturergebnisse** zeigt sämtliche Zeilen. Für die übrigen drei Filter lässt sich die Quelle wählen: **Eingebettet**, **Katalog** oder **Beide Quellen**. In FileScope zählt die in der Zeile ausgewählte eingebettete Signatur, in DuplicateFinder die primäre.
+Im Dropdown **Signaturstatus** von FileScope und DuplicateFinder gibt es zehn Sammelfilter. Mit **Alle Signaturergebnisse** schränkt der Signaturstatus die Tabelle nicht ein. Für **Gültige Signaturen**, **Alles außer gültigen Signaturen** und **Prüfbedarf** stehen jeweils **Eingebettet**, **Katalog** und **Beide Quellen** zur Wahl. In FileScope zählt die in der Zeile ausgewählte eingebettete Signatur, in DuplicateFinder die primäre.
 
 | Sammelfilter | Wann eine Datei erscheint |
 | --- | --- |
