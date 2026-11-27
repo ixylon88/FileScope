@@ -32,7 +32,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
             var lines = new List<string> { File.Path, $"{Strings["Folder"]} · {File.Root.Path} ({File.Root.Priority})" };
             if (File.ModifiedUtc.HasValue) lines.Add($"{Strings["Modified"]} · {ModifiedText}");
             lines.Add($"{Streams} · {Strings["Variant"]} {File.Variant}");
-            lines.Add($"{Strings["Embedded"]} · {Signature}");
+            lines.Add($"{Strings["SignatureFilterLabel"]} · {Signature}");
             if (File.IsHardLink) lines.Add(Strings["HardLink"]);
             if (File.Diagnostic != null) lines.Add(File.Diagnostic);
             if (RecycleError != null) lines.Add(RecycleError);
@@ -42,7 +42,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
                 lines.Add($"{sig.Index} · {SignatureGroup.From(sig.Status, File.Embedded.RevocationMode)?.Format(Strings)} · {sig.Certificate?.Publisher} · {DigestFormatter.Format(sig.Certificate?.ThumbprintSha256, _hashFormat)}");
             }
 
-            lines.Add($"{Strings["Catalog"]} · {Catalog}");
+            lines.Add($"{Strings["Column_Catalog"]} · {Catalog}");
             if (File.Catalogs is { } lookup)
             {
                 lines.AddRange(CatalogPresentation.Details(lookup, Strings));

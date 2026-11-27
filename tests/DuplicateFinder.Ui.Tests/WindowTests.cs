@@ -182,13 +182,21 @@ public sealed class WindowTests
         var options = new OptionsWindow(settings) { Owner = window };
         options.Show();
         Assert.AreEqual("Optionen", options.Title);
+        var themes = ((ComboBox)options.FindName("Themes")).Items
+            .Cast<FilterOption<AppTheme>>().ToDictionary(theme => theme.Value);
+        Assert.AreEqual("Hell", themes[AppTheme.Light].Label);
+        Assert.AreEqual("Dunkel", themes[AppTheme.Dark].Label);
+
         strings.SetCulture("zh-Hans");
         Assert.AreEqual("选项", options.Title);
+        Assert.AreEqual("浅色", themes[AppTheme.Light].Label);
+        Assert.AreEqual("深色", themes[AppTheme.Dark].Label);
+
         var shortcutsButton = (Button)window.FindName("ShortcutsButton");
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
         Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
-        Assert.AreEqual(strings["Shortcuts"], AutomationProperties.GetName(shortcutsButton));
+        Assert.AreEqual(strings["ShortcutsButton"], AutomationProperties.GetName(shortcutsButton));
 
         var firstTab = (TabItem)options.FindName("SearchTab");
         Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
@@ -196,7 +204,7 @@ public sealed class WindowTests
         strings.SetCulture("de");
         shortcuts.UpdateLayout();
         Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
-        Assert.AreEqual(strings["Shortcuts"], AutomationProperties.GetName(shortcutsButton));
+        Assert.AreEqual(strings["ShortcutsButton"], AutomationProperties.GetName(shortcutsButton));
         Assert.AreEqual("Suchordner", firstTab.Header);
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == "Strg+F"));
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["KeyFilter"]));

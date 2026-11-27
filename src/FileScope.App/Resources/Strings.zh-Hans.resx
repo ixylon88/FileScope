@@ -132,9 +132,6 @@
   <data name="Group_Certificates" xml:space="preserve">
     <value>签名与证书</value>
   </data>
-  <data name="Group_Language" xml:space="preserve">
-    <value>语言</value>
-  </data>
   <data name="AddFiles" xml:space="preserve">
     <value>添加文件…</value>
   </data>
@@ -153,9 +150,6 @@
   <data name="ClearTip" xml:space="preserve">
     <value>清空所有行和筛选条件（Ctrl+L）。如正在分析，将先取消分析。</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
-    <value>取消</value>
-  </data>
   <data name="CancelTip" xml:space="preserve">
     <value>取消当前批次（Esc），保留已完成的结果。</value>
   </data>
@@ -164,9 +158,6 @@
   </data>
   <data name="InspectCertificatesTip" xml:space="preserve">
     <value>验证嵌入式 Authenticode 签名及其证书。</value>
-  </data>
-  <data name="OnlineRevocation" xml:space="preserve">
-    <value>在线吊销检查</value>
   </data>
   <data name="OnlineRevocationTip" xml:space="preserve">
     <value>允许 Windows 联系证书颁发机构获取证书链及吊销信息；否则仅使用本地缓存，并明确显示未知的吊销状态。</value>
@@ -216,9 +207,6 @@
   <data name="OpenTitle" xml:space="preserve">
     <value>选择要分析的文件</value>
   </data>
-  <data name="AllFiles" xml:space="preserve">
-    <value>所有文件</value>
-  </data>
   <data name="Ready" xml:space="preserve">
     <value>就绪 · 请选择检查项目并拖入文件。</value>
   </data>
@@ -264,9 +252,6 @@
   <data name="Row_Failed" xml:space="preserve">
     <value>错误</value>
   </data>
-  <data name="Row_Cancelled" xml:space="preserve">
-    <value>已取消</value>
-  </data>
   <data name="Error_InvalidPath" xml:space="preserve">
     <value>文件路径无效</value>
   </data>
@@ -287,9 +272,6 @@
   </data>
   <data name="Column_Name" xml:space="preserve">
     <value>文件名</value>
-  </data>
-  <data name="Column_Status" xml:space="preserve">
-    <value>分析</value>
   </data>
   <data name="Column_Size" xml:space="preserve">
     <value>大小（字节）</value>
@@ -336,9 +318,6 @@
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>诊断详情</value>
   </data>
-  <data name="OptionsTitle" xml:space="preserve">
-    <value>选项</value>
-  </data>
   <data name="ColumnOrderTitle" xml:space="preserve">
     <value>列顺序</value>
   </data>
@@ -362,9 +341,6 @@
   </data>
   <data name="FitColumns" xml:space="preserve">
     <value>自动调整列宽</value>
-  </data>
-  <data name="Save" xml:space="preserve">
-    <value>保存</value>
   </data>
   <data name="OptionsPreviewHint" xml:space="preserve">
     <value>选择“保存”以保留更改。选择“取消”将恢复打开此窗口时的设置。</value>
@@ -576,18 +552,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>{0:N0} 个文件的大小未知。</value>
   </data>
-  <data name="Theme_Light" xml:space="preserve">
-    <value>浅色</value>
-  </data>
-  <data name="Theme_Dark" xml:space="preserve">
-    <value>深色</value>
-  </data>
-  <data name="Group_Theme" xml:space="preserve">
-    <value>主题</value>
-  </data>
-  <data name="AboutButton" xml:space="preserve">
-    <value>关于…</value>
-  </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>关于 FileScope</value>
   </data>
@@ -726,9 +690,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="ShortcutsTitle" xml:space="preserve">
     <value>键盘快捷键</value>
   </data>
-  <data name="ShortcutsButton" xml:space="preserve">
-    <value>快捷键…</value>
-  </data>
   <data name="ShortcutsTip" xml:space="preserve">
     <value>查看键盘快捷键（F1）</value>
   </data>
@@ -758,15 +719,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>在没有任务运行时清空结果与筛选条件</value>
-  </data>
-  <data name="ShortcutCancelKeys" xml:space="preserve">
-    <value>Esc</value>
-  </data>
-  <data name="ShortcutCancelAction" xml:space="preserve">
-    <value>取消当前操作</value>
-  </data>
-  <data name="ShortcutHelpKeys" xml:space="preserve">
-    <value>F1</value>
   </data>
   <data name="ShortcutHelpAction" xml:space="preserve">
     <value>打开此快捷键列表</value>
@@ -807,9 +759,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   <data name="ShortcutExtendAction" xml:space="preserve">
     <value>扩展行选择范围</value>
   </data>
-  <data name="ShortcutCopyKeys" xml:space="preserve">
-    <value>Ctrl+C</value>
-  </data>
   <data name="ShortcutCopyAction" xml:space="preserve">
     <value>复制选中的行及列标题</value>
   </data>
@@ -842,9 +791,6 @@ FileScope 将分析这些文件夹及其子文件夹中的所有文件。文件�
   </data>
   <data name="IntakeExcludedSummary" xml:space="preserve">
     <value>导入筛选器已排除：{0}</value>
-  </data>
-  <data name="MenuTitle" xml:space="preserve">
-    <value>菜单</value>
   </data>
   <data name="InspectCatalogs" xml:space="preserve">
     <value>验证目录签名</value>

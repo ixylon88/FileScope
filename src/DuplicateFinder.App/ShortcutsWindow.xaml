@@ -42,12 +42,12 @@
       <StackPanel Grid.IsSharedSizeScope="True">
         <TextBlock Text="{loc:Loc ShortcutActions}" Style="{StaticResource GroupHeading}" />
         <HeaderedContentControl Header="F5" Content="{loc:Loc KeyScan}" />
-        <HeaderedContentControl Header="Esc" Content="{loc:Loc KeyCancel}" />
-        <HeaderedContentControl Header="F1" Content="{loc:Loc KeyHelp}" />
+        <HeaderedContentControl Header="{loc:Loc ShortcutCancelKeys}" Content="{loc:Loc ShortcutCancelAction}" />
+        <HeaderedContentControl Header="{loc:Loc ShortcutHelpKeys}" Content="{loc:Loc KeyHelp}" />
         <TextBlock Text="{loc:Loc ShortcutResults}" Style="{StaticResource GroupHeading}" Margin="0,12,0,8" />
         <HeaderedContentControl x:Name="FilterShortcut" Header="{loc:Loc KeysFilter}" Content="{loc:Loc KeyFilter}" />
         <HeaderedContentControl Header="{loc:Loc KeysMark}" Content="{loc:Loc KeyMark}" />
-        <HeaderedContentControl Header="{loc:Loc KeysCopy}" Content="{loc:Loc KeyCopy}" />
+        <HeaderedContentControl Header="{loc:Loc ShortcutCopyKeys}" Content="{loc:Loc KeyCopy}" />
       </StackPanel>
     </ScrollViewer>
 

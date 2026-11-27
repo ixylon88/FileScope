@@ -117,20 +117,11 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Menu" xml:space="preserve">
-    <value>Menü</value>
-  </data>
   <data name="Options" xml:space="preserve">
     <value>Optionen…</value>
   </data>
-  <data name="OptionsTitle" xml:space="preserve">
-    <value>Optionen</value>
-  </data>
   <data name="Scan" xml:space="preserve">
     <value>Ordner durchsuchen</value>
-  </data>
-  <data name="Cancel" xml:space="preserve">
-    <value>Abbrechen</value>
   </data>
   <data name="Clean" xml:space="preserve">
     <value>Bereinigen…</value>
@@ -141,14 +132,8 @@
   <data name="Issues" xml:space="preserve">
     <value>Scandiagnosen</value>
   </data>
-  <data name="Shortcuts" xml:space="preserve">
-    <value>Tastenkürzel…</value>
-  </data>
   <data name="ShortcutsTitle" xml:space="preserve">
     <value>Tastenkürzel</value>
-  </data>
-  <data name="About" xml:space="preserve">
-    <value>Über…</value>
   </data>
   <data name="Filter" xml:space="preserve">
     <value>Filter</value>
@@ -170,12 +155,6 @@
   </data>
   <data name="Streams" xml:space="preserve">
     <value>Datenströme</value>
-  </data>
-  <data name="Embedded" xml:space="preserve">
-    <value>Eingebettete Signatur</value>
-  </data>
-  <data name="Catalog" xml:space="preserve">
-    <value>Katalogsignatur</value>
   </data>
   <data name="Publisher" xml:space="preserve">
     <value>Herausgeber</value>
@@ -201,9 +180,6 @@
   <data name="BadPriority" xml:space="preserve">
     <value>Bitte für jede Priorität eine ganze Zahl eingeben.</value>
   </data>
-  <data name="Save" xml:space="preserve">
-    <value>Speichern</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Ordner hinzufügen…</value>
   </data>
@@ -213,29 +189,11 @@
   <data name="Hashes" xml:space="preserve">
     <value>Prüfsummen für Dateien gleicher Größe</value>
   </data>
-  <data name="Online" xml:space="preserve">
-    <value>Online-Sperrprüfung</value>
-  </data>
-  <data name="Language" xml:space="preserve">
-    <value>Sprache</value>
-  </data>
-  <data name="Theme" xml:space="preserve">
-    <value>Design</value>
-  </data>
-  <data name="Light" xml:space="preserve">
-    <value>Hell</value>
-  </data>
-  <data name="Dark" xml:space="preserve">
-    <value>Dunkel</value>
-  </data>
   <data name="Singles" xml:space="preserve">
     <value>Dateien ohne bestätigtes Duplikat</value>
   </data>
   <data name="Duplicates" xml:space="preserve">
     <value>Duplikatgruppen</value>
-  </data>
-  <data name="All" xml:space="preserve">
-    <value>Alle Dateien</value>
   </data>
   <data name="GroupNumber" xml:space="preserve">
     <value>Gruppe {0}</value>
@@ -288,9 +246,6 @@
   <data name="KeyMark" xml:space="preserve">
     <value>Häkchen bei der fokussierten Datei setzen oder entfernen</value>
   </data>
-  <data name="KeyCancel" xml:space="preserve">
-    <value>Laufenden Vorgang abbrechen</value>
-  </data>
   <data name="KeyHelp" xml:space="preserve">
     <value>Tastenkürzel öffnen</value>
   </data>
@@ -305,9 +260,6 @@
   </data>
   <data name="RecycledCount" xml:space="preserve">
     <value>{0:N0} von {1:N0} Dateien in den Papierkorb verschoben</value>
-  </data>
-  <data name="Cancelled" xml:space="preserve">
-    <value>Abgebrochen</value>
   </data>
   <data name="StartHint" xml:space="preserve">
     <value>Lege unter Optionen deine Suchordner an, um die Suche zu starten.</value>
@@ -366,9 +318,6 @@
   <data name="SearchFolders" xml:space="preserve">
     <value>Suchordner</value>
   </data>
-  <data name="Analysis" xml:space="preserve">
-    <value>Analyse</value>
-  </data>
   <data name="Signatures" xml:space="preserve">
     <value>Signaturen</value>
   </data>
@@ -383,9 +332,6 @@
   </data>
   <data name="KeysMark" xml:space="preserve">
     <value>Leertaste</value>
-  </data>
-  <data name="KeysCopy" xml:space="preserve">
-    <value>Strg+C</value>
   </data>
   <data name="KeyCopy" xml:space="preserve">
     <value>Markierten Text aus den Dateidetails kopieren</value>

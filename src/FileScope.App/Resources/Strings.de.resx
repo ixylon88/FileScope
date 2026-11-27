@@ -132,9 +132,6 @@
   <data name="Group_Certificates" xml:space="preserve">
     <value>Signaturen &amp; Zertifikate</value>
   </data>
-  <data name="Group_Language" xml:space="preserve">
-    <value>Sprache</value>
-  </data>
   <data name="AddFiles" xml:space="preserve">
     <value>Dateien öffnen…</value>
   </data>
@@ -153,9 +150,6 @@
   <data name="ClearTip" xml:space="preserve">
     <value>Alle Zeilen und Filter leeren (Strg+L). Eine laufende Analyse wird zuvor abgebrochen.</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
-    <value>Abbrechen</value>
-  </data>
   <data name="CancelTip" xml:space="preserve">
     <value>Aktuellen Durchlauf abbrechen (Esc). Fertige Ergebnisse bleiben erhalten.</value>
   </data>
@@ -164,9 +158,6 @@
   </data>
   <data name="InspectCertificatesTip" xml:space="preserve">
     <value>Prüft eingebettete Authenticode-Signaturen und ihre Zertifikate.</value>
-  </data>
-  <data name="OnlineRevocation" xml:space="preserve">
-    <value>Online-Sperrprüfung</value>
   </data>
   <data name="OnlineRevocationTip" xml:space="preserve">
     <value>Windows darf Zertifizierungsstellen für Zertifikatsketten und Sperrinformationen kontaktieren. Sonst werden nur lokale/zwischengespeicherte Informationen genutzt; ein unbekannter Sperrstatus wird ausgewiesen.</value>
@@ -216,9 +207,6 @@
   <data name="OpenTitle" xml:space="preserve">
     <value>Dateien zur Analyse auswählen</value>
   </data>
-  <data name="AllFiles" xml:space="preserve">
-    <value>Alle Dateien</value>
-  </data>
   <data name="Ready" xml:space="preserve">
     <value>Bereit · Prüfungen wählen und Dateien ablegen.</value>
   </data>
@@ -264,9 +252,6 @@
   <data name="Row_Failed" xml:space="preserve">
     <value>Fehler</value>
   </data>
-  <data name="Row_Cancelled" xml:space="preserve">
-    <value>Abgebrochen</value>
-  </data>
   <data name="Error_InvalidPath" xml:space="preserve">
     <value>Ungültiger Dateipfad</value>
   </data>
@@ -287,9 +272,6 @@
   </data>
   <data name="Column_Name" xml:space="preserve">
     <value>Dateiname</value>
-  </data>
-  <data name="Column_Status" xml:space="preserve">
-    <value>Analyse</value>
   </data>
   <data name="Column_Size" xml:space="preserve">
     <value>Größe (Bytes)</value>
@@ -336,9 +318,6 @@
   <data name="Column_Diagnostic" xml:space="preserve">
     <value>Diagnosedetails</value>
   </data>
-  <data name="OptionsTitle" xml:space="preserve">
-    <value>Optionen</value>
-  </data>
   <data name="ColumnOrderTitle" xml:space="preserve">
     <value>Spaltenreihenfolge</value>
   </data>
@@ -362,9 +341,6 @@
   </data>
   <data name="FitColumns" xml:space="preserve">
     <value>Breiten neu anpassen</value>
-  </data>
-  <data name="Save" xml:space="preserve">
-    <value>Speichern</value>
   </data>
   <data name="OptionsPreviewHint" xml:space="preserve">
     <value>Speichern übernimmt die Änderungen. Abbrechen stellt die Einstellungen vom Öffnen des Dialogs wieder her.</value>
@@ -576,18 +552,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="RunSummaryUnknownSizes" xml:space="preserve">
     <value>Größe bei {0:N0} Datei(en) unbekannt.</value>
   </data>
-  <data name="Theme_Light" xml:space="preserve">
-    <value>Hell</value>
-  </data>
-  <data name="Theme_Dark" xml:space="preserve">
-    <value>Dunkel</value>
-  </data>
-  <data name="Group_Theme" xml:space="preserve">
-    <value>Design</value>
-  </data>
-  <data name="AboutButton" xml:space="preserve">
-    <value>Über…</value>
-  </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>Über FileScope</value>
   </data>
@@ -726,9 +690,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="ShortcutsTitle" xml:space="preserve">
     <value>Tastenkürzel</value>
   </data>
-  <data name="ShortcutsButton" xml:space="preserve">
-    <value>Tastenkürzel…</value>
-  </data>
   <data name="ShortcutsTip" xml:space="preserve">
     <value>Tastenkürzel anzeigen (F1)</value>
   </data>
@@ -758,15 +719,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>Ergebnisse und Filter leeren, wenn kein Vorgang läuft</value>
-  </data>
-  <data name="ShortcutCancelKeys" xml:space="preserve">
-    <value>Esc</value>
-  </data>
-  <data name="ShortcutCancelAction" xml:space="preserve">
-    <value>Laufenden Vorgang abbrechen</value>
-  </data>
-  <data name="ShortcutHelpKeys" xml:space="preserve">
-    <value>F1</value>
   </data>
   <data name="ShortcutHelpAction" xml:space="preserve">
     <value>Diese Übersicht öffnen</value>
@@ -807,9 +759,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   <data name="ShortcutExtendAction" xml:space="preserve">
     <value>Zeilenauswahl erweitern</value>
   </data>
-  <data name="ShortcutCopyKeys" xml:space="preserve">
-    <value>Strg+C</value>
-  </data>
   <data name="ShortcutCopyAction" xml:space="preserve">
     <value>Markierte Zeilen einschließlich Spaltenüberschriften kopieren</value>
   </data>
@@ -842,9 +791,6 @@ Fortfahren? Bei „Nein“ wird der gesamte Drop verworfen.</value>
   </data>
   <data name="IntakeExcludedSummary" xml:space="preserve">
     <value>Durch Aufnahmefilter ausgeschlossen: {0}</value>
-  </data>
-  <data name="MenuTitle" xml:space="preserve">
-    <value>Menü</value>
   </data>
   <data name="InspectCatalogs" xml:space="preserve">
     <value>Katalogsignaturen prüfen</value>

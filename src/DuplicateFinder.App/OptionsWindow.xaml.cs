@@ -69,7 +69,8 @@ public partial class OptionsWindow : Window
         Online.IsChecked = preferences.Online;
         Languages.ItemsSource = Strings.Languages;
         Languages.SelectedValue = preferences.Language;
-        Themes.ItemsSource = Enum.GetValues<AppTheme>().Select(t => new FilterOption<AppTheme>(t, t.ToString(), Strings)).ToArray();
+        Themes.ItemsSource = Enum.GetValues<AppTheme>()
+            .Select(theme => new FilterOption<AppTheme>(theme, "Theme_" + theme, Strings)).ToArray();
         Themes.SelectedValue = preferences.Theme;
         HashFormats.ItemsSource = Enum.GetValues<HashFormat>().Select(f => new FilterOption<HashFormat>(f, "HashFormat_" + f, Strings)).ToArray();
         HashFormats.SelectedValue = preferences.HashFormat;
