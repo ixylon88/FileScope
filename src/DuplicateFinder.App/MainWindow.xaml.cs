@@ -26,7 +26,6 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _job;
     private readonly LatestProgress _progress = new();
     private readonly DispatcherTimer _timer;
-    private bool _settingFilters;
     private bool? _pathAutoWidth;
 
     private static LocalizationService Strings => LocalizationService.Instance;
@@ -42,7 +41,6 @@ public partial class MainWindow : Window
     public RelayCommand CancelCommand => field ??= new(() => _job?.Cancel(), () => _job is not null);
     public RelayCommand IssuesCommand => field ??= new(ShowIssues, () => _job is null && _issues.Count > 0);
     public RelayCommand AboutCommand => field ??= new(OpenAbout);
-    public RelayCommand ResetFiltersCommand => field ??= new(ResetFilters);
 
     private bool CanScan => _job is null && _preferences.Roots.Length > 0;
     private bool CanClean => _job is null && _model.Rows.Count > 0;
@@ -80,56 +78,15 @@ public partial class MainWindow : Window
         SetPathWidth(_preferences.PathAutoWidth);
         _model.PropertyChanged += ModelChanged;
 
-        ReloadFilters();
         UpdateButtons();
         Summary();
     }
 
-    private void ReloadFilters()
-    {
-        var kind = Math.Max(0, KindBox.SelectedIndex);
-        var signature = SignatureBox.SelectedValue is SignatureFilter selected ? selected : SignatureFilter.All;
-        _settingFilters = true;
-        try
-        {
-            KindBox.ItemsSource = new[] { Strings["AllFiles"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
-            KindBox.SelectedIndex = kind;
-            SignatureBox.ItemsSource = SignatureFilter.Options(Strings);
-            SignatureBox.SelectedValue = signature;
-        }
-        finally { _settingFilters = false; }
-        ApplyFilters();
-    }
-
-    private void ResetFilters()
-    {
-        _settingFilters = true;
-        try
-        {
-            FilterBox.Clear();
-            KindBox.SelectedIndex = 0;
-            SignatureBox.SelectedValue = SignatureFilter.All;
-        }
-        finally { _settingFilters = false; }
-        ApplyFilters();
-    }
-
-    private void FilterChanged(object sender, RoutedEventArgs e) => ApplyFilters();
-
-    private void ApplyFilters()
-    {
-        if (_settingFilters || SignatureBox?.SelectedValue is not SignatureFilter filter || KindBox.SelectedIndex < 0) return;
-        _model.Filter(FilterBox.Text, KindBox.SelectedIndex, filter);
-        if (_job == null) Summary();
-    }
-
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount))
-        {
-            UpdateButtons();
-            if (_job is null) Summary();
-        }
+        if (e.PropertyName == nameof(ResultsViewModel.MarkedCount)) UpdateButtons();
+        if (_job is null && e.PropertyName is nameof(ResultsViewModel.MarkedCount) or nameof(ResultsViewModel.VisibleCount))
+            Summary();
 
         if (e.PropertyName == nameof(ResultsViewModel.View)) _fileActions.ClearError();
     }
@@ -253,10 +210,8 @@ public partial class MainWindow : Window
         if (Strings.Culture.Name != next.Language)
         {
             Strings.SetCulture(next.Language);
-            ReloadFilters();
             _model.Relocalize();
             RefreshFileActionError();
-            Summary();
         }
 
         Dispatcher.VerifyAccess();
@@ -366,7 +321,7 @@ public partial class MainWindow : Window
     private void Summary()
     {
         Status.Text = _preferences.Roots.Length == 0 ? Strings["StartHint"] :
-            Strings.Format("Summary", _model.View.Count, _model.Rows.Count, _model.MarkedCount, _issues.Count);
+            Strings.Format("Summary", _model.VisibleCount, _model.Rows.Count, _model.MarkedCount, _issues.Count);
     }
 
     private void Tick(object? sender, EventArgs e)

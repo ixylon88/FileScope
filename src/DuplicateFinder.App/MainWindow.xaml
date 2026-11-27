@@ -78,19 +78,21 @@
       </Grid.ColumnDefinitions>
       <StackPanel Margin="0,0,12,0">
         <TextBlock Text="{loc:Loc Filter}" Style="{StaticResource FieldLabel}" />
-        <TextBox x:Name="FilterBox" MinHeight="34" Padding="9,5" TextChanged="FilterChanged"
+        <TextBox x:Name="FilterBox" MinHeight="34" Padding="9,5" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  ToolTip="{loc:Loc FilterHint}" AutomationProperties.Name="{loc:Loc Filter}" />
       </StackPanel>
       <StackPanel Grid.Column="1" Margin="0,0,12,0">
         <TextBlock Text="{loc:Loc ResultKind}" Style="{StaticResource FieldLabel}" />
-        <ComboBox x:Name="KindBox" MinHeight="34" SelectionChanged="FilterChanged" AutomationProperties.Name="{loc:Loc ResultKind}" />
+        <ComboBox x:Name="KindBox" MinHeight="34" ItemsSource="{Binding ResultKinds}" DisplayMemberPath="Label"
+                  SelectedValuePath="Value" SelectedValue="{Binding SelectedKind}" AutomationProperties.Name="{loc:Loc ResultKind}" />
       </StackPanel>
       <StackPanel Grid.Column="2" Margin="0,0,12,0">
         <TextBlock Text="{loc:Loc SignatureResultsLabel}" Style="{StaticResource FieldLabel}" />
         <ComboBox x:Name="SignatureBox" MinHeight="34" DisplayMemberPath="Label" SelectedValuePath="Value"
-                  SelectionChanged="FilterChanged" ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}" AutomationProperties.Name="{loc:Loc SignatureResultsLabel}" />
+                  ItemsSource="{Binding SignatureFilters}" SelectedValue="{Binding SelectedSignature}"
+                  ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}" AutomationProperties.Name="{loc:Loc SignatureResultsLabel}" />
       </StackPanel>
-      <Button x:Name="ResetFiltersButton" Command="{Binding ResetFiltersCommand, ElementName=WindowRoot}" Grid.Column="3" Content="{loc:Loc ResetFilters}"
+      <Button x:Name="ResetFiltersButton" Command="{Binding ResetFiltersCommand}" Grid.Column="3" Content="{loc:Loc ResetFilters}"
               VerticalAlignment="Bottom" Padding="12,7" MinHeight="34" />
     </Grid>
 
