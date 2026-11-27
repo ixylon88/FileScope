@@ -184,15 +184,19 @@ public sealed class WindowTests
         Assert.AreEqual("Optionen", options.Title);
         strings.SetCulture("zh-Hans");
         Assert.AreEqual("选项", options.Title);
+        var shortcutsButton = (Button)window.FindName("ShortcutsButton");
         var shortcuts = new ShortcutsWindow { Owner = window };
         shortcuts.Show();
-        Assert.AreEqual("快捷键…", shortcuts.Title);
+        Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
+        Assert.AreEqual(strings["Shortcuts"], AutomationProperties.GetName(shortcutsButton));
 
         var firstTab = (TabItem)options.FindName("SearchTab");
         Assert.AreEqual(strings["SearchFolders"], firstTab.Header);
         var shortcut = (HeaderedContentControl)shortcuts.FindName("FilterShortcut");
         strings.SetCulture("de");
         shortcuts.UpdateLayout();
+        Assert.AreEqual(strings["ShortcutsTitle"], shortcuts.Title);
+        Assert.AreEqual(strings["Shortcuts"], AutomationProperties.GetName(shortcutsButton));
         Assert.AreEqual("Suchordner", firstTab.Header);
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == "Strg+F"));
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["KeyFilter"]));
