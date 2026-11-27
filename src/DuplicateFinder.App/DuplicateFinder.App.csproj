@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -10,6 +10,7 @@
     <Description>Find and safely recycle duplicate files across prioritized search folders.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- WPF generates the early Show(true) call and the automatic fade-out. -->
     <ProjectReference Include="../DuplicateFinder.Core/DuplicateFinder.Core.csproj" />
     <InternalsVisibleTo Include="DuplicateFinder.Ui.Tests" />
     <ProjectReference Include="../FileScope.Shared/FileScope.Shared.csproj" />
@@ -21,7 +22,6 @@
     <Using Include="FileScope.Shared" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseWPF)' == 'true'">
-    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
-          Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
+    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml" Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
   </ItemGroup>
 </Project>
