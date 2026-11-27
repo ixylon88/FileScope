@@ -78,7 +78,7 @@ public partial class MainWindow : Window
         _settingFilters = true;
         try
         {
-            KindBox.ItemsSource = new[] { Strings["All"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
+            KindBox.ItemsSource = new[] { Strings["AllFiles"], Strings["Duplicates"], Strings["Singles"], Strings["Diagnostics"] };
             KindBox.SelectedIndex = kind;
             SignatureBox.ItemsSource = SignatureFilter.Options(Strings);
             SignatureBox.SelectedValue = signature;
@@ -289,7 +289,7 @@ public partial class MainWindow : Window
             _job = null;
             UpdateButtons();
             Summary();
-            if (cancelled) Status.Text = Strings["Cancelled"] + " · " + Status.Text;
+            if (cancelled) Status.Text = Strings["Row_Cancelled"] + " · " + Status.Text;
             Meter.IsIndeterminate = false;
             Meter.Value = 0;
         }

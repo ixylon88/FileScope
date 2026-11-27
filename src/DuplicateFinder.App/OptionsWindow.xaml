@@ -24,14 +24,14 @@
       <StackPanel Margin="0,0,8,0">
         <StackPanel Orientation="Horizontal">
           <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xF2B7;" FontSize="16" Margin="0,0,8,0" Style="{StaticResource FieldLabel}" />
-          <TextBlock Text="{loc:Loc Language}" Style="{StaticResource FieldLabel}" />
+          <TextBlock Text="{loc:Loc Group_Language}" Style="{StaticResource FieldLabel}" />
         </StackPanel>
         <ComboBox x:Name="Languages" DisplayMemberPath="NativeName" SelectedValuePath="CultureName" MinHeight="34"
-                  AutomationProperties.Name="{loc:Loc Language}" />
+                  AutomationProperties.Name="{loc:Loc Group_Language}" />
       </StackPanel>
       <StackPanel Grid.Column="1" Margin="8,0,0,0">
-        <TextBlock Text="{loc:Loc Theme}" Style="{StaticResource FieldLabel}" />
-        <ComboBox x:Name="Themes" DisplayMemberPath="Label" SelectedValuePath="Value" MinHeight="34" AutomationProperties.Name="{loc:Loc Theme}" />
+        <TextBlock Text="{loc:Loc Group_Theme}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="Themes" DisplayMemberPath="Label" SelectedValuePath="Value" MinHeight="34" AutomationProperties.Name="{loc:Loc Group_Theme}" />
       </StackPanel>
     </Grid>
 
@@ -74,7 +74,7 @@
           </StackPanel>
         </Grid>
       </TabItem>
-      <TabItem Header="{loc:Loc Analysis}">
+      <TabItem Header="{loc:Loc Column_Status}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="12">
             <TextBlock Text="{loc:Loc Hashes}" Style="{StaticResource GroupHeading}" />
@@ -85,9 +85,9 @@
             <CheckBox x:Name="AutoPathWidth" Content="{loc:Loc PathAutoWidth}" ToolTip="{loc:Loc PathAutoWidthHint}" Margin="0,12,0,0" />
             <Separator Margin="0,16" />
             <TextBlock Text="{loc:Loc Signatures}" Style="{StaticResource GroupHeading}" />
-            <CheckBox x:Name="Embedded" Content="{loc:Loc Embedded}" Margin="0,0,0,8" />
-            <CheckBox x:Name="Catalogs" Content="{loc:Loc Catalog}" Margin="0,0,0,8" />
-            <CheckBox x:Name="Online" Content="{loc:Loc Online}" />
+            <CheckBox x:Name="Embedded" Content="{loc:Loc SignatureFilterLabel}" Margin="0,0,0,8" />
+            <CheckBox x:Name="Catalogs" Content="{loc:Loc Column_Catalog}" Margin="0,0,0,8" />
+            <CheckBox x:Name="Online" Content="{loc:Loc OnlineRevocation}" />
           </StackPanel>
         </ScrollViewer>
       </TabItem>

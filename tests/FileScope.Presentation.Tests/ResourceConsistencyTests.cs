@@ -16,45 +16,54 @@ namespace FileScope.Presentation.Tests;
 [TestClass]
 public sealed partial class ResourceConsistencyTests
 {
+    private const string Shared = "FileScope.Shared";
+    private const string FileScopeApp = "FileScope.App";
+    private const string DuplicateFinderApp = "DuplicateFinder.App";
+
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Behaviors = "clr-namespace:FileScope.App.Behaviors";
 
     [TestMethod]
-    [DataRow("en")]
-    [DataRow("de")]
-    [DataRow("zh-Hans")]
-    public void TranslationsHaveMatchingKeysAndPlaceholders(string culture)
+    [DataRow(FileScopeApp)]
+    [DataRow(DuplicateFinderApp)]
+    [DataRow(Shared)]
+    public void TranslationsHaveMatchingKeysAndPlaceholders(string catalog)
     {
-        var baseline = ReadStrings("en");
-        var translated = ReadStrings(culture);
+        var baseline = ReadStrings(catalog, "en");
+        Assert.IsNotEmpty(baseline, $"{catalog}: empty neutral resource set.");
 
-        Assert.IsTrue(baseline.Count > 0, "The neutral resource set must not be empty.");
-        AssertSameKeys(baseline.Keys, translated.Keys, culture);
-
-        foreach (var (key, value) in translated)
+        foreach (var language in LocalizationService.Instance.Languages)
         {
-            Assert.IsFalse(string.IsNullOrWhiteSpace(value), $"{culture}/{key}: empty translation.");
+            var translated = ReadStrings(catalog, language.CultureName);
+            var context = $"{catalog}/{language.CultureName}";
+            AssertSameKeys(baseline.Keys, translated.Keys, context);
 
-            var expected = Placeholders(baseline[key]);
-            var actual = Placeholders(value);
-            CollectionAssert.AreEqual(expected, actual, $"{culture}/{key}: format placeholders differ.");
+            foreach (var (key, value) in translated)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(value), $"{context}/{key}: empty translation.");
+
+                CollectionAssert.AreEqual(Placeholders(baseline[key]), Placeholders(value),
+                    $"{context}/{key}: format placeholders differ.");
+            }
         }
     }
 
     [TestMethod]
-    public void XamlLocalizationKeysExist()
+    [DataRow(FileScopeApp, "Source.Xaml.FileScope.")]
+    [DataRow(DuplicateFinderApp, "DuplicateFinder.Xaml.")]
+    public void XamlLocalizationKeysExist(string application, string xamlPrefix)
     {
-        var strings = ReadStrings("en");
+        var keys = ApplicationKeys(application);
 
-        foreach (var (name, document) in ReadXaml())
+        foreach (var (name, document) in ReadXaml(xamlPrefix).Concat(ReadXaml("Source.Xaml.Shared.")))
         {
             foreach (var attribute in document.Descendants().Attributes())
             {
                 foreach (Match match in LocalizationReference().Matches(attribute.Value))
                 {
                     string key = match.Groups[1].Value;
-                    Assert.IsTrue(strings.ContainsKey(key), $"{name}: unknown localization key {key}.");
+                    Assert.Contains(key, keys, $"{application}/{name}: unknown localization key {key}.");
                 }
             }
         }
@@ -79,7 +88,7 @@ public sealed partial class ResourceConsistencyTests
     [TestMethod]
     public void ModelLabelsExist()
     {
-        var strings = ReadStrings("en");
+        var available = ApplicationKeys(FileScopeApp);
         var hashIds = Enum.GetNames<ChecksumAlgorithm>().ToHashSet(StringComparer.Ordinal);
         var keys = Enum.GetNames<RowStatus>().Select(value => "Row_" + value)
             .Concat(Enum.GetNames<HashFormat>().Select(value => "HashFormat_" + value))
@@ -92,7 +101,7 @@ public sealed partial class ResourceConsistencyTests
                 .Where(column => !hashIds.Contains(column.Id)).Select(column => "Column_" + column.Id));
 
         foreach (string key in keys)
-            Assert.IsTrue(strings.ContainsKey(key), $"Missing model label: {key}.");
+            Assert.Contains(key, available, $"Missing model label: {key}.");
     }
 
     [TestMethod]
@@ -202,20 +211,29 @@ public sealed partial class ResourceConsistencyTests
         Assert.AreEqual(256u, BinaryPrimitives.ReadUInt32BigEndian(header.Slice(20, 4)), "Splash height.");
     }
 
-    private static Dictionary<string, string> ReadStrings(string culture)
+    private static HashSet<string> ApplicationKeys(string application)
     {
-        var managers = new[] { new ResourceManager("FileScope.App.Resources.Strings", typeof(ResourceConsistencyTests).Assembly),
-            new ResourceManager("FileScope.Shared.Resources.Strings", typeof(LocalizationService).Assembly) };
+        var keys = ReadStrings(application, "en").Keys.ToHashSet(StringComparer.Ordinal);
+        foreach (var key in ReadStrings(Shared, "en").Keys)
+            Assert.IsTrue(keys.Add(key), $"{application} also defines the shared key {key}.");
+
+        return keys;
+    }
+
+    private static Dictionary<string, string> ReadStrings(string catalog, string culture)
+    {
+        var assembly = catalog == Shared ? typeof(LocalizationService).Assembly : typeof(ResourceConsistencyTests).Assembly;
+        var manager = new ResourceManager(catalog + ".Resources.Strings", assembly);
         var resourceCulture = culture == "en" ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(culture);
 
         // No parent fallback: a missing translation must not pass as English.
+        using var resources = manager.GetResourceSet(resourceCulture, createIfNotExists: true, tryParents: false);
+        Assert.IsNotNull(resources, $"Missing resource set: {catalog}/{culture}.");
+
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var manager in managers)
-        {
-            using var resources = manager.GetResourceSet(resourceCulture, createIfNotExists: true, tryParents: false);
-            Assert.IsNotNull(resources, $"Missing resource set: {culture}.");
-            foreach (DictionaryEntry entry in resources) values.Add((string)entry.Key, (string)entry.Value!);
-        }
+        foreach (DictionaryEntry entry in resources)
+            values.Add((string)entry.Key, (string)entry.Value!);
+
         return values;
     }
 

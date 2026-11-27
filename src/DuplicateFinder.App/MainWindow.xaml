@@ -26,7 +26,7 @@
     </Grid.RowDefinitions>
 
     <Border x:Name="MenuFrame" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10">
-      <Expander x:Name="MenuExpander" Header="{loc:Loc Menu}" IsExpanded="True" Padding="14,8">
+      <Expander x:Name="MenuExpander" Header="{loc:Loc MenuTitle}" IsExpanded="True" Padding="14,8">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
             <StackPanel Orientation="Horizontal">
@@ -47,16 +47,16 @@
                   <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
-              <Button x:Name="ShortcutsButton" Command="{Binding ShortcutsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc Shortcuts}">
+              <Button x:Name="ShortcutsButton" Command="{Binding ShortcutsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc ShortcutsButton}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc Shortcuts}" VerticalAlignment="Center" />
+                  <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
-              <Button x:Name="AboutButton" Command="{Binding AboutCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc About}">
+              <Button x:Name="AboutButton" Command="{Binding AboutCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc AboutButton}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc About}" VerticalAlignment="Center" />
+                  <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
             </StackPanel>
@@ -146,12 +146,12 @@
           <DataGridTextColumn Header="{loc:Loc Modified}" Binding="{Binding ModifiedText, Mode=OneWay}" Width="Auto" MinWidth="145"
                               ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Streams}" Binding="{Binding Streams, Mode=OneWay}" Width="240" ElementStyle="{StaticResource GridText}"/>
-          <shared:CellBoundTemplateColumn Header="{loc:Loc Embedded}" Width="Auto" MinWidth="160" MaxWidth="360" ClipboardContentBinding="{Binding Signature}">
+          <shared:CellBoundTemplateColumn Header="{loc:Loc SignatureFilterLabel}" Width="Auto" MinWidth="160" MaxWidth="360" ClipboardContentBinding="{Binding Signature}">
             <shared:CellBoundTemplateColumn.CellTemplate>
               <DataTemplate><shared:StatusBadge Text="{Binding Signature}" Tone="{Binding SignatureTone}" /></DataTemplate>
             </shared:CellBoundTemplateColumn.CellTemplate>
           </shared:CellBoundTemplateColumn>
-          <DataGridTextColumn Header="{loc:Loc Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
+          <DataGridTextColumn Header="{loc:Loc Column_Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="{loc:Loc Publisher}" Binding="{Binding File.Embedded.Certificate.Publisher, Mode=OneWay}" Width="155" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256, Mode=OneWay}" Width="172" ElementStyle="{StaticResource HashText}"/>
           <DataGridTextColumn Header="{loc:Loc Diagnostics}" Binding="{Binding Diagnostic, Mode=OneWay}" Width="180" ElementStyle="{StaticResource GridText}"/>

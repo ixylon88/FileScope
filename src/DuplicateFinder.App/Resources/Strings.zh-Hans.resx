@@ -117,20 +117,11 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Menu" xml:space="preserve">
-    <value>菜单</value>
-  </data>
   <data name="Options" xml:space="preserve">
     <value>选项…</value>
   </data>
-  <data name="OptionsTitle" xml:space="preserve">
-    <value>选项</value>
-  </data>
   <data name="Scan" xml:space="preserve">
     <value>扫描文件夹</value>
-  </data>
-  <data name="Cancel" xml:space="preserve">
-    <value>取消</value>
   </data>
   <data name="Clean" xml:space="preserve">
     <value>清理…</value>
@@ -141,14 +132,8 @@
   <data name="Issues" xml:space="preserve">
     <value>扫描诊断</value>
   </data>
-  <data name="Shortcuts" xml:space="preserve">
-    <value>快捷键…</value>
-  </data>
   <data name="ShortcutsTitle" xml:space="preserve">
     <value>快捷键</value>
-  </data>
-  <data name="About" xml:space="preserve">
-    <value>关于…</value>
   </data>
   <data name="Filter" xml:space="preserve">
     <value>筛选</value>
@@ -170,12 +155,6 @@
   </data>
   <data name="Streams" xml:space="preserve">
     <value>数据流</value>
-  </data>
-  <data name="Embedded" xml:space="preserve">
-    <value>嵌入式签名</value>
-  </data>
-  <data name="Catalog" xml:space="preserve">
-    <value>目录签名</value>
   </data>
   <data name="Publisher" xml:space="preserve">
     <value>发布者</value>
@@ -201,9 +180,6 @@
   <data name="BadPriority" xml:space="preserve">
     <value>请为每个优先级输入一个整数。</value>
   </data>
-  <data name="Save" xml:space="preserve">
-    <value>保存</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>添加文件夹…</value>
   </data>
@@ -213,29 +189,11 @@
   <data name="Hashes" xml:space="preserve">
     <value>相同大小文件的校验和</value>
   </data>
-  <data name="Online" xml:space="preserve">
-    <value>在线吊销检查</value>
-  </data>
-  <data name="Language" xml:space="preserve">
-    <value>语言</value>
-  </data>
-  <data name="Theme" xml:space="preserve">
-    <value>主题</value>
-  </data>
-  <data name="Light" xml:space="preserve">
-    <value>浅色</value>
-  </data>
-  <data name="Dark" xml:space="preserve">
-    <value>深色</value>
-  </data>
   <data name="Singles" xml:space="preserve">
     <value>没有已确认副本的文件</value>
   </data>
   <data name="Duplicates" xml:space="preserve">
     <value>重复文件组</value>
-  </data>
-  <data name="All" xml:space="preserve">
-    <value>所有文件</value>
   </data>
   <data name="GroupNumber" xml:space="preserve">
     <value>第 {0} 组</value>
@@ -288,9 +246,6 @@
   <data name="KeyMark" xml:space="preserve">
     <value>勾选当前文件或取消勾选</value>
   </data>
-  <data name="KeyCancel" xml:space="preserve">
-    <value>取消当前操作</value>
-  </data>
   <data name="KeyHelp" xml:space="preserve">
     <value>打开快捷键列表</value>
   </data>
@@ -305,9 +260,6 @@
   </data>
   <data name="RecycledCount" xml:space="preserve">
     <value>已将 {1:N0} 个文件中的 {0:N0} 个移到回收站</value>
-  </data>
-  <data name="Cancelled" xml:space="preserve">
-    <value>已取消</value>
   </data>
   <data name="StartHint" xml:space="preserve">
     <value>请先在选项中添加搜索文件夹，再开始扫描。</value>
@@ -366,9 +318,6 @@
   <data name="SearchFolders" xml:space="preserve">
     <value>搜索文件夹</value>
   </data>
-  <data name="Analysis" xml:space="preserve">
-    <value>分析</value>
-  </data>
   <data name="Signatures" xml:space="preserve">
     <value>签名</value>
   </data>
@@ -383,9 +332,6 @@
   </data>
   <data name="KeysMark" xml:space="preserve">
     <value>空格</value>
-  </data>
-  <data name="KeysCopy" xml:space="preserve">
-    <value>Ctrl+C</value>
   </data>
   <data name="KeyCopy" xml:space="preserve">
     <value>复制文件详情中选中的文本</value>

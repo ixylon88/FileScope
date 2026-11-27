@@ -539,7 +539,7 @@ Icon und Splash lassen sich aus derselben Vorlage erneuern:
 
 ### Sprachressourcen
 
-Alle Oberflächentexte stehen in `src/FileScope.App/Resources`:
+Gemeinsame Beschriftungen wie **Speichern**, **Abbrechen** und die Designauswahl stehen in `src/FileScope.Shared/Resources`. Die Texte für das jeweilige Produkt liegen in `src/FileScope.App/Resources` und `src/DuplicateFinder.App/Resources`. So kann beispielsweise der gemeinsame Über-Dialog für jede App eine eigene Funktionsbeschreibung anzeigen.
 
 | Datei | Sprache |
 | --- | --- |
@@ -618,12 +618,12 @@ Aktueller Ausführungsstand:
 | --- | --- |
 | PowerShell-Skripte | **91 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **29 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Zwei neue Fälle prüfen den Katalog über den normalen Analyseweg und den Erhalt der Prüfsummen bei Katalogfehlern. |
-| Präsentation, Einstellungen und Ressourcen | **38 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und zwölf Konsistenzprüfungen einschließlich der Button-Commands beider Anwendungen. |
+| Präsentation, Einstellungen und Ressourcen | **39 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 13 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **37 Fälle** für Oberfläche und Bedienabläufe, einschließlich Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **25 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
 | DuplicateFinder / WPF | **13 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte und den Über-Dialog. |
 
-Die Suite umfasst **142 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **143 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

@@ -4,6 +4,64 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="MenuTitle" xml:space="preserve">
+    <value>菜单</value>
+  </data>
+  <data name="OptionsTitle" xml:space="preserve">
+    <value>选项</value>
+  </data>
+  <data name="AboutButton" xml:space="preserve">
+    <value>关于…</value>
+  </data>
+  <data name="ShortcutsButton" xml:space="preserve">
+    <value>快捷键…</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+
+  <data name="Group_Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="Group_Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+
+  <data name="AllFiles" xml:space="preserve">
+    <value>所有文件</value>
+  </data>
+  <data name="Column_Status" xml:space="preserve">
+    <value>分析</value>
+  </data>
+  <data name="Row_Cancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="OnlineRevocation" xml:space="preserve">
+    <value>在线吊销检查</value>
+  </data>
+
+  <data name="ShortcutCancelKeys" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="ShortcutCancelAction" xml:space="preserve">
+    <value>取消当前操作</value>
+  </data>
+  <data name="ShortcutHelpKeys" xml:space="preserve">
+    <value>F1</value>
+  </data>
+  <data name="ShortcutCopyKeys" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+
   <data name="AllSignatures" xml:space="preserve"><value>全部签名结果</value></data>
   <data name="Filter_Valid" xml:space="preserve"><value>有效签名</value></data>
   <data name="Filter_ExceptValid" xml:space="preserve"><value>除有效签名外的全部</value></data>
