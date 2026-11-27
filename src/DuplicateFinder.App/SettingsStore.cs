@@ -14,6 +14,8 @@ public sealed record Preferences
     public bool PathAutoWidth { get; init; } = true;
     public WindowPreferences? MainWindow { get; init; }
     public WindowPreferences? OptionsWindow { get; init; }
+    public WindowPreferences? AboutWindow { get; init; }
+    public WindowPreferences? ShortcutsWindow { get; init; }
     public ChecksumAlgorithm[] Hashes { get; init; } = [ChecksumAlgorithm.SHA256];
     public bool Embedded { get; init; } = true;
     public bool Catalogs { get; init; } = true;

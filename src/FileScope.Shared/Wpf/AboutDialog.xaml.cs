@@ -7,7 +7,7 @@ using System.Windows.Navigation;
 
 namespace FileScope.Shared;
 
-/// <summary>Displays build information and the bundled license without changing user preferences.</summary>
+/// <summary>Displays build information and the bundled license.</summary>
 public partial class AboutDialog : Window
 {
     private readonly IExternalLinkService _links;

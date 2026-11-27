@@ -48,11 +48,13 @@ public partial class MainWindow : Window
         OptionsCommand = new(OpenOptions, () => _job == null);
         CancelCommand = new(() => _job?.Cancel(), () => _job != null);
         IssuesCommand = new(ShowIssues, () => _job == null && _issues.Count > 0);
-        AboutCommand = new(() => ShowOwnedDialog(AboutWindow.Create()));
+        AboutCommand = new(() => ShowOwnedDialog(WindowPlacement.RememberDialogSize(AboutWindow.Create(),
+            _preferences.AboutWindow, value => SavePlacement(_preferences with { AboutWindow = value }))));
         ResetFiltersCommand = new(ResetFilters);
 
         InitializeComponent();
-        ShortcutsDialog.BindHelp(this, () => ShortcutsWindow.Create());
+        ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(),
+            _preferences.ShortcutsWindow, value => SavePlacement(_preferences with { ShortcutsWindow = value })));
         DataContext = model;
         _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
         model.SetHashFormat(preferences.HashFormat);
@@ -179,6 +181,11 @@ public partial class MainWindow : Window
         if (rescan) { _issues = []; _model.Replace([]); }
         UpdateButtons();
         Summary();
+    }
+
+    private void SavePlacement(Preferences next)
+    {
+        if (TrySave(next)) _preferences = next;
     }
 
     private bool TrySave(Preferences preferences)

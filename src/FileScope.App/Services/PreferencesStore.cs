@@ -13,6 +13,8 @@ public sealed record UserPreferences
     public string? CsvDelimiter { get; init; }
     public WindowPreferences? Window { get; init; }
     public WindowPreferences? OptionsWindow { get; init; }
+    public WindowPreferences? AboutWindow { get; init; }
+    public WindowPreferences? ShortcutsWindow { get; init; }
     public AnalysisPreferences? Analysis { get; init; }
 }
 

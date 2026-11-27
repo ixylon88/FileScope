@@ -78,6 +78,9 @@ public sealed partial class WindowTests
     public Task AboutShowsDuplicateFinderBrandVersionAndOfflineLicense() => WpfTestHost.RunAsync((app, strings) =>
     {
         var owner = ShowResults(new ResultsViewModel(), new ThemeService(app));
+        DialogPlacementChecks.Check(owner, () => ShowResults(new ResultsViewModel(), new ThemeService(app), Store.Load()),
+            () => Store.Load().AboutWindow, () => Store.Load().ShortcutsWindow);
+
         var about = AboutWindow.Create(width: 1, height: 600);
         Assert.AreEqual(about.MinWidth, about.Width);
         Assert.AreEqual(Math.Min(600, SystemParameters.WorkArea.Height), about.Height);

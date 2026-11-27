@@ -853,7 +853,15 @@ public sealed partial class UiTests
             close.Command.Execute(null);
             DrainDispatcher();
             Assert.IsTrue(!about.IsVisible && store.SaveCount == saves,
-                "closing About leaves saved preferences unchanged");
+                "viewing About leaves saved preferences unchanged");
+
+            DialogPlacementChecks.Check(main, () =>
+            {
+                var nextOptions = new OptionsViewModel(strings, store, themes);
+                var next = new MainWindow(CreateMainViewModel(new ImmediateAnalysis(), new EmptyPicker(), strings, nextOptions));
+                next.Show();
+                return next;
+            }, () => store.Saved.AboutWindow, () => store.Saved.ShortcutsWindow);
             listener.Flush();
             Assert.IsTrue(errors.ToString().Length == 0, "About produces no WPF binding errors while opening, translating and switching themes");
         }
