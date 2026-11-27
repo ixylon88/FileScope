@@ -11,7 +11,7 @@ public sealed class WindowPlacement
     public WindowPlacement(Window window, WindowPreferences? saved, bool centerOnWorkArea = false)
     {
         _window = window;
-        FitToWorkArea(window, saved);
+        FitToWorkArea(window, saved?.Width, saved?.Height);
 
         if (centerOnWorkArea)
         {
@@ -26,11 +26,12 @@ public sealed class WindowPlacement
         window.StateChanged += OnStateChanged;
     }
 
-    internal static void FitToWorkArea(Window window, WindowPreferences? saved = null)
+    internal static void FitToWorkArea(Window window, double? width = null, double? height = null)
     {
         var work = SystemParameters.WorkArea;
-        var size = WindowSize.Restore(saved, window.Width, window.Height,
-            window.MinWidth, window.MinHeight, work.Width, work.Height);
+        var defaults = new WindowSize(window.Width, window.Height, window.MinWidth, window.MinHeight);
+        var size = defaults.Fit(width, height, work.Width, work.Height);
+
         window.MinWidth = size.MinWidth;
         window.MinHeight = size.MinHeight;
         window.Width = size.Width;

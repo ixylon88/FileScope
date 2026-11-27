@@ -21,7 +21,7 @@ public partial class MainWindow : Window
         AboutCommand = new(OpenAbout);
 
         InitializeComponent();
-        ShortcutsDialog.BindHelp(this, ShortcutsWindow.Create);
+        ShortcutsDialog.BindHelp(this, () => ShortcutsWindow.Create());
         DataContext = viewModel;
         _placement = new WindowPlacement(this, _options.WindowPreferences, centerOnWorkArea: true);
         Closed += (_, _) => viewModel.Dispose();

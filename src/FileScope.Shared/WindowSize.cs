@@ -8,14 +8,18 @@ public sealed record WindowSize(double Width, double Height, double MinWidth, do
     // All dimensions are WPF device-independent units. A smaller/new monitor
     // must not restore a window outside the primary monitor's usable area.
     public static WindowSize Restore(WindowPreferences? saved, double defaultWidth, double defaultHeight,
-        double minimumWidth, double minimumHeight, double availableWidth, double availableHeight)
+        double minimumWidth, double minimumHeight, double availableWidth, double availableHeight) =>
+        new WindowSize(defaultWidth, defaultHeight, minimumWidth, minimumHeight)
+            .Fit(saved?.Width, saved?.Height, availableWidth, availableHeight);
+
+    internal WindowSize Fit(double? width, double? height, double availableWidth, double availableHeight)
     {
-        var maxWidth = Positive(availableWidth, defaultWidth);
-        var maxHeight = Positive(availableHeight, defaultHeight);
-        var minWidth = Math.Min(minimumWidth, maxWidth);
-        var minHeight = Math.Min(minimumHeight, maxHeight);
-        return new(Math.Clamp(Positive(saved?.Width ?? defaultWidth, defaultWidth), minWidth, maxWidth),
-            Math.Clamp(Positive(saved?.Height ?? defaultHeight, defaultHeight), minHeight, maxHeight),
+        var maxWidth = Positive(availableWidth, Width);
+        var maxHeight = Positive(availableHeight, Height);
+        var minWidth = Math.Min(MinWidth, maxWidth);
+        var minHeight = Math.Min(MinHeight, maxHeight);
+        return new(Math.Clamp(Positive(width ?? Width, Width), minWidth, maxWidth),
+            Math.Clamp(Positive(height ?? Height, Height), minHeight, maxHeight),
             minWidth, minHeight);
     }
 

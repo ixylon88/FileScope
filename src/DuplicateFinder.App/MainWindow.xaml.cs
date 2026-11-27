@@ -52,7 +52,7 @@ public partial class MainWindow : Window
         ResetFiltersCommand = new(ResetFilters);
 
         InitializeComponent();
-        ShortcutsDialog.BindHelp(this, ShortcutsWindow.Create);
+        ShortcutsDialog.BindHelp(this, () => ShortcutsWindow.Create());
         DataContext = model;
         _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
         model.SetHashFormat(preferences.HashFormat);
