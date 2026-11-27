@@ -1260,9 +1260,8 @@ public sealed partial class UiTests
         finally { optionsWindow.Close(); window.Close(); Directory.Delete(directory, recursive: true); }
     }
 
-    private static void CheckDroppedFolders(LocalizationService strings)
+    private static void CheckDroppedFolders(LocalizationService strings, string directory)
     {
-        var directory = Path.Combine(Path.GetTempPath(), "FileScope-drop-ui-" + Guid.NewGuid().ToString("N"));
         var firstRoot = Path.Combine(directory, "first");
         var nested = Path.Combine(firstRoot, "nested");
         var secondRoot = Path.Combine(directory, "second");
@@ -1363,7 +1362,7 @@ public sealed partial class UiTests
                     "folder confirmation is localized and bounds the path preview / " + language.CultureName);
             }
         }
-        finally { strings.SetCulture("en"); Directory.Delete(directory, recursive: true); }
+        finally { strings.SetCulture("en"); }
     }
 
     private static void CheckFileOperationCancellation(LocalizationService strings)

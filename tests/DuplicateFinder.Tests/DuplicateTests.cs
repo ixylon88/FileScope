@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using DuplicateFinder.Core;
+using FileScope.TestSupport;
 using FileScope.Core.Abstractions;
 using FileScope.Core.Checksums;
 using FileScope.Core.Models;
@@ -16,7 +17,7 @@ public sealed class DuplicateTests
     private static readonly SearchOptions Options = new([ChecksumAlgorithm.MD5, ChecksumAlgorithm.SHA512], false, false, RevocationMode.OfflineCache);
 
     [TestCleanup]
-    public void Cleanup() => Directory.Delete(_dir, true);
+    public Task Cleanup() => TestDirectory.DeleteAsync(_dir);
 
     private string Put(string root, string name, string bytes)
     {

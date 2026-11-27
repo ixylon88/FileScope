@@ -632,10 +632,10 @@ Aktueller Ausführungsstand:
 | Core | **29 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Zwei neue Fälle prüfen den Katalog über den normalen Analyseweg und den Erhalt der Prüfsummen bei Katalogfehlern. |
 | Präsentation, Einstellungen und Ressourcen | **41 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **37 Fälle** für Oberfläche und Bedienabläufe, einschließlich Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
-| DuplicateFinder / Core und Windows-Integration | **25 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
+| DuplicateFinder / Core und Windows-Integration | **27 Fälle** für kurzzeitige und andauernde Dateisperren beim Testabbau, Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
 | DuplicateFinder / WPF | **14 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte, geteilte Dialoge und die Tastaturauswahl mit Kopieren in der gefilterten Tabelle. |
 
-Die Suite umfasst **146 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **148 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

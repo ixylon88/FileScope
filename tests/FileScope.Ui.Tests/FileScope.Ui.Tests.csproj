@@ -12,4 +12,7 @@
     <Using Include="FileScope.Shared" />
     <Using Include="FileScope.App.App" Alias="ApplicationUnderTest" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../TestDirectory.cs" Link="TestDirectory.cs" />
+  </ItemGroup>
 </Project>

@@ -5,4 +5,7 @@
     <EmbeddedResource Include="Fixtures/loose.cat" LogicalName="DuplicateFinder.Tests.loose.cat" />
     <Compile Include="../../src/DuplicateFinder.App/FileSizeInput.cs" Link="App/FileSizeInput.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../TestDirectory.cs" Link="TestDirectory.cs" />
+  </ItemGroup>
 </Project>
