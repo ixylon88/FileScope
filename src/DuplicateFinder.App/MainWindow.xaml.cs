@@ -250,9 +250,16 @@ public partial class MainWindow : Window
         var items = _model.Manual();
         if (items.Count == 0) return;
         var last = _model.LastCopiesSelected();
-        var intro = Strings.Format("ManualPrompt", items.Count);
-        if (last != 0) intro += Environment.NewLine + Strings.Format("LastCopy", last);
-        var dialog = new ReportWindow(Strings["Recycle"], intro, items.Select(i => i.File.Path).ToArray(), confirm: true) { Owner = this };
+        var paths = items.Select(item => item.File.Path).ToArray();
+
+        string Prompt(LocalizationService strings)
+        {
+            var intro = strings.Format("ManualPrompt", paths.Length);
+            return last == 0 ? intro : intro + Environment.NewLine + strings.Format("LastCopy", last);
+        }
+
+        var dialog = ReportDialog.ForLines("Recycle", Prompt, _ => paths, confirmationKey: "Recycle");
+        dialog.Owner = this;
         if (dialog.ShowDialog() == true) await RecycleAsync(items);
     }
 
@@ -276,9 +283,15 @@ public partial class MainWindow : Window
             _model.RemoveMoved(result);
         });
 
-        var report = result.Select(r => $"{Strings[r.Moved ? "Moved" : "Skipped"]} · {r.File.Path}  {r.Reason}").ToList();
-        if (result.Count < items.Count) report.Add(Strings.Format("Unprocessed", items.Count - result.Count));
-        ShowOwnedDialog(new ReportWindow(Strings["Recycle"], Strings.Format("RecycledCount", result.Count(r => r.Moved), items.Count), report));
+        var moved = result.Count(item => item.Moved);
+        ShowOwnedDialog(ReportDialog.ForLines("Recycle", strings => strings.Format("RecycledCount", moved, items.Count), ReportLines));
+
+        IReadOnlyList<string> ReportLines(LocalizationService strings)
+        {
+            var lines = result.Select(item => $"{strings[item.Moved ? "Moved" : "Skipped"]} · {item.File.Path}  {item.Reason}").ToList();
+            if (result.Count < items.Count) lines.Add(strings.Format("Unprocessed", items.Count - result.Count));
+            return lines;
+        }
     }
 
     internal async Task RunJobAsync(Func<CancellationToken, Task> work)
@@ -336,7 +349,9 @@ public partial class MainWindow : Window
     private void ShowError(Exception ex) => MessageBox.Show(this, ex.Message, "DuplicateFinder", MessageBoxButton.OK, MessageBoxImage.Error);
 
     private void ShowIssues() =>
-        ShowOwnedDialog(new ReportWindow(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
+        ShowOwnedDialog(ReportDialog.ForLines("Issues", strings => strings["Diagnostics"],
+            _ => _issues.Select(issue => $"{issue.Path} · {issue.Reason}").ToArray()));
+
     private void ShowOwnedDialog(Window window)
     {
         window.Owner = this;

@@ -400,7 +400,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | `IFileMoveService` / `FileMoveService` | Verschiebt Dateien ohne Überschreiben und liefert pro Datei ein sprachneutrales Ergebnis; keine WPF-Abhängigkeit. |
 | `SignatureMoveSelection` / `FileMoveReport` | Prüfen die Signaturgruppe und formatieren Zielnamen sowie Bericht in der gewählten Sprache. |
 | `SignatureGroup` | Gemeinsame, WPF-unabhängige Zuordnung für feste Statuscodes, lokalisierte Anzeige und Verschiebegruppen; unterscheidet gültige Online-/Cache-Ergebnisse. |
-| `IFileMoveReportService` / `FileMoveReportWindow` | Kleine Grenze zum modalen Abschlussdialog, im UI-Test durch einen aufzeichnenden Dienst ersetzbar. |
+| `IFileMoveReportService` / `ReportDialog` | Der Dienst öffnet den gemeinsamen Berichtsdialog aus `FileScope.Shared` und lässt sich im UI-Test ersetzen. FileScope zeigt einen frei markierbaren Berichtstext, DuplicateFinder eine virtualisierte Liste der betroffenen Pfade. Beim manuellen Verschieben in den Papierkorb fordert der Dialog eine ausdrückliche Bestätigung. |
 | `IFileShellService` / `FileShellService` | Öffnet auf ausdrücklichen Benutzerwunsch Windows-Dateieigenschaften oder markiert die Datei im Explorer. UI-Prüfungen ersetzen den Dienst, ohne Shell-Fenster zu starten. |
 | `ColumnLayoutBehavior` | Überträgt stabile Spalten-IDs auf die `DisplayIndex`-Werte und synchronisiert manuelles Verschieben zurück; koordiniert die begrenzte automatische Breitenmessung. |
 | `StatusBadge` / `StatusToneConverter` | Wiederverwendbares UI-Element mit Text und Farbrolle. Eine zentrale Zuordnung übersetzt Verarbeitungs- und Signaturzustände in diese Rollen; Rundung, Abstände und Palette sind im gemeinsamen Control definiert. |
@@ -647,9 +647,9 @@ Aktueller Ausführungsstand:
 | Präsentation, Einstellungen und Ressourcen | **49 Fälle**, darunter die Suche nach Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **39 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalog-Badges, eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **26 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung, Dateisperren und die Binärprüfung vor dem Papierkorb. |
-| DuplicateFinder / WPF | **18 Fälle** für Gruppen, Markierungen, Dateidetails, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung. |
+| DuplicateFinder / WPF | **19 Fälle** für Gruppen, Markierungen, Dateidetails, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung und lange Pfadlisten im Berichtsdialog. |
 
-Die Suite umfasst **165 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **166 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in
