@@ -33,7 +33,7 @@ Hauptfenster, Optionen, Über und Tastenkürzel merken sich ihre normale Größe
 
 Das Suchfeld findet Datei-Prüfsummen sowohl als Hex-Wert ohne Trennzeichen als auch in der gewählten Darstellung. Teilwerte genügen. Bei Base64 und Base64url zählt die Groß- und Kleinschreibung.
 
-**Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Rechts neben dem Suchfeld lässt sich die primäre eingebettete Signatur nach denselben zwölf Codes und vier Sammelfiltern wie in FileScope filtern. Beispielsweise zeigt `2` nur gültige Signaturen mit Sperrprüfung aus dem Cache. Katalogtreffer stehen in einer eigenen Spalte. [Codes, Farben und Bedeutung](../README.md#dateien-nach-signaturergebnis-verschieben)
+**Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Im Dropdown **Signaturstatus** lassen sich die primäre eingebettete Signatur, Katalogtreffer oder beide Quellen auswerten. Die Katalogspalte zeigt für jeden unterschiedlichen Code ein farbiges Badge. Stehen dort etwa `12` und `17`, finden beide Einzelcodes die Datei. Beim Bereinigen mit „Nur angezeigte Dateien“ gilt auch der gewählte Signaturfilter. [Sammelfilter, Hexcodes und Farben](../README.md#signaturstatus-filtern)
 
 **Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)
 

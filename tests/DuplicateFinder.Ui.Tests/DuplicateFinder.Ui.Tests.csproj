@@ -9,6 +9,7 @@
     <Compile Include="../FileScope.Presentation.Tests/DigestSearchChecks.cs" Link="DigestSearchChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/VisualTreeQueries.cs" Link="VisualTreeQueries.cs" />
     <Compile Include="../FileScope.Ui.Tests/WpfTestHost.cs" Link="WpfTestHost.cs" />
+    <Compile Include="../FileScope.Ui.Tests/CatalogBadgeChecks.cs" Link="CatalogBadgeChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/DialogPlacementChecks.cs" Link="DialogPlacementChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/FileMenuChecks.cs" Link="FileMenuChecks.cs" />
     <Compile Include="../FileScope.Ui.Tests/OptionsFooterChecks.cs" Link="OptionsFooterChecks.cs" />

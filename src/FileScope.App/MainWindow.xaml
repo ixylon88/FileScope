@@ -159,8 +159,8 @@
         <ComboBox ItemsSource="{Binding StateFilters}" SelectedItem="{Binding StateFilter}" DisplayMemberPath="Label" MinHeight="34" AutomationProperties.Name="{loc:Loc StateFilterLabel}" />
       </StackPanel>
       <StackPanel Grid.Column="2" Margin="0,0,14,0">
-        <TextBlock Text="{loc:Loc SignatureFilterLabel}" Style="{StaticResource FieldLabel}" />
-        <ComboBox ItemsSource="{Binding SignatureFilters}" SelectedItem="{Binding SignatureFilterOption}" DisplayMemberPath="Label" MinHeight="34" AutomationProperties.Name="{loc:Loc SignatureFilterLabel}" />
+        <TextBlock Text="{loc:Loc SignatureResultsLabel}" Style="{StaticResource FieldLabel}" />
+        <ComboBox x:Name="SignatureBox" ItemsSource="{Binding SignatureFilters}" SelectedItem="{Binding SignatureFilterOption}" DisplayMemberPath="Label" MinHeight="34" ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}" AutomationProperties.Name="{loc:Loc SignatureResultsLabel}" />
       </StackPanel>
       <Button Grid.Column="3" Content="{loc:Loc ResetFilters}" Command="{Binding ResetFiltersCommand}" VerticalAlignment="Bottom" Padding="12,7" MinHeight="34" />
     </Grid>
@@ -235,9 +235,10 @@
                 </DataTemplate>
               </controls:CellBoundTemplateColumn.CellTemplate>
             </controls:CellBoundTemplateColumn>
-            <DataGridTextColumn Header="{loc:Loc Column_Catalog}" Binding="{Binding CatalogText}"
-                                Visibility="{Binding Data.InspectCatalogs, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
-                                behaviors:ColumnLayoutBehavior.Id="Catalog" Width="Auto" MinWidth="160" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
+            <controls:CellBoundTemplateColumn Header="{loc:Loc Column_Catalog}" SortMemberPath="CatalogText"
+                                    CellTemplate="{StaticResource CatalogCellTemplate}" ClipboardContentBinding="{Binding CatalogText}"
+                                    Visibility="{Binding Data.InspectCatalogs, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}"
+                                    behaviors:ColumnLayoutBehavior.Id="Catalog" Width="Auto" MinWidth="160" MaxWidth="360" />
             <DataGridTextColumn Header="{loc:Loc Column_Publisher}" Binding="{Binding Publisher}"
                                 Visibility="{Binding Data.InspectCertificates, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolToVisibility}}" behaviors:ColumnLayoutBehavior.Id="Publisher" Width="Auto" MinWidth="150" MaxWidth="360" ElementStyle="{StaticResource GridText}" />
             <DataGridTextColumn Header="MD5" Binding="{Binding MD5}"

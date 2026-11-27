@@ -188,32 +188,42 @@ Das Kontextmenü einer Ergebniszeile verwendet die nativen Fluent-Menüs und fol
 
 Wurde eine Datei inzwischen verschoben oder gelöscht oder verweigert Windows die Aktion, erscheint ein eigener Hinweis mit dem Pfad unter dem Analysestatus. Analyseergebnisse und Durchlaufstatistik bleiben erhalten. Ein erfolgreicher erneuter Aufruf oder „Leeren“ entfernt diesen Hinweis. Die Explorer-Anfrage läuft im Hintergrund; eine noch laufende Anfrage kann nicht doppelt gestartet werden. Windows darf für diese ausdrücklich angeforderten Shell-Aktionen eigene zusätzliche Dateizugriffe durchführen.
 
+### Signaturstatus filtern
+
+Im Dropdown **Signaturstatus** von FileScope und DuplicateFinder gibt es zehn Sammelfilter. **Alle Signaturergebnisse** zeigt sämtliche Zeilen. Für die übrigen drei Filter lässt sich die Quelle wählen: **Eingebettet**, **Katalog** oder **Beide Quellen**. In FileScope zählt die in der Zeile ausgewählte eingebettete Signatur, in DuplicateFinder die primäre.
+
+| Sammelfilter | Wann eine Datei erscheint |
+| --- | --- |
+| Gültige Signaturen | Mindestens ein Ergebnis der gewählten Quelle ist gültig. Bei „Beide Quellen“ genügt ein gültiger Nachweis aus einer der beiden Quellen. |
+| Alles außer gültigen Signaturen | Für die gewählte Quelle liegt kein gültiger Nachweis vor. Hier erscheinen auch ungeprüfte Dateien. |
+| Prüfbedarf | Mindestens ein Ergebnis der gewählten Quelle ist gelb oder rot. Dazu zählt auch eine unvollständige Katalogsuche. |
+
+Die **26 Einzelcodes** entsprechen den farbigen Statusanzeigen in der Tabelle. Jeder unterschiedliche Katalogcode erscheint einmal pro Datei. So kann eine Datei sowohl `11` (gültiger Treffer) als auch `1D` (Suche unvollständig) tragen. Beide Einzelcodes finden die Datei. Die Details nennen weiterhin jeden Katalogpfad und jedes Mitglied. Alle Filter verwenden die vorliegenden Analyseergebnisse.
+
+Die Hexcodes gelten in allen drei Sprachen und erscheinen auch in der Kopierausgabe sowie in den Signatur- und Katalogfeldern des FileScope-Exports. Der native Rückgabecode steht separat unter „Windows-Vertrauenscode“. Die Zielordner in der Tabelle richten sich nach dem eingebetteten Code.
+
+| Eingebettet | Katalog | Farbe | Signaturstatus | Zielordner Deutsch | Englisch | 简体中文 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `0` | `10` | Grau | Nicht geprüft | — | — | — |
+| `1` | `11` | Grün | Gültig · Online-Sperrprüfung | `gueltig` | `valid` | `有效` |
+| `2` | `12` | Grün | Gültig · Sperrprüfung aus Cache | `gueltig` | `valid` | `有效` |
+| `3` | `13` | Grau | Datei bzw. gefundener Katalog ohne eigene Signatur | `ohnesig` | `unsigned` | `未签名` |
+| `4` | `14` | Rot | Ungültige Signatur / Prüfsumme | `unguelt` | `invalid` | `无效` |
+| `5` | `15` | Gelb | Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
+| `6` | `16` | Rot | Zertifikatszeitraum ungültig | `abgelauf` | `expired` | `已过期` |
+| `7` | `17` | Rot | Zertifikat gesperrt | `widerruf` | `revoked` | `已吊销` |
+| `8` | `18` | Gelb | Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
+| `9` | `19` | Gelb | Signaturformat nicht unterstützt | `format` | `format` | `不支持格式` |
+| `A` | `1A` | Gelb | Windows erforderlich | `system` | `platform` | `不支持平台` |
+| `B` | `1B` | Rot | Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
+| — | `1C` | Grau | Suche abgeschlossen, kein passender Katalog gefunden | — | — | — |
+| — | `1D` | Gelb | Katalogsuche unvollständig | — | — | — |
+
 ### Dateien nach Signaturergebnis verschieben
 
-Eine oder mehrere Ergebniszeilen markieren und das Kontextmenü öffnen. Der erste Menüeintrag und seine Trennlinie sind nur vorhanden, wenn alle markierten Zeilen eine abgeschlossene Analyse und **dasselbe angezeigte Signaturergebnis** besitzen. Bei mehreren Signaturen zählt die aktuelle Signaturauswahl jeder Zeile. „Gültig (online)“ und „Gültig (offline)“ bilden getrennte Gruppen. Gemischte, ungeprüfte, wartende, abgebrochene oder insgesamt fehlgeschlagene Analysen bieten die Aktion nicht an. Ein Rechtsklick auf eine noch nicht markierte Zeile wählt diese allein aus; innerhalb einer bestehenden Mehrfachauswahl bleibt die Auswahl erhalten.
-
-Der Signaturstatus beginnt mit einem **festen einstelligen Hexcode von `0` bis `B`**, zum Beispiel `1 | Gültig · Online-Sperrprüfung` oder `2 | Gültig · Sperrprüfung aus Cache`. Die elf Signaturzustände ergeben durch die getrennten gültigen Online-/Cache-Ergebnisse zwölf Anzeigegruppen. Der Code bleibt in allen Sprachen gleich und erscheint auch in Details, Kopierausgabe, Suche und im Signaturfeld des CSV-/JSON-Exports. Dies sind FileScope-Gruppencodes; der ursprüngliche Windows-Rückgabecode bleibt separat in „Windows-Vertrauenscode“ erhalten.
-
-Im Dropdown **Eingebettete Signatur** bieten FileScope und DuplicateFinder dieselben vier Sammelfilter und alle zwölf Einzelcodes an. „Gültige Signaturen“ umfasst `1` und `2`. „Alles außer gültigen Signaturen“ umfasst `0` und `3` bis `B`, „Prüfbedarf“ die Codes `4` bis `B`. Die Einzelcodes tragen in beiden Tabellen dieselben Farben. Bei mehreren eingebetteten Signaturen folgt der Filter in FileScope der Auswahl in der Zeile und in DuplicateFinder der primären Signatur.
-
-**Gleiche Codes von `1` bis `B` bedeuten dieselbe Verschiebegruppe.** Dafür müssen alle markierten Analysen abgeschlossen sein und FileScope muss sich im Leerlauf befinden. Verschiedene Codes werden nicht gemeinsam verschoben; `0` bedeutet „nicht geprüft“ und bietet kein Verschieben an. Die Farbe zeigt nur eine gröbere Bewertung. Die beiden grünen Gruppen `1` und `2` verwenden zwar denselben Zielordner, bleiben aber getrennte Verschiebegruppen.
+Eine oder mehrere Ergebniszeilen markieren und das Kontextmenü öffnen. Der erste Menüeintrag und seine Trennlinie sind nur vorhanden, wenn alle markierten Zeilen eine abgeschlossene Analyse und **denselben eingebetteten Signaturcode von `1` bis `B`** besitzen. Bei mehreren Signaturen zählt die aktuelle Signaturauswahl jeder Zeile. „Gültig (online)“ und „Gültig (offline)“ bilden getrennte Gruppen. Gemischte, ungeprüfte, wartende, abgebrochene oder insgesamt fehlgeschlagene Analysen bieten die Aktion nicht an. Ein Rechtsklick auf eine noch nicht markierte Zeile wählt diese allein aus; innerhalb einer bestehenden Mehrfachauswahl bleibt die Auswahl erhalten.
 
 Jede Datei kommt in einen Unterordner **ihres bisherigen direkten Elternordners**, etwa `C:\Pruefung\Unterordner\datei.exe` → `C:\Pruefung\Unterordner\widerruf\datei.exe`. Gleichnamige Dateien aus verschiedenen Ordnern bleiben damit getrennt. Die App-Sprache beim Start der Aktion bestimmt den Namen; jeder Name umfasst höchstens acht Zeichen. Das ist eine Begrenzung der Ordnernamen, keine Zusage zum DOS-8.3-Format.
-
-| Code | Farbe | Signaturstatus | Zielordner Deutsch | Englisch | 简体中文 |
-| --- | --- | --- | --- | --- | --- |
-| `0` | Grau | Nicht geprüft | — | — | — |
-| `1` | Grün | Gültig · Online-Sperrprüfung | `gueltig` | `valid` | `有效` |
-| `2` | Grün | Gültig · Sperrprüfung aus Cache | `gueltig` | `valid` | `有效` |
-| `3` | Grau | Keine eingebettete Signatur | `ohnesig` | `unsigned` | `未签名` |
-| `4` | Rot | Ungültige Signatur / Prüfsumme | `unguelt` | `invalid` | `无效` |
-| `5` | Gelb | Nicht vertrauenswürdig | `unvertr` | `untrust` | `不受信任` |
-| `6` | Rot | Zertifikatszeitraum ungültig | `abgelauf` | `expired` | `已过期` |
-| `7` | Rot | Zertifikat gesperrt | `widerruf` | `revoked` | `已吊销` |
-| `8` | Gelb | Sperrstatus unbekannt | `unklar` | `unknown` | `吊销未知` |
-| `9` | Gelb | Signaturformat nicht unterstützt | `format` | `format` | `不支持格式` |
-| `A` | Gelb | Windows erforderlich | `system` | `platform` | `不支持平台` |
-| `B` | Rot | Signaturprüfung fehlgeschlagen | `fehler` | `failed` | `检查失败` |
 
 **Vorhandene Ziele werden niemals überschrieben.** Auch ein Zielpfad, der bereits als andere Ergebniszeile geladen ist, bleibt reserviert. Dateien, die bereits unmittelbar im passenden Unterordner liegen, werden übersprungen; es entstehen keine wiederholten Status-Unterordner. Symbolische Dateilinks und andere Datei-Reparse-Points werden mit Hinweis übersprungen, ebenso verlinkte Zielordner. Ein gewöhnlicher Hardlink wird als einzelner Pfad verschoben; seine anderen Namen bleiben erhalten.
 
@@ -634,12 +644,12 @@ Aktueller Ausführungsstand:
 | --- | --- |
 | PowerShell-Skripte | **94 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **33 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Katalogsuche, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
-| Präsentation, Einstellungen und Ressourcen | **43 Fälle**, darunter die Suche nach Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
-| WPF / UI / MVVM | **38 Fälle** für Oberfläche und Bedienabläufe, einschließlich eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
+| Präsentation, Einstellungen und Ressourcen | **49 Fälle**, darunter die Suche nach Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
+| WPF / UI / MVVM | **39 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalog-Badges, eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **26 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung, Dateisperren und die Binärprüfung vor dem Papierkorb. |
-| DuplicateFinder / WPF | **17 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung. |
+| DuplicateFinder / WPF | **18 Fälle** für Gruppen, Markierungen, Dateidetails, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung. |
 
-Die Suite umfasst **157 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **165 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

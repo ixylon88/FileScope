@@ -86,9 +86,9 @@
         <ComboBox x:Name="KindBox" MinHeight="34" SelectionChanged="FilterChanged" AutomationProperties.Name="{loc:Loc ResultKind}" />
       </StackPanel>
       <StackPanel Grid.Column="2" Margin="0,0,12,0">
-        <TextBlock Text="{loc:Loc SignatureFilterLabel}" Style="{StaticResource FieldLabel}" />
+        <TextBlock Text="{loc:Loc SignatureResultsLabel}" Style="{StaticResource FieldLabel}" />
         <ComboBox x:Name="SignatureBox" MinHeight="34" DisplayMemberPath="Label" SelectedValuePath="Value"
-                  SelectionChanged="FilterChanged" AutomationProperties.Name="{loc:Loc SignatureFilterLabel}" />
+                  SelectionChanged="FilterChanged" ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}" AutomationProperties.Name="{loc:Loc SignatureResultsLabel}" />
       </StackPanel>
       <Button x:Name="ResetFiltersButton" Command="{Binding ResetFiltersCommand, ElementName=WindowRoot}" Grid.Column="3" Content="{loc:Loc ResetFilters}"
               VerticalAlignment="Bottom" Padding="12,7" MinHeight="34" />
@@ -159,7 +159,8 @@
               <DataTemplate><shared:StatusBadge Text="{Binding Signature}" Tone="{Binding SignatureTone}" /></DataTemplate>
             </shared:CellBoundTemplateColumn.CellTemplate>
           </shared:CellBoundTemplateColumn>
-          <DataGridTextColumn Header="{loc:Loc Column_Catalog}" Binding="{Binding Catalog, Mode=OneWay}" Width="160" ElementStyle="{StaticResource GridText}"/>
+          <shared:CellBoundTemplateColumn Header="{loc:Loc Column_Catalog}" CellTemplate="{StaticResource CatalogCellTemplate}"
+                                          ClipboardContentBinding="{Binding Catalog, Mode=OneWay}" Width="Auto" MinWidth="160" MaxWidth="360" />
           <DataGridTextColumn Header="{loc:Loc Publisher}" Binding="{Binding File.Embedded.Certificate.Publisher, Mode=OneWay}" Width="155" ElementStyle="{StaticResource GridText}"/>
           <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256, Mode=OneWay}" Width="172" ElementStyle="{StaticResource HashText}"/>
           <DataGridTextColumn Header="{loc:Loc Diagnostics}" Binding="{Binding Diagnostic, Mode=OneWay}" Width="180" ElementStyle="{StaticResource GridText}"/>
