@@ -317,7 +317,7 @@ public sealed partial class ResourceConsistencyTests
     [GeneratedRegex(@"\{\d+[^}]*\}", RegexOptions.CultureInvariant)]
     private static partial Regex FormatPlaceholder();
 
-    [GeneratedRegex(@"\{loc:Loc\s+([A-Za-z_]\w*)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?:\{loc:Loc\s+|\{Binding\s+Strings\[)([A-Za-z_]\w*)", RegexOptions.CultureInvariant)]
     private static partial Regex LocalizationReference();
 
     [GeneratedRegex(@"\{DynamicResource\s+([A-Za-z_]\w*)\s*\}", RegexOptions.CultureInvariant)]
