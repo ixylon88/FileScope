@@ -185,4 +185,25 @@
   <data name="PathAutoWidthHint" xml:space="preserve">
     <value>启用时允许显示完整路径宽度。关闭后列宽受限，可用鼠标调整。</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>在文件资源管理器中显示</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows 无法打开“{0}”的属性。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows 无法在文件资源管理器中显示“{0}”。文件可能已被移动或删除，或者访问被拒绝。</value>
+  </data>
+  <data name="SingleFileActionHint" xml:space="preserve">
+    <value>此操作需要仅选中一个文件。</value>
+  </data>
+  <data name="ShortcutContextMenuKeys" xml:space="preserve">
+    <value>Shift+F10 / 菜单键</value>
+  </data>
+  <data name="ShortcutContextMenuAction" xml:space="preserve">
+    <value>打开当前行的快捷菜单</value>
+  </data>
 </root>

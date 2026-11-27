@@ -582,18 +582,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="AboutAdditionalReads" xml:space="preserve">
     <value>Header, version and signature inspections can require additional reads. Windows may also access supplementary resources.</value>
   </data>
-  <data name="FilePropertiesMenu" xml:space="preserve">
-    <value>Properties</value>
-  </data>
-  <data name="ShowInExplorerMenu" xml:space="preserve">
-    <value>Show in Explorer</value>
-  </data>
-  <data name="FilePropertiesError" xml:space="preserve">
-    <value>Windows could not open the properties of “{0}”. The file may have been moved or deleted, or access may be denied.</value>
-  </data>
-  <data name="FileExplorerError" xml:space="preserve">
-    <value>Windows could not show “{0}” in Explorer. The file may have been moved or deleted, or access may be denied.</value>
-  </data>
   <data name="OpeningFile" xml:space="preserve">
     <value>Opening file…</value>
   </data>
@@ -684,9 +672,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   <data name="MoveFolder_CheckFailed" xml:space="preserve">
     <value>failed</value>
   </data>
-  <data name="SingleFileActionHint" xml:space="preserve">
-    <value>Select exactly one file for this action.</value>
-  </data>
   <data name="ShortcutOpenKeys" xml:space="preserve">
     <value>Ctrl+O</value>
   </data>
@@ -698,12 +683,6 @@ Continue? Choosing “No” cancels the entire drop.</value>
   </data>
   <data name="ShortcutClearAction" xml:space="preserve">
     <value>Clear results and filters when idle</value>
-  </data>
-  <data name="ShortcutContextMenuKeys" xml:space="preserve">
-    <value>Shift+F10 / Menu key</value>
-  </data>
-  <data name="ShortcutContextMenuAction" xml:space="preserve">
-    <value>Open the row context menu</value>
   </data>
   <data name="IntakeFilterLabel" xml:space="preserve">
     <value>File intake (Regex)</value>

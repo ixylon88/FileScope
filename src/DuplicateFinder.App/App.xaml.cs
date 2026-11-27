@@ -19,7 +19,7 @@ public partial class App : Application
         theme.Apply(preferences.Theme);
 
         MainWindow = new MainWindow(new ResultsViewModel(), new DuplicateScanner(),
-            new CleanupService(new WindowsRecycleBin()), preferences, settings, theme);
+            new CleanupService(new WindowsRecycleBin()), preferences, settings, theme, new FileShellService());
         MainWindow.Show();
     }
 }

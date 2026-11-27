@@ -39,6 +39,10 @@ In der Tabelle erweitert **Umschalt+Pfeil auf/ab** die Zeilenauswahl. **Strg+A**
 
 Ein einfacher Klick auf eine Dateizeile oder ihr Kästchen schaltet das Häkchen für den Papierkorb um. Mit der Tastatur geht das über die **Leertaste** in der aktuellen Zeile. Während eines Such- oder Papierkorbvorgangs kann man vorhandene Ergebnisse weiterhin ansehen, scrollen und kopieren. Neue Markierungen sind erst nach Abschluss möglich.
 
+**Rechtsklick**, **Umschalt+F10** oder die **Menütaste** öffnet das Kontextmenü einer Dateizeile. Ist genau eine Zeile ausgewählt, öffnet **Eigenschaften** den Windows-Eigenschaftendialog. **Im Explorer anzeigen** öffnet den übergeordneten Ordner und markiert die Datei. Ein Rechtsklick innerhalb einer Mehrfachauswahl erhält diese Auswahl. Ein Rechtsklick auf eine andere Datei wählt sie allein aus. Die Häkchen für den Papierkorb bleiben dabei erhalten.
+
+**In den Papierkorb** zeigt wie der gleichnamige Knopf alle angekreuzten Dateien zur Bestätigung an, auch wenn ein Filter einige davon ausblendet. Während eines laufenden Vorgangs sind die drei Menübefehle gesperrt.
+
 ## Wie die Duplikatsuche arbeitet
 
 1. **Dateien erfassen.** Für die Größenvorauswahl nutzt DuplicateFinder die Größe aus dem Verzeichniseintrag. Eine gewöhnliche Datei außerhalb der Grenzen wird damit schon vor dem Öffnen aussortiert. Bei Kandidaten prüft DuplicateFinder die Größe erneut am geöffneten Handle und ermittelt Änderungszeit und Datei-ID. Mehrere Hardlinks auf dieselbe Datei zählen einmal.
@@ -76,7 +80,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 ## Architektur
 
-`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes, Katalogtexte und den Hashformatierer sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und die Dialoge für Programminformationen und Tastenkürzel bereit.
+`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes, Katalogtexte und den Hashformatierer sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und die Dialoge für Programminformationen und Tastenkürzel bereit. Beide Apps verwenden auch dasselbe Dateikontextmenü und denselben Windows-Shell-Dienst für Eigenschaften und Explorer-Auswahl. [Native Methoden des Dateikontextmenüs](../README.md#dateikontextmenü-und-explorer)
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |

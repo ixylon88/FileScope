@@ -4,7 +4,7 @@ namespace FileScope.Ui.Tests;
 
 internal static class ShortcutDialogChecks
 {
-    public static void Check(ShortcutsDialog dialog, LocalizationService strings, string[] actions, string extraSelection)
+    public static void Check(ShortcutsDialog dialog, LocalizationService strings, string[] actions, params string[] extraSelection)
     {
         CheckText("ShortcutsTitle", dialog.Title);
         CheckText("ShortcutsHint", ((TextBlock)dialog.FindName("ShortcutsHintText")).Text);
@@ -16,7 +16,7 @@ internal static class ShortcutDialogChecks
 
         CheckGroup("Actions", [.. actions, "Cancel", "Help"]);
         CheckGroup("Navigation", ["TableEnds", "Page", "RowEnds", "Rows"]);
-        CheckGroup("Selection", ["SelectAll", "Extend", "Copy", extraSelection]);
+        CheckGroup("Selection", ["SelectAll", "Extend", "Copy", .. extraSelection]);
 
         void CheckGroup(string group, string[] shortcuts)
         {

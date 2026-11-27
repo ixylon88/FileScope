@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly SettingsStore _store;
     private readonly IThemeService _theme;
     private readonly WindowPlacement _placement;
+    private readonly FileShellCommands<ResultRow> _fileActions;
     private Preferences _preferences;
     private IReadOnlyList<ScanIssue> _issues = [];
     private CancellationTokenSource? _job;
@@ -27,6 +28,8 @@ public partial class MainWindow : Window
     public AsyncRelayCommand ScanCommand { get; }
     public AsyncRelayCommand CleanCommand { get; }
     public AsyncRelayCommand RecycleCommand { get; }
+    public AsyncRelayCommand ShowFilePropertiesCommand => _fileActions.Properties;
+    public AsyncRelayCommand ShowInExplorerCommand => _fileActions.Explorer;
     public RelayCommand OptionsCommand { get; }
     public RelayCommand CancelCommand { get; }
     public RelayCommand IssuesCommand { get; }
@@ -34,7 +37,7 @@ public partial class MainWindow : Window
     public RelayCommand ResetFiltersCommand { get; }
 
     public MainWindow(ResultsViewModel model, DuplicateScanner scanner, CleanupService cleanup,
-        Preferences preferences, SettingsStore store, IThemeService theme)
+        Preferences preferences, SettingsStore store, IThemeService theme, IFileShellService fileShell)
     {
         _model = model;
         _scanner = scanner;
@@ -42,6 +45,9 @@ public partial class MainWindow : Window
         _preferences = preferences;
         _store = store;
         _theme = theme;
+
+        _fileActions = new(fileShell, SelectedFileForShell, row => row.File.Path,
+            row => IsLoaded && _model.Rows.Contains(row), RefreshFileActionError, ShowError);
         ScanCommand = new(StartScanAsync, ShowError, _ => _job == null && _preferences.Roots.Length > 0);
         CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job == null && _model.Rows.Count > 0);
         RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job == null && _model.MarkedCount > 0);
@@ -53,6 +59,8 @@ public partial class MainWindow : Window
         ResetFiltersCommand = new(ResetFilters);
 
         InitializeComponent();
+        // Popups have their own visual tree. Commands belong to this window, even if WPF recycles the row.
+        ((FileRowContextMenu)Resources["FileMenu"]).DataContext = this;
         ShortcutsDialog.BindHelp(this, () => WindowPlacement.RememberDialogSize(ShortcutsWindow.Create(),
             _preferences.ShortcutsWindow, value => SavePlacement(_preferences with { ShortcutsWindow = value })));
         DataContext = model;
@@ -113,6 +121,24 @@ public partial class MainWindow : Window
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ResultsViewModel.MarkedCount)) { UpdateButtons(); if (_job == null) Summary(); }
+        if (e.PropertyName == nameof(ResultsViewModel.View)) _fileActions.ClearError();
+    }
+
+    private ResultRow? SelectedFileForShell() =>
+        _job == null && IsLoaded && Files.SelectedItems.Count == 1 ? Files.SelectedItem as ResultRow : null;
+
+    private void FileSelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (ReferenceEquals(args.OriginalSource, Files)) _fileActions.NotifyCanExecuteChanged();
+    }
+
+    private void FileMenuOpening(object sender, ContextMenuEventArgs args) =>
+        FileRowContextMenu.SelectTargetRow(Files, (DataGridRow)sender);
+
+    private void RefreshFileActionError()
+    {
+        FileActionErrorText.Text = _fileActions.GetErrorText(Strings);
+        FileActionErrorText.Visibility = _fileActions.HasError ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RowClick(object sender, MouseButtonEventArgs e)
@@ -205,6 +231,7 @@ public partial class MainWindow : Window
             Strings.SetCulture(next.Language);
             ReloadFilters();
             _model.Relocalize();
+            RefreshFileActionError();
             Summary();
         }
 
@@ -307,6 +334,7 @@ public partial class MainWindow : Window
         ScanCommand.NotifyCanExecuteChanged();
         CleanCommand.NotifyCanExecuteChanged();
         RecycleCommand.NotifyCanExecuteChanged();
+        _fileActions.NotifyCanExecuteChanged();
         OptionsCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
         IssuesCommand.NotifyCanExecuteChanged();

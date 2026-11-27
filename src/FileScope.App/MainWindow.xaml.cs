@@ -44,12 +44,7 @@ public partial class MainWindow : Window
 
     private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs args)
     {
-        if (args.OriginalSource is DependencyObject source
-            && ItemsControl.ContainerFromElement(ResultsGrid, source) is DataGridRow { IsSelected: false } row)
-        {
-            ResultsGrid.UnselectAll();
-            row.IsSelected = true;
-        }
+        FileRowContextMenu.SelectTargetRow(ResultsGrid, (DataGridRow)sender);
         UpdateSelectedRows();
     }
 

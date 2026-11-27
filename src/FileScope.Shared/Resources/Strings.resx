@@ -185,4 +185,25 @@
   <data name="PathAutoWidthHint" xml:space="preserve">
     <value>Allow the full path width. When off, the column has a bounded width that you can adjust with the mouse.</value>
   </data>
+  <data name="FilePropertiesMenu" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="ShowInExplorerMenu" xml:space="preserve">
+    <value>Show in Explorer</value>
+  </data>
+  <data name="FilePropertiesError" xml:space="preserve">
+    <value>Windows could not open the properties of “{0}”. The file may have been moved or deleted, or access may be denied.</value>
+  </data>
+  <data name="FileExplorerError" xml:space="preserve">
+    <value>Windows could not show “{0}” in Explorer. The file may have been moved or deleted, or access may be denied.</value>
+  </data>
+  <data name="SingleFileActionHint" xml:space="preserve">
+    <value>Select exactly one file for this action.</value>
+  </data>
+  <data name="ShortcutContextMenuKeys" xml:space="preserve">
+    <value>Shift+F10 / Menu key</value>
+  </data>
+  <data name="ShortcutContextMenuAction" xml:space="preserve">
+    <value>Open the row context menu</value>
+  </data>
 </root>
