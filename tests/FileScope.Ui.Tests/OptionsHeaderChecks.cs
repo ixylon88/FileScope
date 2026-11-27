@@ -22,7 +22,11 @@ internal static class OptionsHeaderChecks
                 var theme = header.ThemeSelector;
                 var format = header.HashFormatSelector;
                 var language = header.LanguageSelector;
-                Assert.IsTrue(theme.IsVisible && format.IsVisible && language.IsVisible);
+                foreach (var selector in new[] { theme, format, language })
+                {
+                    Assert.IsTrue(selector.IsVisible);
+                    Assert.AreEqual(34.0, selector.MinHeight, "The minimum applies to the clickable control.");
+                }
                 Assert.HasCount(Enum.GetValues<HashFormat>().Length, format.Items);
 
                 var top = theme.TranslatePoint(new Point(theme.ActualWidth, theme.ActualHeight), window);
