@@ -12,6 +12,7 @@ using FileScope.Core.Services;
 using FileScope.Core.Signatures;
 using FileScope.Core.Files;
 using FileScope.Core.Export;
+using FileScope.TestSupport;
 
 namespace FileScope.Core.Tests;
 
@@ -28,37 +29,62 @@ public sealed class CoreTests
     };
 
     private string _directory = null!;
-    private string _plainFile = null!;
 
     public TestContext TestContext { get; set; } = null!;
 
     [TestInitialize]
-    public void Initialize()
-    {
-        _directory = Path.Combine(Path.GetTempPath(), "FileScope-tests-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_directory);
-
-        _plainFile = Path.Combine(_directory, "Prüfung 中文 ' sample.bin");
-        File.WriteAllText(_plainFile, "abc", new UTF8Encoding(false));
-    }
+    public void Initialize() => _directory = Directory.CreateTempSubdirectory("FileScope-tests-").FullName;
 
     [TestCleanup]
-    public void Cleanup()
+    public Task Cleanup() => Directory.Exists(_directory)
+        ? TestDirectory.DeleteAsync(_directory)
+        : Task.CompletedTask;
+
+    private string CreatePlainFile()
     {
-        if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
+        var path = Path.Combine(_directory, "Prüfung 中文 ' sample.bin");
+        File.WriteAllText(path, "abc", new UTF8Encoding(false));
+        return path;
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task FixtureCleanupWaitsForASharingViolation(bool keepLocked)
+    {
+        var path = CreatePlainFile();
+        Task cleanup;
+
+        using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            cleanup = Cleanup();
+            Assert.IsFalse(cleanup.IsCompleted, "Cleanup must wait while the file denies deletion.");
+
+            if (keepLocked)
+            {
+                var error = await Assert.ThrowsExactlyAsync<IOException>(() => cleanup);
+                Assert.AreEqual(unchecked((int)0x80070020), error.HResult);
+                return;
+            }
+        }
+
+        await cleanup;
+        Assert.IsFalse(Directory.Exists(_directory));
     }
 
     [TestMethod]
     public async Task OptionalCatalogFailuresPreserveCompletedHashes()
     {
+        var path = CreatePlainFile();
         var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
-        var uncheckedResult = await analyzer.AnalyzeAsync(_plainFile, new AnalysisOptions([ChecksumAlgorithm.SHA256], false));
+        var uncheckedResult = await analyzer.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], false));
         Assert.IsNull(uncheckedResult.Catalogs);
 
         var progress = new RecordedAnalysisProgress();
         var missing = Path.Combine(_directory, "missing.cat");
         var options = new AnalysisOptions([ChecksumAlgorithm.SHA256], false, catalogs: new CatalogSearch([missing]));
-        var result = await analyzer.AnalyzeAsync(_plainFile, options, progress);
+        var result = await analyzer.AnalyzeAsync(path, options, progress);
 
         Assert.IsTrue(result.Succeeded);
         Assert.AreEqual(KnownDigests[ChecksumAlgorithm.SHA256], result.Checksums[ChecksumAlgorithm.SHA256]);
@@ -235,7 +261,7 @@ public sealed class CoreTests
     [TestMethod]
     public async Task AnalysisPipelineKeepsResultsAndReportsFileErrors()
     {
-        var path = _plainFile;
+        var path = CreatePlainFile();
         var algorithms = Enum.GetValues<ChecksumAlgorithm>();
         var checksumService = new StreamChecksumService(new ChecksumStrategyFactory());
         var snapshot = new AnalysisOptions([ChecksumAlgorithm.SHA256], false);
@@ -290,10 +316,11 @@ public sealed class CoreTests
         if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Windows file sharing is required.");
 
         var analyzer = new FileAnalysisService(new StreamChecksumService(new ChecksumStrategyFactory()), new StubSignatures());
-        using var locked = new FileStream(_plainFile, FileMode.Open, FileAccess.Read, FileShare.None);
+        var path = CreatePlainFile();
+        using var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
 
         Assert.AreEqual(AnalysisError.ReadFailure,
-            (await analyzer.AnalyzeAsync(_plainFile, new AnalysisOptions([ChecksumAlgorithm.SHA256], false))).Error,
+            (await analyzer.AnalyzeAsync(path, new AnalysisOptions([ChecksumAlgorithm.SHA256], false))).Error,
             "locked file is reported as a read failure");
     }
 
@@ -343,9 +370,10 @@ public sealed class CoreTests
     {
         if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test covers the non-Windows result.");
 
-        using var file = File.OpenRead(_plainFile);
+        var path = CreatePlainFile();
+        using var file = File.OpenRead(path);
         Assert.AreEqual(SignatureStatus.UnsupportedPlatform,
-            new WindowsAuthenticodeInspector().Inspect(file, _plainFile, RevocationMode.OfflineCache).Status);
+            new WindowsAuthenticodeInspector().Inspect(file, path, RevocationMode.OfflineCache).Status);
     }
 
     [TestMethod]
@@ -363,7 +391,7 @@ public sealed class CoreTests
         var baseline = System.Diagnostics.FileVersionInfo.GetVersionInfo(nePath);
         Assert.AreEqual("1.2.3.4", baseline.FileVersion, "generated NE fixture contains readable VERSIONINFO");
 
-        CheckVersionHandles([_plainFile, nePath, typeof(FileAnalysisService).Assembly.Location,
+        CheckVersionHandles([CreatePlainFile(), nePath, typeof(FileAnalysisService).Assembly.Location,
             typeof(object).Assembly.Location, Path.Combine(Environment.SystemDirectory, "kernel32.dll")]);
     }
 
@@ -1071,7 +1099,7 @@ public sealed class CoreTests
     [TestMethod]
     public void FileProperties()
     {
-        var plainFile = _plainFile;
+        var plainFile = CreatePlainFile();
 
         var native = typeof(FilePropertiesInspector).GetNestedType("Native", BindingFlags.NonPublic)!;
         var shellInfo = native.GetNestedType("ShellFileInfo", BindingFlags.NonPublic)!;
@@ -1198,7 +1226,7 @@ public sealed class CoreTests
     [TestMethod]
     public async Task MetadataPipelineAsync()
     {
-        var path = _plainFile;
+        var path = CreatePlainFile();
         var checksums = new StreamChecksumService(new ChecksumStrategyFactory());
 
         foreach (var flags in new[] { (false, false), (true, false), (false, true), (true, true) })

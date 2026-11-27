@@ -631,10 +631,10 @@ Aktueller Ausführungsstand:
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **94 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
-| Core | **29 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Zwei neue Fälle prüfen den Katalog über den normalen Analyseweg und den Erhalt der Prüfsummen bei Katalogfehlern. |
+| Core | **31 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Katalogsuche, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
 | Präsentation, Einstellungen und Ressourcen | **41 Fälle**, darunter Optionsvorschau, Rücknahme und Schreibfehler sowie die Filtermatrix für alle Signaturcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **37 Fälle** für Oberfläche und Bedienabläufe, einschließlich Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
-| DuplicateFinder / Core und Windows-Integration | **27 Fälle** für kurzzeitige und andauernde Dateisperren beim Testabbau, Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
+| DuplicateFinder / Core und Windows-Integration | **25 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung und Papierkorb. |
 | DuplicateFinder / WPF | **14 Fälle** für Gruppen, Markierungen, Dateidetails, Filter, Commands, Darstellungsoptionen, Fensterzustand, Designertexte, geteilte Dialoge und die Tastaturauswahl mit Kopieren in der gefilterten Tabelle. |
 
 Die Suite umfasst **148 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).

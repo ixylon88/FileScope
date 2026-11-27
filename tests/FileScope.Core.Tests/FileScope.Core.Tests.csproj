@@ -4,6 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../TestDirectory.cs" Link="TestDirectory.cs" />
     <EmbeddedResource Include="../DuplicateFinder.Tests/Fixtures/loose.cat" LogicalName="FileScope.Core.Tests.loose.cat" />
     <ProjectReference Include="../../src/FileScope.Core/FileScope.Core.csproj" />
   </ItemGroup>
