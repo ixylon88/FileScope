@@ -10,12 +10,11 @@ namespace FileScope.Shared.Dialogs;
 /// <summary>Shows the common table shortcuts together with the commands available in the host application.</summary>
 public partial class ShortcutsDialog : Window
 {
-    public RelayCommand CloseCommand { get; }
+    public RelayCommand CloseCommand => field ??= new(Close);
 
     public ShortcutsDialog(IReadOnlyList<string> actions, IReadOnlyList<string> selection,
         double? width = null, double? height = null)
     {
-        CloseCommand = new(Close);
         InitializeComponent();
 
         InsertShortcuts(ActionsList, 0, actions);

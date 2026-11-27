@@ -31,16 +31,22 @@ public partial class MainWindow : Window
 
     private static LocalizationService Strings => LocalizationService.Instance;
 
-    public AsyncRelayCommand ScanCommand { get; }
-    public AsyncRelayCommand CleanCommand { get; }
-    public AsyncRelayCommand RecycleCommand { get; }
+    public AsyncRelayCommand ScanCommand => field ??= new(StartScanAsync, ShowError, _ => CanScan);
+    public AsyncRelayCommand CleanCommand => field ??= new(ChooseScopeAsync, ShowError, _ => CanClean);
+    public AsyncRelayCommand RecycleCommand => field ??= new(ManualRecycleAsync, ShowError, _ => CanRecycle);
+
     public AsyncRelayCommand ShowFilePropertiesCommand => _fileActions.Properties;
     public AsyncRelayCommand ShowInExplorerCommand => _fileActions.Explorer;
-    public RelayCommand OptionsCommand { get; }
-    public RelayCommand CancelCommand { get; }
-    public RelayCommand IssuesCommand { get; }
-    public RelayCommand AboutCommand { get; }
-    public RelayCommand ResetFiltersCommand { get; }
+
+    public RelayCommand OptionsCommand => field ??= new(OpenOptions, () => _job is null);
+    public RelayCommand CancelCommand => field ??= new(() => _job?.Cancel(), () => _job is not null);
+    public RelayCommand IssuesCommand => field ??= new(ShowIssues, () => _job is null && _issues.Count > 0);
+    public RelayCommand AboutCommand => field ??= new(OpenAbout);
+    public RelayCommand ResetFiltersCommand => field ??= new(ResetFilters);
+
+    private bool CanScan => _job is null && _preferences.Roots.Length > 0;
+    private bool CanClean => _job is null && _model.Rows.Count > 0;
+    private bool CanRecycle => _job is null && _model.MarkedCount > 0;
 
     public MainWindow(ResultsViewModel model, DuplicateScanner scanner, CleanupService cleanup,
         Preferences preferences, SettingsStore store, IThemeService theme, IFileShellService fileShell)
@@ -54,16 +60,6 @@ public partial class MainWindow : Window
 
         _fileActions = new(fileShell, SelectedFileForShell, row => row.File.Path,
             row => IsLoaded && _model.Rows.Contains(row), RefreshFileActionError, ShowError);
-
-        ScanCommand = new(StartScanAsync, ShowError, _ => _job is null && _preferences.Roots.Length > 0);
-        CancelCommand = new(() => _job?.Cancel(), () => _job is not null);
-        CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job is null && _model.Rows.Count > 0);
-        RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job is null && _model.MarkedCount > 0);
-
-        IssuesCommand = new(ShowIssues, () => _job is null && _issues.Count > 0);
-        ResetFiltersCommand = new(ResetFilters);
-        OptionsCommand = new(OpenOptions, () => _job is null);
-        AboutCommand = new(OpenAbout);
 
         InitializeComponent();
         // A context menu has its own visual tree. Its commands belong to this window.

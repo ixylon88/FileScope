@@ -45,14 +45,16 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
     public WindowPreferences? AboutWindowPreferences { get; private set; }
     public WindowPreferences? ShortcutsWindowPreferences { get; private set; }
     public AnalysisPreferences AnalysisPreferences { get; private set; }
-    public RelayCommand MoveUpCommand { get; }
-    public RelayCommand MoveDownCommand { get; }
-    public RelayCommand MoveFirstCommand { get; }
-    public RelayCommand MoveLastCommand { get; }
-    public RelayCommand ResetOrderCommand { get; }
-    public RelayCommand FitColumnsCommand { get; }
-    public RelayCommand SelectAllExportColumnsCommand { get; }
-    public RelayCommand ClearExportColumnsCommand { get; }
+
+    public RelayCommand MoveUpCommand => field ??= new(() => MoveSelected(SelectedIndex - 1), () => CanMoveUp);
+    public RelayCommand MoveDownCommand => field ??= new(() => MoveSelected(SelectedIndex + 1), () => CanMoveDown);
+    public RelayCommand MoveFirstCommand => field ??= new(() => MoveSelected(0), () => CanMoveUp);
+    public RelayCommand MoveLastCommand => field ??= new(() => MoveSelected(Columns.Count - 1), () => CanMoveDown);
+
+    public RelayCommand ResetOrderCommand => field ??= new(ResetColumnOrder);
+    public RelayCommand FitColumnsCommand => field ??= new(RequestColumnSizing);
+    public RelayCommand SelectAllExportColumnsCommand => field ??= new(() => SetExportSelection(_ => true));
+    public RelayCommand ClearExportColumnsCommand => field ??= new(() => SetExportSelection(_ => false));
 
     public OptionsViewModel(LocalizationService strings, IPreferencesStore store, IThemeService themes)
     {
@@ -90,16 +92,6 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
             column.PropertyChanged += OnColumnPropertyChanged;
         }
         _selectedColumn = Columns[0];
-        MoveUpCommand = new RelayCommand(() => MoveSelected(SelectedIndex - 1), () => SelectedIndex > 0);
-        MoveDownCommand = new RelayCommand(() => MoveSelected(SelectedIndex + 1),
-            () => SelectedIndex >= 0 && SelectedIndex < Columns.Count - 1);
-        MoveFirstCommand = new RelayCommand(() => MoveSelected(0), () => SelectedIndex > 0);
-        MoveLastCommand = new RelayCommand(() => MoveSelected(Columns.Count - 1),
-            () => SelectedIndex >= 0 && SelectedIndex < Columns.Count - 1);
-        ResetOrderCommand = new RelayCommand(() => SetColumnOrder(_defaults.Select(column => column.Id)));
-        FitColumnsCommand = new RelayCommand(RequestColumnSizing);
-        SelectAllExportColumnsCommand = new RelayCommand(() => SetExportSelection(_ => true));
-        ClearExportColumnsCommand = new RelayCommand(() => SetExportSelection(_ => false));
         strings.CultureChanged += OnCultureChanged;
         _themeService = themes;
         Themes = AppearanceOptions.Themes(strings);
@@ -226,6 +218,11 @@ public sealed class OptionsViewModel : ObservableObject, IDisposable
         foreach (var column in _defaults)
             if (available.ContainsKey(column.Id)) yield return column;
     }
+    private bool CanMoveUp => SelectedIndex > 0;
+    private bool CanMoveDown => SelectedIndex >= 0 && SelectedIndex < Columns.Count - 1;
+
+    private void ResetColumnOrder() => SetColumnOrder(_defaults.Select(column => column.Id));
+
     private void MoveSelected(int target)
     {
         if (SelectedIndex < 0 || target < 0 || target >= Columns.Count) return;
