@@ -391,17 +391,27 @@ public sealed partial class WindowTests
         var options = (Button)window.FindName("OptionsButton");
         Assert.IsTrue(options.IsEnabled && options.Command.CanExecute(null));
         var header = (TextBlock)window.FindName("DetailsPath");
+        var meter = (ProgressBar)window.FindName("Meter");
+        Assert.AreEqual(Visibility.Hidden, meter.Visibility);
+        var idleWidth = meter.DesiredSize.Width;
+        Assert.IsGreaterThan(0.0, idleWidth, "The idle progress bar reserves space beside the status text.");
+
+        (Visibility Visibility, double Width) activeMeter = default;
         (bool GridEnabled, bool CanMark, bool CanRecycle, bool CanCancel, Color Background, string? Path) busy = default;
         (bool Enabled, bool CanExecute, double Opacity) busyOptions = default;
         var job = window.RunJobAsync(_ =>
         {
             grid.SelectedItem = model.Rows[0];
             window.UpdateLayout();
+            activeMeter = (meter.Visibility, meter.DesiredSize.Width);
             busyOptions = (options.IsEnabled, options.Command.CanExecute(null), options.Opacity);
             busy = (grid.IsEnabled, check.IsEnabled, recycle.IsEnabled, cancel.IsEnabled, ((SolidColorBrush)surface.Background).Color, header.Text);
             return Task.CompletedTask;
         });
 
+        Assert.AreEqual(Visibility.Visible, activeMeter.Visibility);
+        Assert.AreEqual(idleWidth, activeMeter.Width);
+        Assert.AreEqual(Visibility.Hidden, meter.Visibility);
         Assert.IsFalse(busyOptions.Enabled || busyOptions.CanExecute);
         Assert.IsLessThan(1.0, busyOptions.Opacity);
         Assert.IsTrue(busy.GridEnabled && busy.CanCancel);
@@ -412,6 +422,19 @@ public sealed partial class WindowTests
         Assert.IsTrue(options.IsEnabled && options.Command.CanExecute(null));
         Assert.AreEqual(1.0, options.Opacity);
         Assert.AreEqual(1, model.MarkedCount);
+
+        var visibleWhileCancelling = false;
+        var cancelledJob = window.RunJobAsync(token =>
+        {
+            window.CancelCommand.Execute(null);
+            visibleWhileCancelling = token.IsCancellationRequested && meter.Visibility == Visibility.Visible;
+            token.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        });
+
+        Assert.IsTrue(visibleWhileCancelling);
+        Assert.IsTrue(cancelledJob.IsCompletedSuccessfully);
+        Assert.AreEqual(Visibility.Hidden, meter.Visibility);
     });
 
     private MainWindow ShowResults(ResultsViewModel model, IThemeService theme, Preferences? preferences = null, IFileShellService? shell = null)
