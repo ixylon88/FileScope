@@ -144,6 +144,9 @@
   <data name="Shortcuts" xml:space="preserve">
     <value>快捷键…</value>
   </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
   <data name="About" xml:space="preserve">
     <value>关于…</value>
   </data>

@@ -144,6 +144,9 @@
   <data name="Shortcuts" xml:space="preserve">
     <value>Shortcuts…</value>
   </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>Shortcuts</value>
+  </data>
   <data name="About" xml:space="preserve">
     <value>About…</value>
   </data>
