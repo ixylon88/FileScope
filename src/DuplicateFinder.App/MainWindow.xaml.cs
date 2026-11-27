@@ -16,12 +16,23 @@ public partial class MainWindow : Window
     private readonly CleanupService _cleanup;
     private readonly SettingsStore _store;
     private readonly IThemeService _theme;
+    private readonly WindowPlacement _placement;
     private Preferences _preferences;
     private IReadOnlyList<ScanIssue> _issues = [];
     private CancellationTokenSource? _job;
     private readonly LatestProgress _progress = new();
     private readonly DispatcherTimer _timer;
     private static LocalizationService Strings => LocalizationService.Instance;
+
+    public AsyncRelayCommand ScanCommand { get; }
+    public AsyncRelayCommand CleanCommand { get; }
+    public AsyncRelayCommand RecycleCommand { get; }
+    public RelayCommand OptionsCommand { get; }
+    public RelayCommand CancelCommand { get; }
+    public RelayCommand IssuesCommand { get; }
+    public RelayCommand AboutCommand { get; }
+    public RelayCommand ShortcutsCommand { get; }
+    public RelayCommand ResetFiltersCommand { get; }
 
     public MainWindow(ResultsViewModel model, DuplicateScanner scanner, CleanupService cleanup,
         Preferences preferences, SettingsStore store, IThemeService theme)
@@ -32,11 +43,21 @@ public partial class MainWindow : Window
         _preferences = preferences;
         _store = store;
         _theme = theme;
+        ScanCommand = new(StartScanAsync, ShowError, _ => _job == null && _preferences.Roots.Length > 0);
+        CleanCommand = new(ChooseScopeAsync, ShowError, _ => _job == null && _model.Rows.Count > 0);
+        RecycleCommand = new(ManualRecycleAsync, ShowError, _ => _job == null && _model.MarkedCount > 0);
+        OptionsCommand = new(OpenOptions, () => _job == null);
+        CancelCommand = new(() => _job?.Cancel(), () => _job != null);
+        IssuesCommand = new(ShowIssues, () => _job == null && _issues.Count > 0);
+        AboutCommand = new(() => ShowOwnedDialog(AboutWindow.Create()));
+        ShortcutsCommand = new(() => ShowOwnedDialog(new ShortcutsWindow()));
+        ResetFiltersCommand = new(ResetFilters);
+
         InitializeComponent();
         DataContext = model;
-        ScanButton.Command = new AsyncRelayCommand(StartScanAsync, ShowError);
-        CleanButton.Command = new AsyncRelayCommand(ChooseScopeAsync, ShowError);
-        RecycleButton.Command = new AsyncRelayCommand(ManualRecycleAsync, ShowError);
+        _placement = new WindowPlacement(this, preferences.MainWindow, centerOnWorkArea: true);
+        model.SetHashFormat(preferences.HashFormat);
+        SetPathWidth(preferences.PathAutoWidth);
 
         _timer = new(TimeSpan.FromMilliseconds(150), DispatcherPriority.Background, Tick, Dispatcher);
         _timer.Stop();
@@ -48,6 +69,7 @@ public partial class MainWindow : Window
     }
 
     private bool _settingFilters;
+    private bool? _pathAutoWidth;
 
     private void ReloadFilters()
     {
@@ -65,7 +87,7 @@ public partial class MainWindow : Window
         ApplyFilters();
     }
 
-    private void ResetFilters(object sender, RoutedEventArgs e)
+    private void ResetFilters()
     {
         _settingFilters = true;
         try
@@ -116,17 +138,17 @@ public partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.F1:
-                ShowShortcuts(this, e);
+                ShortcutsCommand.Execute(null);
                 break;
-            case Key.F5 when ScanButton.IsEnabled:
-                ScanButton.Command.Execute(null);
+            case Key.F5 when ScanCommand.CanExecute(null):
+                ScanCommand.Execute(null);
                 break;
             case Key.F when Keyboard.Modifiers == ModifierKeys.Control:
                 FilterBox.Focus();
                 FilterBox.SelectAll();
                 break;
-            case Key.Escape when _job != null:
-                _job.Cancel();
+            case Key.Escape when CancelCommand.CanExecute(null):
+                CancelCommand.Execute(null);
                 break;
             case Key.Space when _job == null && Keyboard.FocusedElement is DataGridCell { DataContext: ResultRow row }:
                 row.Marked = !row.Marked;
@@ -137,36 +159,66 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void OpenOptions(object sender, RoutedEventArgs e)
+    private void OpenOptions()
     {
+        Dispatcher.VerifyAccess();
         var dialog = new OptionsWindow(_preferences) { Owner = this };
-        if (dialog.ShowDialog() != true) return;
-        var next = dialog.Result;
-        try { _store.Save(next); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { MessageBox.Show(this, ex.Message, Strings["Options"]); return; }
+        dialog.PreviewChanged += ApplyAppearance;
+        var accepted = dialog.ShowDialog() == true;
+
+        var next = (accepted ? dialog.Result : _preferences) with { OptionsWindow = dialog.SavedPlacement };
+        if (!TrySave(next))
+        {
+            ApplyAppearance(_preferences);
+            return;
+        }
 
         var rescan = !_preferences.Roots.SequenceEqual(next.Roots) || !_preferences.Hashes.SequenceEqual(next.Hashes)
             || _preferences.Embedded != next.Embedded || _preferences.Catalogs != next.Catalogs || _preferences.Online != next.Online
             || _preferences.SizeRange != next.SizeRange;
-        var languageChanged = next.Language != _preferences.Language;
         _preferences = next;
-        Strings.SetCulture(next.Language);
-        Dispatcher.VerifyAccess();
-        _theme.Apply(next.Theme);
+        ApplyAppearance(next);
         if (rescan) { _issues = []; _model.Replace([]); }
-        if (languageChanged)
-        {
-            ReloadFilters();
-            _model.Relocalize();
-        }
         UpdateButtons();
         Summary();
     }
 
+    private bool TrySave(Preferences preferences)
+    {
+        try { _store.Save(preferences); return true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, ex.Message, Strings["Options"]);
+            return false;
+        }
+    }
+
+    private void ApplyAppearance(Preferences next)
+    {
+        if (Strings.Culture.Name != next.Language)
+        {
+            Strings.SetCulture(next.Language);
+            ReloadFilters();
+            _model.Relocalize();
+            Summary();
+        }
+
+        Dispatcher.VerifyAccess();
+        _theme.Apply(next.Theme);
+        _model.SetHashFormat(next.HashFormat);
+        SetPathWidth(next.PathAutoWidth);
+    }
+
+    private void SetPathWidth(bool automatic)
+    {
+        if (_pathAutoWidth == automatic) return;
+        _pathAutoWidth = automatic;
+        PathColumn.MaxWidth = automatic ? double.PositiveInfinity : 600;
+        PathColumn.Width = automatic ? DataGridLength.Auto : new DataGridLength(320);
+    }
+
     private Task StartScanAsync(object? parameter)
     {
-        if (_job != null || _preferences.Roots.Length == 0) return Task.CompletedTask;
         return RunJobAsync(async token =>
         {
             var scan = await Task.Run(() => _scanner.ScanAsync(_preferences.Roots, _preferences.Search, _progress, token), token);
@@ -177,7 +229,6 @@ public partial class MainWindow : Window
 
     private async Task ChooseScopeAsync(object? parameter)
     {
-        if (_job != null) return;
         var filtered = _model.Plan(true);
         var all = _model.Plan(false);
         var dialog = new ScopeWindow(filtered, all) { Owner = this };
@@ -186,7 +237,6 @@ public partial class MainWindow : Window
 
     private async Task ManualRecycleAsync(object? parameter)
     {
-        if (_job != null) return;
         var items = _model.Manual();
         if (items.Count == 0) return;
         var last = _model.LastCopiesSelected();
@@ -247,15 +297,14 @@ public partial class MainWindow : Window
 
     private void UpdateButtons()
     {
-        var idle = _job == null;
-        // Disable marking only. Fluent paints the entire grid white in its disabled state.
-        _model.CanMark = idle;
-        OptionsButton.IsEnabled = idle;
-        ScanButton.IsEnabled = idle && _preferences.Roots.Length != 0;
-        CancelButton.IsEnabled = !idle;
-        CleanButton.IsEnabled = idle && _model.Rows.Count > 0;
-        RecycleButton.IsEnabled = idle && _model.MarkedCount > 0;
-        IssuesButton.IsEnabled = idle && _issues.Count > 0;
+        // Keep the grid readable while a job is running. Only marking and the affected commands are disabled.
+        _model.CanMark = _job == null;
+        ScanCommand.NotifyCanExecuteChanged();
+        CleanCommand.NotifyCanExecuteChanged();
+        RecycleCommand.NotifyCanExecuteChanged();
+        OptionsCommand.NotifyCanExecuteChanged();
+        CancelCommand.NotifyCanExecuteChanged();
+        IssuesCommand.NotifyCanExecuteChanged();
     }
 
     private void Summary()
@@ -275,23 +324,25 @@ public partial class MainWindow : Window
 
     private void ShowError(Exception ex) => MessageBox.Show(this, ex.Message, "DuplicateFinder", MessageBoxButton.OK, MessageBoxImage.Error);
 
-    private void ShowIssues(object sender, RoutedEventArgs e) =>
+    private void ShowIssues() =>
         ShowOwnedDialog(new ReportWindow(Strings["Issues"], Strings["Diagnostics"], _issues.Select(i => $"{i.Path} · {i.Reason}").ToArray()));
-    private void ShowAbout(object sender, RoutedEventArgs e) => ShowOwnedDialog(AboutWindow.Create());
-    private void ShowShortcuts(object sender, RoutedEventArgs e) => ShowOwnedDialog(new ShortcutsWindow());
-
     private void ShowOwnedDialog(Window window)
     {
         window.Owner = this;
         window.ShowDialog();
     }
 
-    private void CancelJob(object sender, RoutedEventArgs e) => _job?.Cancel();
-    private void WindowClosing(object? sender, CancelEventArgs e)
+    protected override void OnClosing(CancelEventArgs e)
     {
-        if (_job == null) return;
-        e.Cancel = true;
-        _job.Cancel();
+        base.OnClosing(e);
+        if (_job != null)
+        {
+            e.Cancel = true;
+            _job.Cancel();
+            return;
+        }
+
+        if (!e.Cancel) TrySave(_preferences with { MainWindow = _placement.Capture() });
     }
 
     private sealed class LatestProgress : IProgress<ScanProgress>

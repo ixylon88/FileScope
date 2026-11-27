@@ -57,6 +57,8 @@ public sealed partial class WindowsTests
             var original = "DuplicateFinder catalog membership regression fixture."u8.ToArray();
             var member = Path.Combine(root.FullName, "member.txt");
             File.WriteAllBytes(member, original);
+            var copy = Path.Combine(root.FullName, "member-copy.txt");
+            File.Copy(member, copy);
             var cat = Path.Combine(root.FullName, "loose.cat");
             using (var resource = typeof(WindowsTests).Assembly.GetManifestResourceStream("DuplicateFinder.Tests.loose.cat"))
             using (var output = File.Create(cat))
@@ -72,8 +74,10 @@ public sealed partial class WindowsTests
             };
             var scan = await new DuplicateScanner().ScanAsync([new(root.FullName, 1)], options);
             Assert.IsEmpty(scan.Issues, string.Join(Environment.NewLine, scan.Issues));
-            var row = scan.Files.Single();
-            Assert.AreEqual(member, row.Path);
+            Assert.HasCount(2, scan.Files);
+            var row = scan.Files.Single(f => f.Path == member);
+            Assert.IsGreaterThan(0, row.Group);
+            Assert.AreEqual(row.Group, scan.Files.Single(f => f.Path == copy).Group);
             var found = row.Catalogs;
             Assert.IsNotNull(found, row.Diagnostic);
             Assert.IsTrue(found.IndexComplete);

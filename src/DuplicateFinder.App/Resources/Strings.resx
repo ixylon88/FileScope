@@ -406,7 +406,7 @@
     <value>See when files with the same main data stream have different NTFS alternate data streams.</value>
   </data>
   <data name="AboutSignatures" xml:space="preserve">
-    <value>Inspect embedded Authenticode signatures and Windows catalog signatures separately.</value>
+    <value>Check embedded Authenticode and Windows catalog signatures for byte-confirmed duplicates.</value>
   </data>
   <data name="AboutRecycle" xml:space="preserve">
     <value>Move copies to the Recycle Bin by folder priority or confirm a manual selection.</value>

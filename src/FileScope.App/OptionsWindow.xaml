@@ -1,7 +1,7 @@
 <Window x:Class="FileScope.App.OptionsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:loc="clr-namespace:FileScope.App"
         Title="{loc:Loc OptionsTitle}" Width="730" Height="740" MinWidth="640" MinHeight="600"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{StaticResource AppWindowStyle}" Language="{Binding UiLanguage, Mode=OneWay, ConverterCulture=en-US}">

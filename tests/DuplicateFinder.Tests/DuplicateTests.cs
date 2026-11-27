@@ -41,15 +41,20 @@ public sealed class DuplicateTests
     {
         var first = Put("1", "first", "ABC");
         var second = Put("2", "second", "XYZ");
-        var single = Put("1", "single", "longer");
+        // Even a loose catalog (deliberately invalid here) is never indexed for an all-single scan.
+        var single = Put("1", "single.cat", "longer");
         var progress = new Stages();
         var scanner = new DuplicateScanner(_facts, new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
-        var scan = await scanner.ScanAsync([new(_dir, 1)], Options with { Embedded = true }, progress);
+        var scan = await scanner.ScanAsync([new(_dir, 1)], Options with { Embedded = true, Catalogs = true }, progress);
 
+        Assert.IsEmpty(scan.Issues);
         CollectionAssert.AreEquivalent(new[] { first, second }, progress.Paths("Hash"));
-        CollectionAssert.AreEquivalent(new[] { first, second, single }, progress.Paths("Signature"));
+        Assert.IsEmpty(progress.Paths("Signature"));
+        Assert.IsEmpty(progress.Paths("Catalog"));
+        Assert.IsEmpty(progress.Paths("CatalogIndex"));
+        Assert.IsTrue(scan.Files.All(file => file.Embedded == SignatureResult.NotChecked && file.Catalogs == null));
         Assert.IsEmpty(scan.Files.Single(file => file.Path == single).Hashes);
-        Assert.AreEqual(2, _facts.ReadCount[single], "A unique size still receives the requested signature inspection.");
+        Assert.AreEqual(1, _facts.ReadCount[single], "A unique size needs only discovery even with both signature options enabled.");
         Assert.IsTrue(scan.Files.Where(file => file.Path != single).All(file => file.Hashes.Count == 3));
         Assert.IsTrue(scan.Files.All(file => file.Group == 0));
     }
@@ -192,7 +197,9 @@ public sealed class DuplicateTests
         Put("4", "d", "bbbb");
         Put("5", "e", "cccc");
 
-        var scan = await ScanAsync(new Collision());
+        var scan = await ScanAsync(new Collision(), Options with { Embedded = true });
+        Assert.IsTrue(scan.Files.Where(f => f.Group != 0).All(f => f.Embedded != SignatureResult.NotChecked));
+        Assert.AreEqual(SignatureResult.NotChecked, scan.Files.Single(f => f.Name == "e").Embedded);
         var groups = scan.Files.ToDictionary(f => f.Name, f => f.Group);
         Assert.AreEqual(groups["a"], groups["c"]);
         Assert.AreEqual(groups["b"], groups["d"]);

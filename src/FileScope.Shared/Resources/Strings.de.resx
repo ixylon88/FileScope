@@ -37,4 +37,31 @@
   <data name="Registered" xml:space="preserve"><value>Registrierter Katalog</value></data>
   <data name="Loose" xml:space="preserve"><value>Mitgegebener Katalog</value></data>
   <data name="Column_Catalog" xml:space="preserve"><value>Katalogsignatur</value></data>
+  <data name="Group_HashFormat" xml:space="preserve">
+    <value>Hashdarstellung</value>
+  </data>
+  <data name="HashFormatHint" xml:space="preserve">
+    <value>Ändert die Darstellung von Datei-Hashes und Zertifikatsfingerabdrücken ohne erneute Analyse.</value>
+  </data>
+  <data name="HashFormat_HexUpper" xml:space="preserve">
+    <value>Hex · Großbuchstaben</value>
+  </data>
+  <data name="HashFormat_HexLower" xml:space="preserve">
+    <value>Hex · Kleinbuchstaben</value>
+  </data>
+  <data name="HashFormat_HexColon" xml:space="preserve">
+    <value>Hex · mit Doppelpunkten</value>
+  </data>
+  <data name="HashFormat_Base64" xml:space="preserve">
+    <value>Base64</value>
+  </data>
+  <data name="HashFormat_Base64Url" xml:space="preserve">
+    <value>Base64url · ohne Padding</value>
+  </data>
+  <data name="PathAutoWidth" xml:space="preserve">
+    <value>Pfadspalte automatisch an den Inhalt anpassen</value>
+  </data>
+  <data name="PathAutoWidthHint" xml:space="preserve">
+    <value>Erlaubt die volle Pfadbreite. Ausgeschaltet bleibt die Spalte begrenzt breit und lässt sich mit der Maus anpassen.</value>
+  </data>
 </root>

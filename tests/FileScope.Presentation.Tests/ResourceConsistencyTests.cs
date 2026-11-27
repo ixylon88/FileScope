@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Resources;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using FileScope.App.Presentation;
 using FileScope.App.ViewModels;
 using FileScope.Core.Models;
 

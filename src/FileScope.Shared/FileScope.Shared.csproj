@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
+    <!-- The XAML designer uses the first target. Portable callers still select net10.0. -->
+    <TargetFrameworks>net10.0-windows;net10.0</TargetFrameworks>
     <UseWPF Condition="'$(TargetFramework)' == 'net10.0-windows'">true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <NeutralLanguage>en</NeutralLanguage>
@@ -10,5 +11,9 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="Wpf/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseWPF)' == 'true'">
+    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
+          Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
   </ItemGroup>
 </Project>

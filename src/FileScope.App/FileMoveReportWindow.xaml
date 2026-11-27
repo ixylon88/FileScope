@@ -1,7 +1,7 @@
 <Window x:Class="FileScope.App.FileMoveReportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+        xmlns:loc="clr-namespace:FileScope.App"
         Title="{loc:Loc MoveReportTitle}" Width="960" Height="640" MinWidth="480" MinHeight="320"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Style="{StaticResource AppWindowStyle}">
   <Grid Margin="20">

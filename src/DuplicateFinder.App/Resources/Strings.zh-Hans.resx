@@ -406,7 +406,7 @@
     <value>当主数据流相同时，仍可识别 NTFS 备用数据流的差异。</value>
   </data>
   <data name="AboutSignatures" xml:space="preserve">
-    <value>分别验证嵌入式 Authenticode 签名和 Windows 目录签名。</value>
+    <value>对经逐字节比较确认的重复文件，验证其嵌入式 Authenticode 签名和 Windows 目录签名。</value>
   </data>
   <data name="AboutRecycle" xml:space="preserve">
     <value>按文件夹优先级将副本移到回收站，也可手动勾选并确认。</value>

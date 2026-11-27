@@ -34,39 +34,45 @@ public sealed class DuplicateScanner
         var sizes = files.Where(f => f.Size.HasValue).CountBy(f => f.Size!.Value).ToDictionary();
         var algorithms = options.Hashes.Append(ChecksumAlgorithm.SHA256).Distinct().ToArray();
 
-        var catalogIndex = catalogPaths != null && files.Any(f => f.Stamp != null) && OperatingSystem.IsWindows()
-            ? new WindowsCatalogIndex(CatalogsToIndex(catalogPaths, progress),
-                (path, reason) => issues.Add(new(path, reason)), token) : null;
-
         for (var index = 0; index < files.Count; index++)
         {
             token.ThrowIfCancellationRequested();
             var file = files[index];
-            if (file.Stamp == null) continue;
-
-            var needsHashes = sizes[file.Stamp.Length] > 1;
-            if (!needsHashes && !options.Embedded && catalogIndex == null) continue;
+            if (file.Stamp == null || sizes[file.Stamp.Length] == 1) continue;
 
             try
             {
-                progress?.Report(new("Metadata", file.Path, index, files.Count));
+                progress?.Report(new("Hash", file.Path, index, files.Count));
                 using var input = FileAccessChecks.OpenVerified(file, _facts);
-                if (needsHashes)
-                {
-                    progress?.Report(new("Hash", file.Path, index, files.Count));
-                    file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
-                }
+                file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex))
+            {
+                file.Diagnostic = ex.Message;
+            }
+        }
 
+        WindowsCatalogIndex? catalogIndex = null;
+        Classify(files, InspectSignatures, progress, token);
+        token.ThrowIfCancellationRequested();
+        return new(files.AsReadOnly(), issues.AsReadOnly());
+
+        // Called only for members of a byte-confirmed group, on the handle used for stream metadata.
+        void InspectSignatures(FoundFile file, FileStream input)
+        {
+            try
+            {
                 if (options.Embedded)
                 {
-                    progress?.Report(new("Signature", file.Path, index, files.Count));
-                    input.Position = 0;
+                    progress?.Report(new("Signature", file.Path, 0, 0));
                     file.Embedded = _signatures.Inspect(input, file.Path, options.Revocation, token);
                 }
 
-                if (catalogIndex != null && OperatingSystem.IsWindows())
+                if (catalogPaths != null && OperatingSystem.IsWindows())
                 {
-                    progress?.Report(new("Catalog", file.Path, index, files.Count));
+                    catalogIndex ??= new WindowsCatalogIndex(CatalogsToIndex(catalogPaths, progress),
+                        (path, reason) => issues.Add(new(path, reason)), token);
+                    progress?.Report(new("Catalog", file.Path, 0, 0));
                     file.Catalogs = catalogIndex.Inspect(input, options.Revocation, token);
                 }
             }
@@ -75,10 +81,6 @@ public sealed class DuplicateScanner
                 file.Diagnostic = ex.Message;
             }
         }
-
-        Classify(files, progress, token);
-        token.ThrowIfCancellationRequested();
-        return new(files.AsReadOnly(), issues.AsReadOnly());
     }
 
     private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes,
@@ -186,7 +188,8 @@ public sealed class DuplicateScanner
         }
     }
 
-    private void Classify(List<FoundFile> files, IProgress<ScanProgress>? progress, CancellationToken token)
+    private void Classify(List<FoundFile> files, Action<FoundFile, FileStream> inspectSignatures,
+        IProgress<ScanProgress>? progress, CancellationToken token)
     {
         var nextGroup = 0;
         var nextVariant = 0;
@@ -194,6 +197,9 @@ public sealed class DuplicateScanner
             .GroupBy(f => (f.Size, f.Hashes[ChecksumAlgorithm.SHA256]));
         foreach (var bucket in buckets)
         {
+            token.ThrowIfCancellationRequested();
+            if (bucket.Count() < 2) continue;
+
             // A hash collision can yield several actual groups. Compare against a
             // representative of EACH class rather than dropping nonmatching peers.
             var mainClasses = Partition(bucket, (a, b) =>
@@ -214,6 +220,7 @@ public sealed class DuplicateScanner
                     try
                     {
                         using var input = FileAccessChecks.OpenVerified(file, _facts);
+                        inspectSignatures(file, input);
                         file.Manifest = _facts.Streams(input);
                     }
                     catch (Exception ex) when (FileAccessChecks.Expected(ex)) { file.Diagnostic = ex.Message; }

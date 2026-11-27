@@ -1,6 +1,6 @@
 using System.Buffers.Text;
 
-namespace FileScope.App.Presentation;
+namespace FileScope.Shared;
 
 public enum HashFormat { HexUpper, HexLower, HexColon, Base64, Base64Url }
 

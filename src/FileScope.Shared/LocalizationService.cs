@@ -10,7 +10,8 @@ public sealed class LocalizationService : ObservableObject
 {
     private static readonly ResourceManager Shared = new("FileScope.Shared.Resources.Strings", typeof(LocalizationService).Assembly);
     private ResourceManager? _application;
-    public static LocalizationService Instance { get; } = new();
+    private static readonly Lazy<LocalizationService> Current = new(() => new LocalizationService());
+    public static LocalizationService Instance => Current.Value;
     public event EventHandler? CultureChanged;
     public IReadOnlyList<LanguageOption> Languages { get; } = Array.AsReadOnly(
     [
@@ -18,7 +19,9 @@ public sealed class LocalizationService : ObservableObject
         new LanguageOption("zh-Hans", "简体中文")
     ]);
     public CultureInfo Culture { get; private set; }
-    public string this[string key] => _application?.GetString(key, Culture) ?? Shared.GetString(key, Culture) ?? $"[{key}]";
+    public string this[string key] => _application?.GetString(key, Culture) ?? SharedText(key, Culture) ?? $"[{key}]";
+
+    internal static string? SharedText(string key, CultureInfo culture) => Shared.GetString(key, culture);
 
     private LocalizationService()
     {

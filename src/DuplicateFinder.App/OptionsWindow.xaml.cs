@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,12 +19,19 @@ public partial class OptionsWindow : Window
 
     private readonly ObservableCollection<RootEditor> _roots;
     private static LocalizationService Strings => LocalizationService.Instance;
+    private readonly WindowPlacement _placement;
+    private CultureInfo _inputCulture = Strings.Culture;
+    private string? _validationKey;
+
+    internal event Action<Preferences>? PreviewChanged;
+    internal WindowPreferences? SavedPlacement { get; private set; }
     public Preferences Result { get; private set; }
 
     public OptionsWindow(Preferences preferences)
     {
         InitializeComponent();
         Result = preferences;
+        _placement = new WindowPlacement(this, preferences.OptionsWindow);
         _roots = new(preferences.Roots.Select(r => new RootEditor(r.Path, r.Priority.ToString(Strings.Culture))));
         RootsGrid.ItemsSource = _roots;
 
@@ -50,8 +58,52 @@ public partial class OptionsWindow : Window
         Online.IsChecked = preferences.Online;
         Languages.ItemsSource = Strings.Languages;
         Languages.SelectedValue = preferences.Language;
-        Themes.ItemsSource = new[] { Strings["Light"], Strings["Dark"] };
-        Themes.SelectedIndex = (int)preferences.Theme;
+        Themes.ItemsSource = Enum.GetValues<AppTheme>().Select(t => new FilterOption<AppTheme>(t, t.ToString(), Strings)).ToArray();
+        Themes.SelectedValue = preferences.Theme;
+        HashFormats.ItemsSource = Enum.GetValues<HashFormat>().Select(f => new FilterOption<HashFormat>(f, "HashFormat_" + f, Strings)).ToArray();
+        HashFormats.SelectedValue = preferences.HashFormat;
+        AutoPathWidth.IsChecked = preferences.PathAutoWidth;
+
+        Languages.SelectionChanged += Preview;
+        Themes.SelectionChanged += Preview;
+        HashFormats.SelectionChanged += Preview;
+        AutoPathWidth.Checked += Preview;
+        AutoPathWidth.Unchecked += Preview;
+        Strings.CultureChanged += UpdateLabels;
+        Closed += (_, _) => Strings.CultureChanged -= UpdateLabels;
+    }
+
+    private Preferences DisplayChoices() => Result with
+    {
+        Language = (string)Languages.SelectedValue,
+        Theme = (AppTheme)Themes.SelectedValue,
+        HashFormat = (HashFormat)HashFormats.SelectedValue,
+        PathAutoWidth = AutoPathWidth.IsChecked == true
+    };
+
+    private void Preview(object sender, RoutedEventArgs e) => PreviewChanged?.Invoke(DisplayChoices());
+
+    private void UpdateLabels(object? sender, EventArgs e)
+    {
+        ReformatSize(MinimumSize, (FileSizeUnit)MinimumUnit.SelectedValue);
+        ReformatSize(MaximumSize, (FileSizeUnit)MaximumUnit.SelectedValue);
+        _inputCulture = Strings.Culture;
+
+        foreach (var theme in Themes.Items.Cast<FilterOption<AppTheme>>()) theme.RefreshLanguage();
+        foreach (var format in HashFormats.Items.Cast<FilterOption<HashFormat>>()) format.RefreshLanguage();
+        if (_validationKey != null) Validation.Text = Strings[_validationKey];
+    }
+
+    private void ReformatSize(TextBox field, FileSizeUnit unit)
+    {
+        if (FileSizeInput.TryParse(field.Text, unit, _inputCulture, out var bytes))
+            field.Text = FileSizeInput.Format(bytes, unit, Strings.Culture);
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (!e.Cancel) SavedPlacement = _placement.Capture();
     }
 
     private void AddFolders(object sender, RoutedEventArgs e)
@@ -105,11 +157,9 @@ public partial class OptionsWindow : Window
             return;
         }
 
-        Result = new Preferences
+        Result = DisplayChoices() with
         {
             Roots = roots.ToArray(),
-            Language = (string)Languages.SelectedValue,
-            Theme = (AppTheme)Themes.SelectedIndex,
             Hashes = HashOptions.Children.OfType<CheckBox>().Where(h => h.IsChecked == true).Select(h => (ChecksumAlgorithm)h.Tag).ToArray(),
             SizeRange = new FileSizeRange(min, max),
             MinimumSizeUnit = minUnit,
@@ -124,6 +174,7 @@ public partial class OptionsWindow : Window
     private void ShowInputError(string messageKey, UIElement field)
     {
         SearchTab.IsSelected = true;
+        _validationKey = messageKey;
         Validation.Text = Strings[messageKey];
         field.Focus();
     }

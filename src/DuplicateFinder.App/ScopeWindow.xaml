@@ -1,5 +1,5 @@
 <Window x:Class="DuplicateFinder.App.ScopeWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:FileScope.Shared;assembly=FileScope.Shared"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:loc="clr-namespace:DuplicateFinder.App"
  Title="{loc:Loc Clean}" Width="550" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
  Style="{StaticResource AppWindowStyle}">
   <StackPanel Margin="20">

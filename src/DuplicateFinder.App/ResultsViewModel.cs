@@ -5,9 +5,11 @@ using FileScope.Core.Models;
 
 namespace DuplicateFinder.App;
 
-public sealed class ResultRow(FoundFile file) : ObservableObject
+public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat.HexUpper) : ObservableObject
 {
     private static LocalizationService Strings => LocalizationService.Instance;
+    private HashFormat _hashFormat = hashFormat;
+    private IReadOnlyDictionary<ChecksumAlgorithm, string> _displayHashes = FormatHashes(file, hashFormat);
     public FoundFile File { get; } = file;
     public bool Marked { get; set => SetProperty(ref field, value); }
     internal string? RecycleError { get; set; }
@@ -19,7 +21,7 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
         SignatureGroup.From(trust.Status, trust.RevocationMode)?.Format(Strings) ?? Strings["Signature_CheckFailed"];
     public StatusTone SignatureTone => SignatureGroup.ToneFor(File.Embedded.Status);
     public string Signature => FormatTrust(File.Embedded);
-    public string Sha256 => File.Hashes.GetValueOrDefault(ChecksumAlgorithm.SHA256) ?? "";
+    public string Sha256 => _displayHashes.GetValueOrDefault(ChecksumAlgorithm.SHA256) ?? "";
     public string ModifiedText => File.ModifiedUtc is { } utc ? $"{utc.ToString("g", Strings.Culture)} UTC" : "";
     public string Catalog => CatalogPresentation.Summary(File.Catalogs, Strings);
 
@@ -37,7 +39,7 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
             if (File.Embedded.Diagnostic != null) lines.Add(File.Embedded.Diagnostic);
             foreach (var sig in File.Embedded.Signatures)
             {
-                lines.Add($"{sig.Index} · {SignatureGroup.From(sig.Status, File.Embedded.RevocationMode)?.Format(Strings)} · {sig.Certificate?.Publisher} · {sig.Certificate?.ThumbprintSha256}");
+                lines.Add($"{sig.Index} · {SignatureGroup.From(sig.Status, File.Embedded.RevocationMode)?.Format(Strings)} · {sig.Certificate?.Publisher} · {DigestFormatter.Format(sig.Certificate?.ThumbprintSha256, _hashFormat)}");
             }
 
             lines.Add($"{Strings["Catalog"]} · {Catalog}");
@@ -46,10 +48,27 @@ public sealed class ResultRow(FoundFile file) : ObservableObject
                 lines.AddRange(CatalogPresentation.Details(lookup, Strings));
             }
 
-            lines.AddRange(File.Hashes.Select(pair => $"{pair.Key}  {pair.Value}"));
+            lines.AddRange(_displayHashes.Select(pair => $"{pair.Key}  {pair.Value}"));
             return string.Join(Environment.NewLine, lines);
         }
     }
+
+    private static IReadOnlyDictionary<ChecksumAlgorithm, string> FormatHashes(FoundFile source, HashFormat format) =>
+        format == HashFormat.HexUpper || source.Hashes.Count == 0 ? source.Hashes :
+            source.Hashes.ToDictionary(pair => pair.Key, pair => DigestFormatter.Format(pair.Value, format));
+
+    internal void SetHashFormat(HashFormat format)
+    {
+        _hashFormat = format;
+        _displayHashes = FormatHashes(File, format);
+        OnPropertyChanged(nameof(Sha256));
+        OnPropertyChanged(nameof(Details));
+    }
+
+    internal bool MatchesHash(string text) =>
+        File.Hashes.Values.Any(hash => hash.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+        (_hashFormat != HashFormat.HexUpper && _displayHashes.Values.Any(hash => hash.Contains(text,
+            _hashFormat is HashFormat.Base64 or HashFormat.Base64Url ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)));
 
     internal void Relocalize() => OnPropertyChanged(string.Empty);
 }
@@ -62,13 +81,23 @@ public sealed class ResultsViewModel : ObservableObject
     private int _kind;
     private SignatureFilter _signature;
 
+    private HashFormat _hashFormat;
+
     public ResultsViewModel() => _view = BuildView();
     public ListCollectionView View { get => _view; private set => SetProperty(ref _view, value); }
     public IReadOnlyList<ResultRow> Rows => _rows;
     public int MarkedCount { get; private set; }
     public bool CanMark { get; internal set => SetProperty(ref field, value); } = true;
 
-    public void Replace(IEnumerable<FoundFile> files) => Install(files.Select(f => new ResultRow(f)).ToList());
+    public void Replace(IEnumerable<FoundFile> files) => Install(files.Select(f => new ResultRow(f, _hashFormat)).ToList());
+
+    public void SetHashFormat(HashFormat format)
+    {
+        if (_hashFormat == format) return;
+        _hashFormat = format;
+        foreach (var row in _rows) row.SetHashFormat(format);
+        if (_text.Length != 0) View.Refresh();
+    }
 
     public void Relocalize()
     {
@@ -80,7 +109,7 @@ public sealed class ResultsViewModel : ObservableObject
     {
         var moved = result.Where(r => r.Moved).Select(r => r.File).ToHashSet();
         var failed = result.Where(r => !r.Moved).ToDictionary(r => r.File, r => r.Reason);
-        Install(_rows.Where(r => !moved.Contains(r.File)).Select(r => new ResultRow(r.File)
+        Install(_rows.Where(r => !moved.Contains(r.File)).Select(r => new ResultRow(r.File, _hashFormat)
         {
             Marked = r.Marked,
             RecycleError = failed.GetValueOrDefault(r.File) ?? r.RecycleError
@@ -134,7 +163,7 @@ public sealed class ResultsViewModel : ObservableObject
         && _signature.Matches(row.File.Embedded.Status, row.File.Embedded.RevocationMode)
         && (_text.Length == 0 || row.File.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)
             || row.Signature.Contains(_text, StringComparison.CurrentCultureIgnoreCase)
-            || row.File.Hashes.Values.Any(hash => hash.Contains(_text, StringComparison.OrdinalIgnoreCase))
+            || row.MatchesHash(_text)
             || row.File.Embedded.Certificate?.Publisher.Contains(_text, StringComparison.OrdinalIgnoreCase) == true
             || row.Diagnostic?.Contains(_text, StringComparison.OrdinalIgnoreCase) == true
             || row.File.Catalogs?.Matches.Any(m => m.Path.Contains(_text, StringComparison.OrdinalIgnoreCase)

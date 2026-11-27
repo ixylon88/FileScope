@@ -37,4 +37,31 @@
   <data name="Registered" xml:space="preserve"><value>Registered catalog</value></data>
   <data name="Loose" xml:space="preserve"><value>Supplied catalog</value></data>
   <data name="Column_Catalog" xml:space="preserve"><value>Catalog signature</value></data>
+  <data name="Group_HashFormat" xml:space="preserve">
+    <value>Hash display</value>
+  </data>
+  <data name="HashFormatHint" xml:space="preserve">
+    <value>Changes the display of file hashes and certificate fingerprints without analysing files again.</value>
+  </data>
+  <data name="HashFormat_HexUpper" xml:space="preserve">
+    <value>Hex · uppercase</value>
+  </data>
+  <data name="HashFormat_HexLower" xml:space="preserve">
+    <value>Hex · lowercase</value>
+  </data>
+  <data name="HashFormat_HexColon" xml:space="preserve">
+    <value>Hex · colon-separated</value>
+  </data>
+  <data name="HashFormat_Base64" xml:space="preserve">
+    <value>Base64</value>
+  </data>
+  <data name="HashFormat_Base64Url" xml:space="preserve">
+    <value>Base64url · no padding</value>
+  </data>
+  <data name="PathAutoWidth" xml:space="preserve">
+    <value>Size the path column automatically</value>
+  </data>
+  <data name="PathAutoWidthHint" xml:space="preserve">
+    <value>Allow the full path width. When off, the column has a bounded width that you can adjust with the mouse.</value>
+  </data>
 </root>

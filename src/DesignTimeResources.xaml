@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Visual Studio can open a window or a shared control without running either App.OnStartup. -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml" />
+    <ResourceDictionary Source="/FileScope.Shared;component/Styles/Themes/LightThemePalette.xaml" />
+    <ResourceDictionary Source="/FileScope.Shared;component/Styles/Controls.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+  <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+</ResourceDictionary>

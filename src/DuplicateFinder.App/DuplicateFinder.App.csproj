@@ -20,4 +20,8 @@
   <ItemGroup>
     <Using Include="FileScope.Shared" />
   </ItemGroup>
+  <ItemGroup Condition="'$(UseWPF)' == 'true'">
+    <Page Include="../DesignTimeResources.xaml" Link="Properties/DesignTimeResources.xaml"
+          Generator="MSBuild:Compile" SubType="Designer" ContainsDesignTimeResources="true" />
+  </ItemGroup>
 </Project>

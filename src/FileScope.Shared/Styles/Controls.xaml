@@ -49,6 +49,13 @@
     <Setter Property="MinHeight" Value="34" />
     <Setter Property="Margin" Value="0,0,8,6" />
     <Setter Property="Cursor" Value="Hand" />
+    <Style.Triggers>
+      <!-- Glyph-and-label content must also look disabled in both Fluent palettes. -->
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Cursor" Value="Arrow" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
   <Style x:Key="GridText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
     <Setter Property="Margin" Value="9,7" />

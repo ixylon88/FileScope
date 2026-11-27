@@ -37,4 +37,31 @@
   <data name="Registered" xml:space="preserve"><value>已注册的目录</value></data>
   <data name="Loose" xml:space="preserve"><value>随附的目录文件</value></data>
   <data name="Column_Catalog" xml:space="preserve"><value>目录签名</value></data>
+  <data name="Group_HashFormat" xml:space="preserve">
+    <value>哈希显示格式</value>
+  </data>
+  <data name="HashFormatHint" xml:space="preserve">
+    <value>切换文件哈希值和证书指纹的显示格式，无需重新分析文件。</value>
+  </data>
+  <data name="HashFormat_HexUpper" xml:space="preserve">
+    <value>十六进制 · 大写</value>
+  </data>
+  <data name="HashFormat_HexLower" xml:space="preserve">
+    <value>十六进制 · 小写</value>
+  </data>
+  <data name="HashFormat_HexColon" xml:space="preserve">
+    <value>十六进制 · 冒号分隔</value>
+  </data>
+  <data name="HashFormat_Base64" xml:space="preserve">
+    <value>Base64</value>
+  </data>
+  <data name="HashFormat_Base64Url" xml:space="preserve">
+    <value>Base64url · 无填充</value>
+  </data>
+  <data name="PathAutoWidth" xml:space="preserve">
+    <value>自动调整路径列宽度</value>
+  </data>
+  <data name="PathAutoWidthHint" xml:space="preserve">
+    <value>启用时允许显示完整路径宽度。关闭后列宽受限，可用鼠标调整。</value>
+  </data>
 </root>

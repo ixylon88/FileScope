@@ -406,7 +406,7 @@
     <value>Erkenne Unterschiede in NTFS-Zusatzdatenströmen bei identischem Hauptdatenstrom.</value>
   </data>
   <data name="AboutSignatures" xml:space="preserve">
-    <value>Prüfe eingebettete Authenticode-Signaturen und Windows-Katalogsignaturen getrennt.</value>
+    <value>Prüfe eingebettete Authenticode-Signaturen und Windows-Katalogsignaturen bei binär bestätigten Duplikaten.</value>
   </data>
   <data name="AboutRecycle" xml:space="preserve">
     <value>Verschiebe Kopien nach Ordnerpriorität oder nach bestätigter manueller Auswahl in den Papierkorb.</value>

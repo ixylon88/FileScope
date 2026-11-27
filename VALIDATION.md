@@ -1,5 +1,11 @@
 # Prüfstand der ausgelieferten Quellen
 
+## DuplicateFinder – Signaturen und Darstellungsoptionen
+
+Auf Basis von `dev` bei `8d81c2d` wurden beide Signaturoptionen im Suchlauf mit 7.500 Sparse-Dateien aktiviert. Die 1.500 Treffer zwischen 150 und 200 MB hatten jeweils eine einmalige Größe. Ein Zähler an der Schnittstelle zur eingebetteten Signaturprüfung registrierte vorher 1.500 Aufrufe und danach keinen. Die Zahl der Metadatenabrufe am Dateihandle sank von 3.000 auf 1.500. Die Messung unter Linux erfasst die Aufrufe des Scanners. Die native Katalogprüfung gehört zum Windows-Testlauf.
+
+Der Release-Build unter Linux x64 mit .NET SDK 10.0.404 war ohne Warnungen erfolgreich. 80 portable C#-Fälle und 91 Skriptprüfungen bestanden. Neun weitere Fälle benötigen Windows oder optionale Beispieldateien. Die 49 WPF-Fälle wurden kompiliert, einschließlich der neuen Prüfungen für die Darstellungsoptionen, die getrennten Fensterzustände und die Designerressourcen. Die Design-Time-Auswertung von MSBuild erkennt das gemeinsame Wörterbuch in beiden Anwendungen und im Windows-Ziel der Shared-Bibliothek. Die interaktive Vorschau in Visual Studio und die Ausführung der WPF-Tests stehen auf Windows aus. Die vier frameworkabhängigen Pakete für beide Anwendungen auf x64 und ARM64 enthalten das Designerwörterbuch und die deutschen und chinesischen Sprachressourcen.
+
 ## DuplicateFinder – Größenfilter beim Auflisten
 
 Verglichen wurden `dev` bei `426e935` und die geänderte Fassung unter Linux x64 mit .NET SDK 10.0.404. Der Suchbaum enthielt 7.500 Sparse-Dateien. Genau 1.500 hatten eine Größe zwischen 150 und 200 MB, jede davon eine andere. Beide Signaturprüfungen waren ausgeschaltet. Der Scanner lief durch echte Verzeichnisse und öffnete echte Dateien. Ein Testadapter zählte die Metadatenabrufe am geöffneten Handle.

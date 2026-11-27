@@ -21,9 +21,13 @@ Unter **Optionen → Suchordner → Dateigröße beim Einlesen** lassen sich ein
 
 Bei **Dateien suchen** zeigt die Statusleiste den aktuellen Pfad und zählt alle gesichteten Dateieinträge, einschließlich der Einträge außerhalb des Größenbereichs. Die anschließende Metadatenprüfung und der Aufbau des Katalogindex zeigen jeweils den bearbeiteten Dateipfad.
 
-Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einer aufgenommenen Datei liefern.
+Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einem bestätigten Duplikat liefern.
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. Optionen, Infofenster und die mit F1 erreichbaren „Tastenkürzel“ (`ShortcutsWindow`) zeigen die Einstellungen, Programminformationen und Befehle von DuplicateFinder.
+
+Sprache und Design wechseln bereits im offenen Optionsfenster. Unter **Optionen → Analyse** lässt sich die Darstellung für vorhandene und künftige Prüfsummen und Zertifikatfingerabdrücke wählen. Zur Auswahl stehen Hex mit Groß- oder Kleinbuchstaben, Hex mit Doppelpunkten, Base64 und Base64url. Tabelle und kopierbare Details verwenden das gewählte Format. **Speichern** übernimmt die Vorschau, **Abbrechen** und das Schließen über das Fensterkreuz stellen die vorherige Darstellung wieder her. Die letzte Spalte passt sich dem vollständigen Pfad an. Wer die Breite begrenzen möchte, kann die automatische Pfadbreite dort ausschalten.
+
+Haupt- und Optionsfenster merken sich ihre normale Größe und ihren Maximierungszustand getrennt. Ein minimiertes Fenster öffnet sich wieder im letzten sichtbaren Zustand. Während der Suche und während eines Papierkorbvorgangs ist **Optionen** ausgegraut.
 
 **Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Rechts neben dem Suchfeld lässt sich die primäre eingebettete Signatur nach denselben zwölf Codes und vier Sammelfiltern wie in FileScope filtern. Beispielsweise zeigt `2` nur gültige Signaturen mit Sperrprüfung aus dem Cache. Katalogtreffer stehen in einer eigenen Spalte. [Codes, Farben und Bedeutung](../README.md#dateien-nach-signaturergebnis-verschieben)
 
@@ -36,9 +40,9 @@ Die Kästchen vor den Dateinamen bestimmen die manuelle Auswahl für den Papierk
 ## Wie die Duplikatsuche arbeitet
 
 1. **Dateien erfassen.** Für die Größenvorauswahl nutzt DuplicateFinder die Größe aus dem Verzeichniseintrag. Eine gewöhnliche Datei außerhalb der Grenzen wird damit schon vor dem Öffnen aussortiert. Bei Kandidaten prüft DuplicateFinder die Größe erneut am geöffneten Handle und ermittelt Änderungszeit und Datei-ID. Mehrere Hardlinks auf dieselbe Datei zählen einmal.
-2. **Nach Größe vorsortieren.** Nur wenn mindestens zwei verschiedene Dateien dieselbe Größe in Byte haben, berechnet `FileScope.Core` SHA-256 und alle zusätzlich gewählten Prüfsummen in einem gemeinsamen Lesedurchlauf. Bei einer einmaligen Größe bleiben die Prüfsummenfelder leer. Sind auch beide Signaturprüfungen ausgeschaltet, ist die Datei nach dem Erfassen fertig. Zwei gleich große Dateien mit unterschiedlichem Inhalt erhalten also beide einen Hash, auch wenn am Ende beide einzeln stehen.
-3. **Signaturen prüfen, falls aktiviert.** Eingebettete Signaturen und Katalogzuordnungen werden für jede aufgenommene, lesbare Datei geprüft, auch bei einmaliger Größe. Windows kann dafür zusätzliche Daten lesen und eigene Kataloghashes berechnen.
-4. **Identität bestätigen.** Bei gleicher Größe und gleichem SHA-256 vergleicht DuplicateFinder den Hauptdatenstrom Byte für Byte. Erst übereinstimmende Inhalte bilden eine Duplikatgruppe. Innerhalb dieser Gruppe prüft die App auch Namen und Inhalte der NTFS-Zusatzdatenströme. Die automatische Bereinigung berücksichtigt die Aufbewahrungsprioritäten innerhalb jeder vollständig geprüften, identischen Variante.
+2. **Nach Größe vorsortieren.** Nur wenn mindestens zwei verschiedene Dateien dieselbe Größe in Byte haben, berechnet `FileScope.Core` SHA-256 und alle zusätzlich gewählten Prüfsummen in einem gemeinsamen Lesedurchlauf. Bei einer einmaligen Größe ist die Datei nach dem Erfassen fertig und die Prüfsummenfelder bleiben leer. Zwei gleich große Dateien mit unterschiedlichem Inhalt erhalten also beide einen Hash, auch wenn am Ende beide einzeln stehen.
+3. **Identität bestätigen.** Bei gleicher Größe und gleichem SHA-256 vergleicht DuplicateFinder den Hauptdatenstrom Byte für Byte. Erst übereinstimmende Inhalte bilden eine Duplikatgruppe.
+4. **Duplikate untersuchen.** Innerhalb jeder bestätigten Gruppe prüft die App die NTFS-Zusatzdatenströme und je nach Auswahl eingebettete Signaturen und Katalogzuordnungen. Auch der Index loser Kataloge entsteht erst für die erste Gruppe. Bei Einzeldateien lautet der Signaturstatus „0 | Nicht geprüft“. Die automatische Bereinigung berücksichtigt die Aufbewahrungspriorität innerhalb jeder vollständig identischen Datenstromvariante.
 
 ## Bereinigung
 
@@ -70,7 +74,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 ## Architektur
 
-`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes und Katalogtexte sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und den Über-Dialog bereit.
+`FileScope.Core` liefert die Prüfsummenstrategien, den Ordnerscanner und die Windows-Signaturprüfung. `DuplicateFinder.Core` bildet die Duplikatgruppen, ermittelt die Aufbewahrungspriorität je Datenstromvariante und prüft die Dateien vor dem Verschieben erneut. `DuplicateFinder.App` enthält die WPF-Ansichten und hält ihre Einstellungen separat unter `%LOCALAPPDATA%\DuplicateFinder\settings.json`. `FileScope.Shared` stellt beiden Anwendungen die Signaturfilter, Codes, Katalogtexte und den Hashformatierer sowie unter Windows die Fluent-Stile, Farbpaletten, Statusfelder und den Über-Dialog bereit.
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |

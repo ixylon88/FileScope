@@ -10,6 +10,10 @@ public sealed record Preferences
     public SearchRoot[] Roots { get; init; } = [];
     public string Language { get; init; } = LocalizationService.Instance.Culture.Name;
     public AppTheme Theme { get; init; }
+    public HashFormat HashFormat { get; init; } = HashFormat.HexUpper;
+    public bool PathAutoWidth { get; init; } = true;
+    public WindowPreferences? MainWindow { get; init; }
+    public WindowPreferences? OptionsWindow { get; init; }
     public ChecksumAlgorithm[] Hashes { get; init; } = [ChecksumAlgorithm.SHA256];
     public bool Embedded { get; init; } = true;
     public bool Catalogs { get; init; } = true;
@@ -27,8 +31,13 @@ public sealed record Preferences
 
 public sealed class SettingsStore
 {
-    private readonly string _path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "DuplicateFinder", "settings.json");
+    private readonly string _path;
+
+    public SettingsStore() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "DuplicateFinder", "settings.json"))
+    { }
+
+    internal SettingsStore(string path) => _path = path;
 
     public Preferences Load()
     {
@@ -43,7 +52,7 @@ public sealed class SettingsStore
                 return new();
             }
 
-            return settings;
+            return Enum.IsDefined(settings.HashFormat) ? settings : settings with { HashFormat = HashFormat.HexUpper };
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
         { return new(); }
