@@ -26,11 +26,9 @@ jobs:
           - runtime: win-x64
             runner: windows-2025
             architecture: x64
-            verify_shell: powershell
           - runtime: win-arm64
             runner: windows-11-arm
             architecture: arm64
-            verify_shell: pwsh
     defaults:
       run:
         shell: pwsh
@@ -55,11 +53,22 @@ jobs:
         run: ./Build.ps1 -Application DuplicateFinder -Publish -Runtime ${{ matrix.runtime }} -NoColor
 
       # The same script builds and runs both applications and their test projects locally and in CI.
-      # The x64 job uses the same Windows PowerShell as the VS Code tasks.
-      # ARM64 also exercises verification under PowerShell 7.
+      # Use the same Windows PowerShell host as the VS Code tasks.
       - name: Build and verify, including WPF
-        shell: ${{ matrix.verify_shell }}
+        shell: powershell
         run: ./Verify.ps1 -Runtime ${{ matrix.runtime }} -NoColor
+
+      - name: Repeat the size-filter test and its cleanup on Windows
+        run: |
+          $runtime = '${{ matrix.runtime }}'
+          $test = @(Get-ChildItem tests/DuplicateFinder.Tests/bin -Filter DuplicateFinder.Tests.dll -Recurse |
+              Where-Object { $_.Directory.Name -eq $runtime })
+          if ($test.Count -ne 1) { throw "Expected one DuplicateFinder test assembly for $runtime." }
+
+          for ($i = 1; $i -le 20; $i++) {
+              & dotnet $test[0].FullName --filter 'FullyQualifiedName=DuplicateFinder.Tests.DuplicateTests.EmptyFileAndOpenSizeLimitsWorkDuringDiscovery' --minimum-expected-tests 1 --progress off --no-ansi
+              if ($LASTEXITCODE -ne 0) { throw "Size-filter test failed on run $i." }
+          }
 
       # Keep completed test results even when a later suite fails.
       - name: Upload test reports
