@@ -26,6 +26,7 @@ using FileScope.Core.Files;
 using FileScope.Core.Export;
 
 using static FileScope.Ui.Tests.FileMenuChecks;
+using static FileScope.Ui.Tests.VisualTreeQueries;
 
 namespace FileScope.Ui.Tests;
 
@@ -972,8 +973,8 @@ public sealed partial class UiTests
             var digest = row.SHA256;
             var calls = analysis.Calls;
             var order = grid.Columns.OrderBy(column => column.DisplayIndex).Select(ColumnLayoutBehavior.GetId).ToArray();
-            var subtitle = VisualChildren(main).OfType<TextBlock>().Single(text => text.Text == strings["Subtitle"]);
-            var hint = VisualChildren(settings).OfType<TextBlock>().Single(text => text.Text == strings["HashFormatHint"]);
+            var subtitle = VisualChildren<TextBlock>(main).Single(text => text.Text == strings["Subtitle"]);
+            var hint = VisualChildren<TextBlock>(settings).Single(text => text.Text == strings["HashFormatHint"]);
             Assert.IsTrue(selector.Items.Count == 2 && ReferenceEquals(selector.SelectedItem, options.SelectedTheme)
                 && options.SelectedTheme.Value == AppTheme.Light, "the real theme selector reflects the initial application appearance");
             foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light, AppTheme.Dark })
@@ -998,7 +999,7 @@ public sealed partial class UiTests
                 // result row, but reacquire its current visual instead of inspecting
                 // a detached badge whose bindings may already be disconnected.
                 var statusContent = statusColumn.GetCellContent(row);
-                var badge = statusContent == null ? null : VisualChildren(statusContent).OfType<StatusBadge>().SingleOrDefault();
+                var badge = statusContent == null ? null : VisualChildren<StatusBadge>(statusContent).SingleOrDefault();
                 var actualBadge = (badge?.Content as Border)?.Background as SolidColorBrush;
                 var attached = badge != null && ReferenceEquals(Window.GetWindow(badge), main);
                 Assert.IsTrue(badge is { IsLoaded: true, IsVisible: true, Tone: StatusTone.Success }
@@ -1026,7 +1027,7 @@ public sealed partial class UiTests
                 options.SelectedLanguage = language;
                 DrainDispatcher();
                 var expected = language.CultureName switch { "de" => "Dunkel", "zh-Hans" => "深色", _ => "Dark" };
-                Assert.IsTrue(VisualChildren(selector).OfType<TextBlock>().Any(text => text.Text == expected)
+                Assert.IsTrue(VisualChildren<TextBlock>(selector).Any(text => text.Text == expected)
                     && System.Windows.Automation.AutomationProperties.GetName(selector) == strings["Group_Theme"]
                     && themes.CurrentTheme == AppTheme.Dark && HasNativeTheme(app, AppTheme.Dark),
                     "the displayed theme label and accessible name follow the language / " + language.CultureName);
@@ -2360,7 +2361,7 @@ public sealed partial class UiTests
             DrainDispatcher();
             var grid = (DataGrid)window.FindName("ResultsGrid");
             var viewer = (ScrollViewer)grid.Template.FindName("DG_ScrollViewer", grid);
-            var button = VisualChildren(grid).OfType<Button>().Single(b =>
+            var button = VisualChildren<Button>(grid).Single(b =>
                 b.Command == DataGrid.SelectAllCommand && ReferenceEquals(b.TemplatedParent, viewer));
             var binding = BindingOperations.GetBinding(button, FrameworkElement.WidthProperty)!;
             Assert.IsTrue(binding.Converter is not null && ReferenceEquals(binding.Source, grid)
@@ -2514,11 +2515,11 @@ public sealed partial class UiTests
                 if (column.GetCellContent(row) is not ContentPresenter content || !ReferenceEquals(content.Content, row)) return false;
                 return ColumnLayoutBehavior.GetId(column) switch
                 {
-                    "Status" => VisualChildren(content).OfType<StatusBadge>().Any(badge =>
+                    "Status" => VisualChildren<StatusBadge>(content).Any(badge =>
                         ReferenceEquals(badge.DataContext, row) && badge.Text == row.StateText),
-                    "Signature" => VisualChildren(content).OfType<StatusBadge>().Any(badge =>
+                    "Signature" => VisualChildren<StatusBadge>(content).Any(badge =>
                         ReferenceEquals(badge.DataContext, row) && badge.Text == row.SignatureText),
-                    "SignatureChoice" => VisualChildren(content).OfType<ComboBox>().Any(box =>
+                    "SignatureChoice" => VisualChildren<ComboBox>(content).Any(box =>
                         ReferenceEquals(box.ItemsSource, row.Signatures) && ReferenceEquals(box.SelectedItem, row.SelectedSignature)),
                     _ => false
                 };
@@ -2571,16 +2572,6 @@ public sealed partial class UiTests
                 "both native scrollbars retain functional scroll commands after scaling");
         }
         finally { window.Close(); }
-    }
-
-    private static IEnumerable<DependencyObject> VisualChildren(DependencyObject parent)
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            yield return child;
-            foreach (var descendant in VisualChildren(child)) yield return descendant;
-        }
     }
 
     private sealed class OffsetProbe : DependencyObject

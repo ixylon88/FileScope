@@ -24,6 +24,8 @@ using FileScope.Core.Models;
 using FileScope.Presentation.Tests;
 using FileScope.Ui.Tests;
 
+using static FileScope.Ui.Tests.VisualTreeQueries;
+
 namespace DuplicateFinder.Ui.Tests;
 
 [TestClass]
@@ -753,15 +755,5 @@ public sealed partial class WindowTests
         if (!handled) operation.Abort();
         Assert.IsTrue(handled, "The options command must open an owned modal window.");
         if (error != null) ExceptionDispatchInfo.Capture(error).Throw();
-    }
-
-    private static IEnumerable<T> VisualChildren<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T match) yield return match;
-            foreach (var descendant in VisualChildren<T>(child)) yield return descendant;
-        }
     }
 }

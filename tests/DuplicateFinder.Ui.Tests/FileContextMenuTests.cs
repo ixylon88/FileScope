@@ -7,6 +7,8 @@ using DuplicateFinder.App.ViewModels;
 using FileScope.Ui.Tests;
 using static FileScope.Ui.Tests.FileMenuChecks;
 
+using static FileScope.Ui.Tests.VisualTreeQueries;
+
 namespace DuplicateFinder.Ui.Tests;
 
 public sealed partial class WindowTests
