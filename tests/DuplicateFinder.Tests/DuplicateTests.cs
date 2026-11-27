@@ -55,7 +55,7 @@ public sealed class DuplicateTests
         Assert.IsEmpty(progress.Paths("CatalogIndex"));
         Assert.IsTrue(scan.Files.All(file => file.Embedded == SignatureResult.NotChecked && file.Catalogs == null));
         Assert.IsEmpty(scan.Files.Single(file => file.Path == single).Hashes);
-        Assert.AreEqual(1, _facts.ReadCount[single], "A unique size needs only discovery even with both signature options enabled.");
+        Assert.AreEqual(1, _facts.ReadCount(single), "A unique size needs only discovery even with both signature options enabled.");
         Assert.IsTrue(scan.Files.Where(file => file.Path != single).All(file => file.Hashes.Count == 3));
         Assert.IsTrue(scan.Files.All(file => file.Group == 0));
     }
@@ -80,7 +80,7 @@ public sealed class DuplicateTests
         Assert.IsEmpty(scan.Issues);
         CollectionAssert.AreEquivalent(admitted, scan.Files.Select(f => f.Path).ToArray());
         Assert.IsTrue(scan.Files.All(f => f.Hashes.ContainsKey(ChecksumAlgorithm.SHA256) && f.Embedded != SignatureResult.NotChecked));
-        Assert.IsTrue(excluded.All(path => !_facts.ReadCount.ContainsKey(path)), "Out-of-range files should need no read handle.");
+        Assert.IsTrue(excluded.All(path => _facts.ReadCount(path) == 0), "Out-of-range files should need no read handle.");
 
         var plan = CleanupPlan.Create(scan.Files);
         CollectionAssert.AreEquivalent(admitted.Where(path => Path.GetFileName(path).StartsWith("copy-", StringComparison.Ordinal)).ToArray(),
@@ -111,8 +111,8 @@ public sealed class DuplicateTests
         Assert.IsTrue(resized);
         Assert.IsEmpty(scan.Issues);
         Assert.AreEqual(kept, scan.Files.Single().Path);
-        Assert.AreEqual(1, _facts.ReadCount[changed]);
-        Assert.IsFalse(_facts.ReadCount.ContainsKey(excluded));
+        Assert.AreEqual(1, _facts.ReadCount(changed));
+        Assert.AreEqual(0, _facts.ReadCount(excluded));
 
         CollectionAssert.Contains(progress.Paths("Search"), Path.GetDirectoryName(changed)!);
         Assert.AreEqual(3, progress.Updates.Last(update => update.Stage == "Search").Completed);
@@ -170,7 +170,7 @@ public sealed class DuplicateTests
         Assert.AreEqual(30, filtered.Items.Single().Keeper!.Root.Priority);
         Assert.AreEqual(3, scan.Files.Single(f => f.Path == backup).Hashes.Count);
         Assert.IsEmpty(scan.Files.Single(f => f.Name == "only").Hashes);
-        Assert.AreEqual(1, _facts.ReadCount[unique], "With no content checks, the discovery handle is sufficient.");
+        Assert.AreEqual(1, _facts.ReadCount(unique), "With no content checks, the discovery handle is sufficient.");
     }
 
     [TestMethod]
@@ -278,12 +278,12 @@ public sealed class DuplicateTests
         var plan = CleanupPlan.Create((await ScanAsync()).Files);
         var bin = new Bin();
         var cleanup = new CleanupService(bin, _facts);
-        File.WriteAllText(candidate, "different length");
+        await TestDirectory.RetrySharingViolationAsync(() => File.WriteAllText(candidate, "different length"));
         Assert.IsFalse(cleanup.Execute(plan.Items).Single().Moved);
 
-        File.WriteAllText(candidate, "same");
+        await TestDirectory.RetrySharingViolationAsync(() => File.WriteAllText(candidate, "same"));
         var fresh = CleanupPlan.Create((await ScanAsync()).Files);
-        File.Move(keeper, keeper + ".moved");
+        await TestDirectory.RetrySharingViolationAsync(() => File.Move(keeper, keeper + ".moved"));
         Assert.IsFalse(cleanup.Execute(fresh.Items).Single().Moved);
         Assert.IsEmpty(bin.Paths);
         Assert.IsTrue(File.Exists(candidate));
@@ -292,14 +292,38 @@ public sealed class DuplicateTests
     [TestMethod]
     public async Task BinaryRecheckRejectsContentEvenWhenTheScanStampLooksIdentical()
     {
-        var a = Put("9", "keep", "aaaa");
-        var b = Put("1", "candidate", "aaaa");
+        var keeper = Put("9", "keep", "aaaa");
+        var candidate = Put("1", "candidate", "aaaa");
         var plan = CleanupPlan.Create((await ScanAsync()).Files);
-        File.WriteAllText(b, "bbbb");
+        Assert.AreEqual(candidate, plan.Items.Single().File.Path);
+        Assert.IsTrue(_facts.Reads.All(file => !file.CanRead), "The scan must release its own readers before the fixture is changed.");
+
+        // Facts keeps the identity and timestamps stable. Only the four content bytes change.
+        await TestDirectory.RetrySharingViolationAsync(() => File.WriteAllText(candidate, "bbbb"));
+
         var bin = new Bin();
-        Assert.IsFalse(new CleanupService(bin, _facts).Execute(plan.Items).Single().Moved);
+        var result = new CleanupService(bin, _facts).Execute(plan.Items).Single();
+        Assert.IsFalse(result.Moved);
+        Assert.AreEqual("The verified copy has changed.", result.Reason);
         Assert.IsEmpty(bin.Paths);
-        Assert.IsTrue(File.Exists(a));
+        Assert.IsTrue(File.Exists(keeper) && File.Exists(candidate));
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public async Task FixtureRewriteWaitsForAWindowsReader()
+    {
+        var candidate = Put("1", "candidate", "aaaa");
+        Task rewrite;
+
+        using (File.OpenRead(candidate))
+        {
+            rewrite = TestDirectory.RetrySharingViolationAsync(() => File.WriteAllText(candidate, "bbbb"));
+            Assert.IsFalse(rewrite.IsCompleted, "The fixture cannot be rewritten while this reader denies writes.");
+        }
+
+        await rewrite;
+        Assert.AreEqual("bbbb", File.ReadAllText(candidate));
     }
 
     [TestMethod]
@@ -311,7 +335,7 @@ public sealed class DuplicateTests
         WriteStream(b, "111");
         var files = (await ScanAsync()).Files.Where(f => f.Path == a || f.Path == b);
         var plan = CleanupPlan.Create(files);
-        WriteStream(b, "222");
+        await TestDirectory.RetrySharingViolationAsync(() => WriteStream(b, "222"));
 
         var bin = new Bin();
         Assert.IsFalse(new CleanupService(bin, _facts).Execute(plan.Items).Single().Moved);
@@ -396,10 +420,12 @@ public sealed class DuplicateTests
         internal Dictionary<string, IReadOnlyList<NamedStream>> Manifests { get; } = [];
         internal HashSet<string> Unreadable { get; } = [];
         internal HashSet<string> UnreadableSize { get; } = [];
-        internal Dictionary<string, int> ReadCount { get; } = [];
+        internal List<FileStream> Reads { get; } = [];
+        internal int ReadCount(string path) => Reads.Count(file => file.Name == path);
+
         public FileStamp Read(FileStream file)
         {
-            ReadCount[file.Name] = ReadCount.GetValueOrDefault(file.Name) + 1;
+            Reads.Add(file);
             if (UnreadableSize.Contains(file.Name)) throw new IOException("Size unavailable.");
             if (!Keys.TryGetValue(file.Name, out var key)) Keys.Add(file.Name, key = new(1, Guid.NewGuid()));
             return new(key, file.Length, DateTime.UnixEpoch, 1, Links.GetValueOrDefault(file.Name, 1u));
