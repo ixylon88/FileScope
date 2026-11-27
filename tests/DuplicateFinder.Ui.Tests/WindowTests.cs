@@ -21,6 +21,7 @@ using DuplicateFinder.Core.Files;
 using DuplicateFinder.Core.Models;
 using DuplicateFinder.Core.Services;
 using FileScope.Core.Models;
+using FileScope.Presentation.Tests;
 using FileScope.Ui.Tests;
 
 namespace DuplicateFinder.Ui.Tests;
@@ -536,6 +537,7 @@ public sealed partial class WindowTests
                     Assert.AreEqual(AppTheme.Dark, theme.CurrentTheme);
                     Assert.AreEqual(AppTheme.Light, Store.Load().Theme);
                     Assert.AreEqual(AppTheme.Light, dialog.Result.Theme);
+                    Assert.IsEmpty(Directory.EnumerateFiles(_settingsFolder, "*.tmp"));
 
                     if (retry) dialog.Width = dialog.MinWidth;
                     foreach (var language in strings.Languages)
@@ -556,6 +558,28 @@ public sealed partial class WindowTests
             Assert.AreEqual(expected, Store.Load().Theme);
             Assert.AreEqual(expected, theme.CurrentTheme);
         }
+    });
+
+    [TestMethod]
+    public Task HashFilterFindsCanonicalHexAndTheDisplayedEncoding() => WpfTestHost.RunAsync((_, _) =>
+    {
+        var file = FileAt("match.bin", 1);
+        file.Hashes = new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = DigestSearchChecks.Hex };
+        var model = new ResultsViewModel();
+        model.Replace([file, FileAt("unhashed.bin", 0)]);
+        var row = model.Rows[0];
+
+        DigestSearchChecks.CheckFileHash(model.SetHashFormat, query =>
+        {
+            model.Filter(query, 0, SignatureFilter.All);
+            Assert.IsFalse(model.View.Contains(model.Rows[1]));
+            return model.View.Contains(row);
+        });
+
+        model.Filter("-pBQUDe", 0, SignatureFilter.All);
+        Assert.IsTrue(model.View.Contains(row));
+        model.SetHashFormat(HashFormat.HexUpper);
+        Assert.IsFalse(model.View.Contains(row), "Changing the format refreshes an active filter.");
     });
 
     [TestMethod]
@@ -585,6 +609,12 @@ public sealed partial class WindowTests
             Assert.AreEqual("-_8", row.Sha256);
             StringAssert.Contains(row.Details, "-_8");
             Assert.AreEqual(320, path.Width.Value, 0.01);
+            Assert.AreEqual(600.0, path.MaxWidth);
+
+            path.Width = new DataGridLength(435);
+            header.LanguageSelector.SelectedValue = "en";
+            header.LanguageSelector.SelectedValue = "de";
+            Assert.AreEqual(435, path.Width.Value, 0.01, "A language preview preserves a manually resized path column.");
         }
 
         InOptions(window, dialog =>
@@ -601,6 +631,7 @@ public sealed partial class WindowTests
         Assert.AreEqual(AppTheme.Light, theme.CurrentTheme);
         Assert.AreEqual("FBFF", row.Sha256);
         Assert.IsTrue(path.Width.IsAuto);
+        Assert.IsTrue(double.IsPositiveInfinity(path.MaxWidth));
 
         InOptions(window, dialog =>
         {

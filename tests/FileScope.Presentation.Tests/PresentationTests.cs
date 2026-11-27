@@ -519,6 +519,32 @@ public sealed class PresentationTests
     }
 
     [TestMethod]
+    public void FailedSettingsSerializationPreservesTheLastSavedFile()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        var path = Path.Combine(directory.FullName, "preferences", "settings.json");
+        var store = new PreferencesStore(path);
+        var saved = new UserPreferences { Theme = "Dark", Window = new(900, 700, false) };
+
+        try
+        {
+            store.Save(saved);
+            var original = File.ReadAllBytes(path);
+
+            var invalid = saved with { Window = new(double.NaN, 700, false) };
+            Assert.ThrowsExactly<ArgumentException>(() => store.Save(invalid));
+
+            CollectionAssert.AreEqual(original, File.ReadAllBytes(path));
+            Assert.AreEqual(saved, store.Load());
+            CollectionAssert.AreEqual(new[] { path }, Directory.GetFiles(Path.GetDirectoryName(path)!));
+
+            store.Save(saved with { Theme = "Light" });
+            Assert.AreEqual("Light", store.Load().Theme);
+        }
+        finally { directory.Delete(recursive: true); }
+    }
+
+    [TestMethod]
     public void OptionsWindowPreferences()
     {
         var strings = LocalizationService.Instance;
