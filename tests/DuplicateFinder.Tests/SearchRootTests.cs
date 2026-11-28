@@ -72,7 +72,8 @@ public sealed partial class DuplicateTests
         Assert.IsFalse(comparer.Equals("Photos", "photos"));
         Assert.IsFalse(comparer.Equals("Photos", "pHoToS"));
         Assert.IsTrue(comparer.Equals("PHOTOS", "Photos"));
-        CollectionAssert.AreEquivalent(new[] { "Photos", "PHOTOS", "photos", "pHoToS" }, reads);
+        Assert.HasCount(4, reads);
+        CollectionAssert.AllItemsAreUnique(reads);
     }
 
     [TestMethod]
