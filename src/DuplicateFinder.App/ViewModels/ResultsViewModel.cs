@@ -54,6 +54,7 @@ public sealed class ResultsViewModel : ObservableObject
 
     public void SetHashFormat(HashFormat format)
     {
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
         if (_hashFormat == format) return;
         _hashFormat = format;
         foreach (var row in _rows) row.SetHashFormat(format);

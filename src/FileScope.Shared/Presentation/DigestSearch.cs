@@ -4,10 +4,20 @@ public static class DigestSearch
 {
     public static bool MatchesAny(IEnumerable<string> hex, IEnumerable<string> displayed, HashFormat format, string query)
     {
-        if (hex.Any(value => value.Contains(query, StringComparison.OrdinalIgnoreCase))) return true;
+        if (Contains(hex, query, StringComparison.OrdinalIgnoreCase)) return true;
 
         return DisplayComparison(format) is { } comparison
-            && displayed.Any(value => value.Contains(query, comparison));
+            && Contains(displayed, query, comparison);
+    }
+
+    internal static bool Contains(IEnumerable<string> values, string query, StringComparison comparison)
+    {
+        foreach (var value in values)
+        {
+            if (value.Contains(query, comparison)) return true;
+        }
+
+        return false;
     }
 
     public static bool Matches(string? hex, string displayed, HashFormat format, string query)
@@ -18,7 +28,7 @@ public static class DigestSearch
     }
 
     // Plain hex in either letter case is already covered by the canonical value.
-    private static StringComparison? DisplayComparison(HashFormat format) => format switch
+    internal static StringComparison? DisplayComparison(HashFormat format) => format switch
     {
         HashFormat.HexUpper or HashFormat.HexLower => null,
         HashFormat.HexColon => StringComparison.OrdinalIgnoreCase,

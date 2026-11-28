@@ -7,6 +7,28 @@ namespace FileScope.Presentation.Tests;
 public sealed partial class PresentationTests
 {
     [TestMethod]
+    public void FileHashesAreFormattedOnDemandAndFollowReplacementResults()
+    {
+        var source = new DigestSearchChecks.CountingChecksums();
+        var row = new FileRowViewModel("file.bin", LocalizationService.Instance, HashFormat.Base64);
+        var result = new FileAnalysisResult(row.FullPath, 32, null, source, SignatureResult.NotChecked);
+        row.Complete(result);
+
+        DigestSearchChecks.CheckDeferredFormatting(source, row.SetHashFormat, row.Matches, () => row.SHA256, () => row.Details);
+
+        var replacement = new DigestSearchChecks.CountingChecksums("FBFF");
+        row.Complete(result with { Checksums = replacement });
+        Assert.AreEqual(0, replacement.Enumerations);
+        Assert.AreEqual("-_8", row.SHA256);
+        Assert.Contains("-_8", row.Details);
+        Assert.AreEqual(1, replacement.Enumerations);
+
+        row.Reset();
+        Assert.AreEqual("", row.SHA256);
+        Assert.IsFalse(row.Matches("-_8"));
+    }
+
+    [TestMethod]
     public void SearchFormatsCatalogDetailsOnlyWhenOtherFieldsMiss()
     {
         var strings = LocalizationService.Instance;

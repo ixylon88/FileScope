@@ -451,6 +451,26 @@ public sealed partial class WindowTests
     });
 
     [TestMethod]
+    public Task FileHashesAreFormattedOnlyWhenTheViewNeedsThem() => WpfTestHost.RunAsync((_, _) =>
+    {
+        var source = new DigestSearchChecks.CountingChecksums();
+        var file = FileAt("match.bin", 1);
+        file.Hashes = source;
+        var model = new ResultsViewModel();
+        model.SetHashFormat(HashFormat.Base64);
+        model.Replace([file]);
+        var row = model.Rows.Single();
+
+        DigestSearchChecks.CheckDeferredFormatting(source, model.SetHashFormat, Matches, () => row.Sha256, () => row.Details);
+
+        bool Matches(string query)
+        {
+            model.SearchText = query;
+            return model.VisibleCount == 1;
+        }
+    });
+
+    [TestMethod]
     public Task RowDetailsFollowDisplayChangesAndCleanupResults() => WpfTestHost.RunAsync((_, strings) =>
     {
         var file = FileAt("keep.dat", 10);
