@@ -282,6 +282,8 @@ Die Spalte **Diagnose** steht standardmäßig direkt hinter **Analyse**. Sie ist
 
 Die laufende Statusanzeige wird höchstens alle 100 ms aus einem Puffer aktualisiert. Sie nennt die aktuelle Datei und die Phase: Datei öffnen, gemeinsame Prüfsummenberechnung, Dateieigenschaften, EXE-Header, eingebettete Signatur oder Katalogprüfung. Bei aktivierter Online-Sperrprüfung nennt die Signaturphase diese ausdrücklich. Windows liefert innerhalb dieses nativen Aufrufs keinen zuverlässigen Prozentwert oder getrennte OCSP-/CRL-Fortschrittsmeldungen; der Balken ist dann unbestimmt. Sehr kurze Phasen dürfen zwischen zwei Anzeigezeitpunkten liegen und werden nicht nachträglich abgespielt.
 
+Ist die gerade geprüfte Datei ausgewählt, zeigt auch ihr aufgeklappter Detailbereich den aktuellen Prüfschritt.
+
 Filter und Sortierung pausieren während eines Jobs; die bestehende Auswahl bleibt erhalten und wird am Ende erneut angewendet. Abschluss und Abbruch übernehmen alle bis dahin fertigen Ergebnisse sofort, ohne auf den nächsten Anzeigetakt zu warten. Alle gewählten Hashes bleiben Teil desselben Lesedurchlaufs; pro Datenblock werden sie nacheinander berechnet, weshalb die Anzeige sie als eine Phase zusammenfasst.
 
 Nach einer Analyse zeigt die Statusleiste die **verarbeiteten Dateien**, die **Dauer** und die **Summe der bekannten Dateigrößen in Bytes** an. Die Dauer umfasst den Analysedurchlauf einschließlich der Signaturprüfung und ihrer Wartezeiten; die vorgelagerte Ordnersuche, Dateiaufnahme und ein späterer Export gehören nicht dazu. Der vorhandene Hinweis auf Diagnosedetails bleibt am Ende der Meldung stehen. Der Mittelpunkt ` · ` trennt sowohl die Durchlaufwerte als auch den optionalen Diagnosehinweis vom vorherigen Meldungsteil.
@@ -645,12 +647,12 @@ Aktueller Ausführungsstand:
 | --- | --- |
 | PowerShell-Skripte | **94 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
 | Core | **36 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Zuordnung der Hashalgorithmen bei Signaturen und Katalogen, die Katalogsuche, das Wiederherstellen des Dateizeigers, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
-| Präsentation, Einstellungen und Ressourcen | **50 Fälle**, darunter die Darstellung und Suche von Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
-| WPF / UI / MVVM | **39 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalog-Badges, eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
+| Präsentation, Einstellungen und Ressourcen | **52 Fälle**, darunter die Darstellung und Suche von Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails in Suche und Export, Detailtexte beim Phasenwechsel und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
+| WPF / UI / MVVM | **40 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalog-Badges, eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten, Katalogauswahl mit aktivem Einlesefilter und der Detailanzeige während einer laufenden Analyse. |
 | DuplicateFinder / Core und Windows-Integration | **26 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung, Dateisperren und die Binärprüfung vor dem Papierkorb. |
 | DuplicateFinder / WPF | **20 Fälle** für Gruppen, Markierungen, Dateidetails bei Format- und Sprachwechsel, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung und lange Pfadlisten im Berichtsdialog. |
 
-Die Suite umfasst **171 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **174 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in
