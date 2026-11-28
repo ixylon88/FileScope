@@ -123,6 +123,12 @@
   <data name="OptionsTitle" xml:space="preserve">
     <value>Optionen</value>
   </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>Ausgewählte Datei · vollständige Details / Kopieren:</value>
+  </data>
+  <data name="DetailsHint" xml:space="preserve">
+    <value>Eine Tabellenzeile auswählen. Der Detailtext lässt sich markieren und mit Strg+C kopieren.</value>
+  </data>
   <data name="AboutButton" xml:space="preserve">
     <value>Über…</value>
   </data>

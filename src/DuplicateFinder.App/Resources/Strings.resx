@@ -159,9 +159,6 @@
   <data name="Path" xml:space="preserve">
     <value>Path</value>
   </data>
-  <data name="Details" xml:space="preserve">
-    <value>Selected file · details and copy:</value>
-  </data>
   <data name="Mark" xml:space="preserve">
     <value>Select for recycling</value>
   </data>

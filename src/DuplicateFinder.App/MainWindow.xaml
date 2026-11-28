@@ -46,25 +46,13 @@
             </StackPanel>
             <Border Style="{StaticResource BandDivider}" />
             <StackPanel Orientation="Horizontal">
-              <Button x:Name="OptionsButton" Command="{Binding OptionsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc Options}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
+              <Button x:Name="OptionsButton" Command="{Binding OptionsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc Options}"
+                      ContentTemplate="{StaticResource OptionsButtonContent}" />
               <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
-                      ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-              <Button x:Name="AboutButton" Command="{Binding AboutCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc AboutButton}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
+                      ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}"
+                      ContentTemplate="{StaticResource ShortcutsButtonContent}" />
+              <Button x:Name="AboutButton" Command="{Binding AboutCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}" AutomationProperties.Name="{loc:Loc AboutButton}"
+                      ContentTemplate="{StaticResource AboutButtonContent}" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
@@ -171,9 +159,11 @@
       </DataGrid>
     </Border>
 
-    <Expander x:Name="DetailsExpander" Grid.Row="3" Margin="0,8,0,0" IsExpanded="False" HorizontalContentAlignment="Stretch">
-      <Expander.Style>
-        <Style TargetType="Expander" BasedOn="{StaticResource {x:Type Expander}}">
+    <shared:SelectedFileDetails x:Name="DetailsPanel" Grid.Row="3" Margin="0,8,0,0"
+                                FilePath="{Binding File.Path, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
+                                DetailsText="{Binding Details, Mode=OneWay, TargetNullValue='', FallbackValue=''}">
+      <shared:SelectedFileDetails.Style>
+        <Style TargetType="{x:Type shared:SelectedFileDetails}">
           <Setter Property="DataContext" Value="{x:Null}" />
           <Style.Triggers>
             <DataTrigger Binding="{Binding SelectedItems.Count, ElementName=Files}" Value="1">
@@ -181,21 +171,8 @@
             </DataTrigger>
           </Style.Triggers>
         </Style>
-      </Expander.Style>
-      <Expander.Header>
-        <Grid>
-          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <TextBlock Text="{loc:Loc Details}" VerticalAlignment="Center" />
-          <TextBlock x:Name="DetailsPath" Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
-                     Text="{Binding File.Path, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
-                     ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
-        </Grid>
-      </Expander.Header>
-      <TextBox x:Name="DetailsBox" Text="{Binding Details, Mode=OneWay, TargetNullValue='', FallbackValue=''}"
-               IsReadOnly="True" TextWrapping="NoWrap" MinHeight="90" MaxHeight="160" Padding="12"
-               FontFamily="Cascadia Mono, Consolas, Microsoft YaHei UI" FontSize="12" AutomationProperties.Name="{loc:Loc Details}"
-               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
-    </Expander>
+      </shared:SelectedFileDetails.Style>
+    </shared:SelectedFileDetails>
     <DockPanel Grid.Row="4" Margin="0,9,0,0">
       <ProgressBar x:Name="Meter" Style="{StaticResource JobProgressBarStyle}"
                    DockPanel.Dock="Right" Width="115" Height="8" Margin="12,0,0,0" />

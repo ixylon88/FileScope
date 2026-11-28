@@ -35,9 +35,9 @@ public sealed partial class WindowTests
         PressKey(Key.Down, ModifierKeys.Shift);
         Assert.HasCount(1, grid.SelectedItems);
 
-        var panel = (Expander)window.FindName("DetailsExpander");
-        var details = (TextBox)window.FindName("DetailsBox");
-        panel.IsExpanded = true;
+        var panel = new SelectedFileDetailsChecks(window);
+        var details = panel.Editor;
+        panel.Expander.IsExpanded = true;
         window.UpdateLayout();
         Assert.IsTrue(details.Focus());
         PressKey(Key.A, ModifierKeys.Control);

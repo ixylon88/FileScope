@@ -273,6 +273,7 @@ public sealed partial class UiTests
             {
                 strings.SetCulture(language.CultureName);
                 DrainDispatcher();
+                MenuButtonChecks.Check(main, strings);
                 ShortcutDialogChecks.Check(shortcuts, strings, ["Open", "Clear"], "ContextMenu");
                 Assert.AreEqual(strings["ShortcutsTitle"], System.Windows.Automation.AutomationProperties.GetName(button));
             }
@@ -329,30 +330,21 @@ public sealed partial class UiTests
             var pathColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Path");
             var nameColumn = grid.Columns.Single(column => ColumnLayoutBehavior.GetId(column) == "Name");
             var checkBox = (CheckBox)settings.FindName("PathAutoWidthCheckBox");
-            var header = (TextBlock)window.FindName("DetailsHeaderPath");
-            var label = (TextBlock)window.FindName("DetailsHeaderLabel");
-            var details = (TextBox)window.FindName("SelectedFileDetails");
+            var details = new SelectedFileDetailsChecks(window);
             DrainDispatcher();
             Assert.IsTrue(pathColumn == grid.Columns[^1] && pathColumn.DisplayIndex == grid.Columns.Count - 1
                 && checkBox.IsChecked == true && pathColumn.Width.IsAuto && double.IsPositiveInfinity(pathColumn.MaxWidth),
                 "path is the final default column with automatic content width enabled");
-            grid.SelectedItem = vm.Rows[0];
-            DrainDispatcher();
-            Assert.IsTrue(header.Text == firstPath && label.Text.EndsWith(':') && header.Margin.Left >= 16 && details.Text.Contains(firstPath),
-                "one selected file displays its full path after the spaced details label and colon");
-            grid.SelectedItems.Add(vm.Rows[1]);
-            DrainDispatcher();
-            Assert.IsTrue(header.Text.Length == 0 && details.Text.Length == 0 && vm.SingleSelectedRow is null,
-                "multiple selected files do not present one file as the complete selection");
-            grid.UnselectAll();
-            DrainDispatcher();
-            Assert.IsTrue(header.Text.Length == 0 && !vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute(null),
-                "empty selection clears the details header and disables single-file shell actions");
+            details.CheckSelectionAndCopy(grid, vm.Rows[0], vm.Rows[1], firstPath, vm.Rows[0].Details);
+            Assert.IsTrue(details.Label.Text.EndsWith(':') && vm.SingleSelectedRow is null
+                && !vm.ShowFilePropertiesCommand.CanExecute(null) && !vm.ShowInExplorerCommand.CanExecute(null),
+                "clearing selection also disables the single-file shell actions");
+
             grid.SelectedItem = vm.Rows[0];
             var relocated = Path.Combine(root, "unsigned", "first.exe");
             vm.Rows[0].Relocate(relocated);
             DrainDispatcher();
-            Assert.IsTrue(header.Text == relocated && details.Text.Contains(relocated), "relocation immediately updates the selected file's header and details");
+            Assert.IsTrue(details.Path.Text == relocated && details.Editor.Text.Contains(relocated), "relocation immediately updates the selected file's header and details");
             nameColumn.Width = new DataGridLength(300);
             checkBox.IsChecked = false;
             DrainDispatcher();
@@ -366,7 +358,7 @@ public sealed partial class UiTests
                 options.FitColumnsCommand.Execute(null);
                 DrainDispatcher();
                 Assert.IsTrue(pathColumn.Width.IsAbsolute && pathColumn.Width.Value == 400 && checkBox.Content.ToString() == strings["PathAutoWidth"]
-                    && label.Text == strings["DetailsTitle"],
+                    && details.Label.Text == strings["DetailsTitle"],
                     "language and global fit preserve the opted-out path width and translate the new UI / " + culture);
             }
             options.SelectedColumn = options.Columns.Single(column => column.Id == "Path");
@@ -385,7 +377,7 @@ public sealed partial class UiTests
                 "resetting a saved custom order returns the path to the end");
             vm.ClearCommand.Execute(null);
             DrainDispatcher();
-            Assert.IsTrue(header.Text.Length == 0 && details.Text.Length == 0, "Clear removes the previously selected path and details");
+            Assert.IsTrue(details.Path.Text.Length == 0 && details.Editor.Text.Length == 0, "Clear removes the previously selected path and details");
         }
         finally { settings.Close(); window.Close(); strings.SetCulture("en"); }
     }

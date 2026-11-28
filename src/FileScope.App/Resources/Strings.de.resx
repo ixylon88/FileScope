@@ -192,12 +192,6 @@
   <data name="NoMatches" xml:space="preserve">
     <value>Keine Dateien entsprechen den aktuellen Filtern.</value>
   </data>
-  <data name="DetailsTitle" xml:space="preserve">
-    <value>Ausgewählte Datei · vollständige Details / Kopieren:</value>
-  </data>
-  <data name="DetailsHint" xml:space="preserve">
-    <value>Eine Tabellenzeile auswählen. Der Detailtext lässt sich markieren und mit Strg+C kopieren.</value>
-  </data>
   <data name="ProgressLabel" xml:space="preserve">
     <value>Analysefortschritt</value>
   </data>

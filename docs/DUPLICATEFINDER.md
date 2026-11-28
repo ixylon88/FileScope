@@ -37,7 +37,7 @@ Das Suchfeld findet Datei-Prüfsummen sowohl als Hex-Wert ohne Trennzeichen als 
 
 **Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)
 
-Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Ist genau eine Zeile ausgewählt, zeigt **Ausgewählte Datei · Details und Kopieren** ihren vollständigen Pfad. Im aufgeklappten Textfeld lassen sich beispielsweise eine Prüfsumme oder ein Katalogpfad markieren und mit **Strg+C** kopieren.
+Ein Klick auf den Gruppenkopf klappt die Gruppe auf oder zu. Darin stehen die Kopien nach absteigender Aufbewahrungspriorität. Die Tabelle zeigt das **Änderungsdatum** mit Uhrzeit in UTC. Ist genau eine Zeile ausgewählt, zeigt **Ausgewählte Datei · vollständige Details / Kopieren** ihren vollständigen Pfad. Im aufgeklappten Textfeld lassen sich beispielsweise eine Prüfsumme oder ein Katalogpfad markieren und mit **Strg+C** kopieren.
 
 In der Tabelle erweitert **Umschalt+Pfeil auf/ab** die Zeilenauswahl. **Strg+A** wählt alle Dateien der gefilterten Ansicht aus, auch in zugeklappten Gruppen. **Strg+C** kopiert die ausgewählten Zeilen mit Spaltenüberschriften. Die Häkchen für den Papierkorb bleiben bei diesen Tastenkürzeln und bei der Zeilenauswahl per **Strg+Klick** oder **Umschalt+Klick** erhalten.
 

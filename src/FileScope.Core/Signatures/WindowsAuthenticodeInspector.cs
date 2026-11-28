@@ -195,16 +195,8 @@ public sealed partial class WindowsAuthenticodeInspector : ISignatureInspector
         if (info.SignerInfo == IntPtr.Zero)
             return new(true, certificate, "", SignatureTimestamp.Unreadable);
         var message = Marshal.PtrToStructure<Native.MessageSignerInfo>(info.SignerInfo);
-        var algorithm = Marshal.PtrToStringAnsi(message.HashAlgorithm.ObjectId) ?? "";
-        algorithm = algorithm switch
-        {
-            "1.2.840.113549.2.5" => "MD5",
-            "1.3.14.3.2.26" => "SHA-1",
-            "2.16.840.1.101.3.4.2.1" => "SHA-256",
-            "2.16.840.1.101.3.4.2.2" => "SHA-384",
-            "2.16.840.1.101.3.4.2.3" => "SHA-512",
-            _ => algorithm
-        };
+        var algorithm = SignatureDigest.SignerName(Marshal.PtrToStringAnsi(message.HashAlgorithm.ObjectId));
+
         var hasTimestamp = false;
         var times = new List<DateTimeOffset>();
         var attributes = message.UnauthenticatedAttributes;
