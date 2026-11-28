@@ -81,7 +81,7 @@ internal sealed partial class WindowsFileFacts : IFileFacts
 
     internal static IReadOnlyList<NamedStream> ParseStreams(ReadOnlySpan<byte> buffer)
     {
-        var streams = new List<NamedStream>();
+        List<NamedStream>? streams = null;
         while (buffer.Length >= 24)
         {
             var next = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
@@ -102,10 +102,10 @@ internal sealed partial class WindowsFileFacts : IFileFacts
                     throw new IOException("Unexpected file stream name.");
                 }
 
-                streams.Add(new(name, size));
+                (streams ??= []).Add(new(name, size));
             }
 
-            if (next == 0) return streams.OrderBy(s => s.Suffix, StringComparer.Ordinal).ToArray();
+            if (next == 0) return streams is null ? [] : streams.OrderBy(s => s.Suffix, StringComparer.Ordinal).ToArray();
             if (next < 24 + bytes || next > buffer.Length) break;
             buffer = buffer[(int)next..];
         }

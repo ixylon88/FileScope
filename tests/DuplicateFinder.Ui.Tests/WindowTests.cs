@@ -134,10 +134,10 @@ public sealed partial class WindowTests
         var model = new ResultsViewModel();
         model.Replace([FileAt("archive", 30), FileAt("backup", 20), FileAt("download", 10)]);
         model.Filter("download", ResultKind.Duplicates, SignatureFilter.All);
-        var filtered = model.Plan(true);
-        var all = model.Plan(false);
+        var (filtered, all) = model.CreateCleanupPlans();
         Assert.AreEqual("archive", filtered.Items.Single().Keeper!.Path);
         Assert.AreEqual("download", filtered.Items.Single().File.Path);
+        Assert.AreSame(all.Items[0], filtered.Items.Single());
         Assert.HasCount(2, all.Items);
 
         var dialog = new ScopeWindow(filtered, all);
@@ -153,7 +153,8 @@ public sealed partial class WindowTests
         var model = new ResultsViewModel();
         model.Replace([FileAt("high", 10), FileAt("low", 0)]);
         model.Filter("no match", ResultKind.AllFiles, SignatureFilter.All);
-        var dialog = new ScopeWindow(model.Plan(true), model.Plan(false));
+        var (filtered, all) = model.CreateCleanupPlans();
+        var dialog = new ScopeWindow(filtered, all);
         dialog.Show();
         var confirm = (Button)dialog.FindName("Confirm");
         Assert.IsFalse(confirm.IsEnabled);
@@ -177,7 +178,32 @@ public sealed partial class WindowTests
         model.RemoveMoved([new(model.Rows[1].File, true, null)]);
         Assert.AreEqual(1, model.MarkedCount);
         Assert.AreEqual(0, model.Rows.Single().CurrentGroup);
-        Assert.IsEmpty(model.Plan(false).Items);
+        Assert.IsEmpty(model.CreateCleanupPlans().All.Items);
+    });
+
+    [TestMethod]
+    public Task CleanupScopesShareThePlanUntilAFilterHidesRows() => WpfTestHost.RunAsync((_, _) =>
+    {
+        var model = new ResultsViewModel();
+        var first = FileAt("copy-a", 10);
+        var second = FileAt("copy-b", 5);
+        var keeper = FileAt("archive", 30);
+        model.Replace([first, keeper, second]);
+
+        var (filtered, all) = model.CreateCleanupPlans();
+        Assert.AreSame(all, filtered);
+        CollectionAssert.AreEqual(new[] { second, first }, all.Items.Select(item => item.File).ToArray());
+
+        model.Filter("copy-", ResultKind.Duplicates, SignatureFilter.All);
+        (filtered, all) = model.CreateCleanupPlans();
+        CollectionAssert.AreEqual(all.Items.ToArray(), filtered.Items.ToArray());
+        Assert.IsTrue(filtered.Items.All(item => ReferenceEquals(item.Keeper, keeper)));
+
+        model.RemoveMoved([new(second, true, null)]);
+        var (nextFiltered, nextAll) = model.CreateCleanupPlans();
+        Assert.AreSame(first, nextFiltered.Items.Single().File);
+        Assert.AreSame(keeper, nextAll.Items.Single().Keeper);
+        Assert.HasCount(2, all.Items);
     });
 
     [TestMethod]
@@ -423,8 +449,9 @@ public sealed partial class WindowTests
         row.Marked = true;
         model.Rows[3].Marked = true;
         model.Filter("single", ResultKind.Singles, SignatureFilter.All);
-        Assert.IsEmpty(model.Plan(true).Items);
-        Assert.HasCount(1, model.Plan(false).Items);
+        var (filtered, all) = model.CreateCleanupPlans();
+        Assert.IsEmpty(filtered.Items);
+        Assert.HasCount(1, all.Items);
         Assert.HasCount(2, model.Manual());
         Assert.AreEqual(1, model.LastCopiesSelected());
 

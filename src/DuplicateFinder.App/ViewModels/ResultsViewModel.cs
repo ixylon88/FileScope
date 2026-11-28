@@ -155,12 +155,16 @@ public sealed class ResultsViewModel : ObservableObject
             || row.File.Catalogs?.Matches.Any(m => m.Path.Contains(_query, StringComparison.OrdinalIgnoreCase)
                 || m.Trust.Certificate?.Publisher.Contains(_query, StringComparison.OrdinalIgnoreCase) == true) == true);
 
-    // Filter the proposed removals after choosing the keepers from the complete snapshot.
-    // Whether WPF has realized or expanded a row is immaterial.
-    public CleanupPlan Plan(bool filtered)
+    public (CleanupPlan Filtered, CleanupPlan All) CreateCleanupPlans()
     {
-        var scope = filtered ? _rows.Where(r => r.File.Variant > 0 && Matches(r)).Select(r => r.File).ToHashSet() : null;
-        return CleanupPlan.Create(_rows.Select(r => r.File), scope == null ? null : scope.Contains);
+        var all = CleanupPlan.Create(_rows.Select(row => row.File));
+        if (all.Items.Count == 0 || View.Count == _rows.Count) return (all, all);
+
+        // The collection view includes rows in collapsed groups. Filter only the removals
+        // so each candidate keeps its reference copy from the complete scan.
+        var visible = View.Cast<ResultRow>().Where(row => row.File.Variant > 0).Select(row => row.File).ToHashSet();
+        var filtered = new CleanupPlan(all.Items.Where(item => visible.Contains(item.File)).ToArray());
+        return (filtered, all);
     }
 
     public IReadOnlyList<CleanupItem> Manual() => _rows.Where(r => r.Marked).Select(r => new CleanupItem(r.File, null)).ToArray();

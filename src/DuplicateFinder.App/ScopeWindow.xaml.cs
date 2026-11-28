@@ -14,7 +14,7 @@ public partial class ScopeWindow : Window
         InitializeComponent();
         var strings = LocalizationService.Instance;
         VisibleCount.Text = strings.Format("Counts", filtered.Items.Count, filtered.Groups);
-        AllCount.Text = strings.Format("Counts", all.Items.Count, all.Groups);
+        AllCount.Text = ReferenceEquals(filtered, all) ? VisibleCount.Text : strings.Format("Counts", all.Items.Count, all.Groups);
         VisibleFiles.IsEnabled = filtered.Items.Count > 0;
         AllFiles.IsEnabled = all.Items.Count > 0;
         // Never expand the scope silently when the user's filter has zero candidates.
