@@ -70,6 +70,8 @@ public sealed class ResultsViewModel : ObservableObject
 
     public void RemoveMoved(IReadOnlyList<RecycleResult> result)
     {
+        if (result.Count == 0) return;
+
         var moved = result.Where(r => r.Moved).Select(r => r.File).ToHashSet();
         var failed = result.Where(r => !r.Moved).ToDictionary(r => r.File, r => r.Reason);
         Install(_rows.Where(r => !moved.Contains(r.File)).Select(r => new ResultRow(r.File, _hashFormat)
