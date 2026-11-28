@@ -491,7 +491,8 @@ Die Windows-Anbindung besteht aus C#-Deklarationen und Aufrufen nativer Systemfu
 | Katalogzuordnungen finden und prüfen | `CryptCATOpen`, `CryptCATEnumerateMember`, `CryptCATAdminCalcHashFromFileHandle2`, `CryptCATAdminEnumCatalogFromHash` und `WinVerifyTrust` in `wintrust.dll` | `WindowsCatalogIndex`, `WindowsAuthenticodeInspector.VerifyMember` |
 | Unterzeichner, Zertifikate und Zeitstempelattribute aus dem Prüfzustand lesen | `WTHelperProvDataFromStateData`, `WTHelperGetProvSignerFromChain`, `WTHelperGetProvCertFromChain` in `wintrust.dll` | `WindowsAuthenticodeInspector` |
 | Versionsressourcen vom offenen Handle lesen und Felder abfragen | `GetFileVersionInfoByHandle`, `VerQueryValueW` in `version.dll` | `WindowsFileVersionReader` |
-| Sprachname, Dateizeiger und Freigabe des Versionspuffers | `VerLanguageNameW`, `SetFilePointerEx`, `LocalFree` in `kernel32.dll` | `WindowsFileVersionReader` |
+| Sprachname abfragen und Versionspuffer freigeben | `VerLanguageNameW`, `LocalFree` in `kernel32.dll` | `WindowsFileVersionReader` |
+| Nativen Dateizeiger bei Versions- und Katalogprüfungen sichern und zurücksetzen | `SetFilePointerEx` in `kernel32.dll` | `WindowsFilePointer` |
 | Registrierte Bezeichnung einer Dateiendung abfragen | `SHGetFileInfoW` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FilePropertiesInspector` |
 | Dateieigenschaften anzeigen und Datei im Explorer markieren | `SHObjectProperties`, `SHParseDisplayName`, `SHOpenFolderAndSelectItems` in `shell32.dll`; `CoInitializeEx` / `CoUninitialize` in `ole32.dll` | `FileShellService` im WPF-Teil von `FileScope.Shared`, für beide Apps |
 
@@ -643,13 +644,13 @@ Aktueller Ausführungsstand:
 | Gruppe | Testfälle und aktueller Ausführungsstand |
 | --- | --- |
 | PowerShell-Skripte | **94 Prüfbedingungen unter Linux bestanden**, darunter VS-Code-Aufgaben, App-Auswahl, getrennte Publish-Ordner, Fehlerabbruch, Farben, Pfade und gemeinsame Testeinstellungen. |
-| Core | **35 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Zuordnung der Hashalgorithmen bei Signaturen und Katalogen, die Katalogsuche, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
-| Präsentation, Einstellungen und Ressourcen | **49 Fälle**, darunter die Suche nach Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
+| Core | **36 Fälle** für Prüfsummen, Dateisuche, Exporte, PE/NE, Metadaten und Signaturen. Geprüft werden auch die Zuordnung der Hashalgorithmen bei Signaturen und Katalogen, die Katalogsuche, das Wiederherstellen des Dateizeigers, der Erhalt der Prüfsummen bei Katalogfehlern und das Aufräumen bei vorübergehenden und anhaltenden Windows-Dateisperren. |
+| Präsentation, Einstellungen und Ressourcen | **50 Fälle**, darunter die Darstellung und Suche von Prüfsummen und Zertifikatsfingerabdrücken, Optionsvorschau, Rücknahme und Schreibfehler sowie die Filter für beide Signaturquellen und ihre Hexcodes in drei Sprachen, Katalogdetails im Export und 15 Konsistenzprüfungen einschließlich der XAML-Textschlüssel und Button-Commands beider Anwendungen. |
 | WPF / UI / MVVM | **39 Fälle** für Oberfläche und Bedienabläufe, einschließlich Katalog-Badges, eigenständig ladbarer Optionsfußzeile, Abbrechen mit manuellen Spaltenbreiten und Katalogauswahl mit aktivem Einlesefilter. |
 | DuplicateFinder / Core und Windows-Integration | **26 Fälle** für Größenvorauswahl beim Auflisten, Fortschritt der Dateisuche, Hash-Vorauswahl, NTFS, Katalogzuordnung, Dateisperren und die Binärprüfung vor dem Papierkorb. |
-| DuplicateFinder / WPF | **19 Fälle** für Gruppen, Markierungen, Dateidetails, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung und lange Pfadlisten im Berichtsdialog. |
+| DuplicateFinder / WPF | **20 Fälle** für Gruppen, Markierungen, Dateidetails bei Format- und Sprachwechsel, Katalog-Badges, Filter, Commands, Darstellungsoptionen, erneutes Speichern oder Abbrechen nach einem Schreibfehler, Fensterzustand, Designertexte, geteilte Dialoge, Tastaturauswahl und Kopieren sowie das Dateikontextmenü mit Papierkorbbestätigung und lange Pfadlisten im Berichtsdialog. |
 
-Die Suite umfasst **168 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
+Die Suite umfasst **171 C#-Testfälle**. Ausführungsergebnisse und plattformabhängige Fälle stehen im [Prüfstand](VALIDATION.md).
 
 Die Zahlen werden bei Änderungen mitgeführt. Details zu Plattformen, optionalen
 Beispieldateien und der Einrichtung stehen in

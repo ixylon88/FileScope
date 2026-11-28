@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Microsoft.Win32.SafeHandles;
+using FileScope.Core.Files;
 using FileScope.Core.Models;
 
 namespace FileScope.Core.Signatures;
@@ -98,7 +98,8 @@ public sealed unsafe partial class WindowsCatalogIndex
         var matches = new List<CatalogMatch>();
         var issues = new List<string>();
         var handle = file.SafeFileHandle;
-        if (SetFilePointerEx(handle, 0, out var position, 1) == 0) throw new Win32Exception();
+        var position = WindowsFilePointer.GetPosition(handle);
+
         try
         {
             foreach (var algorithm in _algorithms)
@@ -114,7 +115,8 @@ public sealed unsafe partial class WindowsCatalogIndex
         finally
         {
             // The SIP calls use the native handle and can move its file pointer.
-            if (SetFilePointerEx(handle, position, out _, 0) == 0) issues.Add(new Win32Exception().Message);
+            if (!WindowsFilePointer.TrySetPosition(handle, position, out var error))
+                issues.Add(new Win32Exception(error).Message);
         }
 
         return new(matches.AsReadOnly(), issues.AsReadOnly(), _complete);
@@ -129,7 +131,7 @@ public sealed unsafe partial class WindowsCatalogIndex
         {
             var handle = file.SafeFileHandle;
             var descriptor = handle.DangerousGetHandle();
-            if (SetFilePointerEx(handle, 0, out _, 0) == 0) throw new Win32Exception();
+            WindowsFilePointer.Rewind(handle);
             byte* digest = stackalloc byte[algorithm.ByteLength];
             uint size = (uint)algorithm.ByteLength;
             if (CryptCATAdminCalcHashFromFileHandle2(admin, descriptor, ref size, digest, 0) == 0)
@@ -177,7 +179,7 @@ public sealed unsafe partial class WindowsCatalogIndex
                     return;
                 }
 
-                if (SetFilePointerEx(handle, 0, out _, 0) == 0) throw new Win32Exception();
+                WindowsFilePointer.Rewind(handle);
                 var trust = WindowsAuthenticodeInspector.VerifyMember(file, descriptor, path, tag, mode, admin, digest, size);
                 matches.Add(new(path, tag, registered, trust));
             }
@@ -215,10 +217,6 @@ public sealed unsafe partial class WindowsCatalogIndex
     }
     [StructLayout(LayoutKind.Sequential)]
     private struct CatalogInfo { public uint Size; public fixed char Path[260]; }
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static partial int SetFilePointerEx(SafeFileHandle file, long distance, out long position, uint origin);
 
     [LibraryImport("wintrust.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

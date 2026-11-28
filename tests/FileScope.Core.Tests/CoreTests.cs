@@ -143,6 +143,25 @@ public sealed class CoreTests
     }
 
     [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void CatalogInspectionRestoresTheBorrowedHandlePosition()
+    {
+        using var file = File.OpenRead(CreatePlainFile());
+        file.Position = 1;
+        var handle = file.SafeFileHandle;
+
+        var search = new CatalogSearch([]);
+        var lookup = search.Inspect(file, RevocationMode.OfflineCache, CancellationToken.None);
+        Assert.IsEmpty(lookup.Issues);
+
+        // Reusing the handle here avoids the synchronization performed by FileStream.SafeFileHandle.
+        Assert.IsTrue(FilePointerTestNative.SetFilePointerEx(handle, 0, out var nativePosition, 1));
+        Assert.AreEqual(1L, nativePosition);
+        Assert.AreEqual(1L, file.Position);
+        Assert.AreEqual('b', file.ReadByte());
+    }
+
+    [TestMethod]
     public async Task AllHashesReadTheStreamOnce()
     {
         var algorithms = Enum.GetValues<ChecksumAlgorithm>();
@@ -1156,7 +1175,7 @@ public sealed class CoreTests
                 // Deliberately diverge the raw pointer. The inspector's SafeFileHandle getter
                 // synchronizes it to FileStream.Position before the version API is called.
                 var nativeBeforeBorrow = position == 7 ? Math.Min(19, bytes.Length) : position;
-                Assert.IsTrue(VersionTestNative.SetFilePointerEx(handle, nativeBeforeBorrow, out _, 0),
+                Assert.IsTrue(FilePointerTestNative.SetFilePointerEx(handle, nativeBeforeBorrow, out _, 0),
                     "set native version-test position / " + context);
                 var missingPath = Path.Combine(directory, "does-not-exist" + Path.GetExtension(path));
                 var actual = new FilePropertiesInspector().Inspect(file, missingPath);
@@ -1172,7 +1191,7 @@ public sealed class CoreTests
                 Assert.IsTrue(actual.Info == expected, "handle version fields match FileVersionInfo / " + context);
                 // Query the cached handle: accessing file.SafeFileHandle here would normalize
                 // the pointer again and could hide a broken restoration in the inspector.
-                Assert.IsTrue(VersionTestNative.SetFilePointerEx(handle, 0, out var after, 1),
+                Assert.IsTrue(FilePointerTestNative.SetFilePointerEx(handle, 0, out var after, 1),
                     "query native version-test position / " + context);
                 Assert.AreEqual(position, after, "version inspection restores the synchronized native file pointer / " + context);
                 Assert.IsTrue(file.CanRead && file.Position == position,
@@ -1219,7 +1238,7 @@ public sealed class CoreTests
         return image;
     }
 
-    private static class VersionTestNative
+    private static class FilePointerTestNative
     {
 #pragma warning disable SYSLIB1054 // Test harness has no unsafe source-generated interop configuration.
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
