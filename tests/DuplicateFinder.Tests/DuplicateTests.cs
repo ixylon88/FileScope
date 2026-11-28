@@ -267,9 +267,8 @@ public sealed partial class DuplicateTests
         Assert.AreEqual(b, plan.Items.Single().Keeper!.Path);
     }
 
-    private void WriteStream(string path, string value)
+    private void WriteStream(string path, string value, string suffix = ":example:$DATA")
     {
-        const string suffix = ":example:$DATA";
         File.WriteAllText(path + suffix, value);
         _facts.Manifests[path] = [new(suffix, Encoding.UTF8.GetByteCount(value))];
     }

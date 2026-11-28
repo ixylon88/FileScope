@@ -5,12 +5,17 @@ namespace DuplicateFinder.Tests;
 public sealed partial class DuplicateTests
 {
     [TestMethod]
-    public async Task DifferentStreamLengthsNeedNoPairwiseFileOpensAfterTheMainBytesMatch()
+    public async Task DifferentStreamNamesOrLengthsNeedNoPairwiseFileOpensAfterTheMainBytesMatch()
     {
-        const int fileCount = 8;
+        const int lengths = 4;
+        const int fileCount = 2 * lengths;
         var main = new string('x', 64);
-        for (var length = 1; length <= fileCount; length++)
-            WriteStream(Put("1", $"file-{length}", main), new string('s', length));
+        for (var length = 1; length <= lengths; length++)
+        {
+            var content = new string('s', length);
+            WriteStream(Put("1", $"notes-{length}", main), content, ":notes:$DATA");
+            WriteStream(Put("1", $"origin-{length}", main), content, ":origin:$DATA");
+        }
 
         int? readsBeforeStreamComparison = null;
         var progress = new Stages(update =>
