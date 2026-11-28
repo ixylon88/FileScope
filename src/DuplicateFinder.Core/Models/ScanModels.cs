@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using FileScope.Core.Models;
 using FileScope.Core.Signatures;
 
@@ -22,7 +23,7 @@ public sealed class FoundFile
 
     public string Path { get; }
     public SearchRoot Root { get; }
-    public string Name => System.IO.Path.GetFileName(Path);
+    public string Name => field ??= System.IO.Path.GetFileName(Path);
     public long? Size => Stamp?.Length;
     public DateTime? ModifiedUtc => Stamp?.ModifiedUtc;
     public bool IsHardLink => Stamp?.Links > 1;
@@ -30,7 +31,7 @@ public sealed class FoundFile
     public int Variant { get; internal set; }
     public StreamComparison Streams { get; internal set; }
     public string? Diagnostic { get; internal set; }
-    public IReadOnlyDictionary<ChecksumAlgorithm, string> Hashes { get; internal set; } = new Dictionary<ChecksumAlgorithm, string>();
+    public IReadOnlyDictionary<ChecksumAlgorithm, string> Hashes { get; internal set; } = ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty;
     public SignatureResult Embedded { get; internal set; } = SignatureResult.NotChecked;
     public CatalogLookup? Catalogs { get; internal set; }
 

@@ -42,7 +42,7 @@ public sealed class CleanupService
         var candidate = item.File;
         using var source = FileAccessChecks.OpenVerified(candidate, _facts, movable: true);
         using var keeper = item.Keeper == null ? null : FileAccessChecks.OpenVerified(item.Keeper, _facts);
-        var heldStreams = new List<FileStream>();
+        List<FileStream>? heldStreams = null;
         try
         {
             if (keeper != null && item.Keeper != null)
@@ -62,7 +62,7 @@ public sealed class CleanupService
                 foreach (var stream in candidate.Manifest)
                 {
                     var a = FileAccessChecks.Open(candidate.Path + stream.Suffix, movable: true);
-                    heldStreams.Add(a);
+                    (heldStreams ??= []).Add(a);
                     var b = FileAccessChecks.Open(item.Keeper.Path + stream.Suffix);
                     heldStreams.Add(b);
                     if (!BinaryComparison.Equal(a, b, token)) throw new IOException("A named stream has changed.");
@@ -89,7 +89,10 @@ public sealed class CleanupService
         }
         finally
         {
-            foreach (var stream in heldStreams) stream.Dispose();
+            if (heldStreams != null)
+            {
+                foreach (var stream in heldStreams) stream.Dispose();
+            }
         }
     }
 }

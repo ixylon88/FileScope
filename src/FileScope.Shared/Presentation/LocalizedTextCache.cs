@@ -1,9 +1,9 @@
 using System.Globalization;
 
-namespace FileScope.App.Presentation;
+namespace FileScope.Shared.Presentation;
 
 /// <summary>Keeps one formatted string. A read in another UI language needs a fresh value.</summary>
-internal struct LocalizedTextCache
+public struct LocalizedTextCache
 {
     private CultureInfo? _culture;
     private string? _text;

@@ -83,9 +83,13 @@ public sealed class ResultsViewModel : ObservableObject
     {
         foreach (var row in _rows) row.PropertyChanged -= MarkChanged;
         _rows = rows;
-        var counts = rows.CountBy(r => r.File.Group).ToDictionary();
-        foreach (var row in rows) row.CurrentGroup = counts[row.File.Group] > 1 ? row.File.Group : 0;
-        foreach (var row in rows) row.PropertyChanged += MarkChanged;
+        var counts = rows.Where(r => r.File.Group > 0).CountBy(r => r.File.Group).ToDictionary();
+        foreach (var row in rows)
+        {
+            if (row.File.Group > 0) row.CurrentGroup = counts[row.File.Group] > 1 ? row.File.Group : 0;
+            row.PropertyChanged += MarkChanged;
+        }
+
         MarkedCount = rows.Count(r => r.Marked);
         OnPropertyChanged(nameof(MarkedCount));
         View = BuildView();
@@ -155,12 +159,16 @@ public sealed class ResultsViewModel : ObservableObject
     // Whether WPF has realized or expanded a row is immaterial.
     public CleanupPlan Plan(bool filtered)
     {
-        var scope = filtered ? _rows.Where(Matches).Select(r => r.File).ToHashSet() : null;
+        var scope = filtered ? _rows.Where(r => r.File.Variant > 0 && Matches(r)).Select(r => r.File).ToHashSet() : null;
         return CleanupPlan.Create(_rows.Select(r => r.File), scope == null ? null : scope.Contains);
     }
 
     public IReadOnlyList<CleanupItem> Manual() => _rows.Where(r => r.Marked).Select(r => new CleanupItem(r.File, null)).ToArray();
 
-    public int LastCopiesSelected() => _rows.GroupBy(r => (r.File.Variant, Single: r.File.Variant == 0 ? r.File.Path : ""))
-        .Count(g => g.All(r => r.Marked));
+    public int LastCopiesSelected()
+    {
+        var singles = _rows.Count(r => r.File.Variant == 0 && r.Marked);
+        var variants = _rows.Where(r => r.File.Variant > 0).GroupBy(r => r.File.Variant);
+        return singles + variants.Count(group => group.All(r => r.Marked));
+    }
 }

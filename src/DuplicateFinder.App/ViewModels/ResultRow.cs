@@ -8,7 +8,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     private static LocalizationService Strings => LocalizationService.Instance;
     private HashFormat _hashFormat = hashFormat;
     private IReadOnlyDictionary<ChecksumAlgorithm, string> _displayHashes = DigestFormatter.FormatAll(file.Hashes, hashFormat);
-    private string? CachedDetails { get; set; }
+    private LocalizedTextCache _details;
 
     public FoundFile File { get; } = file;
     public bool Marked { get; set => SetProperty(ref field, value); }
@@ -22,7 +22,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
         {
             if (field == value) return;
             field = value;
-            CachedDetails = null;
+            _details.Clear();
 
             OnPropertyChanged();
             OnPropertyChanged(nameof(GroupTitle));
@@ -42,7 +42,7 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     public IEnumerable<SignatureBadgeItem> CatalogBadges => CatalogResult.Badges(Strings);
     public string Catalog => CatalogResult.Summary(Strings);
 
-    public string Details => CachedDetails ??= BuildDetails();
+    public string Details => _details[Strings.Culture] ??= BuildDetails();
 
     private string BuildDetails()
     {
@@ -74,20 +74,23 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     internal void SetHashFormat(HashFormat format)
     {
         if (_hashFormat == format) return;
-        _displayHashes = DigestFormatter.FormatAll(File.Hashes, format);
+        var hashes = DigestFormatter.FormatAll(File.Hashes, format);
         _hashFormat = format;
-        CachedDetails = null;
+        if (ReferenceEquals(_displayHashes, hashes) && File.Embedded.Signatures.Count == 0) return;
+
+        _displayHashes = hashes;
+        _details.Clear();
 
         OnPropertyChanged(nameof(Sha256));
         OnPropertyChanged(nameof(Details));
     }
 
     internal bool MatchesHash(string text) =>
-        DigestSearch.MatchesAny(File.Hashes.Values, _displayHashes.Values, _hashFormat, text);
+        File.Hashes.Count > 0 && DigestSearch.MatchesAny(File.Hashes.Values, _displayHashes.Values, _hashFormat, text);
 
     internal void Relocalize()
     {
-        CachedDetails = null;
+        _details.Clear();
         OnPropertyChanged(string.Empty);
     }
 }

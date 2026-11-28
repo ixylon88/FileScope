@@ -86,8 +86,7 @@ public sealed record FileAnalysisResult(
     public bool Succeeded => Error == AnalysisError.None;
 
     public static FileAnalysisResult Failure(string path, AnalysisError error, string? diagnostic) =>
-        new(path, null, null, new ReadOnlyDictionary<ChecksumAlgorithm, string>(
-            new Dictionary<ChecksumAlgorithm, string>()), SignatureResult.NotChecked, error, diagnostic);
+        new(path, null, null, ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty, SignatureResult.NotChecked, error, diagnostic);
 }
 
 public sealed record AnalysisProgress(AnalysisStage Stage, long BytesRead, long TotalBytes);

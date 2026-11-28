@@ -395,14 +395,42 @@ public sealed partial class WindowTests
         Assert.Contains("Publisher · AP4", row.Details);
 
         strings.SetCulture("de");
+        var germanDetails = row.Details;
+        Assert.Contains($"{strings["Folder"]} · search (10)", germanDetails);
         model.Relocalize();
-        Assert.Contains($"{strings["Folder"]} · search (10)", row.Details);
+        Assert.AreEqual(germanDetails, row.Details);
 
         model.RemoveMoved([new(copy, true, null), new(file, false, "recycle error")]);
         var remaining = model.Rows.Single().Details;
         Assert.Contains(strings["Streams_Unmatched"], remaining);
         Assert.Contains("scan diagnostic", remaining);
         Assert.Contains("recycle error", remaining);
+    });
+
+    [TestMethod]
+    public Task SinglesKeepTheirDetailsOnHashFormatChangesAndCountIndividuallyForManualRemoval() => WpfTestHost.RunAsync((_, _) =>
+    {
+        var first = new FoundFile("single-a", new("root", 10));
+        var second = new FoundFile("single-b", first.Root);
+        var model = new ResultsViewModel();
+        model.Replace([first, second, FileAt("keeper", 10), FileAt("copy", 1)]);
+
+        var row = model.Rows[0];
+        var details = row.Details;
+        model.SetHashFormat(HashFormat.Base64);
+        Assert.AreSame(details, row.Details);
+
+        row.Marked = true;
+        model.Rows[3].Marked = true;
+        model.Filter("single", ResultKind.Singles, SignatureFilter.All);
+        Assert.IsEmpty(model.Plan(true).Items);
+        Assert.HasCount(1, model.Plan(false).Items);
+        Assert.HasCount(2, model.Manual());
+        Assert.AreEqual(1, model.LastCopiesSelected());
+
+        model.Rows[1].Marked = true;
+        model.Rows[2].Marked = true;
+        Assert.AreEqual(3, model.LastCopiesSelected());
     });
 
     [TestMethod]

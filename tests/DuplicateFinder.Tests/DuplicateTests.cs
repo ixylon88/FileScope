@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.ObjectModel;
 using System.Text;
 using DuplicateFinder.Core.Abstractions;
 using DuplicateFinder.Core.Files;
@@ -41,6 +42,35 @@ public sealed class DuplicateTests
     }
 
     [TestMethod]
+    public async Task DistinctSizesNeedOnlyDiscoveryEvenWithAllInspectionsEnabled()
+    {
+        var paths = new[] { Put("1", "empty", ""), Put("2", "one", "x"), Put("3", "single.cat", "catalog") };
+        var progress = new Stages();
+        var unused = new UnexpectedInspections();
+        var scanner = new DuplicateScanner(_facts, unused, unused);
+        var scan = await scanner.ScanAsync([new(_dir, 1)], Options with { Embedded = true, Catalogs = true }, progress);
+
+        CollectionAssert.AreEquivalent(paths, scan.Files.Select(file => file.Path).ToArray());
+        Assert.IsEmpty(scan.Issues);
+        Assert.IsEmpty(_facts.StreamReads);
+        Assert.IsTrue(progress.Updates.All(update => update.Stage is "Search" or "Metadata"));
+        Assert.IsEmpty(CleanupPlan.Create(scan.Files).Items);
+
+        foreach (var file in scan.Files)
+        {
+            Assert.AreEqual(1, _facts.ReadCount(file.Path));
+            var name = file.Name;
+            Assert.AreEqual(Path.GetFileName(file.Path), name);
+            Assert.AreSame(name, file.Name);
+            Assert.AreSame(ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty, file.Hashes);
+            Assert.AreEqual(SignatureResult.NotChecked, file.Embedded);
+            Assert.IsNull(file.Catalogs);
+            Assert.AreEqual(StreamComparison.Unmatched, file.Streams);
+            Assert.IsNull(file.Diagnostic);
+        }
+    }
+
+    [TestMethod]
     public async Task HashProgressOnlyReportsFilesWithAnotherCandidateOfTheSameSize()
     {
         var first = Put("1", "first", "ABC");
@@ -53,6 +83,11 @@ public sealed class DuplicateTests
 
         Assert.IsEmpty(scan.Issues);
         CollectionAssert.AreEquivalent(new[] { first, second }, progress.Paths("Hash"));
+        Assert.IsTrue(progress.Updates.Where(p => p.Stage == "Hash").All(p => p.Total == 2));
+        Assert.IsEmpty(progress.Paths("Compare"));
+        Assert.IsEmpty(_facts.StreamReads);
+        Assert.AreEqual(2, _facts.ReadCount(first));
+        Assert.AreEqual(2, _facts.ReadCount(second));
         Assert.IsEmpty(progress.Paths("Signature"));
         Assert.IsEmpty(progress.Paths("Catalog"));
         Assert.IsEmpty(progress.Paths("CatalogIndex"));
@@ -203,7 +238,10 @@ public sealed class DuplicateTests
 
         var scan = await ScanAsync(new Collision(), Options with { Embedded = true });
         Assert.IsTrue(scan.Files.Where(f => f.Group != 0).All(f => f.Embedded != SignatureResult.NotChecked));
-        Assert.AreEqual(SignatureResult.NotChecked, scan.Files.Single(f => f.Name == "e").Embedded);
+        var single = scan.Files.Single(f => f.Name == "e");
+        Assert.AreEqual(SignatureResult.NotChecked, single.Embedded);
+        Assert.IsNull(single.Manifest);
+        CollectionAssert.AreEquivalent(scan.Files.Where(f => f.Group != 0).Select(f => f.Path).ToArray(), _facts.StreamReads);
         var groups = scan.Files.ToDictionary(f => f.Name, f => f.Group);
         Assert.AreEqual(groups["a"], groups["c"]);
         Assert.AreEqual(groups["b"], groups["d"]);
@@ -424,6 +462,7 @@ public sealed class DuplicateTests
         internal HashSet<string> Unreadable { get; } = [];
         internal HashSet<string> UnreadableSize { get; } = [];
         internal List<FileStream> Reads { get; } = [];
+        internal List<string> StreamReads { get; } = [];
         internal int ReadCount(string path) => Reads.Count(file => file.Name == path);
 
         public FileStamp Read(FileStream file)
@@ -433,8 +472,22 @@ public sealed class DuplicateTests
             if (!Keys.TryGetValue(file.Name, out var key)) Keys.Add(file.Name, key = new(1, Guid.NewGuid()));
             return new(key, file.Length, DateTime.UnixEpoch, 1, Links.GetValueOrDefault(file.Name, 1u));
         }
-        public IReadOnlyList<NamedStream> Streams(FileStream file) => Unreadable.Contains(file.Name)
-            ? throw new IOException("Stream list unavailable.") : Manifests.GetValueOrDefault(file.Name) ?? [];
+        public IReadOnlyList<NamedStream> Streams(FileStream file)
+        {
+            StreamReads.Add(file.Name);
+            return Unreadable.Contains(file.Name)
+                ? throw new IOException("Stream list unavailable.") : Manifests.GetValueOrDefault(file.Name) ?? [];
+        }
+    }
+
+    private sealed class UnexpectedInspections : IChecksumService, ISignatureInspector
+    {
+        public Task<IReadOnlyDictionary<ChecksumAlgorithm, string>> ComputeAsync(Stream stream,
+            IReadOnlyCollection<ChecksumAlgorithm> algorithms, IProgress<long>? progress = null, CancellationToken cancellationToken = default) =>
+            throw new AssertFailedException("A file with a unique size reached the checksum service.");
+
+        public SignatureResult Inspect(FileStream file, string fullPath, RevocationMode revocationMode, CancellationToken cancellationToken = default) =>
+            throw new AssertFailedException("A file with a unique size reached the signature inspector.");
     }
 
     private sealed class Collision : IChecksumService
