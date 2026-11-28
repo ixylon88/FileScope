@@ -71,7 +71,7 @@ Beispielsweise enthält eine Gruppe vier identische Dateien. Zwei liegen im Arch
 
 **In den Papierkorb** wird aktiv, sobald mindestens eine Datei angekreuzt ist. Der Bestätigungsdialog führt alle ausgewählten Pfade auf. Damit lassen sich auch Einzeldateien und Dateien höchster Priorität manuell entfernen. Umfasst die Auswahl sämtliche bekannten Kopien einer Gruppe, weist der Dialog darauf hin.
 
-Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Vor der automatischen Aktion werden Kandidat und verbleibende Referenz erneut auf Identität und unveränderten Inhalt geprüft. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
+Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Lässt sich die vorgesehene Referenz beim Bereinigen nicht mehr mit ihrer geprüften Datei-ID und ihren Änderungsdaten öffnen, versucht DuplicateFinder eine weitere Kopie derselben Variante mit gleich hoher Priorität. Mit der gewählten Referenz vergleicht er Haupt- und Zusatzdatenströme erneut Byte für Byte. Scheitert der Vergleich oder ist keine geschützte Kopie erreichbar, bleibt der Kandidat am bisherigen Ort. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
 
 ## NTFS-Zusatzdatenströme und Authenticode
 

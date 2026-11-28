@@ -41,18 +41,18 @@ public sealed class CleanupService
     {
         var candidate = item.File;
         using var source = FileAccessChecks.OpenVerified(candidate, _facts, movable: true);
-        using var keeper = item.Keeper == null ? null : FileAccessChecks.OpenVerified(item.Keeper, _facts);
+        using var keeper = OpenKeeper(item, out var keeperFile, token);
         List<FileStream>? heldStreams = null;
         try
         {
-            if (keeper != null && item.Keeper != null)
+            if (keeper != null && keeperFile != null)
             {
-                if (candidate.IsHardLink || candidate.Root.Priority >= item.Keeper.Root.Priority
-                    || candidate.Variant <= 0 || candidate.Variant != item.Keeper.Variant
-                    || candidate.Stamp!.Key == item.Keeper.Stamp!.Key || candidate.Manifest == null
+                if (candidate.IsHardLink || candidate.Root.Priority >= keeperFile.Root.Priority
+                    || candidate.Variant <= 0 || candidate.Variant != keeperFile.Variant
+                    || candidate.Stamp!.Key == keeperFile.Stamp!.Key || candidate.Manifest == null
                     || !candidate.Manifest.SequenceEqual(_facts.Streams(source))
                     || !candidate.Manifest.SequenceEqual(_facts.Streams(keeper))
-                    || !BinaryComparison.Equal(new(candidate, source), new(item.Keeper, keeper), token))
+                    || !BinaryComparison.Equal(new(candidate, source), new(keeperFile, keeper), token))
                 {
                     throw new IOException("The verified copy has changed.");
                 }
@@ -63,9 +63,9 @@ public sealed class CleanupService
                 {
                     var a = FileAccessChecks.Open(candidate.Path + stream.Suffix, movable: true);
                     (heldStreams ??= []).Add(a);
-                    var b = FileAccessChecks.Open(item.Keeper.Path + stream.Suffix);
+                    var b = FileAccessChecks.Open(keeperFile.Path + stream.Suffix);
                     heldStreams.Add(b);
-                    if (!BinaryComparison.Equal(new(candidate, a), new(item.Keeper, b), token))
+                    if (!BinaryComparison.Equal(new(candidate, a), new(keeperFile, b), token))
                         throw new IOException("A named stream has changed.");
                 }
             }
@@ -76,8 +76,8 @@ public sealed class CleanupService
                 // The shell resolves a path. Check that it still names the same
                 // scanned file, and that neither side acquired a new stream.
                 using var current = FileAccessChecks.OpenVerified(candidate, _facts, movable: true);
-                if (keeper == null || item.Keeper == null) return;
-                using var reference = FileAccessChecks.OpenVerified(item.Keeper, _facts);
+                if (keeper == null || keeperFile == null) return;
+                using var reference = FileAccessChecks.OpenVerified(keeperFile, _facts);
                 if (!candidate.Manifest!.SequenceEqual(_facts.Streams(current)) ||
                     !candidate.Manifest!.SequenceEqual(_facts.Streams(reference)))
                 {
@@ -95,5 +95,22 @@ public sealed class CleanupService
                 foreach (var stream in heldStreams) stream.Dispose();
             }
         }
+    }
+
+    private FileStream? OpenKeeper(CleanupItem item, out FoundFile? keeper, CancellationToken token)
+    {
+        keeper = item.Keeper;
+        if (keeper is null) return null; // Explicit manual selection.
+
+        // Select the reference before comparing or invoking the shell. A failed handoff must never be retried.
+        foreach (var alternate in item.AlternateKeepers.Span)
+        {
+            token.ThrowIfCancellationRequested();
+            try { return FileAccessChecks.OpenVerified(keeper, _facts); }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { keeper = alternate; }
+        }
+
+        token.ThrowIfCancellationRequested();
+        return FileAccessChecks.OpenVerified(keeper, _facts);
     }
 }
