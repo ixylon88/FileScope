@@ -9,14 +9,16 @@ internal static class BinaryComparison
     internal static bool CompareFiles(FoundFile reference, FoundFile candidate, IFileFacts facts,
         bool namedStreams, CancellationToken token)
     {
+        // In the second pass the main bytes already match. Different stream names or lengths rule out this variant.
+        var streams = reference.Manifest;
+        if (namedStreams && (streams is null || candidate.Manifest is null || !streams.SequenceEqual(candidate.Manifest)))
+            return false;
+
         using var left = Open(reference, facts);
         using var right = Open(candidate, facts);
         if (!namedStreams) return Equal(new(reference, left), new(candidate, right), token);
 
-        if (reference.Manifest == null || candidate.Manifest == null || !reference.Manifest.SequenceEqual(candidate.Manifest))
-            return false;
-
-        foreach (var stream in reference.Manifest)
+        foreach (var stream in streams!)
         {
             using var first = Open(reference, facts, stream.Suffix);
             using var second = Open(candidate, facts, stream.Suffix);

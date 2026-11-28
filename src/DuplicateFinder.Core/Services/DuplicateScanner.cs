@@ -32,10 +32,9 @@ public sealed class DuplicateScanner
         IProgress<ScanProgress>? progress = null, CancellationToken token = default)
     {
         var issues = new List<ScanIssue>();
-        var files = Discover(roots, options.SizeRange, options.Catalogs && OperatingSystem.IsWindows(),
-            issues, progress, token, out var catalogPaths);
+        var catalogs = options.Catalogs && OperatingSystem.IsWindows() ? new ScanCatalogs(_facts, issues, progress) : null;
+        var files = Discover(roots, options.SizeRange, catalogs, issues, progress, token);
         var candidates = FilesWithPeers(files, file => file.Size, token);
-        WindowsCatalogIndex? catalogIndex = null;
 
         if (candidates.Length > 0)
         {
@@ -58,13 +57,8 @@ public sealed class DuplicateScanner
                     file.Embedded = _signatures.Inspect(input, file.Path, options.Revocation, token);
                 }
 
-                if (options.Catalogs && OperatingSystem.IsWindows())
-                {
-                    catalogIndex ??= new WindowsCatalogIndex(CatalogsToIndex(catalogPaths, progress),
-                        (path, reason) => issues.Add(new(path, reason)), token);
-                    progress?.Report(new("Catalog", file.Path, 0, 0));
-                    file.Catalogs = catalogIndex.Inspect(input, options.Revocation, token);
-                }
+                if (catalogs != null && OperatingSystem.IsWindows())
+                    file.Catalogs = catalogs.Inspect(input, options.Revocation, token);
             }
             catch (Exception ex) when (FileAccessChecks.Expected(ex))
             {
@@ -73,15 +67,13 @@ public sealed class DuplicateScanner
         }
     }
 
-    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes, bool collectCatalogs,
-        List<ScanIssue> issues, IProgress<ScanProgress>? progress, CancellationToken token,
-        out Dictionary<FileKey, string>? catalogPaths)
+    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes, ScanCatalogs? catalogs,
+        List<ScanIssue> issues, IProgress<ScanProgress>? progress, CancellationToken token)
     {
         // Highest priority first, including roots contained in another selected root.
         var paths = new HashSet<string>(StringComparer.Ordinal);
         var identities = new HashSet<FileKey>();
         var files = new List<FoundFile>();
-        catalogPaths = null;
         var scanner = new FolderScanner(FileAccessChecks.IsRecycleDirectory);
         var seen = 0;
         var updateClock = Stopwatch.StartNew();
@@ -97,13 +89,16 @@ public sealed class DuplicateScanner
             seen++;
             if (progress != null && updateClock.ElapsedMilliseconds >= 150) ReportSearch(file.FullName);
 
-            if (sizes == default || (collectCatalogs && CatalogSearch.IsCatalogPath(file.FullName)))
-                return true;
+            if (sizes == default) return true;
 
             try
             {
                 // Directory enumeration supplies Length on Windows. Reparse points still take the diagnostic path.
-                return (file.Attributes & FileAttributes.ReparsePoint) != 0 || sizes.Includes(file.Length);
+                if ((file.Attributes & FileAttributes.ReparsePoint) != 0 || sizes.Includes(file.Length)) return true;
+
+                // An out-of-range catalog may describe a duplicate. Its path is enough until one is confirmed.
+                if (catalogs != null && CatalogSearch.IsCatalogPath(file.FullName)) catalogs.Remember(file.FullName);
+                return false;
             }
             catch (Exception ex) when (FileAccessChecks.Expected(ex))
             {
@@ -143,10 +138,7 @@ public sealed class DuplicateScanner
                         stamp = _facts.Read(input);
 
                         // A catalog's own size is independent of the files it describes.
-                        if (collectCatalogs && CatalogSearch.IsCatalogPath(path))
-                        {
-                            (catalogPaths ??= []).TryAdd(stamp.Key, path);
-                        }
+                        if (catalogs != null && CatalogSearch.IsCatalogPath(path)) catalogs.Remember(path, stamp.Key);
 
                         // A candidate can change between directory enumeration and opening.
                         if (!sizes.Includes(stamp.Length) || !identities.Add(stamp.Key)) continue;
@@ -208,18 +200,6 @@ public sealed class DuplicateScanner
         }
 
         return false;
-    }
-
-    private static IEnumerable<string> CatalogsToIndex(Dictionary<FileKey, string>? catalogs, IProgress<ScanProgress>? progress)
-    {
-        if (catalogs is null) yield break;
-        var index = 0;
-        foreach (var path in catalogs.Values)
-        {
-            progress?.Report(new("CatalogIndex", path, index, catalogs.Count));
-            index++;
-            yield return path;
-        }
     }
 
     // Keep discovery order and allocate comparison groups only for files that actually have a peer.

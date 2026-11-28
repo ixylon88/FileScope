@@ -23,7 +23,7 @@ Unter **Optionen → Suchordner → Dateigröße beim Einlesen** lassen sich ein
 
 Bei **Dateien suchen** zeigt die Statusleiste den aktuellen Pfad und zählt alle gesichteten Dateieinträge, einschließlich der Einträge außerhalb des Größenbereichs. Die anschließende Metadatenprüfung und der Aufbau des Katalogindex zeigen jeweils den bearbeiteten Dateipfad.
 
-Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche können auch `.cat`-Dateien außerhalb des Bereichs die Signaturinformationen zu einem bestätigten Duplikat liefern.
+Der Bereich gilt vor Prüfsummen, Signaturprüfung und Binärvergleich. Auch **Alle gescannten Dateien** beim Bereinigen umfasst nur Dateien aus diesem Bereich. Nach einer Änderung der Grenzen startet **F5** einen neuen Suchlauf. Der Tabellenfilter lässt sich anschließend jederzeit ändern. Bei aktiver Katalogsuche merkt sich DuplicateFinder die Pfade von `.cat`-Dateien außerhalb des Größenbereichs. Er öffnet sie erst für die erste byteweise bestätigte Duplikatgruppe. So kann auch ein kleiner Katalog die Signaturinformationen zu einer großen Datei liefern.
 
 Die eigenständige WPF-App übernimmt das helle und dunkle Theme sowie die Aufteilung von FileScope mit einklappbarem Menü, filterbarer Tabelle, Detailansicht und Statusleiste. **F1** oder der Knopf **Tastenkürzel** öffnet die gemeinsame Übersicht. **Esc** oder **Enter** schließt sie. Darin stehen auch die DuplicateFinder-Befehle **F5** für die Suche und **Strg+F** für den Filter. [Gemeinsame Tabellenkürzel](../README.md#tastenkürzel)
 
@@ -71,11 +71,13 @@ Beispielsweise enthält eine Gruppe vier identische Dateien. Zwei liegen im Arch
 
 **In den Papierkorb** wird aktiv, sobald mindestens eine Datei angekreuzt ist. Der Bestätigungsdialog führt alle ausgewählten Pfade auf. Damit lassen sich auch Einzeldateien und Dateien höchster Priorität manuell entfernen. Umfasst die Auswahl sämtliche bekannten Kopien einer Gruppe, weist der Dialog darauf hin.
 
-Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Vor der automatischen Aktion werden Kandidat und verbleibende Referenz erneut auf Identität und unveränderten Inhalt geprüft. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
+Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Lässt sich die vorgesehene Referenz beim Bereinigen nicht mehr mit ihrer geprüften Datei-ID und ihren Änderungsdaten öffnen, versucht DuplicateFinder eine weitere Kopie derselben Variante mit gleich hoher Priorität. Mit der gewählten Referenz vergleicht er Haupt- und Zusatzdatenströme erneut Byte für Byte. Scheitert der Vergleich oder ist keine geschützte Kopie erreichbar, bleibt der Kandidat am bisherigen Ort. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
 
 ## NTFS-Zusatzdatenströme und Authenticode
 
 Ein benannter NTFS-Datenstrom kann Metadaten wie die Herkunftszone (`Zone.Identifier`) oder eigene Nutzdaten enthalten. Innerhalb einer Gruppe mit identischem Hauptdatenstrom werden deshalb auch die Namen und die vollständigen Inhalte der Zusatzdatenströme verglichen. Ein nur einseitig vorhandener Strom zählt als Unterschied. [Microsoft Learn zu NTFS-Datenströmen](https://learn.microsoft.com/en-us/windows/win32/fileio/file-streams)
+
+Die Gruppennummer bestätigt die byteweise Übereinstimmung der Hauptdatenströme. Unterscheiden sich Namen oder Längen der Zusatzdatenströme, stehen bereits verschiedene Varianten fest. Bei gleichen Namen und Längen vergleicht DuplicateFinder auch deren Inhalte Byte für Byte.
 
 Die Tabelle unterscheidet „Alle Datenströme identisch“, „Hauptdatenstrom identisch · Zusatzdatenströme unterschiedlich“ und „Hauptdatenstrom identisch · Zusatzdatenströme nicht vollständig geprüft“. Bei unterschiedlichen Zusatzdatenströmen gelten die Aufbewahrungsregeln innerhalb jeder vollständig identischen Variante. Bei unvollständiger Prüfung wird die betroffene Datei bei **Bereinigen** übersprungen.
 
