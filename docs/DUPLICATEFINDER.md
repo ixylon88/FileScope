@@ -77,6 +77,8 @@ Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windo
 
 Ein benannter NTFS-Datenstrom kann Metadaten wie die Herkunftszone (`Zone.Identifier`) oder eigene Nutzdaten enthalten. Innerhalb einer Gruppe mit identischem Hauptdatenstrom werden deshalb auch die Namen und die vollständigen Inhalte der Zusatzdatenströme verglichen. Ein nur einseitig vorhandener Strom zählt als Unterschied. [Microsoft Learn zu NTFS-Datenströmen](https://learn.microsoft.com/en-us/windows/win32/fileio/file-streams)
 
+Die Gruppennummer bestätigt die byteweise Übereinstimmung der Hauptdatenströme. Unterscheiden sich Namen oder Längen der Zusatzdatenströme, stehen bereits verschiedene Varianten fest. Bei gleichen Namen und Längen vergleicht DuplicateFinder auch deren Inhalte Byte für Byte.
+
 Die Tabelle unterscheidet „Alle Datenströme identisch“, „Hauptdatenstrom identisch · Zusatzdatenströme unterschiedlich“ und „Hauptdatenstrom identisch · Zusatzdatenströme nicht vollständig geprüft“. Bei unterschiedlichen Zusatzdatenströmen gelten die Aufbewahrungsregeln innerhalb jeder vollständig identischen Variante. Bei unvollständiger Prüfung wird die betroffene Datei bei **Bereinigen** übersprungen.
 
 Stimmen A und B einschließlich aller Datenströme überein, kann **Bereinigen** die Kopie mit der niedrigeren Priorität vorschlagen. Das gilt auch dann, wenn die Zusatzdatenströme einer dritten Datei C unlesbar sind. Bei gleicher Priorität bleiben A und B beide erhalten.
