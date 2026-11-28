@@ -61,7 +61,7 @@ public sealed partial class WindowsTests
             File.WriteAllBytes(member, original);
             var copy = Path.Combine(root.FullName, "member-copy.txt");
             File.Copy(member, copy);
-            var cat = Path.Combine(root.FullName, "loose.cat");
+            var cat = Path.Combine(root.FullName, "loose.CaT");
             using (var resource = typeof(WindowsTests).Assembly.GetManifestResourceStream("DuplicateFinder.Tests.loose.cat"))
             using (var output = File.Create(cat))
             {

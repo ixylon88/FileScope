@@ -633,7 +633,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var path in paths)
         {
             if (path is null) continue;
-            if (path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase))
+            if (CatalogSearch.IsCatalogPath(path))
             {
                 try { catalogs.Add(Path.GetFullPath(path)); }
                 catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)

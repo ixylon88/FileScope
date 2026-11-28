@@ -10,6 +10,9 @@ public sealed class CatalogSearch(IEnumerable<string> paths)
     private WindowsCatalogIndex? _index;
     private IReadOnlyList<string> _indexIssues = [];
 
+    /// <summary>Recognizes a possible catalog by filename during file intake.</summary>
+    public static bool IsCatalogPath(string path) => path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Builds the index on first use, on the analysis worker. A cancelled build can be retried.</summary>
     public CatalogLookup Inspect(FileStream file, RevocationMode mode, CancellationToken token)
     {
