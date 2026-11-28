@@ -12,7 +12,20 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
 
     public FoundFile File { get; } = file;
     public bool Marked { get; set => SetProperty(ref field, value); }
-    internal string? RecycleError { get; init; }
+    internal string? RecycleError
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            _details.Clear();
+
+            OnPropertyChanged(nameof(Diagnostic));
+            OnPropertyChanged(nameof(Details));
+        }
+    }
+
     public string? Diagnostic
     {
         get

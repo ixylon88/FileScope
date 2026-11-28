@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using DuplicateFinder.Core.Models;
@@ -8,7 +9,7 @@ public enum ResultKind { AllFiles, Duplicates, Singles, Diagnostics }
 
 public sealed class ResultsViewModel : ObservableObject
 {
-    private List<ResultRow> _rows = [];
+    private ObservableCollection<ResultRow> _rows = [];
     private ListCollectionView _view;
     private string _searchText = "";
     private string _query = "";
@@ -49,7 +50,7 @@ public sealed class ResultsViewModel : ObservableObject
 
     public bool CanMark => !IsBusy;
 
-    public void Replace(IEnumerable<FoundFile> files) => Install(files.Select(f => new ResultRow(f, _hashFormat)).ToList());
+    public void Replace(IEnumerable<FoundFile> files) => Install(new(files.Select(f => new ResultRow(f, _hashFormat))));
 
     public void SetHashFormat(HashFormat format)
     {
@@ -74,14 +75,33 @@ public sealed class ResultsViewModel : ObservableObject
 
         var moved = result.Where(r => r.Moved).Select(r => r.File).ToHashSet();
         var failed = result.Where(r => !r.Moved).ToDictionary(r => r.File, r => r.Reason);
-        Install(_rows.Where(r => !moved.Contains(r.File)).Select(r => new ResultRow(r.File, _hashFormat)
-        {
-            Marked = r.Marked,
-            RecycleError = failed.GetValueOrDefault(r.File) ?? r.RecycleError
-        }).ToList());
+        if (failed.Count > 0) ApplyRecycleErrors(failed, updateView: moved.Count == 0);
+        if (moved.Count > 0) Install(new(_rows.Where(row => !moved.Contains(row.File))));
     }
 
-    private void Install(List<ResultRow> rows)
+    private void ApplyRecycleErrors(Dictionary<FoundFile, string?> failures, bool updateView)
+    {
+        var filterUsesDiagnostics = updateView && (_kind == ResultKind.Diagnostics || _query.Length > 0);
+        var visibilityChanged = false;
+        for (var index = 0; index < _rows.Count; index++)
+        {
+            var row = _rows[index];
+            if (!failures.TryGetValue(row.File, out var error) || error is null || error == row.RecycleError) continue;
+
+            var wasVisible = filterUsesDiagnostics && Matches(row);
+            row.RecycleError = error;
+            if (filterUsesDiagnostics && wasVisible != Matches(row))
+            {
+                // A source Replace lets WPF add or remove only this row from the filtered group.
+                _rows[index] = row;
+                visibilityChanged = true;
+            }
+        }
+
+        if (visibilityChanged) OnPropertyChanged(nameof(VisibleCount));
+    }
+
+    private void Install(ObservableCollection<ResultRow> rows)
     {
         foreach (var row in _rows) row.PropertyChanged -= MarkChanged;
         _rows = rows;
