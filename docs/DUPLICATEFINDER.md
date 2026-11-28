@@ -2,6 +2,8 @@
 
 DuplicateFinder findet binär identische Dateien in mehreren frei wählbaren Suchordnern. Jeder Suchordner erhält eine **Aufbewahrungspriorität**. Eine höhere Zahl bedeutet, dass seine Dateien bevorzugt erhalten bleiben. Fällt ein Pfad in mehrere Suchordner, zählt er einmal mit der höchsten zutreffenden Priorität.
 
+Werden etwa `Archiv` und `Archiv\Fotos` ausgewählt, durchsucht DuplicateFinder den gemeinsamen Teilbaum pro Suchlauf einmal. War ein Unterordner vorübergehend unlesbar, kann der zweite Suchordner ihn erneut erfassen. Bereits vollständig durchsuchte Nachbarordner werden dabei übersprungen.
+
 ## Starten
 
 In Visual Studio `DuplicateFinder.App` als Startprojekt wählen. In VS Code den Workspace `FileScope.code-workspace` öffnen und unter **Terminal → Task ausführen** den zur Windows-Architektur passenden Task **DuplicateFinder: Run (win-x64)** oder **DuplicateFinder: Run (win-arm64)** wählen. Dieselben Skripte lassen sich im Repository direkt aufrufen.
@@ -88,6 +90,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |
+| `CreateFileW` | Öffnet Verzeichnisse für eine Metadatenabfrage, wenn zwei Pfade sich nur in der Groß- und Kleinschreibung unterscheiden. Nur bei übereinstimmender Volume- und Verzeichnis-ID kann DuplicateFinder den zweiten Besuch überspringen. |
 | `GetFileInformationByHandleEx` | Liefert Datei-ID, Volume, Linkanzahl, Änderungskennung und die Liste benannter Datenströme. Bei älteren Providern dient der Dateiindex aus `GetFileInformationByHandle` als Alternative. Ohne verlässliche Identität erscheint eine Diagnose. |
 | `CryptCATEnumerateMember` und `CryptCATAdminCalcHashFromFileHandle2` | Lesen Mitgliedseinträge loser Kataloge und berechnen den zum Dateiformat gehörenden Mitgliedshash. Windows kann dafür weitere Dateidaten lesen. |
 | `CryptCATAdminEnumCatalogFromHash` und `WinVerifyTrust` | Finden registrierte Kataloge und prüfen den konkreten Mitgliedseintrag samt Katalogsignatur. Die Detailansicht unterscheidet eingebettete Signaturen, registrierte und lose Kataloge sowie eine unvollständige Suche. |

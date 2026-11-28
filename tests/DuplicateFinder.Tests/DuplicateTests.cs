@@ -32,9 +32,9 @@ public sealed partial class DuplicateTests
     }
 
     private Task<ScanResult> ScanAsync(IChecksumService? service = null, SearchOptions? options = null,
-        IProgress<ScanProgress>? progress = null, CancellationToken token = default)
+        IProgress<ScanProgress>? progress = null, IReadOnlyList<SearchRoot>? roots = null, CancellationToken token = default)
     {
-        var roots = Directory.GetDirectories(_dir).Select(d => new SearchRoot(d, int.Parse(Path.GetFileName(d),
+        roots ??= Directory.GetDirectories(_dir).Select(d => new SearchRoot(d, int.Parse(Path.GetFileName(d),
             System.Globalization.CultureInfo.InvariantCulture))).ToArray();
         var scanner = new DuplicateScanner(_facts, service ?? new StreamChecksumService(new ChecksumStrategyFactory()),
             new WindowsAuthenticodeInspector());
@@ -217,9 +217,8 @@ public sealed partial class DuplicateTests
         var high = Put("40", "unrelated", "unique");
         var parent = Put("2", "a", "copy");
         var nested = Put("2/nested", "b", "copy");
-        var scanner = new DuplicateScanner(_facts, new StreamChecksumService(new ChecksumStrategyFactory()), new WindowsAuthenticodeInspector());
-        var scan = await scanner.ScanAsync([new(_dir, 1), new(Path.GetDirectoryName(parent)!, 2),
-            new(Path.GetDirectoryName(nested)!, 5), new(Path.GetDirectoryName(high)!, 40)], Options);
+        var scan = await ScanAsync(roots: [new(_dir, 1), new(Path.GetDirectoryName(parent)!, 2),
+            new(Path.GetDirectoryName(nested)!, 5), new(Path.GetDirectoryName(high)!, 40)]);
 
         Assert.HasCount(3, scan.Files);
         var item = CleanupPlan.Create(scan.Files).Items.Single();
