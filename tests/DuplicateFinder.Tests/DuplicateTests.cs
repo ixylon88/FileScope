@@ -384,6 +384,25 @@ public sealed partial class DuplicateTests
     }
 
     [TestMethod]
+    [DataRow(false, DisplayName = "A new stream on the candidate stops the shell handoff")]
+    [DataRow(true, DisplayName = "A new stream on the keeper stops the shell handoff")]
+    public async Task LastRecycleCheckRejectsAStreamAddedAfterTheInitialCheck(bool onKeeper)
+    {
+        var keeper = Put("9", "keep", "same");
+        var candidate = Put("1", "copy", "same");
+        var plan = CleanupPlan.Create((await ScanAsync()).Files);
+
+        var changed = onKeeper ? keeper : candidate;
+        var bin = new Bin(beforeValidate: () => _facts.Manifests[changed] = [new(":late:$DATA", 1)]);
+        var result = new CleanupService(bin, _facts).Execute(plan.Items).Single();
+
+        Assert.IsFalse(result.Moved);
+        Assert.AreEqual("The stream list has changed.", result.Reason);
+        Assert.IsEmpty(bin.Paths);
+        Assert.IsTrue(File.Exists(candidate) && File.Exists(keeper));
+    }
+
+    [TestMethod]
     public async Task ExplicitManualSelectionCanRecycleASingleAndBinFailureKeepsIt()
     {
         var path = Put("5", "only", "data");
@@ -460,11 +479,12 @@ public sealed partial class DuplicateTests
         Assert.Throws<IOException>(() => WindowsFileFacts.ParseStreams(buffer));
     }
 
-    private sealed class Bin(Action? beforeReturn = null) : IRecycleBin
+    private sealed class Bin(Action? beforeReturn = null, Action? beforeValidate = null) : IRecycleBin
     {
         public List<string> Paths { get; } = [];
         public void Recycle(string path, Action validate)
         {
+            beforeValidate?.Invoke();
             validate();
             beforeReturn?.Invoke();
             Paths.Add(path);
