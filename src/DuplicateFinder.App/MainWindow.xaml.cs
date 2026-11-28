@@ -239,8 +239,7 @@ public partial class MainWindow : Window
 
     private async Task ChooseScopeAsync(object? parameter)
     {
-        var filtered = _model.Plan(true);
-        var all = _model.Plan(false);
+        var (filtered, all) = _model.CreateCleanupPlans();
         var dialog = new ScopeWindow(filtered, all) { Owner = this };
         if (dialog.ShowDialog() == true) await RecycleAsync((dialog.Filtered ? filtered : all).Items);
     }
