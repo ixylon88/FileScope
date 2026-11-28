@@ -25,6 +25,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFileMoveService _fileMover;
     private readonly IFileMoveReportService _moveReports;
     private FileRowViewModel[] _selectedRows = [];
+    private HashSet<FileRowViewModel>? _listedRows;
     private readonly FileShellCommands<FileRowViewModel> _fileActions;
     private readonly LocalizationService _strings;
     private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
@@ -111,11 +112,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SignatureFilters = SignatureFilter.Options(strings);
         _stateFilter = StateFilters[0];
         _signatureFilter = SignatureFilters[0];
+        Rows.CollectionChanged += (_, _) => _listedRows = null;
         RowsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Rows);
         RowsView.Filter = MatchesFilters;
 
         _fileActions = new(fileShell, () => IsIdle ? SingleSelectedRow : null, row => row.FullPath,
-            row => !_disposed && Rows.Contains(row), NotifyFileActionErrorChanged, OnCommandError);
+            row => !_disposed && ContainsRow(row), NotifyFileActionErrorChanged, OnCommandError);
         strings.CultureChanged += OnCultureChanged;
         options.HashFormatChanged += OnHashFormatChanged;
         options.ExportSelectionChanged += OnExportSelectionChanged;
@@ -243,15 +245,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string Statistics => _strings.Format("Statistics", RowsView.Count, Rows.Count);
     public XmlLanguage UiLanguage => XmlLanguage.GetLanguage(_strings.Culture.IetfLanguageTag);
     public FileRowViewModel? SelectedRow { get; set => SetProperty(ref field, value); }
-    public FileRowViewModel? SingleSelectedRow => _selectedRows.Length == 1 && Rows.Contains(_selectedRows[0]) ? _selectedRows[0] : null;
-    public bool CanMoveSelected => IsIdle && _selectedRows.All(Rows.Contains)
-        && SignatureMoveSelection.GetStatus(_selectedRows) is not null;
-    public string MoveSelectedMenu => IsIdle && SignatureMoveSelection.GetStatus(_selectedRows) is { } status
+    public FileRowViewModel? SingleSelectedRow => _selectedRows.Length == 1 && ContainsRow(_selectedRows[0]) ? _selectedRows[0] : null;
+    public bool CanMoveSelected => GetMoveStatus() is not null;
+    public string MoveSelectedMenu => GetMoveStatus() is { } status
         ? _strings.Format("MoveSelectedMenu", SignatureMoveSelection.FolderName(status, _strings)) : "";
+
+    // Ctrl+A can select every row. Build the membership index once per table change.
+    private bool ContainsRow(FileRowViewModel row) => (_listedRows ??= Rows.ToHashSet()).Contains(row);
+
+    private SignatureStatus? GetMoveStatus() =>
+        IsIdle && _selectedRows.All(ContainsRow) ? SignatureMoveSelection.GetStatus(_selectedRows) : null;
 
     public void SetSelectedRows(IEnumerable<FileRowViewModel> rows)
     {
-        _selectedRows = rows.Where(Rows.Contains).Distinct().ToArray();
+        _selectedRows = rows.Where(ContainsRow).Distinct().ToArray();
         NotifyMoveSelectionChanged();
     }
 
@@ -505,7 +512,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task MoveSelectedAsync()
     {
-        if (!CanMoveSelected || SignatureMoveSelection.GetStatus(_selectedRows) is not { } status) return;
+        if (GetMoveStatus() is not { } status) return;
+
         // Capture selection, language and paths once; no view models leave the UI thread.
         var selected = _selectedRows.ToDictionary(row => row.FullPath, StringComparer.OrdinalIgnoreCase);
         var paths = selected.Keys.ToArray();
