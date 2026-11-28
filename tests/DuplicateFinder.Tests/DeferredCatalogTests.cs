@@ -16,7 +16,7 @@ public sealed partial class DuplicateTests
 
         var progress = new Stages(update =>
         {
-            if (update.Stage == "CatalogIndex" && update.Path == catalog)
+            if (update.Stage == "Hash")
                 Assert.AreEqual(0, _facts.ReadCount(catalog), "Discovery must not open an out-of-range catalog.");
         });
 

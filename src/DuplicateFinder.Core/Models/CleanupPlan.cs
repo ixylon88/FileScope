@@ -19,7 +19,10 @@ public sealed record CleanupPlan(IReadOnlyList<CleanupItem> Items)
             foreach (var file in variant)
             {
                 if (file.Root.Priority >= priority || file.Diagnostic != null || file.IsHardLink
-                    || file.Streams == StreamComparison.Unknown || inScope?.Invoke(file) == false) continue;
+                    || file.Streams == StreamComparison.Unknown || inScope?.Invoke(file) == false)
+                {
+                    continue;
+                }
 
                 // Only variants with a removal need the shared list of protected copies.
                 keepers ??= variant.Where(f => f.Root.Priority == priority && f.Diagnostic == null
