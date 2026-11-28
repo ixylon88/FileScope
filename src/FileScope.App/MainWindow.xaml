@@ -37,13 +37,8 @@
       </StackPanel>
       <StackPanel Grid.Column="2" VerticalAlignment="Top">
         <Button x:Name="OptionsButton" Command="{Binding OptionsCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}"
-                ToolTip="{loc:Loc Options}" AutomationProperties.Name="{loc:Loc Options}" Margin="0" HorizontalAlignment="Right">
-          <StackPanel Orientation="Horizontal">
-            <!-- https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-ui-symbol-font -->
-            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBlock Text="{loc:Loc Options}" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
+                ToolTip="{loc:Loc Options}" AutomationProperties.Name="{loc:Loc Options}" Margin="0" HorizontalAlignment="Right"
+                ContentTemplate="{StaticResource OptionsButtonContent}" />
         <TextBlock Text="{Binding Statistics}" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
       </StackPanel>
     </Grid>
@@ -129,19 +124,11 @@
             <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,0,18,0" />
             <StackPanel Width="Auto" MaxWidth="200">
               <Button x:Name="AboutButton" Command="{Binding AboutCommand, ElementName=WindowRoot}" Style="{StaticResource BandButton}"
-                    ToolTip="{loc:Loc AboutTitle}" AutomationProperties.Name="{loc:Loc AboutTitle}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc AboutButton}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
+                      ToolTip="{loc:Loc AboutTitle}" AutomationProperties.Name="{loc:Loc AboutTitle}"
+                      ContentTemplate="{StaticResource AboutButtonContent}" />
               <Button x:Name="ShortcutsButton" Command="ApplicationCommands.Help" Style="{StaticResource BandButton}"
-                    ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE765;" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="{loc:Loc ShortcutsButton}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
+                      ToolTip="{loc:Loc ShortcutsTip}" AutomationProperties.Name="{loc:Loc ShortcutsTitle}"
+                      ContentTemplate="{StaticResource ShortcutsButtonContent}" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>

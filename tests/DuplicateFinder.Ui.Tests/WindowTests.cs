@@ -242,6 +242,7 @@ public sealed partial class WindowTests
         {
             strings.SetCulture(language.CultureName);
             DrainLayout();
+            MenuButtonChecks.Check(window, strings);
             ShortcutDialogChecks.Check(shortcuts, strings, ["Scan", "Filter"], "Mark", "ContextMenu");
             Assert.AreEqual(strings["ShortcutsTitle"], AutomationProperties.GetName(shortcutsButton));
         }
@@ -251,12 +252,6 @@ public sealed partial class WindowTests
         Assert.AreEqual("Suchordner", firstTab.Header);
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == "Strg+F"));
         Assert.IsTrue(VisualChildren<TextBlock>(shortcut).Any(text => text.Text == strings["ShortcutFilterAction"]));
-
-        foreach (var (name, glyph) in new[] { ("OptionsButton", "\uE713"), ("ShortcutsButton", "\uE765"), ("AboutButton", "\uE946") })
-        {
-            var command = (Button)window.FindName(name);
-            Assert.IsTrue(VisualChildren<TextBlock>(command).Any(text => text.Text == glyph && text.FontFamily.Source == "Segoe MDL2 Assets"));
-        }
     });
 
     [TestMethod]

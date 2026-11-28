@@ -273,6 +273,7 @@ public sealed partial class UiTests
             {
                 strings.SetCulture(language.CultureName);
                 DrainDispatcher();
+                MenuButtonChecks.Check(main, strings);
                 ShortcutDialogChecks.Check(shortcuts, strings, ["Open", "Clear"], "ContextMenu");
                 Assert.AreEqual(strings["ShortcutsTitle"], System.Windows.Automation.AutomationProperties.GetName(button));
             }
