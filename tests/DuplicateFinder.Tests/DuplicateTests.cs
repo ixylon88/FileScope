@@ -423,6 +423,36 @@ public sealed class DuplicateTests
     }
 
     [TestMethod]
+    public void StreamManifestOmitsTheDefaultStreamAndSortsNamedStreams()
+    {
+        Assert.IsEmpty(WindowsFileFacts.ParseStreams(Entry("::$DATA", 12)));
+
+        byte[] buffer =
+        [
+            .. Entry(":z:$DATA", 8, hasNext: true),
+            .. Entry("::$DATA", 12, hasNext: true),
+            .. Entry(":a:$DATA", 0)
+        ];
+        var streams = WindowsFileFacts.ParseStreams(buffer);
+        CollectionAssert.AreEqual(new NamedStream[] { new(":a:$DATA", 0), new(":z:$DATA", 8) }, streams.ToArray());
+
+        var truncated = Entry("::$DATA", 12, hasNext: true);
+        Assert.Throws<IOException>(() => WindowsFileFacts.ParseStreams(truncated));
+
+        static byte[] Entry(string name, long length, bool hasNext = false)
+        {
+            var nameBytes = Encoding.Unicode.GetBytes(name);
+            const int headerSize = 24;
+            var entry = new byte[(headerSize + nameBytes.Length + 7) / 8 * 8];
+            if (hasNext) BinaryPrimitives.WriteInt32LittleEndian(entry, entry.Length);
+            BinaryPrimitives.WriteInt32LittleEndian(entry.AsSpan(4), nameBytes.Length);
+            BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(8), length);
+            nameBytes.CopyTo(entry, headerSize);
+            return entry;
+        }
+    }
+
+    [TestMethod]
     public void MalformedStreamBufferFailsClosed()
     {
         var buffer = new byte[40];
