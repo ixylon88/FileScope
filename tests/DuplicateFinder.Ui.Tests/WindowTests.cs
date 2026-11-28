@@ -189,6 +189,42 @@ public sealed partial class WindowTests
     });
 
     [TestMethod]
+    public Task FailedRecycleKeepsTheExpandedSelectionAndUpdatesOnlyAffectedFilterMatches() => WpfTestHost.RunAsync((app, _) =>
+    {
+        var selected = FileAt("locked-copy.bin", 10);
+        var other = FileAt("archive.bin", 1);
+        var model = new ResultsViewModel();
+        model.Replace([selected, other]);
+        model.Filter("locked", ResultKind.Duplicates, SignatureFilter.All);
+        var window = ShowResults(model, new ThemeService(app));
+        var grid = ExpandResults(window);
+        var details = new SelectedFileDetailsChecks(window);
+        details.Expander.IsExpanded = true;
+        var view = model.View;
+        var row = model.Rows[0];
+        var group = VisualChildren<Expander>(grid).Single();
+        grid.SelectedItem = row;
+        row.Marked = true;
+
+        model.RemoveMoved([new(selected, false, "File is locked"), new(other, false, "Archive is locked")]);
+        window.UpdateLayout();
+
+        Assert.AreSame(view, model.View);
+        Assert.AreSame(group, VisualChildren<Expander>(grid).Single());
+        Assert.IsTrue(group.IsExpanded);
+        Assert.AreSame(row, grid.SelectedItem);
+        Assert.AreSame(selected, model.Manual().Single().File);
+        Assert.Contains("File is locked", details.Editor.Text);
+        Assert.AreEqual(2, model.VisibleCount);
+
+        model.RemoveMoved([new(other, false, "Access denied")]);
+        Assert.AreSame(row, model.View.Cast<ResultRow>().Single());
+        Assert.AreSame(row, grid.SelectedItem);
+        model.Filter("", ResultKind.Diagnostics, SignatureFilter.All);
+        Assert.AreEqual(2, model.VisibleCount);
+    });
+
+    [TestMethod]
     public Task HiddenMarksSurviveFilterAndWarnAboutLastCopy() => WpfTestHost.RunAsync((app, strings) =>
     {
         var model = new ResultsViewModel();
@@ -412,6 +448,26 @@ public sealed partial class WindowTests
         window.UpdateLayout();
         Assert.AreEqual("", details.Editor.Text);
         Assert.AreEqual("", details.Path.Text);
+    });
+
+    [TestMethod]
+    public Task FileHashesAreFormattedOnlyWhenTheViewNeedsThem() => WpfTestHost.RunAsync((_, _) =>
+    {
+        var source = new DigestSearchChecks.CountingChecksums();
+        var file = FileAt("match.bin", 1);
+        file.Hashes = source;
+        var model = new ResultsViewModel();
+        model.SetHashFormat(HashFormat.Base64);
+        model.Replace([file]);
+        var row = model.Rows.Single();
+
+        DigestSearchChecks.CheckDeferredFormatting(source, model.SetHashFormat, Matches, () => row.Sha256, () => row.Details);
+
+        bool Matches(string query)
+        {
+            model.SearchText = query;
+            return model.VisibleCount == 1;
+        }
     });
 
     [TestMethod]

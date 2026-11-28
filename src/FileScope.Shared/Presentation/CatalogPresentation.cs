@@ -34,6 +34,9 @@ public sealed class CatalogPresentation
     public static bool IsIncomplete(CatalogLookup lookup) =>
         !lookup.IndexComplete || lookup.IndexIssues.Count > 0 || lookup.Issues.Count > 0;
 
+    public static string? IncompleteDiagnostic(CatalogLookup? lookup, LocalizationService strings) =>
+        lookup is not null && IsIncomplete(lookup) ? strings["Incomplete"] : null;
+
     public IEnumerable<SignatureBadgeItem> Badges(LocalizationService strings) =>
         Groups.Select(group => new SignatureBadgeItem(group.Format(strings), group.Tone));
 

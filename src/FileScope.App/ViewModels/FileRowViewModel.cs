@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using FileScope.App.Presentation;
@@ -8,8 +7,7 @@ namespace FileScope.App.ViewModels;
 
 public sealed class FileRowViewModel(string path, LocalizationService strings, HashFormat format = HashFormat.HexUpper) : ObservableObject
 {
-    private HashFormat _hashFormat = format;
-    private IReadOnlyDictionary<ChecksumAlgorithm, string> _hashText = ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty;
+    private FileHashDisplay _hashes = new(null, format);
     private SignatureOption? _selectedSignature;
     private RevocationMode _runningRevocationMode;
     private LocalizedTextCache _details;
@@ -127,7 +125,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null),
         MetadataDiagnostic("PropertiesError", Result.Properties?.Diagnostic),
         MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic),
-        Result.Catalogs is { } lookup && CatalogPresentation.IsIncomplete(lookup) ? strings["Incomplete"] : null
+        CatalogPresentation.IncompleteDiagnostic(Result.Catalogs, strings)
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details => _details[strings.Culture] ??= BuildDetails();
@@ -235,7 +233,8 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         Result = result;
         CatalogResult = CatalogPresentation.From(result?.Catalogs);
         RebuildSignatures();
-        RebuildHashText();
+        _hashes = new(result?.Checksums, _hashes.Format);
+        RebuildCertificateHashText();
 
         _details.Clear();
         _catalogDetails.Clear();
@@ -259,29 +258,22 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
 
     public void SetHashFormat(HashFormat format)
     {
-        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
-        if (_hashFormat == format) return;
-        _hashFormat = format;
-        RebuildHashText();
-        RefreshRow();
-    }
-
-    private void RebuildHashText()
-    {
-        _hashText = DigestFormatter.FormatAll(Result?.Checksums, _hashFormat);
+        if (_hashes.Format == format) return;
+        _hashes = new(Result?.Checksums, format);
         RebuildCertificateHashText();
+        RefreshRow();
     }
 
     private void RebuildCertificateHashText()
     {
-        CertificateSha1 = DigestFormatter.Format(Certificate?.ThumbprintSha1, _hashFormat);
-        CertificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashFormat);
+        CertificateSha1 = DigestFormatter.Format(Certificate?.ThumbprintSha1, _hashes.Format);
+        CertificateSha256 = DigestFormatter.Format(Certificate?.ThumbprintSha256, _hashes.Format);
     }
 
     private bool MatchesHash(string query) => Result is not null &&
-        (DigestSearch.MatchesAny(Result.Checksums.Values, _hashText.Values, _hashFormat, query)
-            || DigestSearch.Matches(Certificate?.ThumbprintSha1, CertificateSha1, _hashFormat, query)
-            || DigestSearch.Matches(Certificate?.ThumbprintSha256, CertificateSha256, _hashFormat, query));
+        (_hashes.Matches(query)
+            || DigestSearch.Matches(Certificate?.ThumbprintSha1, CertificateSha1, _hashes.Format, query)
+            || DigestSearch.Matches(Certificate?.ThumbprintSha256, CertificateSha256, _hashes.Format, query));
 
     public bool Matches(string query)
     {
@@ -307,7 +299,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     }
 
     private string Hash(ChecksumAlgorithm algorithm) =>
-        _hashText.GetValueOrDefault(algorithm, "");
+        _hashes.Formatted.GetValueOrDefault(algorithm, "");
     private string? MetadataDiagnostic(string key, string? diagnostic) =>
         string.IsNullOrWhiteSpace(diagnostic) ? null : strings.Format(key, diagnostic);
     private string FormatDate(DateTimeOffset? date) =>

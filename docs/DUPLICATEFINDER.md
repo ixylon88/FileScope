@@ -35,6 +35,8 @@ Hauptfenster, Optionen, Über und Tastenkürzel merken sich ihre normale Größe
 
 Das Suchfeld findet Datei-Prüfsummen sowohl als Hex-Wert ohne Trennzeichen als auch in der gewählten Darstellung. Teilwerte genügen. Bei Base64 und Base64url zählt die Groß- und Kleinschreibung.
 
+Der Ergebnisfilter **Diagnose** erfasst auch Dateien mit dem Katalogstatus `1D` (Katalogsuche unvollständig). Eine abgeschlossene Suche ohne Treffer (`1C`) gilt als reguläres Ergebnis.
+
 **Filter zurücksetzen** leert die Textsuche und setzt Ergebnisart und Signaturfilter auf „Alle“. Die Häkchen an Dateien und die Größenbegrenzung für den Suchlauf bleiben erhalten. Im Dropdown **Signaturstatus** lassen sich die primäre eingebettete Signatur, Katalogtreffer oder beide Quellen auswerten. Die Katalogspalte zeigt für jeden unterschiedlichen Code ein farbiges Badge. Stehen dort etwa `12` und `17`, finden beide Einzelcodes die Datei. Beim Bereinigen mit „Nur angezeigte Dateien“ gilt auch der gewählte Signaturfilter. [Sammelfilter, Hexcodes und Farben](../README.md#signaturstatus-filtern)
 
 **Über DuplicateFinder** zeigt das DF-Symbol, die laufende Version, den Ablauf der Duplikatsuche und den vollständigen MIT-Lizenztext. Der Repository-Link führt zum gemeinsamen Projekt. [PNG-Vorlage des DF-Symbols](DuplicateFinder.png)
@@ -71,7 +73,7 @@ Beispielsweise enthält eine Gruppe vier identische Dateien. Zwei liegen im Arch
 
 **In den Papierkorb** wird aktiv, sobald mindestens eine Datei angekreuzt ist. Der Bestätigungsdialog führt alle ausgewählten Pfade auf. Damit lassen sich auch Einzeldateien und Dateien höchster Priorität manuell entfernen. Umfasst die Auswahl sämtliche bekannten Kopien einer Gruppe, weist der Dialog darauf hin.
 
-Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Lässt sich die vorgesehene Referenz beim Bereinigen nicht mehr mit ihrer geprüften Datei-ID und ihren Änderungsdaten öffnen, versucht DuplicateFinder eine weitere Kopie derselben Variante mit gleich hoher Priorität. Mit der gewählten Referenz vergleicht er Haupt- und Zusatzdatenströme erneut Byte für Byte. Scheitert der Vergleich oder ist keine geschützte Kopie erreichbar, bleibt der Kandidat am bisherigen Ort. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
+Beide Aktionen verschieben ausschließlich in den Windows-Papierkorb. Kann Windows eine Datei dort nicht aufnehmen, bleibt sie am bisherigen Ort und erscheint mit dem Grund im Ergebnisbericht. Wurde keine Datei verschoben, bleiben aufgeklappte Gruppen und die Auswahl der weiterhin sichtbaren Zeilen erhalten. Der Fehlergrund steht auch in den Dateidetails. Lässt sich die vorgesehene Referenz beim Bereinigen nicht mehr mit ihrer geprüften Datei-ID und ihren Änderungsdaten öffnen, versucht DuplicateFinder eine weitere Kopie derselben Variante mit gleich hoher Priorität. Mit der gewählten Referenz vergleicht er Haupt- und Zusatzdatenströme erneut Byte für Byte. Scheitert der Vergleich oder ist keine geschützte Kopie erreichbar, bleibt der Kandidat am bisherigen Ort. Hardlinks auf dieselbe Datei zählen nur einmal und bleiben von der automatischen Bereinigung ausgenommen. Verzeichnisverknüpfungen werden bei der Suche übersprungen.
 
 ## NTFS-Zusatzdatenströme und Authenticode
 
