@@ -19,8 +19,8 @@ public sealed record CatalogLookup(IReadOnlyList<CatalogMatch> Matches, IReadOnl
 public sealed unsafe partial class WindowsCatalogIndex
 {
     private sealed record Member(string Path, string Tag);
-    private readonly Dictionary<(string Algorithm, string Digest), List<Member>> _loose = [];
-    private readonly HashSet<string> _algorithms = ["SHA1", "SHA256"];
+    private readonly Dictionary<(SignatureDigest Algorithm, string Digest), List<Member>> _loose = [];
+    private readonly HashSet<SignatureDigest> _algorithms = [SignatureDigest.Sha1, SignatureDigest.Sha256];
     private readonly bool _complete = true;
 
     public WindowsCatalogIndex(IEnumerable<string> catalogs, Action<string, string> report, CancellationToken token = default)
@@ -74,14 +74,7 @@ public sealed unsafe partial class WindowsCatalogIndex
                     continue;
                 }
                 if (indirect == null || tag == null) throw new InvalidDataException("Catalog member data unavailable.");
-                var algorithm = Marshal.PtrToStringAnsi(indirect->Algorithm.Oid) switch
-                {
-                    "1.3.14.3.2.26" => "SHA1",
-                    "2.16.840.1.101.3.4.2.1" => "SHA256",
-                    "2.16.840.1.101.3.4.2.2" => "SHA384",
-                    "2.16.840.1.101.3.4.2.3" => "SHA512",
-                    _ => throw new InvalidDataException("Unsupported catalog member digest algorithm.")
-                };
+                var algorithm = SignatureDigest.ForCatalog(Marshal.PtrToStringAnsi(indirect->Algorithm.Oid));
                 if (indirect->Digest.Length is 0 or > 64 || indirect->Digest.Bytes == null)
                 {
                     throw new InvalidDataException("Invalid catalog member digest.");
@@ -114,7 +107,7 @@ public sealed unsafe partial class WindowsCatalogIndex
                 try { InspectAlgorithm(file, algorithm, mode, matches, token); }
                 catch (Exception ex) when (ex is Win32Exception or IOException or InvalidDataException or UnauthorizedAccessException)
                 {
-                    issues.Add($"{algorithm}: {ex.Message}");
+                    issues.Add($"{algorithm.WindowsName}: {ex.Message}");
                 }
             }
         }
@@ -127,30 +120,23 @@ public sealed unsafe partial class WindowsCatalogIndex
         return new(matches.AsReadOnly(), issues.AsReadOnly(), _complete);
     }
 
-    private void InspectAlgorithm(FileStream file, string algorithm, RevocationMode mode,
+    private void InspectAlgorithm(FileStream file, SignatureDigest algorithm, RevocationMode mode,
         List<CatalogMatch> matches, CancellationToken token)
     {
-        if (CryptCATAdminAcquireContext2(out var admin, 0, algorithm, 0, 0) == 0) throw new Win32Exception();
+        if (CryptCATAdminAcquireContext2(out var admin, 0, algorithm.WindowsName, 0, 0) == 0) throw new Win32Exception();
 
         try
         {
             var handle = file.SafeFileHandle;
             var descriptor = handle.DangerousGetHandle();
             if (SetFilePointerEx(handle, 0, out _, 0) == 0) throw new Win32Exception();
-            byte* digest = stackalloc byte[64];
-            uint size = algorithm switch
-            {
-                "SHA1" => 20,
-                "SHA256" => 32,
-                "SHA384" => 48,
-                "SHA512" => 64,
-                _ => throw new InvalidDataException("Unsupported catalog member hash.")
-            };
+            byte* digest = stackalloc byte[algorithm.ByteLength];
+            uint size = (uint)algorithm.ByteLength;
             if (CryptCATAdminCalcHashFromFileHandle2(admin, descriptor, ref size, digest, 0) == 0)
             {
                 throw new Win32Exception();
             }
-            if (size is 0 or > 64) throw new InvalidDataException("Invalid Windows catalog hash length.");
+            if (size == 0 || size > algorithm.ByteLength) throw new InvalidDataException("Invalid Windows catalog hash length.");
             var hex = Convert.ToHexString(new ReadOnlySpan<byte>(digest, (int)size));
 
             if (_loose.TryGetValue((algorithm, hex), out var members))
