@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using FileScope.App.Presentation;
@@ -8,7 +9,7 @@ namespace FileScope.App.ViewModels;
 public sealed class FileRowViewModel(string path, LocalizationService strings, HashFormat format = HashFormat.HexUpper) : ObservableObject
 {
     private HashFormat _hashFormat = format;
-    private readonly Dictionary<ChecksumAlgorithm, string> _hashText = [];
+    private IReadOnlyDictionary<ChecksumAlgorithm, string> _hashText = ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty;
     private SignatureOption? _selectedSignature;
     private RevocationMode _runningRevocationMode;
     public IReadOnlyList<SignatureOption> Signatures { get; private set; } = [];
@@ -240,15 +241,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
 
     private void RebuildHashText()
     {
-        _hashText.Clear();
-        if (Result is not null)
-        {
-            foreach (var (algorithm, hex) in Result.Checksums)
-            {
-                _hashText[algorithm] = DigestFormatter.Format(hex, _hashFormat);
-            }
-        }
-
+        _hashText = DigestFormatter.FormatAll(Result?.Checksums, _hashFormat);
         RebuildCertificateHashText();
     }
 

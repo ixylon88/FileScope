@@ -1539,11 +1539,12 @@ public sealed partial class UiTests
         var directory = Directory.CreateTempSubdirectory("FileScope-catalog-intake-");
         try
         {
-            var missing = Path.Combine(directory.FullName, "missing.cat");
+            var missing = Path.Combine(directory.FullName, "missing.CAT");
+            var backup = Path.Combine(directory.FullName, "backup.cat.bak");
             var member = Path.Combine(directory.FullName, "member.bin");
             File.WriteAllText(member, "sample");
 
-            var picker = new TestPicker { Files = [missing, member] };
+            var picker = new TestPicker { Files = [missing, backup, member] };
             var store = new MemoryPreferences();
             var service = new FileScope.Core.Services.FileAnalysisService(
                 new FileScope.Core.Checksums.StreamChecksumService(new FileScope.Core.Checksums.ChecksumStrategyFactory()),
@@ -1564,6 +1565,7 @@ public sealed partial class UiTests
             Assert.AreEqual(member, row.FullPath);
             Assert.AreEqual(SignatureStatus.NotChecked, row.SignatureState);
             StringAssert.Contains(row.CatalogDetails, missing);
+            Assert.DoesNotContain(backup, row.CatalogDetails);
             vm.ClearCommand.Execute(null);
             picker.Files = [member];
             vm.BrowseCommand.Execute(null);

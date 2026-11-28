@@ -109,7 +109,7 @@ public sealed class DuplicateScanner
             seen++;
             if (progress != null && updateClock.ElapsedMilliseconds >= 150) ReportSearch(file.FullName);
 
-            if (sizes == default || (catalogPaths != null && file.FullName.EndsWith(".cat", StringComparison.OrdinalIgnoreCase)))
+            if (sizes == default || (catalogPaths != null && CatalogSearch.IsCatalogPath(file.FullName)))
                 return true;
 
             try
@@ -151,7 +151,7 @@ public sealed class DuplicateScanner
                         entry.Stamp = _facts.Read(input);
 
                         // A catalog's own size is independent of the files it describes.
-                        if (catalogPaths != null && path.EndsWith(".cat", StringComparison.OrdinalIgnoreCase))
+                        if (catalogPaths != null && CatalogSearch.IsCatalogPath(path))
                         {
                             catalogPaths.TryAdd(entry.Stamp.Key, path);
                         }

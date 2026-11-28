@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using FileScope.Core.Files;
 using FileScope.Core.Models;
 using Microsoft.Win32.SafeHandles;
 
@@ -32,8 +33,8 @@ internal static partial class WindowsFileVersionReader
         // SafeFileHandle flushes buffering and synchronizes the native pointer with
         // FileStream.Position on every access. Save that synchronized native position.
         var handle = file.SafeFileHandle;
-        if (!Native.SetFilePointerEx(handle, 0, out var nativePosition, 1))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+        var nativePosition = WindowsFilePointer.GetPosition(handle);
+
         IntPtr buffer = IntPtr.Zero;
         var restored = true;
         var restoreError = 0;
@@ -66,8 +67,7 @@ internal static partial class WindowsFileVersionReader
             {
                 // NE reads move the native pointer without updating FileStream.Position.
                 // Preserve a pending inspection/cancellation exception if restoration fails.
-                restored = Native.SetFilePointerEx(handle, nativePosition, out _, 0);
-                if (!restored) restoreError = Marshal.GetLastWin32Error();
+                restored = WindowsFilePointer.TrySetPosition(handle, nativePosition, out restoreError);
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -189,10 +189,5 @@ internal static partial class WindowsFileVersionReader
         [LibraryImport("kernel32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial IntPtr LocalFree(IntPtr memory);
-
-        [LibraryImport("kernel32.dll", SetLastError = true)]
-        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool SetFilePointerEx(SafeFileHandle file, long distance, out long position, uint method);
     }
 }
