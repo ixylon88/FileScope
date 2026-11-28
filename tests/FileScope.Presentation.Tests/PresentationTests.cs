@@ -353,6 +353,33 @@ public sealed class PresentationTests
 
     [TestMethod]
     [TestCategory("Shared")]
+    public void FileHashDisplayReusesCanonicalSnapshotsAndNormalizesOtherInputs()
+    {
+        var values = new Dictionary<ChecksumAlgorithm, string>
+        {
+            [ChecksumAlgorithm.MD5] = "00FF",
+            [ChecksumAlgorithm.SHA256] = "FBFF"
+        };
+        var snapshot = values.AsReadOnly();
+        Assert.AreSame(snapshot, DigestFormatter.FormatAll(snapshot, HashFormat.HexUpper));
+
+        var encoded = DigestFormatter.FormatAll(snapshot, HashFormat.Base64Url);
+        Assert.AreEqual("AP8", encoded[ChecksumAlgorithm.MD5]);
+        Assert.AreEqual("-_8", encoded[ChecksumAlgorithm.SHA256]);
+        Assert.AreEqual("FBFF", snapshot[ChecksumAlgorithm.SHA256]);
+        Assert.IsEmpty(DigestFormatter.FormatAll(null, HashFormat.Base64));
+
+        var custom = new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA1] = "AaFf" };
+        var display = DigestFormatter.FormatAll(custom, HashFormat.HexUpper);
+        Assert.AreEqual("AaFf", custom[ChecksumAlgorithm.SHA1]);
+        Assert.AreEqual("AAFF", display[ChecksumAlgorithm.SHA1]);
+
+        custom[ChecksumAlgorithm.SHA1] = "ABC";
+        Assert.ThrowsExactly<FormatException>(() => DigestFormatter.FormatAll(custom.AsReadOnly(), HashFormat.HexUpper));
+    }
+
+    [TestMethod]
+    [TestCategory("Shared")]
     [DataRow(16)]
     [DataRow(20)]
     [DataRow(32)]

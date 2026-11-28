@@ -366,6 +366,46 @@ public sealed partial class WindowTests
     });
 
     [TestMethod]
+    public Task RowDetailsFollowDisplayChangesAndCleanupResults() => WpfTestHost.RunAsync((_, strings) =>
+    {
+        var file = FileAt("keep.dat", 10);
+        var copy = FileAt("copy.dat", 1);
+        file.Hashes = new Dictionary<ChecksumAlgorithm, string> { [ChecksumAlgorithm.SHA256] = "FBFF" };
+        file.Catalogs = CatalogBadgeChecks.MixedLookup();
+        file.Diagnostic = "scan diagnostic";
+        var certificate = new CertificateInfo("Publisher", "", "", "", "", "00FE", default, default, "");
+        file.Embedded = new(SignatureStatus.Valid, RevocationMode.OfflineCache)
+        {
+            Signatures = [new(0, SignatureStatus.Valid, certificate, null, null, "SHA256", SignatureTimestamp.NotPresent)]
+        };
+
+        var model = new ResultsViewModel();
+        model.Replace([file, copy]);
+        var row = model.Rows[0];
+        var initial = row.Details;
+        Assert.Contains("SHA256  FBFF", initial);
+        Assert.Contains("Publisher · 00FE", initial);
+        Assert.Contains("first.cat", initial);
+        Assert.Contains(strings["Streams_Identical"], initial);
+        row.Marked = true;
+        Assert.AreSame(initial, row.Details);
+
+        model.SetHashFormat(HashFormat.Base64Url);
+        Assert.Contains("SHA256  -_8", row.Details);
+        Assert.Contains("Publisher · AP4", row.Details);
+
+        strings.SetCulture("de");
+        model.Relocalize();
+        Assert.Contains($"{strings["Folder"]} · search (10)", row.Details);
+
+        model.RemoveMoved([new(copy, true, null), new(file, false, "recycle error")]);
+        var remaining = model.Rows.Single().Details;
+        Assert.Contains(strings["Streams_Unmatched"], remaining);
+        Assert.Contains("scan diagnostic", remaining);
+        Assert.Contains("recycle error", remaining);
+    });
+
+    [TestMethod]
     public Task BusyDarkGridKeepsItsSurfaceAndOnlyLocksMarkingAndFileActions() => WpfTestHost.RunAsync((app, strings) =>
     {
         var theme = new ThemeService(app);
