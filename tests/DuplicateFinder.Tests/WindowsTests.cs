@@ -34,10 +34,11 @@ public sealed partial class WindowsTests
             if (CreateHardLinkW(Path.Combine(high, "another-name"), a, 0) == 0) throw new Win32Exception();
 
             var scan = await new DuplicateScanner().ScanAsync([new(high, 10), new(low, 1)],
-                new([], false, false, RevocationMode.OfflineCache));
+                new([], false, true, RevocationMode.OfflineCache));
             Assert.HasCount(2, scan.Files);
             Assert.HasCount(1, scan.Files.Where(f => f.IsHardLink).ToArray());
             Assert.IsTrue(scan.Files.All(f => f.Group > 0 && f.Streams == StreamComparison.Different));
+            Assert.IsTrue(scan.Files.All(f => f.Catalogs != null), "Confirmed copies also query registered catalogs when the search folders contain no .cat files.");
             Assert.IsEmpty(CleanupPlan.Create(scan.Files).Items);
         }
         finally { root.Delete(true); }

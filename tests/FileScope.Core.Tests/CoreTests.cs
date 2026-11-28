@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.ObjectModel;
 using System.Formats.Asn1;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -194,7 +195,8 @@ public sealed class CoreTests
         using var stream = new CountingStream(Encoding.ASCII.GetBytes("abc"));
 
         var result = await checksumService.ComputeAsync(stream, []);
-        Assert.AreEqual(0, result.Count, "no algorithms / no hashes");
+        Assert.AreSame(ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty, result);
+        Assert.AreSame(result, FileAnalysisResult.Failure("missing", AnalysisError.NotFound, null).Checksums);
         Assert.AreEqual(0L, stream.BytesRead, "no algorithms / no data read");
     }
 

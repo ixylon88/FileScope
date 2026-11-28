@@ -15,14 +15,15 @@ public sealed class StreamChecksumService(IChecksumStrategyFactory factory) : IC
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(algorithms);
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Metadata-only and signature-only analyses need no strategies, buffer or content read.
+        if (algorithms.Count == 0) return ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty;
+
         var strategies = new List<IChecksumStrategy>();
         byte[]? buffer = null;
         try
         {
             foreach (var algorithm in algorithms.Distinct()) strategies.Add(factory.Create(algorithm));
-            var results = new Dictionary<ChecksumAlgorithm, string>();
-            // Metadata-only and signature-only analyses need no checksum read.
-            if (strategies.Count == 0) return new ReadOnlyDictionary<ChecksumAlgorithm, string>(results);
             buffer = ArrayPool<byte>.Shared.Rent(128 * 1024);
             long bytesRead = 0;
             var clock = Stopwatch.StartNew();
@@ -40,6 +41,7 @@ public sealed class StreamChecksumService(IChecksumStrategyFactory factory) : IC
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
+            var results = new Dictionary<ChecksumAlgorithm, string>(strategies.Count);
             foreach (var strategy in strategies) results.Add(strategy.Algorithm, strategy.Complete());
             progress?.Report(bytesRead);
             return new ReadOnlyDictionary<ChecksumAlgorithm, string>(results);

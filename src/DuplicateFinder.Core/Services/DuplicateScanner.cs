@@ -32,31 +32,18 @@ public sealed class DuplicateScanner
         IProgress<ScanProgress>? progress = null, CancellationToken token = default)
     {
         var issues = new List<ScanIssue>();
-        var catalogPaths = options.Catalogs && OperatingSystem.IsWindows() ? new Dictionary<FileKey, string>() : null;
-        var files = Discover(roots, options.SizeRange, catalogPaths, issues, progress, token);
-        var sizes = files.Where(f => f.Size.HasValue).CountBy(f => f.Size!.Value).ToDictionary();
-        var algorithms = options.Hashes.Append(ChecksumAlgorithm.SHA256).Distinct().ToArray();
+        var files = Discover(roots, options.SizeRange, options.Catalogs && OperatingSystem.IsWindows(),
+            issues, progress, token, out var catalogPaths);
+        var candidates = FilesWithPeers(files, file => file.Size, token);
+        WindowsCatalogIndex? catalogIndex = null;
 
-        for (var index = 0; index < files.Count; index++)
+        if (candidates.Length > 0)
         {
-            token.ThrowIfCancellationRequested();
-            var file = files[index];
-            if (file.Stamp == null || sizes[file.Stamp.Length] == 1) continue;
-
-            try
-            {
-                progress?.Report(new("Hash", file.Path, index, files.Count));
-                using var input = FileAccessChecks.OpenVerified(file, _facts);
-                file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (FileAccessChecks.Expected(ex))
-            {
-                file.Diagnostic = ex.Message;
-            }
+            await HashCandidatesAsync(candidates, options.Hashes, progress, token).ConfigureAwait(false);
+            var matches = FilesWithPeers(candidates, ContentKey, token);
+            if (matches.Length > 0) Classify(matches, InspectSignatures, progress, token);
         }
 
-        WindowsCatalogIndex? catalogIndex = null;
-        Classify(files, InspectSignatures, progress, token);
         token.ThrowIfCancellationRequested();
         return new(files.AsReadOnly(), issues.AsReadOnly());
 
@@ -71,7 +58,7 @@ public sealed class DuplicateScanner
                     file.Embedded = _signatures.Inspect(input, file.Path, options.Revocation, token);
                 }
 
-                if (catalogPaths != null && OperatingSystem.IsWindows())
+                if (options.Catalogs && OperatingSystem.IsWindows())
                 {
                     catalogIndex ??= new WindowsCatalogIndex(CatalogsToIndex(catalogPaths, progress),
                         (path, reason) => issues.Add(new(path, reason)), token);
@@ -86,14 +73,15 @@ public sealed class DuplicateScanner
         }
     }
 
-    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes,
-        Dictionary<FileKey, string>? catalogPaths, List<ScanIssue> issues,
-        IProgress<ScanProgress>? progress, CancellationToken token)
+    private List<FoundFile> Discover(IReadOnlyList<SearchRoot> roots, FileSizeRange sizes, bool collectCatalogs,
+        List<ScanIssue> issues, IProgress<ScanProgress>? progress, CancellationToken token,
+        out Dictionary<FileKey, string>? catalogPaths)
     {
         // Highest priority first, including roots contained in another selected root.
         var paths = new HashSet<string>(StringComparer.Ordinal);
         var identities = new HashSet<FileKey>();
         var files = new List<FoundFile>();
+        catalogPaths = null;
         var scanner = new FolderScanner(FileAccessChecks.IsRecycleDirectory);
         var seen = 0;
         var updateClock = Stopwatch.StartNew();
@@ -109,7 +97,7 @@ public sealed class DuplicateScanner
             seen++;
             if (progress != null && updateClock.ElapsedMilliseconds >= 150) ReportSearch(file.FullName);
 
-            if (sizes == default || (catalogPaths != null && CatalogSearch.IsCatalogPath(file.FullName)))
+            if (sizes == default || (collectCatalogs && CatalogSearch.IsCatalogPath(file.FullName)))
                 return true;
 
             try
@@ -143,22 +131,21 @@ public sealed class DuplicateScanner
                     if (!paths.Add(path)) continue;
 
                     progress?.Report(new("Metadata", path, index, found.Files.Count));
-                    var entry = new FoundFile(path, root);
+                    FileStamp stamp;
                     try
                     {
                         FileAccessChecks.CheckPath(path);
                         using var input = FileAccessChecks.Open(path);
-                        entry.Stamp = _facts.Read(input);
+                        stamp = _facts.Read(input);
 
                         // A catalog's own size is independent of the files it describes.
-                        if (catalogPaths != null && CatalogSearch.IsCatalogPath(path))
+                        if (collectCatalogs && CatalogSearch.IsCatalogPath(path))
                         {
-                            catalogPaths.TryAdd(entry.Stamp.Key, path);
+                            (catalogPaths ??= []).TryAdd(stamp.Key, path);
                         }
 
                         // A candidate can change between directory enumeration and opening.
-                        if (!sizes.Includes(entry.Stamp.Length)) continue;
-                        if (!identities.Add(entry.Stamp.Key)) continue;
+                        if (!sizes.Includes(stamp.Length) || !identities.Add(stamp.Key)) continue;
                     }
                     catch (Exception ex) when (FileAccessChecks.Expected(ex))
                     {
@@ -166,12 +153,15 @@ public sealed class DuplicateScanner
                         {
                             // A file of unknown size cannot qualify for an active range.
                             issues.Add(new(path, ex.Message));
-                            continue;
                         }
-                        entry.Diagnostic = ex.Message;
+                        else
+                        {
+                            files.Add(new FoundFile(path, root) { Diagnostic = ex.Message });
+                        }
+                        continue;
                     }
 
-                    files.Add(entry);
+                    files.Add(new FoundFile(path, root) { Stamp = stamp });
                 }
             }
             catch (Exception ex) when (FileAccessChecks.Expected(ex)) { issues.Add(new(selected.Path, ex.Message)); }
@@ -180,8 +170,9 @@ public sealed class DuplicateScanner
         return files;
     }
 
-    private static IEnumerable<string> CatalogsToIndex(Dictionary<FileKey, string> catalogs, IProgress<ScanProgress>? progress)
+    private static IEnumerable<string> CatalogsToIndex(Dictionary<FileKey, string>? catalogs, IProgress<ScanProgress>? progress)
     {
+        if (catalogs is null) yield break;
         var index = 0;
         foreach (var path in catalogs.Values)
         {
@@ -191,18 +182,57 @@ public sealed class DuplicateScanner
         }
     }
 
-    private void Classify(List<FoundFile> files, Action<FoundFile, FileStream> inspectSignatures,
+    // Keep discovery order and allocate comparison groups only for files that actually have a peer.
+    private static FoundFile[] FilesWithPeers<TKey>(IReadOnlyList<FoundFile> files, Func<FoundFile, TKey?> keyOf,
+        CancellationToken token) where TKey : struct
+    {
+        if (files.Count < 2) return [];
+
+        var seen = new HashSet<TKey>();
+        HashSet<TKey>? repeated = null;
+        foreach (var file in files)
+        {
+            token.ThrowIfCancellationRequested();
+            if (keyOf(file) is { } key && !seen.Add(key))
+            {
+                (repeated ??= []).Add(key);
+            }
+        }
+
+        if (repeated is null) return [];
+        return files.Where(file => keyOf(file) is { } key && repeated.Contains(key)).ToArray();
+    }
+
+    private async Task HashCandidatesAsync(FoundFile[] candidates, IReadOnlyList<ChecksumAlgorithm> selected,
+        IProgress<ScanProgress>? progress, CancellationToken token)
+    {
+        var algorithms = selected.Append(ChecksumAlgorithm.SHA256).Distinct().ToArray();
+        for (var index = 0; index < candidates.Length; index++)
+        {
+            token.ThrowIfCancellationRequested();
+            var file = candidates[index];
+            try
+            {
+                progress?.Report(new("Hash", file.Path, index, candidates.Length));
+                using var input = FileAccessChecks.OpenVerified(file, _facts);
+                file.Hashes = await _checksums.ComputeAsync(input, algorithms, cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { file.Diagnostic = ex.Message; }
+        }
+    }
+
+    private static (long Size, string Hash)? ContentKey(FoundFile file) =>
+        file.Diagnostic is null && file.Size is long size && file.Hashes.TryGetValue(ChecksumAlgorithm.SHA256, out var hash)
+            ? (size, hash) : null;
+
+    private void Classify(FoundFile[] matches, Action<FoundFile, FileStream> inspectSignatures,
         IProgress<ScanProgress>? progress, CancellationToken token)
     {
         var nextGroup = 0;
         var nextVariant = 0;
-        var buckets = files.Where(f => f.Diagnostic == null && f.Hashes.ContainsKey(ChecksumAlgorithm.SHA256))
-            .GroupBy(f => (f.Size, f.Hashes[ChecksumAlgorithm.SHA256]));
-        foreach (var bucket in buckets)
+        foreach (var bucket in matches.GroupBy(ContentKey))
         {
             token.ThrowIfCancellationRequested();
-            if (bucket.Count() < 2) continue;
-
             // A hash collision can yield several actual groups. Compare against a
             // representative of EACH class rather than dropping nonmatching peers.
             var mainClasses = Partition(bucket, (a, b) =>
