@@ -14,7 +14,7 @@ using FileScope.TestSupport;
 namespace DuplicateFinder.Tests;
 
 [TestClass]
-public sealed class DuplicateTests
+public sealed partial class DuplicateTests
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("DuplicateFinder-tests-").FullName;
     private readonly Facts _facts = new();
@@ -32,13 +32,13 @@ public sealed class DuplicateTests
     }
 
     private Task<ScanResult> ScanAsync(IChecksumService? service = null, SearchOptions? options = null,
-        CancellationToken token = default)
+        IProgress<ScanProgress>? progress = null, CancellationToken token = default)
     {
         var roots = Directory.GetDirectories(_dir).Select(d => new SearchRoot(d, int.Parse(Path.GetFileName(d),
             System.Globalization.CultureInfo.InvariantCulture))).ToArray();
         var scanner = new DuplicateScanner(_facts, service ?? new StreamChecksumService(new ChecksumStrategyFactory()),
             new WindowsAuthenticodeInspector());
-        return scanner.ScanAsync(roots, options ?? Options, token: token);
+        return scanner.ScanAsync(roots, options ?? Options, progress, token);
     }
 
     [TestMethod]
@@ -384,6 +384,25 @@ public sealed class DuplicateTests
     }
 
     [TestMethod]
+    [DataRow(false, DisplayName = "A new stream on the candidate stops the shell handoff")]
+    [DataRow(true, DisplayName = "A new stream on the keeper stops the shell handoff")]
+    public async Task LastRecycleCheckRejectsAStreamAddedAfterTheInitialCheck(bool onKeeper)
+    {
+        var keeper = Put("9", "keep", "same");
+        var candidate = Put("1", "copy", "same");
+        var plan = CleanupPlan.Create((await ScanAsync()).Files);
+
+        var changed = onKeeper ? keeper : candidate;
+        var bin = new Bin(beforeValidate: () => _facts.Manifests[changed] = [new(":late:$DATA", 1)]);
+        var result = new CleanupService(bin, _facts).Execute(plan.Items).Single();
+
+        Assert.IsFalse(result.Moved);
+        Assert.AreEqual("The stream list has changed.", result.Reason);
+        Assert.IsEmpty(bin.Paths);
+        Assert.IsTrue(File.Exists(candidate) && File.Exists(keeper));
+    }
+
+    [TestMethod]
     public async Task ExplicitManualSelectionCanRecycleASingleAndBinFailureKeepsIt()
     {
         var path = Put("5", "only", "data");
@@ -460,11 +479,12 @@ public sealed class DuplicateTests
         Assert.Throws<IOException>(() => WindowsFileFacts.ParseStreams(buffer));
     }
 
-    private sealed class Bin(Action? beforeReturn = null) : IRecycleBin
+    private sealed class Bin(Action? beforeReturn = null, Action? beforeValidate = null) : IRecycleBin
     {
         public List<string> Paths { get; } = [];
         public void Recycle(string path, Action validate)
         {
+            beforeValidate?.Invoke();
             validate();
             beforeReturn?.Invoke();
             Paths.Add(path);
@@ -491,6 +511,7 @@ public sealed class DuplicateTests
         internal Dictionary<string, IReadOnlyList<NamedStream>> Manifests { get; } = [];
         internal HashSet<string> Unreadable { get; } = [];
         internal HashSet<string> UnreadableSize { get; } = [];
+        internal HashSet<string> Missing { get; } = [];
         internal List<FileStream> Reads { get; } = [];
         internal List<string> StreamReads { get; } = [];
         internal int ReadCount(string path) => Reads.Count(file => file.Name == path);
@@ -498,6 +519,7 @@ public sealed class DuplicateTests
         public FileStamp Read(FileStream file)
         {
             Reads.Add(file);
+            if (Missing.Contains(file.Name)) throw new FileNotFoundException("File no longer available.", file.Name);
             if (UnreadableSize.Contains(file.Name)) throw new IOException("Size unavailable.");
             if (!Keys.TryGetValue(file.Name, out var key)) Keys.Add(file.Name, key = new(1, Guid.NewGuid()));
             return new(key, file.Length, DateTime.UnixEpoch, 1, Links.GetValueOrDefault(file.Name, 1u));

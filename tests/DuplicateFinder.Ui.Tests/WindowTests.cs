@@ -166,6 +166,29 @@ public sealed partial class WindowTests
     });
 
     [TestMethod]
+    public Task EmptyRecycleResultPreservesTheExpandedGroupSelectionAndMarks() => WpfTestHost.RunAsync((app, _) =>
+    {
+        var model = new ResultsViewModel();
+        model.Replace([FileAt("archive", 20), FileAt("copy", 10)]);
+        model.Filter("copy", ResultKind.Duplicates, SignatureFilter.All);
+        var window = ShowResults(model, new ThemeService(app));
+        var grid = ExpandResults(window);
+        var view = model.View;
+        var row = model.Rows[1];
+        row.Marked = true;
+        grid.SelectedItem = row;
+
+        model.RemoveMoved([]);
+        window.UpdateLayout();
+
+        Assert.AreSame(view, model.View);
+        Assert.AreSame(row, grid.SelectedItem);
+        Assert.IsTrue(VisualChildren<Expander>(grid).Single().IsExpanded);
+        Assert.AreEqual(1, model.VisibleCount);
+        Assert.AreSame(row.File, model.Manual().Single().File);
+    });
+
+    [TestMethod]
     public Task HiddenMarksSurviveFilterAndWarnAboutLastCopy() => WpfTestHost.RunAsync((app, strings) =>
     {
         var model = new ResultsViewModel();

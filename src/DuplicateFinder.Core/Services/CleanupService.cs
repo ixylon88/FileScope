@@ -52,7 +52,7 @@ public sealed class CleanupService
                     || candidate.Stamp!.Key == item.Keeper.Stamp!.Key || candidate.Manifest == null
                     || !candidate.Manifest.SequenceEqual(_facts.Streams(source))
                     || !candidate.Manifest.SequenceEqual(_facts.Streams(keeper))
-                    || !BinaryComparison.Equal(source, keeper, token))
+                    || !BinaryComparison.Equal(new(candidate, source), new(item.Keeper, keeper), token))
                 {
                     throw new IOException("The verified copy has changed.");
                 }
@@ -65,7 +65,8 @@ public sealed class CleanupService
                     (heldStreams ??= []).Add(a);
                     var b = FileAccessChecks.Open(item.Keeper.Path + stream.Suffix);
                     heldStreams.Add(b);
-                    if (!BinaryComparison.Equal(a, b, token)) throw new IOException("A named stream has changed.");
+                    if (!BinaryComparison.Equal(new(candidate, a), new(item.Keeper, b), token))
+                        throw new IOException("A named stream has changed.");
                 }
             }
 
