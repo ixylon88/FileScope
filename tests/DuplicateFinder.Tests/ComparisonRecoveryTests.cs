@@ -103,6 +103,40 @@ public sealed partial class DuplicateTests
         Assert.IsNull(files[last].Diagnostic);
         Assert.IsGreaterThan(0, files[readable].Variant);
         Assert.AreEqual(files[readable].Variant, files[last].Variant);
+
+        var removal = CleanupPlan.Create(scan.Files).Items.Single();
+        Assert.AreSame(files[readable], removal.Keeper);
+        Assert.AreSame(files[last], removal.File);
+    }
+
+    [TestMethod]
+    [DataRow(2, DisplayName = "Only the two verified copies are present")]
+    [DataRow(3, DisplayName = "A third file has an unreadable stream list")]
+    [DataRow(4, DisplayName = "A fourth file has a different stream list")]
+    public async Task VerifiedCopiesHaveTheSameCleanupPlanDespiteOtherStreamVariants(int fileCount)
+    {
+        var keeper = Put("30", "A", "same");
+        var copy = Put("10", "B", "same");
+        if (fileCount >= 3) _facts.Unreadable.Add(Put("5", "C", "same"));
+        if (fileCount == 4) WriteStream(Put("1", "D", "same"), "extra");
+
+        var scan = await ScanAsync(options: Options with { SizeRange = new(4, 4) });
+        var removal = CleanupPlan.Create(scan.Files).Items.Single();
+
+        Assert.HasCount(fileCount, scan.Files);
+        Assert.AreEqual(keeper, removal.Keeper!.Path);
+        Assert.AreEqual(copy, removal.File.Path);
+        var expectedStreams = fileCount == 4 ? StreamComparison.Different : StreamComparison.Identical;
+        Assert.AreEqual(expectedStreams, removal.Keeper.Streams);
+        Assert.AreEqual(expectedStreams, removal.File.Streams);
+
+        if (fileCount >= 3)
+        {
+            var unreadable = scan.Files.Single(file => file.Name == "C");
+            Assert.IsNotNull(unreadable.Diagnostic);
+            Assert.AreEqual(StreamComparison.Unknown, unreadable.Streams);
+            Assert.AreEqual(0, unreadable.Variant);
+        }
     }
 
     private sealed class UnreadableStream() : MemoryStream([1])

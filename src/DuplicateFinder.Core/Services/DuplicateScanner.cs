@@ -301,8 +301,9 @@ public sealed class DuplicateScanner
                     foreach (var file in peers)
                     {
                         file.Variant = variant;
+                        // Two verified peers still match when another file's streams were unreadable.
                         file.Streams = variants.Count > 1 ? StreamComparison.Different :
-                            peers.Count == group.Count ? StreamComparison.Identical : StreamComparison.Unknown;
+                            peers.Count > 1 ? StreamComparison.Identical : StreamComparison.Unknown;
                     }
                 }
             }
