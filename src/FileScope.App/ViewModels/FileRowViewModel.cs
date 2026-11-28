@@ -12,6 +12,9 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     private IReadOnlyDictionary<ChecksumAlgorithm, string> _hashText = ReadOnlyDictionary<ChecksumAlgorithm, string>.Empty;
     private SignatureOption? _selectedSignature;
     private RevocationMode _runningRevocationMode;
+    private LocalizedTextCache _details;
+    private LocalizedTextCache _catalogDetails;
+
     public IReadOnlyList<SignatureOption> Signatures { get; private set; } = [];
     public bool HasMultipleSignatures => Signatures.Count > 1;
     public event EventHandler? SignaturesChanged;
@@ -24,7 +27,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             if (value is null || !Signatures.Contains(value) || ReferenceEquals(value, _selectedSignature)) return;
             _selectedSignature = value;
             RebuildCertificateHashText();
-            OnPropertyChanged(null);
+            RefreshRow();
             SignatureSelectionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -52,7 +55,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     {
         FullPath = Path.GetFullPath(fullPath);
         if (Result is not null) Result = Result with { FullPath = FullPath };
-        OnPropertyChanged(null);
+        RefreshRow();
     }
     public FileAnalysisResult? Result { get; private set; }
     public RowStatus State { get; private set; } = RowStatus.Queued;
@@ -113,7 +116,9 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
     public CatalogPresentation CatalogResult { get; private set; } = CatalogPresentation.From(null);
     public IEnumerable<SignatureBadgeItem> CatalogBadges => CatalogResult.Badges(strings);
     public string CatalogText => CatalogResult.Summary(strings);
-    public string CatalogDetails => Result?.Catalogs is { } lookup
+    public string CatalogDetails => _catalogDetails[strings.Culture] ??= BuildCatalogDetails();
+
+    private string BuildCatalogDetails() => Result?.Catalogs is { } lookup
         ? string.Join(Environment.NewLine, CatalogPresentation.Details(lookup, strings).Prepend(CatalogText)) : CatalogText;
 
     public string Diagnostic => Result is null ? "" : string.Join(" — ", new[]
@@ -125,51 +130,53 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         Result.Catalogs is { } lookup && CatalogPresentation.IsIncomplete(lookup) ? strings["Incomplete"] : null
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-    public string Details
+    public string Details => _details[strings.Culture] ??= BuildDetails();
+
+    private string BuildDetails()
     {
-        get
+        var text = new StringBuilder();
+        AppendField("Column_Path", FullPath);
+        AppendField("Column_Status", StateText);
+        AppendField("Column_Size", SizeText);
+        AppendField("Column_Modified", ModifiedText);
+
+        foreach (var algorithm in Enum.GetValues<ChecksumAlgorithm>())
         {
-            var text = new StringBuilder();
-            void Line(string key, string value) { if (value.Length != 0) { text.AppendLine(CultureInfo.CurrentCulture, $"{strings[key]}: {value}"); } }
-            Line("Column_Path", FullPath);
-            Line("Column_Status", StateText);
-            Line("Column_Size", SizeText);
-            Line("Column_Modified", ModifiedText);
-            foreach (var algorithm in Enum.GetValues<ChecksumAlgorithm>())
-            {
-                if (Hash(algorithm).Length != 0) text.AppendLine(CultureInfo.CurrentCulture, $"{algorithm}: {Hash(algorithm)}");
-            }
+            var hash = Hash(algorithm);
+            if (hash.Length != 0) text.AppendLine(CultureInfo.CurrentCulture, $"{algorithm}: {hash}");
+        }
 
-            Line("Column_SignatureChoice", SignatureChoiceText);
-            Line("Column_Signature", SignatureText);
-            Line("Column_Catalog", CatalogDetails);
-            Line("Column_SigningTime", SigningTimeText);
-            Line("Column_Publisher", Publisher);
-            Line("Column_Subject", Subject);
-            Line("Column_Issuer", Issuer);
-            Line("Column_Serial", SerialNumber);
-            Line("Column_CertSha1", CertificateSha1);
-            Line("Column_CertSha256", CertificateSha256);
-            Line("Column_ValidFrom", ValidFrom);
-            Line("Column_ValidUntil", ValidUntil);
-            Line("Column_CertAlgorithm", CertificateAlgorithm);
-            Line("Column_NativeCode", NativeCode);
-            foreach (var definition in FileMetadataField.All) Line(definition.LabelKey, definition.Read(this));
+        AppendField("Column_SignatureChoice", SignatureChoiceText);
+        AppendField("Column_Signature", SignatureText);
+        AppendField("Column_Catalog", CatalogDetails);
+        AppendField("Column_SigningTime", SigningTimeText);
 
-            Line("Column_Diagnostic", Diagnostic);
-            return text.ToString().TrimEnd();
+        AppendField("Column_Publisher", Publisher);
+        AppendField("Column_Subject", Subject);
+        AppendField("Column_Issuer", Issuer);
+        AppendField("Column_Serial", SerialNumber);
+        AppendField("Column_CertSha1", CertificateSha1);
+        AppendField("Column_CertSha256", CertificateSha256);
+        AppendField("Column_ValidFrom", ValidFrom);
+        AppendField("Column_ValidUntil", ValidUntil);
+        AppendField("Column_CertAlgorithm", CertificateAlgorithm);
+        AppendField("Column_NativeCode", NativeCode);
+
+        foreach (var field in FileMetadataField.All) AppendField(field.LabelKey, field.Read(this));
+        AppendField("Column_Diagnostic", Diagnostic);
+        return text.ToString().TrimEnd();
+
+        void AppendField(string key, string value)
+        {
+            if (value.Length != 0) text.AppendLine(CultureInfo.CurrentCulture, $"{strings[key]}: {value}");
         }
     }
 
     public void Reset()
     {
-        Result = null;
-        CatalogResult = CatalogPresentation.From(null);
-        RebuildSignatures();
-        RebuildHashText();
         State = RowStatus.Queued;
         Progress = 0;
-        RefreshLanguage();
+        ApplyResult(null);
     }
 
     public void Start(RevocationMode revocationMode = RevocationMode.OfflineCache)
@@ -177,41 +184,62 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         State = RowStatus.Running;
         Stage = AnalysisStage.OpeningFile;
         _runningRevocationMode = revocationMode;
-        RefreshLanguage();
+        RefreshRow();
     }
 
     public void SetProgress(AnalysisProgress progress, double percent)
     {
-        var changedStage = Stage != progress.Stage;
-        Stage = progress.Stage;
-        if (Progress != percent)
+        var percentChanged = Progress != percent;
+        Progress = percent;
+
+        if (Stage != progress.Stage)
         {
-            Progress = percent;
-            OnPropertyChanged(nameof(Progress));
+            Stage = progress.Stage;
+            _details.Clear();
+            OnPropertyChanged(nameof(StateText));
+            OnPropertyChanged(nameof(Details));
         }
-        if (changedStage) OnPropertyChanged(nameof(StateText));
+
+        if (percentChanged) OnPropertyChanged(nameof(Progress));
     }
 
     public void Complete(FileAnalysisResult result)
     {
-        Result = result;
-        CatalogResult = CatalogPresentation.From(result.Catalogs);
-        RebuildSignatures();
-        RebuildHashText();
         State = result.Succeeded ? RowStatus.Completed : RowStatus.Failed;
         Progress = 100;
-        RefreshLanguage();
+        ApplyResult(result);
     }
 
     public void Cancel()
     {
         State = RowStatus.Cancelled;
-        RefreshLanguage();
+        RefreshRow();
     }
 
     public void RefreshLanguage()
     {
+        _details.Clear();
+        _catalogDetails.Clear();
         foreach (var signature in Signatures) signature.RefreshLanguage();
+        OnPropertyChanged(null);
+    }
+
+    private void RefreshRow()
+    {
+        _details.Clear();
+        OnPropertyChanged(null);
+    }
+
+    private void ApplyResult(FileAnalysisResult? result)
+    {
+        Result = result;
+        CatalogResult = CatalogPresentation.From(result?.Catalogs);
+        RebuildSignatures();
+        RebuildHashText();
+
+        _details.Clear();
+        _catalogDetails.Clear();
+        SignaturesChanged?.Invoke(this, EventArgs.Empty);
         OnPropertyChanged(null);
     }
 
@@ -227,7 +255,6 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
 
         Signatures = Array.AsReadOnly(entries.Select(entry => new SignatureOption(entry, strings)).ToArray());
         _selectedSignature = Signatures.Count > 0 ? Signatures[0] : default;
-        SignaturesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetHashFormat(HashFormat format)
@@ -236,7 +263,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         if (_hashFormat == format) return;
         _hashFormat = format;
         RebuildHashText();
-        OnPropertyChanged(null); // Includes Details and the values used by clipboard/search.
+        RefreshRow();
     }
 
     private void RebuildHashText()
@@ -256,13 +283,28 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
             || DigestSearch.Matches(Certificate?.ThumbprintSha1, CertificateSha1, _hashFormat, query)
             || DigestSearch.Matches(Certificate?.ThumbprintSha256, CertificateSha256, _hashFormat, query));
 
-    public bool Matches(string query) => query.Length == 0 || MatchesHash(query) || new[]
+    public bool Matches(string query)
     {
-        FullPath, SizeText, ModifiedText, StateText, SignatureText, SignatureChoiceText, SigningTimeText,
-        Publisher, Subject, Issuer, SerialNumber,
-        ValidFrom, ValidUntil, CertificateAlgorithm, NativeCode, Diagnostic, CatalogDetails
-    }.Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase)) ||
-        FileMetadataField.All.Any(definition => definition.Read(this).Contains(query, StringComparison.CurrentCultureIgnoreCase));
+        bool Contains(string value) => value.Contains(query, StringComparison.CurrentCultureIgnoreCase);
+
+        if (query.Length == 0 || Contains(FullPath) || MatchesHash(query)) return true;
+        if (Contains(SizeText) || Contains(ModifiedText) || Contains(StateText)) return true;
+
+        if (Contains(SignatureText) || Contains(SignatureChoiceText) || Contains(SigningTimeText)
+            || Contains(Publisher) || Contains(Subject) || Contains(Issuer) || Contains(SerialNumber)
+            || Contains(ValidFrom) || Contains(ValidUntil) || Contains(CertificateAlgorithm) || Contains(NativeCode))
+        {
+            return true;
+        }
+
+        if (Contains(Diagnostic)) return true;
+        foreach (var field in FileMetadataField.All)
+        {
+            if (Contains(field.Read(this))) return true;
+        }
+
+        return Contains(CatalogDetails);
+    }
 
     private string Hash(ChecksumAlgorithm algorithm) =>
         _hashText.GetValueOrDefault(algorithm, "");

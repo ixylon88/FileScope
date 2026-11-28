@@ -9,7 +9,7 @@ using FileScope.Core.Files;
 namespace FileScope.Presentation.Tests;
 
 [TestClass]
-public sealed class PresentationTests
+public sealed partial class PresentationTests
 {
     [AssemblyInitialize]
     public static void InitializeResources(TestContext _) =>
@@ -609,9 +609,13 @@ public sealed class PresentationTests
             "all signatures are selectable, including repeated certificates and failed entries");
         Assert.IsTrue(row.SigningTime == firstDate && row.SigningTimeText.Contains("verified") && row.Publisher == "First publisher",
             "primary timestamp and certificate belong to the same signature");
+        Assert.Contains("First publisher", row.Details);
+        var primaryLabel = row.Signatures[0].Label;
         var changes = 0;
         row.SignatureSelectionChanged += (_, _) => changes++;
         row.SetHashFormat(HashFormat.Base64);
+        Assert.AreSame(primaryLabel, row.SignatureChoiceText);
+        Assert.Contains("SHA256: AP8=", row.Details);
         row.SelectedSignature = row.Signatures[1];
         Assert.IsTrue(changes == 1 && row.SignatureState == SignatureStatus.Untrusted && row.NativeCode == "0x800B0109"
             && row.SignatureText == "5 | " + strings["Signature_Untrusted"]
@@ -638,6 +642,7 @@ public sealed class PresentationTests
         foreach (var language in strings.Languages)
         {
             strings.SetCulture(language.CultureName);
+            Assert.StartsWith(strings.Format("SignatureChoice", 3), row.SelectedSignature.Label);
             row.RefreshLanguage();
             Assert.IsTrue(row.SelectedSignature.Label.StartsWith(strings.Format("SignatureChoice", 3), StringComparison.CurrentCulture)
                 && !row.SigningTimeText.Contains('['), "signature labels and timestamp status translate / " + language.CultureName);
