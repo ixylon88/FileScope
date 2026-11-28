@@ -7,6 +7,37 @@ namespace DuplicateFinder.Ui.Tests;
 public sealed partial class WindowTests
 {
     [TestMethod]
+    public Task DiagnosticsIncludeIncompleteCatalogsAndExcludeCleanMisses() => WpfTestHost.RunAsync((_, strings) =>
+    {
+        var incomplete = FileAt("incomplete.bin", 1);
+        incomplete.Catalogs = new([], [], false);
+        var member = FileAt("member.bin", 1);
+        member.Catalogs = CatalogBadgeChecks.MixedLookup();
+        member.Diagnostic = "scan warning";
+        var cleanMiss = FileAt("no-match.bin", 1);
+        cleanMiss.Catalogs = new([], [], true);
+
+        var model = new ResultsViewModel();
+        model.Replace([incomplete, member, cleanMiss, FileAt("unchecked.bin", 0)]);
+        model.SelectedKind = ResultKind.Diagnostics;
+
+        foreach (var language in strings.Languages)
+        {
+            strings.SetCulture(language.CultureName);
+            model.Relocalize();
+            model.SearchText = strings["Incomplete"];
+            CollectionAssert.AreEquivalent(new[] { incomplete, member }, model.View.Cast<ResultRow>().Select(row => row.File).ToArray());
+            Assert.AreEqual(strings["Incomplete"], model.Rows[0].Diagnostic);
+            Assert.Contains("scan warning", model.Rows[1].Diagnostic!);
+            Assert.IsNull(model.Rows[2].Diagnostic);
+            Assert.IsNull(model.Rows[3].Diagnostic);
+
+            model.SearchText = "";
+            Assert.AreEqual(2, model.VisibleCount);
+        }
+    });
+
+    [TestMethod]
     public Task CatalogFiltersAndBadgesFollowTheLanguageAndKeepRecycleMarks() => WpfTestHost.RunAsync((app, strings) =>
     {
         var member = FileAt("member.bin", 1);

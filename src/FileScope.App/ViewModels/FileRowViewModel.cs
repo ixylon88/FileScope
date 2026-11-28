@@ -127,7 +127,7 @@ public sealed class FileRowViewModel(string path, LocalizationService strings, H
         Result.Diagnostic, SelectedSignature?.Value.Diagnostic ?? (Signatures.Count == 0 ? Result.Signature.Diagnostic : null),
         MetadataDiagnostic("PropertiesError", Result.Properties?.Diagnostic),
         MetadataDiagnostic("PeHeaderError", Result.PeHeader?.Diagnostic),
-        Result.Catalogs is { } lookup && CatalogPresentation.IsIncomplete(lookup) ? strings["Incomplete"] : null
+        CatalogPresentation.IncompleteDiagnostic(Result.Catalogs, strings)
     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     public string Details => _details[strings.Culture] ??= BuildDetails();

@@ -13,7 +13,17 @@ public sealed class ResultRow(FoundFile file, HashFormat hashFormat = HashFormat
     public FoundFile File { get; } = file;
     public bool Marked { get; set => SetProperty(ref field, value); }
     internal string? RecycleError { get; init; }
-    public string? Diagnostic => RecycleError ?? File.Diagnostic;
+    public string? Diagnostic
+    {
+        get
+        {
+            var error = RecycleError ?? File.Diagnostic;
+            var catalog = CatalogPresentation.IncompleteDiagnostic(File.Catalogs, Strings);
+            if (catalog is null) return error;
+
+            return error is null ? catalog : $"{error} — {catalog}";
+        }
+    }
 
     public int CurrentGroup
     {
