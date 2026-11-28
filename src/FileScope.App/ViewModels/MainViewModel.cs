@@ -36,6 +36,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _inspectFileProperties, _inspectPeHeader, _inspectCatalogs;
     private int _processed, _batchTotal, _skipped;
     private string _searchText = "";
+    private string _query = "";
     private FileNameFilter? _intakeFilter = new("");
     private string? _intakeFilterErrorKey;
     private int _intakeExcluded;
@@ -312,7 +313,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string SearchText
     {
         get => _searchText;
-        set { if (IsIdle && SetProperty(ref _searchText, value)) RefreshView(); }
+        set
+        {
+            if (!IsIdle || value == _searchText) return;
+
+            var query = value.Trim();
+            var refresh = query != _query;
+            _query = query;
+            _searchText = value;
+            OnPropertyChanged();
+            if (refresh) RefreshView();
+        }
     }
     public FilterOption<RowStatus?> StateFilter
     {
@@ -874,7 +885,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (item is not FileRowViewModel row) return false;
         if (StateFilter.Value is RowStatus status && row.State != status) return false;
         var matchesSignature = SignatureFilterOption.Value.Matches(row.SignatureState, row.SignatureMode, row.CatalogResult);
-        return matchesSignature && row.Matches(SearchText.Trim());
+        return matchesSignature && row.Matches(_query);
     }
 
     private void RefreshAfterStateChange()
@@ -883,7 +894,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         // Refresh sorted/filtered values after a result arrives. No refresh is
         // needed in the common unfiltered/unsorted view, avoiding repeated scans.
         if (StateFilter.Value is not null || SignatureFilterOption.Value != SignatureFilter.All
-            || SearchText.Length != 0 || RowsView.SortDescriptions.Count != 0)
+            || _query.Length != 0 || RowsView.SortDescriptions.Count != 0)
         {
             RefreshView();
         }
@@ -902,6 +913,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void ResetFilters()
     {
         _searchText = "";
+        _query = "";
         _stateFilter = StateFilters[0];
         _signatureFilter = SignatureFilters[0];
         OnPropertyChanged(nameof(SearchText));

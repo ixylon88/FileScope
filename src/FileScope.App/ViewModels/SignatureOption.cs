@@ -1,4 +1,3 @@
-using FileScope.App.Presentation;
 using FileScope.Core.Models;
 
 namespace FileScope.App.ViewModels;
