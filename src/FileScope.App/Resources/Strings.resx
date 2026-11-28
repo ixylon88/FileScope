@@ -192,12 +192,6 @@
   <data name="NoMatches" xml:space="preserve">
     <value>No files match the current filters.</value>
   </data>
-  <data name="DetailsTitle" xml:space="preserve">
-    <value>Selected file · full details / copy:</value>
-  </data>
-  <data name="DetailsHint" xml:space="preserve">
-    <value>Select a table row. The details are selectable and can be copied with Ctrl+C.</value>
-  </data>
   <data name="ProgressLabel" xml:space="preserve">
     <value>Analysis progress</value>
   </data>

@@ -159,9 +159,6 @@
   <data name="Path" xml:space="preserve">
     <value>Pfad</value>
   </data>
-  <data name="Details" xml:space="preserve">
-    <value>Ausgewählte Datei · Details und Kopieren:</value>
-  </data>
   <data name="Mark" xml:space="preserve">
     <value>Für den Papierkorb markieren</value>
   </data>

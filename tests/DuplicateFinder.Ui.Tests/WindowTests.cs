@@ -347,42 +347,27 @@ public sealed partial class WindowTests
         model.Replace([first, FileAt("backup.dat", 1)]);
         var window = ShowResults(model, new ThemeService(app));
         var grid = ExpandResults(window);
-        var panel = (Expander)window.FindName("DetailsExpander");
-        var path = (TextBlock)window.FindName("DetailsPath");
-        var details = (TextBox)window.FindName("DetailsBox");
-
+        var details = new SelectedFileDetailsChecks(window);
         var row = model.Rows[0];
-        Assert.IsFalse(panel.IsExpanded);
+        details.CheckSelectionAndCopy(grid, row, model.Rows[1], first.Path, row.Details);
+        Assert.AreEqual(0, model.MarkedCount);
+
         grid.SelectedItem = row;
-        grid.CurrentCell = new DataGridCellInfo(row, grid.Columns[1]);
-        panel.IsExpanded = true;
-        window.UpdateLayout();
-        Assert.AreEqual(first.Path, path.Text);
         var modifiedColumn = grid.Columns.Single(c => Equals(c.Header, strings["Modified"]));
         grid.ScrollIntoView(row, modifiedColumn);
         window.UpdateLayout();
         var expectedTime = date.ToString("g", strings.Culture) + " UTC";
         var modifiedCell = VisualChildren<DataGridCell>(grid).Single(cell => cell.Column == modifiedColumn && cell.DataContext == row);
         Assert.AreEqual(expectedTime, ((TextBlock)modifiedCell.Content).Text);
-        Assert.Contains(expectedTime, details.Text);
-
-        details.Focus();
-        grid.CurrentCell = new DataGridCellInfo();
-        details.SelectAll();
-        Assert.AreEqual(row.Details, details.SelectedText);
-        Assert.IsTrue(ApplicationCommands.Copy.CanExecute(null, details));
-        Assert.AreEqual(0, model.MarkedCount);
-        panel.IsExpanded = false;
-        panel.IsExpanded = true;
-        Assert.AreEqual(row.Details, details.Text);
+        Assert.Contains(expectedTime, details.Editor.Text);
 
         grid.SelectedItem = model.Rows[1];
-        Assert.AreEqual("backup.dat", path.Text);
+        Assert.AreEqual("backup.dat", details.Path.Text);
         Assert.AreEqual("", model.Rows[1].ModifiedText);
         model.Filter("no matches", ResultKind.AllFiles, SignatureFilter.All);
         window.UpdateLayout();
-        Assert.AreEqual("", details.Text);
-        Assert.AreEqual("", path.Text);
+        Assert.AreEqual("", details.Editor.Text);
+        Assert.AreEqual("", details.Path.Text);
     });
 
     [TestMethod]
@@ -407,7 +392,7 @@ public sealed partial class WindowTests
         var cancel = (Button)window.FindName("CancelButton");
         var options = (Button)window.FindName("OptionsButton");
         Assert.IsTrue(options.IsEnabled && options.Command.CanExecute(null));
-        var header = (TextBlock)window.FindName("DetailsPath");
+        var header = new SelectedFileDetailsChecks(window).Path;
         var meter = (ProgressBar)window.FindName("Meter");
         Assert.AreEqual(Visibility.Hidden, meter.Visibility);
         var idleWidth = meter.DesiredSize.Width;

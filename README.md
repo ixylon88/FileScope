@@ -383,7 +383,7 @@ Automatisierte Tests und Logging erfüllen unterschiedliche Aufgaben: Tests prü
 | Projekt / Komponente | Aufgabe |
 | --- | --- |
 | `FileScope.App` | WPF-Fenster, gruppiertes Menüband aus nativen Controls, DataGrid, ViewModels, Commands, Lokalisierung, Dateiauswahldialog und Drag-and-drop-Behavior. |
-| `FileScope.Shared` | Gemeinsame Signaturcodes, Tabellenfilter, Katalogdarstellung und Übersetzungen. Die Windows-Ausgabe enthält zusätzlich Fluent-Stile, Farbpaletten, Statusfelder und die Dialoge für Programminformationen und Tastenkürzel. |
+| `FileScope.Shared` | Gemeinsame Signaturcodes, Tabellenfilter, Katalogdarstellung und Übersetzungen. Die Windows-Ausgabe enthält zusätzlich Fluent-Stile, Farbpaletten, Statusfelder, die aufklappbaren Dateidetails und die Dialoge für Programminformationen und Tastenkürzel. |
 | `FileScope.Core` | Geschäftslogik: Modelle, Analysevertrag, Streaming-Prüfsummen, Strategiefabrik, Dateieigenschaften, PE-Header und Windows-Signaturprüfung. Keine WPF-Abhängigkeit. |
 | `MainViewModel` | Koordiniert Benutzeraktionen, Status und gefilterte Ergebnisansicht. Berechnet selbst keine Hashwerte. |
 | `FileAnalysisService` | Orchestriert Dateizugriff, Prüfsummen, optionale Metadatenprüfer und Signaturstrategie. Liefert typisierte Resultate ohne UI-Texte zurück. |

@@ -159,9 +159,6 @@
   <data name="Path" xml:space="preserve">
     <value>路径</value>
   </data>
-  <data name="Details" xml:space="preserve">
-    <value>所选文件 · 详细信息与复制：</value>
-  </data>
   <data name="Mark" xml:space="preserve">
     <value>勾选以移到回收站</value>
   </data>

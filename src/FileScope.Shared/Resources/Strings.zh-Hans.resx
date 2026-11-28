@@ -123,6 +123,12 @@
   <data name="OptionsTitle" xml:space="preserve">
     <value>选项</value>
   </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>所选文件 · 完整详情 / 复制：</value>
+  </data>
+  <data name="DetailsHint" xml:space="preserve">
+    <value>选择表格中的一行。可选择详情文本并按 Ctrl+C 复制。</value>
+  </data>
   <data name="AboutButton" xml:space="preserve">
     <value>关于…</value>
   </data>

@@ -192,12 +192,6 @@
   <data name="NoMatches" xml:space="preserve">
     <value>没有符合当前筛选条件的文件。</value>
   </data>
-  <data name="DetailsTitle" xml:space="preserve">
-    <value>所选文件 · 完整详情 / 复制：</value>
-  </data>
-  <data name="DetailsHint" xml:space="preserve">
-    <value>选择表格中的一行。可选择详情文本并按 Ctrl+C 复制。</value>
-  </data>
   <data name="ProgressLabel" xml:space="preserve">
     <value>分析进度</value>
   </data>
