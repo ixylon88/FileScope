@@ -63,12 +63,9 @@ public sealed partial class WindowsTests
             var copy = Path.Combine(root.FullName, "member-copy.txt");
             File.Copy(member, copy);
             var cat = Path.Combine(root.FullName, "loose.CaT");
-            using (var resource = typeof(WindowsTests).Assembly.GetManifestResourceStream("DuplicateFinder.Tests.loose.cat"))
-            using (var output = File.Create(cat))
-            {
-                Assert.IsNotNull(resource);
-                resource.CopyTo(output);
-            }
+            WriteLooseCatalog(cat);
+            var alias = Path.Combine(root.FullName, "same-catalog.cat");
+            if (CreateHardLinkW(alias, cat, 0) == 0) throw new Win32Exception();
 
             // The catalog is outside the intake range and still describes the admitted file.
             var options = new SearchOptions([], false, true, RevocationMode.OfflineCache)
@@ -86,7 +83,8 @@ public sealed partial class WindowsTests
             Assert.IsTrue(found.IndexComplete);
             Assert.IsEmpty(found.Issues, string.Join(Environment.NewLine, found.Issues));
             var sha256 = Convert.ToHexString(SHA256.HashData(original));
-            var match = found.Matches.SingleOrDefault(m => m.Path == cat && string.Equals(m.Member, sha256, StringComparison.OrdinalIgnoreCase));
+            var match = found.Matches.SingleOrDefault(m => (m.Path == cat || m.Path == alias)
+                && string.Equals(m.Member, sha256, StringComparison.OrdinalIgnoreCase));
             Assert.IsNotNull(match, $"Expected SHA-256 catalog member {sha256}. Returned tags: {string.Join(", ", found.Matches.Select(m => m.Member))}");
             Assert.IsFalse(match.Registered);
             Assert.AreNotEqual(SignatureStatus.Valid, match.Trust.Status);
@@ -106,6 +104,14 @@ public sealed partial class WindowsTests
             Assert.IsFalse(invalidIndex.Inspect(changed, RevocationMode.OfflineCache).IndexComplete);
         }
         finally { root.Delete(true); }
+    }
+
+    internal static void WriteLooseCatalog(string path)
+    {
+        using var resource = typeof(WindowsTests).Assembly.GetManifestResourceStream("DuplicateFinder.Tests.loose.cat");
+        using var output = File.Create(path);
+        Assert.IsNotNull(resource);
+        resource.CopyTo(output);
     }
 
     [STATestMethod]
