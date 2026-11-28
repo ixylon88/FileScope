@@ -235,12 +235,7 @@ public sealed class DuplicateScanner
             token.ThrowIfCancellationRequested();
             // A hash collision can yield several actual groups. Compare against a
             // representative of EACH class rather than dropping nonmatching peers.
-            var mainClasses = Partition(bucket, (a, b) =>
-            {
-                using var left = FileAccessChecks.OpenVerified(a, _facts);
-                using var right = FileAccessChecks.OpenVerified(b, _facts);
-                return BinaryComparison.Equal(left, right, token);
-            }, progress, token);
+            var mainClasses = Partition(bucket, namedStreams: false, progress, token);
 
             foreach (var group in mainClasses.Where(g => g.Count > 1))
             {
@@ -259,12 +254,7 @@ public sealed class DuplicateScanner
                     catch (Exception ex) when (FileAccessChecks.Expected(ex)) { file.Diagnostic = ex.Message; }
                 }
 
-                var variants = Partition(group.Where(f => f.Manifest != null), (a, b) =>
-                {
-                    using var left = FileAccessChecks.OpenVerified(a, _facts);
-                    using var right = FileAccessChecks.OpenVerified(b, _facts);
-                    return BinaryComparison.EqualNamed(a, b, token);
-                }, progress, token);
+                var variants = Partition(group.Where(f => f.Manifest != null), namedStreams: true, progress, token);
                 foreach (var peers in variants)
                 {
                     var variant = ++nextVariant;
@@ -279,23 +269,47 @@ public sealed class DuplicateScanner
         }
     }
 
-    private static List<List<FoundFile>> Partition(IEnumerable<FoundFile> candidates,
-        Func<FoundFile, FoundFile, bool> equal, IProgress<ScanProgress>? progress, CancellationToken token)
+    private List<List<FoundFile>> Partition(IEnumerable<FoundFile> candidates, bool namedStreams,
+        IProgress<ScanProgress>? progress, CancellationToken token)
     {
         var classes = new List<List<FoundFile>>();
         foreach (var file in candidates)
         {
             token.ThrowIfCancellationRequested();
             progress?.Report(new("Compare", file.Path, 0, 0));
-            try
-            {
-                var peers = classes.Find(group => equal(group[0], file));
-                if (peers == null) classes.Add([file]);
-                else peers.Add(file);
-            }
-            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { file.Diagnostic = ex.Message; }
+            AddToClass(file);
         }
 
         return classes;
+
+        void AddToClass(FoundFile candidate)
+        {
+            for (var index = 0; index < classes.Count;)
+            {
+                token.ThrowIfCancellationRequested();
+                var peers = classes[index];
+                try
+                {
+                    if (BinaryComparison.CompareFiles(peers[0], candidate, _facts, namedStreams, token))
+                    {
+                        peers.Add(candidate);
+                        return;
+                    }
+
+                    index++;
+                }
+                catch (ComparisonReadException ex)
+                {
+                    ex.File.Diagnostic = ex.Message;
+                    if (ReferenceEquals(ex.File, candidate)) return;
+
+                    // Retry the same candidate against the next confirmed peer or the next class.
+                    peers.RemoveAt(0);
+                    if (peers.Count == 0) classes.RemoveAt(index);
+                }
+            }
+
+            classes.Add([candidate]);
+        }
     }
 }
