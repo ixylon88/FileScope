@@ -22,15 +22,22 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
 
     /// <summary>Filters files using the metadata returned by directory enumeration, before collecting their paths.</summary>
     public FolderScanResult Scan(string folderPath, Func<FileInfo, bool>? includeFile,
-        Action<string>? enteringDirectory, CancellationToken cancellationToken = default)
+        Action<string>? enteringDirectory, CancellationToken cancellationToken = default) =>
+        Scan(folderPath, includeFile, enteringDirectory, completedDirectories: null, cancellationToken);
+
+    /// <summary>Share completed directories between roots of the same search to skip previously listed subtrees.</summary>
+    public FolderScanResult Scan(string folderPath, Func<FileInfo, bool>? includeFile,
+        Action<string>? enteringDirectory, ISet<string>? completedDirectories, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
         cancellationToken.ThrowIfCancellationRequested();
         var root = Path.GetFullPath(folderPath);
+        if (completedDirectories != null) root = Path.TrimEndingDirectorySeparator(root);
         var pending = new Stack<string>();
         var files = new List<string>();
         var issues = new List<FolderScanIssue>();
         var skippedLinks = 0;
+        List<string>? listed = completedDirectories is null ? null : [];
         pending.Push(root);
         var options = new EnumerationOptions
         {
@@ -43,6 +50,8 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
         while (pending.TryPop(out var directory))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (completedDirectories?.Contains(directory) == true) continue;
+
             try
             {
                 enteringDirectory?.Invoke(directory);
@@ -72,6 +81,8 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
                         pending.Push(entry.FullName);
                     }
                 }
+
+                listed?.Add(directory);
             }
             catch (Exception ex) when (directory != root && ex is IOException or UnauthorizedAccessException
                 or System.Security.SecurityException)
@@ -80,6 +91,19 @@ public sealed class FolderScanner(Func<string, bool>? skipDirectory) : IFolderSc
                 issues.Add(new FolderScanIssue(directory, ex.Message));
             }
         }
+
+        if (completedDirectories != null)
+        {
+            completedDirectories.UnionWith(listed!);
+            foreach (var issue in issues)
+            {
+                // A later root may retry this branch. Its completed siblings can still be skipped.
+                var parent = Path.GetDirectoryName(issue.Path);
+                while (parent != null && completedDirectories.Remove(parent))
+                    parent = Path.GetDirectoryName(parent);
+            }
+        }
+
         return new FolderScanResult(files.AsReadOnly(), issues.AsReadOnly(), skippedLinks);
     }
 }

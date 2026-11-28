@@ -112,15 +112,19 @@ public sealed class DuplicateScanner
             }
         }
 
-        foreach (var selected in roots.OrderByDescending(r => r.Priority))
+        var orderedRoots = OrderRoots(roots, issues, token);
+        HashSet<string>? completedDirectories = HasOverlappingRoots(orderedRoots)
+            ? new(OperatingSystem.IsWindows() ? new DirectoryPathComparer(WindowsFileFacts.TryReadDirectoryKey) : StringComparer.Ordinal) : null;
+        foreach (var root in orderedRoots)
         {
             token.ThrowIfCancellationRequested();
             try
             {
-                var root = selected with { Path = Path.GetFullPath(selected.Path) };
                 ReportSearch(root.Path);
                 FileAccessChecks.CheckPath(root.Path);
-                var found = scanner.Scan(root.Path, IncludeFile, ReportSearch, token);
+                if (completedDirectories?.Contains(root.Path) == true) continue;
+
+                var found = scanner.Scan(root.Path, IncludeFile, ReportSearch, completedDirectories, token);
                 ReportSearch(root.Path);
                 issues.AddRange(found.Issues.Select(i => new ScanIssue(i.Path, i.Message)));
 
@@ -164,10 +168,46 @@ public sealed class DuplicateScanner
                     files.Add(new FoundFile(path, root) { Stamp = stamp });
                 }
             }
-            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { issues.Add(new(selected.Path, ex.Message)); }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { issues.Add(new(root.Path, ex.Message)); }
         }
 
         return files;
+    }
+
+    private static List<SearchRoot> OrderRoots(IReadOnlyList<SearchRoot> roots, List<ScanIssue> issues, CancellationToken token)
+    {
+        var ordered = new List<SearchRoot>(roots.Count);
+        foreach (var root in roots.OrderByDescending(root => root.Priority))
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                var path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root.Path));
+                ordered.Add(root with { Path = path });
+            }
+            catch (Exception ex) when (FileAccessChecks.Expected(ex)) { issues.Add(new(root.Path, ex.Message)); }
+        }
+
+        return ordered;
+    }
+
+    private static bool HasOverlappingRoots(List<SearchRoot> roots)
+    {
+        if (roots.Count < 2) return false;
+
+        var selected = roots.Select(root => root.Path).ToHashSet(
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        if (selected.Count < roots.Count) return true;
+
+        foreach (var root in roots)
+        {
+            for (var parent = Path.GetDirectoryName(root.Path); parent != null; parent = Path.GetDirectoryName(parent))
+            {
+                if (selected.Contains(parent)) return true;
+            }
+        }
+
+        return false;
     }
 
     private static IEnumerable<string> CatalogsToIndex(Dictionary<FileKey, string>? catalogs, IProgress<ScanProgress>? progress)
@@ -261,8 +301,9 @@ public sealed class DuplicateScanner
                     foreach (var file in peers)
                     {
                         file.Variant = variant;
+                        // Two verified peers still match when another file's streams were unreadable.
                         file.Streams = variants.Count > 1 ? StreamComparison.Different :
-                            peers.Count == group.Count ? StreamComparison.Identical : StreamComparison.Unknown;
+                            peers.Count > 1 ? StreamComparison.Identical : StreamComparison.Unknown;
                     }
                 }
             }

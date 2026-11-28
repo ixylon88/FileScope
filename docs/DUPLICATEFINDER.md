@@ -2,6 +2,8 @@
 
 DuplicateFinder findet binär identische Dateien in mehreren frei wählbaren Suchordnern. Jeder Suchordner erhält eine **Aufbewahrungspriorität**. Eine höhere Zahl bedeutet, dass seine Dateien bevorzugt erhalten bleiben. Fällt ein Pfad in mehrere Suchordner, zählt er einmal mit der höchsten zutreffenden Priorität.
 
+Werden etwa `Archiv` und `Archiv\Fotos` ausgewählt, durchsucht DuplicateFinder den gemeinsamen Teilbaum pro Suchlauf einmal. War ein Unterordner vorübergehend unlesbar, kann der zweite Suchordner ihn erneut erfassen. Bereits vollständig durchsuchte Nachbarordner werden dabei übersprungen.
+
 ## Starten
 
 In Visual Studio `DuplicateFinder.App` als Startprojekt wählen. In VS Code den Workspace `FileScope.code-workspace` öffnen und unter **Terminal → Task ausführen** den zur Windows-Architektur passenden Task **DuplicateFinder: Run (win-x64)** oder **DuplicateFinder: Run (win-arm64)** wählen. Dieselben Skripte lassen sich im Repository direkt aufrufen.
@@ -77,6 +79,8 @@ Ein benannter NTFS-Datenstrom kann Metadaten wie die Herkunftszone (`Zone.Identi
 
 Die Tabelle unterscheidet „Alle Datenströme identisch“, „Hauptdatenstrom identisch · Zusatzdatenströme unterschiedlich“ und „Hauptdatenstrom identisch · Zusatzdatenströme nicht vollständig geprüft“. Bei unterschiedlichen Zusatzdatenströmen gelten die Aufbewahrungsregeln innerhalb jeder vollständig identischen Variante. Bei unvollständiger Prüfung wird die betroffene Datei bei **Bereinigen** übersprungen.
 
+Stimmen A und B einschließlich aller Datenströme überein, kann **Bereinigen** die Kopie mit der niedrigeren Priorität vorschlagen. Das gilt auch dann, wenn die Zusatzdatenströme einer dritten Datei C unlesbar sind. Bei gleicher Priorität bleiben A und B beide erhalten.
+
 Die Signaturprüfung übernimmt die eingebetteten Signaturen, Statuswerte und Sperrprüfungsmodi von FileScope. Die zusätzliche Katalogsuche erfasst lose `.cat`-Dateien in den Suchordnern und fragt die registrierten Windows-Kataloge über den Mitgliedshash ab. Für die registrierten Kataloge werden die SHA-1- und SHA-256-Kontexte verwendet. Bei losen Katalogen werden auch SHA-384 und SHA-512 berücksichtigt. Kataloge werden direkt geprüft. Eine Installation ist dafür überflüssig. [Microsoft Learn zur automatischen und expliziten Katalogprüfung](https://learn.microsoft.com/en-us/windows/win32/seccrypto/using-signtool-to-verify-a-file-signature)
 
 Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei zum signierten Eintrag passt und Windows die Vertrauensprüfung des Katalogs erfolgreich abschließt. Die Ergebnisansicht zeigt die Quelle (eingebettet oder Katalog) und bei einem Katalogtreffer den Katalogpfad. Liefert eine abgeschlossene Suche keinen Treffer, erscheint „Kein passender Katalog gefunden“. Die Entscheidung über Duplikate beruht auf dem Binärvergleich. [FileScope zur Signaturprüfung](../README.md#zertifikatsprüfung-genaue-bedeutung)
@@ -88,6 +92,7 @@ Ein Katalogtreffer gilt als vertrauenswürdig, wenn der Mitgliedshash der Datei 
 
 | Native Schnittstelle | Aufgabe |
 | --- | --- |
+| `CreateFileW` | Öffnet Verzeichnisse für eine Metadatenabfrage, wenn zwei Pfade sich nur in der Groß- und Kleinschreibung unterscheiden. Nur bei übereinstimmender Volume- und Verzeichnis-ID kann DuplicateFinder den zweiten Besuch überspringen. |
 | `GetFileInformationByHandleEx` | Liefert Datei-ID, Volume, Linkanzahl, Änderungskennung und die Liste benannter Datenströme. Bei älteren Providern dient der Dateiindex aus `GetFileInformationByHandle` als Alternative. Ohne verlässliche Identität erscheint eine Diagnose. |
 | `CryptCATEnumerateMember` und `CryptCATAdminCalcHashFromFileHandle2` | Lesen Mitgliedseinträge loser Kataloge und berechnen den zum Dateiformat gehörenden Mitgliedshash. Windows kann dafür weitere Dateidaten lesen. |
 | `CryptCATAdminEnumCatalogFromHash` und `WinVerifyTrust` | Finden registrierte Kataloge und prüfen den konkreten Mitgliedseintrag samt Katalogsignatur. Die Detailansicht unterscheidet eingebettete Signaturen, registrierte und lose Kataloge sowie eine unvollständige Suche. |

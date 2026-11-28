@@ -11,9 +11,8 @@ namespace DuplicateFinder.Core.Files;
 /// <summary>Reads identity, link count and named data streams from the opened Windows file.</summary>
 internal sealed partial class WindowsFileFacts : IFileFacts
 {
-    public unsafe FileStamp Read(FileStream file)
+    private static unsafe FileId ReadId(SafeFileHandle handle)
     {
-        var handle = file.SafeFileHandle;
         // FILE_ID_INFO contains a volume serial and a 128-bit ID (including on ReFS).
         FileId id = default;
         if (!GetFileInformationByHandleEx(handle, 18, &id, (uint)sizeof(FileId)))
@@ -29,6 +28,14 @@ internal sealed partial class WindowsFileFacts : IFileFacts
             BinaryPrimitives.WriteUInt32LittleEndian(bytes[4..], legacy.IndexHigh);
             id = new FileId { Volume = legacy.Volume, Id = new Guid(bytes) };
         }
+
+        return id;
+    }
+
+    public unsafe FileStamp Read(FileStream file)
+    {
+        var handle = file.SafeFileHandle;
+        var id = ReadId(handle);
 
         // FILE_BASIC_INFO and FILE_STANDARD_INFO are read through the same handle.
         // ChangeTime also changes on metadata/stream edits that preserve LastWriteTime.
@@ -48,6 +55,24 @@ internal sealed partial class WindowsFileFacts : IFileFacts
 
         return new(new(id.Volume, id.Id), standard.EndOfFile, DateTime.FromFileTimeUtc(basic.Written),
             basic.Changed, standard.Links);
+    }
+
+    internal static FileKey? TryReadDirectoryKey(string path)
+    {
+        // BACKUP_SEMANTICS opens directories. OPEN_REPARSE_POINT identifies a link itself.
+        // FILE_READ_ATTRIBUTES requests metadata only. The handle permits concurrent reads, writes and renames.
+        const uint readAttributes = 0x0080;
+        const uint directoryFlags = 0x02000000 | 0x00200000;
+        using var directory = CreateFileW(path, readAttributes, FileShare.ReadWrite | FileShare.Delete,
+            0, FileMode.Open, directoryFlags, 0);
+        if (directory.IsInvalid) return null;
+
+        try
+        {
+            var id = ReadId(directory);
+            return id.Id == Guid.Empty ? null : new(id.Volume, id.Id);
+        }
+        catch (Win32Exception) { return null; }
     }
 
     public unsafe IReadOnlyList<NamedStream> Streams(FileStream file)
@@ -119,6 +144,11 @@ internal sealed partial class WindowsFileFacts : IFileFacts
         internal uint Attributes, CreatedLow, CreatedHigh, AccessedLow, AccessedHigh, WrittenLow, WrittenHigh;
         internal uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
     }
+
+    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static partial SafeFileHandle CreateFileW(string path, uint access, FileShare share, nint security,
+        FileMode disposition, uint flags, nint template);
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
